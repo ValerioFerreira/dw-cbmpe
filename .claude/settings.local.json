@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la \"C:\\\\Users\\\\10341953440\\\\Downloads\" 2>&1 | head -100)",
+      "Bash(awk '{ print length, NR }' \"C:\\\\Users\\\\10341953440\\\\Downloads\\\\index.html\")",
+      "Bash(awk 'NR==123 { print substr\\($0, 1, 300\\) }' \"C:\\\\Users\\\\10341953440\\\\Downloads\\\\index.html\")",
+      "Bash(awk 'NR!=123' \"C:\\\\Users\\\\10341953440\\\\Downloads\\\\index.html\" > \"C:\\\\Users\\\\10341953440\\\\Downloads\\\\index_noimg.html\"; wc -l \"C:\\\\Users\\\\10341953440\\\\Downloads\\\\index_noimg.html\"; wc -c \"C:\\\\Users\\\\10341953440\\\\Downloads\\\\index_noimg.html\")"
+    ]
+  }
+}
