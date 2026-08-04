@@ -46,7 +46,7 @@ export default function OrgNodeCard({ unidade, variant = "card" }) {
             <Users className="h-3 w-3" /> {unidade.efetivo.toLocaleString("pt-BR")}
           </span>
         )}
-        {filhos > 0 && <span>{filhos} subordinada{filhos > 1 ? "s" : ""}</span>}
+        {filhos > 0 && <span>{filhos} vinculada{filhos > 1 ? "s" : ""}</span>}
         <span className="ml-auto inline-flex items-center gap-1 font-medium text-foreground opacity-0 transition-opacity group-hover:opacity-100">
           Acessar <ChevronRight className="h-3 w-3" />
         </span>

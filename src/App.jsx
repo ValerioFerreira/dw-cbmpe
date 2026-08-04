@@ -14,6 +14,7 @@ import DashboardDetalhe from '@/pages/DashboardDetalhe';
 import Indicador from '@/pages/Indicador';
 import Submodulo from '@/pages/Submodulo';
 import Detalhamento from '@/pages/Detalhamento';
+import EmConstrucao from '@/pages/EmConstrucao';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
@@ -49,6 +50,7 @@ const AuthenticatedApp = () => {
           <Route path="/indicador/:id" element={<Indicador />} />
           <Route path="/submodulo/:id/:modulo" element={<Submodulo />} />
           <Route path="/detalhamento/:id/:modulo" element={<Detalhamento />} />
+          <Route path="/em-construcao/:nome" element={<EmConstrucao />} />
         </Route>
         <Route path="*" element={<PageNotFound />} />
       </Routes>

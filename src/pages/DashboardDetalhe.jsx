@@ -171,7 +171,7 @@ export default function DashboardDetalhe() {
             </div>
 
             <div className="space-y-6">
-              <SectionCard titulo="Ranking de Unidades" subtitulo="Performance por unidade subordinada">
+              <SectionCard titulo="Ranking de Unidades" subtitulo="Performance por unidade vinculada">
                 {ranking.length > 0 ? <PanelGrafico tipo="bar" data={ranking} xKey="label" yKeys={["valor"]} altura={240} /> : <GraficoVazio />}
               </SectionCard>
 

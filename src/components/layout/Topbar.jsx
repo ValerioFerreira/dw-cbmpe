@@ -49,21 +49,21 @@ export default function Topbar({ caminho = [], onOpenSearch, onOpenMobileNav, ti
           <span className="truncate text-[13px] text-muted-foreground">Buscar unidades, dashboards...</span>
         </button>
 
-        <div className="flex flex-1 items-center justify-end gap-1.5 lg:gap-2.5">
+        <div className="flex flex-1 items-center justify-end gap-1 lg:gap-2.5">
           {titulo && <span className="hidden text-[13px] font-medium text-muted-foreground lg:inline">{titulo}</span>}
           <Link
             to="/organograma"
             aria-label="Ir para o Organograma"
-            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden"
+            className="inline-flex h-10 shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-2 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden"
           >
-            <Network className="h-4 w-4" />
-            <span>Organograma</span>
+            <Network className="h-4 w-4 shrink-0" />
+            <span className="whitespace-nowrap">Organograma</span>
           </Link>
           <ThemeToggle />
           <button
             onClick={() => window.print()}
             aria-label="Gerar PDF desta página"
-            className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-primary px-2.5 text-[12px] font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 lg:px-3.5 lg:py-2.5"
+            className="inline-flex h-10 shrink-0 items-center gap-1 rounded-lg bg-primary px-2 text-[12px] font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 lg:gap-1.5 lg:px-3.5 lg:py-2.5"
           >
             <FileDown className="h-3.5 w-3.5 shrink-0" />
             <span className="lg:hidden">PDF</span>

@@ -162,7 +162,7 @@ export default function Diretoria() {
       {/* Setores vinculados e seus indicadores */}
       {temSetoresVinculados && (
         <SectionCard
-          titulo="Setores Vinculados"
+          titulo="Setores Vinculados à OME"
           subtitulo={
             filhosDiretos.length > 0
               ? `${filhosDiretos.length} unidades vinculadas`
@@ -175,7 +175,7 @@ export default function Diretoria() {
             <table className="w-full min-w-[720px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-border text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  <th className="p-2.5 text-left">Seção / Divisão / Grupamento</th>
+                  <th className="p-2.5 text-left">Setores</th>
                   {KPI_BASES.map((nome) => <th key={nome} className="p-2.5 text-right">{nome}</th>)}
                 </tr>
               </thead>

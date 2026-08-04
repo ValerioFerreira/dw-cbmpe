@@ -137,7 +137,7 @@ export default function Submodulo() {
           <div>
             <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">{moduloInfo.nome}</h1>
             <p className="mt-0.5 text-[13px] text-muted-foreground">{ind.nome} · {unidade?.nome}</p>
-            <p className="mt-1.5 text-[11px] text-muted-foreground">{subs.length} unidades subordinadas analisadas</p>
+            <p className="mt-1.5 text-[11px] text-muted-foreground">{subs.length} unidades vinculadas analisadas</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
