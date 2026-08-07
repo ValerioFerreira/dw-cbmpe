@@ -516,6 +516,34 @@ apurado: R$ 2.310.957,65 somados em 40 unidades.
 **Motivo**: mesmo motivo de Efetivo/Viaturas — minimizar risco de leitura
 incorreta numa apresentação institucional.
 
+### 2026-08-07 — Exceção deliberada à minimização de dados: tabela nominal de Efetivo e relação de Viaturas por unidade
+**Decisão**: ao clicar no indicador de Efetivo ou Viaturas de uma unidade,
+o painel mostra uma tabela — Posto/Graduação + Matrícula + Nome de Guerra
+por militar (própria unidade, não agregado com subordinadas); Placa +
+Modelo por viatura — com cada linha levando a uma página de detalhe
+("Dados do Militar" / "Dados da Viatura") propositalmente **em
+manutenção**. Isso é uma exceção **deliberada e explícita** ao princípio
+de só publicar contagem agregada seguido em todo o resto do projeto
+(Efetivo/Viaturas/Finanças): esses três campos por militar e os dois por
+viatura passam a existir num JSON commitado e servido publicamente pela
+Vercel, **sem autenticação** (`authClient.js` continua sendo só um stub —
+pendência já registrada abaixo). Apresentei o risco (dado identificável +
+questão de segurança operacional, tratando-se de órgão de segurança
+pública) antes de implementar; o usuário confirmou seguir mesmo assim
+como MVP. Campos deliberadamente **fora** da tabela/JSON: nome completo,
+data de nascimento, sexo, endereço/telefone, saúde, chassi, patrimônio —
+só os campos explicitamente pedidos saem do Neon.
+**Pipeline**: `windmill-neon.py` (Efetivo, no Downloads do usuário) e
+`windmill-viaturas.py` (Viaturas, no Desktop) foram estendidos para gravar
+`nomeGuerra` e `placa`/`marca`/`modelo`, respectivamente, no Neon — campos
+que existiam na fonte mas nunca tinham sido sincronizados. Os scripts
+locais (`extract_efetivo.py`, `extract_viaturas.py`) agora também geram
+`src/data/real/efetivo_lista.json` e `src/data/real/viaturas_lista.json`
+(por unidade), além dos agregados já existentes.
+**Motivo**: pedido explícito do usuário, com o trade-off de exposição
+pública apresentado e confirmado antes de qualquer código ser escrito —
+`DW_PROCESSO_INTEGRACAO.md`.
+
 ## Pendências práticas (não bloqueiam o planejamento, mas são pré-requisito de implementação)
 
 - **Workspace do Windmill**: ainda precisa ser criado pelo usuário

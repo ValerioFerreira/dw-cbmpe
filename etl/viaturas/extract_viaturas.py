@@ -1,16 +1,18 @@
 # requirements:
 # psycopg2-binary
-"""Extração pontual de Viaturas (contagem agregada por unidade) a partir do
-banco Neon "Viatura" (sincronizado do sistema de frotas via Windmill), para
-popular src/data/real/viaturas.json.
+"""Extração pontual de Viaturas a partir do banco Neon "Viatura"
+(sincronizado do sistema de frotas via Windmill), para popular
+src/data/real/viaturas.json (contagem agregada por unidade) e
+src/data/real/viaturas_lista.json (relação por unidade — Placa, Modelo).
 
 Uso:
     DATABASE_URL_VIATURAS=postgresql://... python extract_viaturas.py
 
-Só grava contagens agregadas por unidade — nenhum dado individual de
-viatura (placa, chassi, patrimônio etc.) sai daqui, mesma decisão de
-minimização usada em extract_efetivo.py (o JSON gerado é commitado e
-servido publicamente).
+O viaturas.json só tem contagens agregadas (decisão de minimização, mesma
+usada em extract_efetivo.py). O viaturas_lista.json é uma exceção
+deliberada e confirmada com o usuário (ver DW_PLANEJAMENTO.md,
+2026-08-07): expõe placa + modelo por unidade, para a tabela de viaturas
+na página de Indicador — nunca chassi ou patrimônio.
 """
 import json
 import os
@@ -22,6 +24,7 @@ import psycopg2
 ROOT = Path(__file__).resolve().parents[2]
 MAPEAMENTO_PATH = Path(__file__).resolve().parent / "mapeamento_unidades.json"
 OUTPUT_PATH = ROOT / "src" / "data" / "real" / "viaturas.json"
+OUTPUT_LISTA_PATH = ROOT / "src" / "data" / "real" / "viaturas_lista.json"
 
 
 def main():
@@ -37,6 +40,14 @@ def main():
         GROUP BY "omeId";
     """)
     contagem_por_ome_id = dict(cur.fetchall())
+
+    cur.execute("""
+        SELECT "omeId", placa, marca, modelo, tipo
+        FROM "Viatura"
+        ORDER BY tipo ASC NULLS LAST, placa ASC NULLS LAST;
+    """)
+    viaturas_detalhe = cur.fetchall()
+
     cur.close()
     conn.close()
 
@@ -86,6 +97,35 @@ def main():
         print(f"Sem transferência registrada (nenhuma OME conhecida): {sem_transferencia}")
     if desconsiderados:
         print(f"Desconsiderados (fora do organograma, confirmado com o usuário): {desconsiderados}")
+
+    # -------------------------
+    # Relação de placa/modelo por unidade (só campos confirmados com o
+    # usuário — ver docstring do módulo)
+    # -------------------------
+    lista_por_unidade = {}
+    for ome_id, placa, marca, modelo, _tipo in viaturas_detalhe:
+        if ome_id is None:
+            continue
+        sigla = mapeamento.get(str(ome_id))
+        if not sigla:
+            continue
+        lista_por_unidade.setdefault(sigla, []).append({
+            "placa": placa,
+            "modelo": " ".join(p for p in [marca, modelo] if p) or None,
+        })
+
+    OUTPUT_LISTA_PATH.write_text(
+        json.dumps(
+            {
+                "fonte": "Neon (tabela Viatura)",
+                "gerado_em": datetime.now(timezone.utc).isoformat(),
+                "por_unidade": lista_por_unidade,
+            },
+            ensure_ascii=False, indent=2, sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+    print(f"Relação de Viaturas gravada em {OUTPUT_LISTA_PATH}")
 
 
 if __name__ == "__main__":

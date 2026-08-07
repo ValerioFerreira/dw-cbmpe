@@ -80,6 +80,26 @@ modelo de permissões granular. Para o DW real:
   `DW_PLANEJAMENTO.md`), não algo a resolver nesta etapa de planejamento
   puro.
 
+## Exceção confirmada: tabela nominal de Efetivo/Viaturas no app (MVP, sem autenticação)
+
+Decisão registrada em 2026-08-07 (ver `DW_PLANEJAMENTO.md`): ao contrário
+do restante do app (que só expõe contagem agregada por unidade), a página
+de Indicador de Efetivo e Viaturas mostra uma tabela por unidade — Posto/
+Graduação + Matrícula + Nome de Guerra por militar; Placa + Modelo por
+viatura — publicada no mesmo JSON estático, público e sem autenticação
+usado pelo resto do app. Isso é dado identificável (Efetivo) indo para um
+site público, e informação de frota por quartel que também é sensível do
+ponto de vista de segurança operacional (não só LGPD) para um órgão de
+segurança pública. Apresentei esse risco explicitamente ao usuário antes
+de implementar; a decisão foi seguir mesmo assim, como MVP, ciente de que
+`authClient.js` ainda é um stub sem autenticação real (ver seção acima).
+Nome completo, data de nascimento, sexo, saúde, endereço/telefone (do
+militar) e chassi/patrimônio (da viatura) continuam fora de qualquer JSON
+gerado — só os campos explicitamente confirmados saem do Neon.
+**Se/quando a autenticação real for implementada, revisar se essa tabela
+deve passar a exigir login** — está registrado aqui como ponto em aberto,
+não uma decisão permanente.
+
 ## LGPD — pontos a não esquecer nas próximas fases
 
 - Base legal para tratamento dos dados de efetivo/RH (dado de servidor

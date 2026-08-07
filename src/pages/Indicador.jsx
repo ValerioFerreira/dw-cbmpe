@@ -1,5 +1,5 @@
 import React from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   ChevronRight, Calendar, BarChart3
 } from "lucide-react";
@@ -8,8 +8,61 @@ import {
   CATEGORIAS, getCaminho, fmtNumero, fmtMoeda
 } from "@/lib/cbmpe";
 import EmptyState from "@/components/ui/empty-state";
+import SectionCard from "@/components/ui/section-card";
+import efetivoLista from "@/data/real/efetivo_lista.json";
+import viaturasLista from "@/data/real/viaturas_lista.json";
 
 const QTD_MODULOS_PLACEHOLDER = 4;
+
+// Tabela nominal (efetivo) ou de frota (viaturas) da própria unidade — só os
+// campos confirmados com o usuário (ver DW_PLANEJAMENTO.md, 2026-08-07).
+// Cada linha leva a uma página de detalhe ainda em manutenção.
+function TabelaDetalhe({ indNome, sigla }) {
+  const navigate = useNavigate();
+  if (indNome !== "Efetivo" && indNome !== "Viaturas") return null;
+
+  const registros = (indNome === "Efetivo" ? efetivoLista : viaturasLista).por_unidade[sigla] || [];
+  if (registros.length === 0) return null;
+
+  const colunas = indNome === "Efetivo"
+    ? [["postoGrad", "Posto/Graduação"], ["matricula", "Matrícula"], ["nomeGuerra", "Nome de Guerra"]]
+    : [["placa", "Placa"], ["modelo", "Modelo"]];
+
+  function abrirDetalhe(registro) {
+    const chave = indNome === "Efetivo" ? registro.matricula : registro.placa;
+    const titulo = indNome === "Efetivo" ? "Dados do Militar" : "Dados da Viatura";
+    navigate(`/em-construcao/${encodeURIComponent(chave ?? "registro")}`, { state: { titulo } });
+  }
+
+  return (
+    <SectionCard titulo={indNome === "Efetivo" ? "Militares da Unidade" : "Viaturas da Unidade"} subtitulo={`${registros.length} registros`} semPadding>
+      <div className="max-h-96 overflow-y-auto overflow-x-auto">
+        <table className="w-full min-w-[420px] border-collapse text-left">
+          <thead className="sticky top-0 bg-card">
+            <tr className="border-b border-border text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              {colunas.map(([campo, rotulo]) => (
+                <th key={campo} className="p-2.5 text-left">{rotulo}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {registros.map((registro, i) => (
+              <tr
+                key={i}
+                onClick={() => abrirDetalhe(registro)}
+                className="cursor-pointer text-foreground/80 hover:bg-muted/40"
+              >
+                {colunas.map(([campo]) => (
+                  <td key={campo} className="whitespace-nowrap p-2.5 text-left">{registro[campo] || "—"}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </SectionCard>
+  );
+}
 
 export default function Indicador() {
   const { id } = useParams();
@@ -89,6 +142,8 @@ export default function Indicador() {
           </p>
         )}
       </div>
+
+      <TabelaDetalhe indNome={ind.nome} sigla={unidade?.sigla} />
 
       {/* Módulos futuros deste indicador (placeholders — ainda sem dado/dashboard real) */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
