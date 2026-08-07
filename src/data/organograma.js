@@ -12,6 +12,10 @@
 // por chamadas HTTP — o formato dos registros abaixo já segue o mesmo
 // contrato usado pelo resto do app.
 
+import efetivoReal from "./real/efetivo.json";
+import viaturasReal from "./real/viaturas.json";
+import financasReal from "./real/financas.json";
+
 const DIACRITICOS_REGEX = new RegExp("[\\u0300-\\u036f]", "g");
 
 function slugify(s) {
@@ -135,6 +139,52 @@ const METRICAS = {
   'ABMG': { efetivo: 65, viaturas: 5, materiaisPct: 91, financas: 150000, financaPct: 90, acoes: 220 },
   'CEFD': { efetivo: 14, viaturas: 1, materiaisPct: 88, financas: 30000, financaPct: 87, acoes: 35 },
 };
+
+// ----- Overlay de Efetivo real (fonte: Neon, ver etl/efetivo/) -----
+// Substitui o efetivo fictício de TODAS as unidades pelo valor real (0
+// incluído, ex. DGA — unidade "planejada" — e CPP, que não tem lotação
+// direta nessa fonte) para nunca misturar número real com mock na mesma
+// tela. Militares sem unidade mapeada na fonte (hoje só "ADIDO") entram
+// só no total do Comando Geral, nunca atribuídos a uma unidade específica
+// — decisão registrada em DW_PLANEJAMENTO.md.
+Object.keys(METRICAS).forEach((sigla) => {
+  METRICAS[sigla] = { ...METRICAS[sigla], efetivo: efetivoReal.por_unidade[sigla] ?? 0 };
+});
+const efetivoNaoLotado = Object.values(efetivoReal.nao_lotados || {}).reduce((a, b) => a + b, 0);
+if (efetivoNaoLotado > 0 && METRICAS['COMANDO GERAL']) {
+  METRICAS['COMANDO GERAL'] = {
+    ...METRICAS['COMANDO GERAL'],
+    efetivo: METRICAS['COMANDO GERAL'].efetivo + efetivoNaoLotado,
+  };
+}
+
+// ----- Overlay de Viaturas real (fonte: sistema de frotas → Neon, ver
+// etl/viaturas/) -----
+// Mesmo princípio do overlay de Efetivo: substitui o valor fictício de
+// TODAS as unidades pelo valor real (0 incluído) para nunca misturar
+// número real com mock na mesma tela. Viaturas sem transferência
+// registrada (sem OME conhecida) e a viatura da GTA (unidade fora do
+// organograma, confirmado com o usuário) ficam de fora de qualquer
+// unidade específica — decisão registrada em DW_PLANEJAMENTO.md.
+Object.keys(METRICAS).forEach((sigla) => {
+  METRICAS[sigla] = { ...METRICAS[sigla], viaturas: viaturasReal.por_unidade[sigla] ?? 0 };
+});
+
+// ----- Overlay de Finanças real (fonte: planilha de Finanças → Postgres
+// interno → Neon, ver etl/financas/) -----
+// Mesmo princípio dos overlays acima: substitui o valor fictício de TODAS
+// as unidades pelo valor real (0 incluído) para nunca misturar número real
+// com mock na mesma tela. Valor = soma de "valor pago" das linhas EMPENHADO
+// (Autorização/Carnaval só enquadramento "Suprimento Individual"; SFI
+// Ordinário completo) — rubricas institucionais centrais (folha de
+// pagamento, aquisição de viaturas) e auxílio funeral a pessoa física ficam
+// de fora por não representarem gasto de uma unidade específica — decisão
+// registrada em DW_PLANEJAMENTO.md. O percentual de execução (financaPct)
+// não é sobreposto — o usuário pediu para não mostrar percentual por
+// enquanto, então ele é suprimido mais abaixo (ver executadoPct).
+Object.keys(METRICAS).forEach((sigla) => {
+  METRICAS[sigla] = { ...METRICAS[sigla], financas: financasReal.por_unidade[sigla] ?? 0 };
+});
 
 // ----- Divisões/seções internas por unidade (inclui itens que também são
 // nós próprios da árvore — filtrados na leitura abaixo) -----
@@ -434,7 +484,10 @@ function construirIndicadores() {
         tendencao: tendencia,
         serie: JSON.stringify(serie),
         status: semMeta ? null : statusPorAtingimento(valor, meta),
-        executadoPct: base === "Finanças" ? totais.financaPct : undefined,
+        // financaPct não é sobreposto com dado real (ver overlay de
+        // Finanças acima) — nunca expor o percentual fictício do mock ao
+        // lado do valor real de financas.
+        executadoPct: undefined,
       });
     });
   });

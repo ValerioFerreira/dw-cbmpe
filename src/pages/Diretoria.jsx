@@ -50,7 +50,7 @@ function celulaEfetivoDivisao(d) {
 function celulaIndicador(nome, ind) {
   if (!ind) return "—";
   if (nome === "Efetivo") return celulaEfetivoIndicador(ind);
-  if (nome === "Materiais") return "Em construção";
+  if (nome === "Materiais" || nome === "Atividades Específicas") return "Em construção";
   if (nome === "Finanças") return fmtMoeda(ind.valor);
   return fmtNumero(ind.valor, ind.unidade_medida);
 }
@@ -213,11 +213,11 @@ export default function Diretoria() {
                       {aberta && divisoesF.map((d) => (
                         <tr key={d.nome} className="bg-muted/10 text-[11px] text-muted-foreground/80">
                           <td className="whitespace-nowrap p-2.5 pl-8 text-left">{d.nome}</td>
-                          <td className="whitespace-nowrap p-2.5 text-right tabular-nums">{celulaEfetivoDivisao(d)}</td>
-                          <td className="whitespace-nowrap p-2.5 text-right tabular-nums">{fmtNumero(d.viaturas, "viaturas")}</td>
                           <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
-                          <td className="whitespace-nowrap p-2.5 text-right tabular-nums">{fmtMoeda(d.financas)}</td>
-                          <td className="whitespace-nowrap p-2.5 text-right tabular-nums">{fmtNumero(d.acoes, "atividades")}</td>
+                          <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
+                          <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
+                          <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
+                          <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
                         </tr>
                       ))}
                     </React.Fragment>
@@ -229,11 +229,11 @@ export default function Diretoria() {
                 {filhosDiretos.length === 0 && divisoesProprias.map((d) => (
                   <tr key={d.nome} className="text-foreground/80">
                     <td className="whitespace-nowrap p-2.5 text-left font-medium text-foreground">{d.nome}</td>
-                    <td className="whitespace-nowrap p-2.5 text-right tabular-nums">{celulaEfetivoDivisao(d)}</td>
-                    <td className="whitespace-nowrap p-2.5 text-right tabular-nums">{fmtNumero(d.viaturas, "viaturas")}</td>
                     <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
-                    <td className="whitespace-nowrap p-2.5 text-right tabular-nums">{fmtMoeda(d.financas)}</td>
-                    <td className="whitespace-nowrap p-2.5 text-right tabular-nums">{fmtNumero(d.acoes, "atividades")}</td>
+                    <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
+                    <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
+                    <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
+                    <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
                   </tr>
                 ))}
 
@@ -256,17 +256,17 @@ export default function Diretoria() {
                     <td className="whitespace-nowrap p-2.5 text-right tabular-nums">{fmtNumero(proprias.viaturas, "viaturas")}</td>
                     <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
                     <td className="whitespace-nowrap p-2.5 text-right tabular-nums">{fmtMoeda(proprias.financas)}</td>
-                    <td className="whitespace-nowrap p-2.5 text-right tabular-nums">{fmtNumero(proprias.acoes, "atividades")}</td>
+                    <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
                   </tr>
                 )}
                 {filhosDiretos.length > 0 && proprias && linhasAbertas.has(unidade.id) && divisoesProprias.map((d) => (
                   <tr key={d.nome} className="bg-muted/10 text-[11px] text-muted-foreground/80">
                     <td className="whitespace-nowrap p-2.5 pl-8 text-left">{d.nome}</td>
-                    <td className="whitespace-nowrap p-2.5 text-right tabular-nums">{celulaEfetivoDivisao(d)}</td>
-                    <td className="whitespace-nowrap p-2.5 text-right tabular-nums">{fmtNumero(d.viaturas, "viaturas")}</td>
                     <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
-                    <td className="whitespace-nowrap p-2.5 text-right tabular-nums">{fmtMoeda(d.financas)}</td>
-                    <td className="whitespace-nowrap p-2.5 text-right tabular-nums">{fmtNumero(d.acoes, "atividades")}</td>
+                    <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
+                    <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
+                    <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
+                    <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
                   </tr>
                 ))}
               </tbody>

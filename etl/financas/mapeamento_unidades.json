@@ -1,0 +1,19 @@
+{
+  "_comentario": "De-para de unidades da planilha de Finanças (coluna OME/DESTINO) para as siglas do organograma (organograma.js). A chave é a string bruta de 'destino' normalizada pelo script (maiúsculas, sem acento, sem espaço/º/barra — só letras e números). A maioria dos destinos já bate direto com a sigla do organograma normalizada da mesma forma (ex.: '1º GB' e '1ºGB' viram '1GB', que já casa com a sigla '1º GB'); este arquivo só precisa listar as EXCEÇÕES — grafias que não convergem sozinhas para a sigla certa. Chave com valor null = confirmadamente não é uma unidade do organograma (pessoa física ou rubrica institucional central) e deve ficar de fora do total por unidade, nunca ser tratada como erro.",
+  "CATAGR": "CAT/AG",
+  "CATSERTAO": "CAT/SE",
+  "CATST": "CAT/SE",
+  "DINTER1": "DINTER I",
+  "DINTER2": "DINTER II",
+  "CPPA": "DGP",
+  "_comentario_cppa": "CPPA é extinta e soma em DGP — mesma regra já confirmada com o usuário na integração de Viaturas (ver DW_PLANEJAMENTO.md).",
+  "AOMESMO": null,
+  "AOSMESMOS": null,
+  "AMESMA": null,
+  "_comentario_pessoa": "Ao mesmo/Aos mesmos/À mesma = auxílio funeral pago à família do militar falecido, não a uma unidade. Na prática já ficam fora do escopo (enquadramento FUNERAL, não SI), mas mapeados para null por segurança.",
+  "DAFO": null,
+  "DPAFO": null,
+  "SEGI": null,
+  "SGD": null,
+  "_comentario_institucional": "DAFO/DPAFO/SEGI/SGD são rubricas/setores centrais (ex.: folha de pagamento em DPAFO) que não correspondem a nenhuma unidade do organograma atual — confirmado por não aparecerem em nenhuma linha com enquadramento SI, só em rubricas institucionais (FOLHA DE PAGAMENTO, CONTRATO, OPERAÇÃO DE CRÉDITO). Mapeados para null para nunca virarem erro caso apareçam de novo com SI no futuro."
+}

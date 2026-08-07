@@ -9,12 +9,7 @@ import {
 } from "@/lib/cbmpe";
 import EmptyState from "@/components/ui/empty-state";
 
-const DASHBOARDS_PRINCIPAIS = [
-  { nome: "Efetivo", slug: "efetivo" },
-  { nome: "Viaturas", slug: "viaturas" },
-  { nome: "Materiais", slug: "materiais" },
-  { nome: "Finanças", slug: "financas" },
-];
+const QTD_MODULOS_PLACEHOLDER = 4;
 
 export default function Indicador() {
   const { id } = useParams();
@@ -75,7 +70,7 @@ export default function Indicador() {
         <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
           {ind.nome === "Efetivo" ? "Efetivo Atual / Previsto" : ind.nome}
         </p>
-        {ind.nome === "Materiais" ? (
+        {ind.nome === "Materiais" || ind.nome === "Atividades Específicas" ? (
           <p className="mt-2 font-display text-[22px] font-semibold tracking-tight text-foreground">Em construção</p>
         ) : (
           <p className="mt-2 flex flex-wrap items-baseline gap-x-2">
@@ -95,18 +90,18 @@ export default function Indicador() {
         )}
       </div>
 
-      {/* Dashboards dos indicadores principais */}
+      {/* Módulos futuros deste indicador (placeholders — ainda sem dado/dashboard real) */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {DASHBOARDS_PRINCIPAIS.map((d) => (
+        {Array.from({ length: QTD_MODULOS_PLACEHOLDER }, (_, i) => i + 1).map((n) => (
           <Link
-            key={d.slug}
-            to={`/em-construcao/${d.slug}`}
+            key={n}
+            to={`/em-construcao/${ind.id}-modulo-${n}`}
             className="group flex flex-col items-center justify-center gap-2 rounded-xl border border-border bg-card p-4 text-center transition-all hover:-translate-y-0.5 hover:border-input hover:shadow-sm"
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary">
               <BarChart3 className="h-4 w-4" />
             </div>
-            <p className="text-[13px] font-semibold text-foreground">{d.nome}</p>
+            <p className="text-[13px] font-semibold text-foreground">{ind.nome} Módulo {n}</p>
           </Link>
         ))}
       </div>

@@ -1,0 +1,90 @@
+# DW CBMPE — Catálogo de Fontes de Dados
+
+> Checklist vivo. Cada domínio tem uma tabela a preencher conforme o
+> levantamento avança (Fase 1 do roadmap em
+> [`DW_PLANEJAMENTO.md`](DW_PLANEJAMENTO.md)). Linhas com `A LEVANTAR`
+> ainda não foram confirmadas — não presumir nada sobre elas.
+
+## Como preencher
+
+Para cada fonte identificada num domínio, preencher:
+
+| Campo | O que registrar |
+|---|---|
+| Sistema/Fonte | Nome do sistema, planilha ou fonte externa |
+| Tipo | Sistema interno / Planilha / Sistema externo |
+| Formato de acesso | API, export CSV/Excel, acesso direto a banco, e-mail manual, etc. |
+| Responsável/Contato | Pessoa ou setor dono da fonte |
+| Frequência de atualização | Com que frequência a fonte muda / pode ser extraída |
+| Sensibilidade | PII / Agregado / Misto (ver [`DW_GOVERNANCA.md`](DW_GOVERNANCA.md)) |
+| Status | A confirmar / Confirmado |
+
+## Fontes externas (objetivo 1 — prioridade atual)
+
+Decisão de 2026-08-07 (ver `DW_PLANEJAMENTO.md`, "Recalculando a rota: 3
+objetivos do projeto"): dados dispersos **fora** dos sistemas internos —
+sistemas externos usados pela corporação, planilhas Google Sheets — são a
+prioridade atual de levantamento, porque sistemas internos já têm banco
+próprio (não precisam de rotina de *coleta* nova, só de extração dos
+principais dados pro `core`).
+
+| Sistema/Fonte | Tipo | Formato de acesso | Responsável | Frequência | Sensibilidade | Status |
+|---|---|---|---|---|---|---|
+| A LEVANTAR | Sistema externo / Planilha (Google Sheets) | A LEVANTAR | A LEVANTAR | A LEVANTAR | A LEVANTAR | Lista ainda não levantada — próximo passo prático mais urgente |
+
+Essas fontes, uma vez identificadas, são coletadas pelo Windmill e pousam
+em `raw`/`staging` do Postgres do DW (mesmo banco dos sistemas internos,
+schemas separados) — ver [`DW_ARQUITETURA.md`](DW_ARQUITETURA.md).
+
+## Organograma / Estrutura Organizacional
+
+| Sistema/Fonte | Tipo | Formato de acesso | Responsável | Frequência | Sensibilidade | Status |
+|---|---|---|---|---|---|---|
+| A LEVANTAR | A LEVANTAR | A LEVANTAR | A LEVANTAR | A LEVANTAR | A LEVANTAR | A confirmar |
+
+## Efetivo / RH
+
+| Sistema/Fonte | Tipo | Formato de acesso | Responsável | Frequência | Sensibilidade | Status |
+|---|---|---|---|---|---|---|
+| SGP (Sistema de Gestão de Pessoal), schema `ovrsgp` | Sistema interno | Acesso direto a banco (Postgres, schema `ovrsgp`) — host/credenciais/alcance de rede pro Windmill a levantar | A LEVANTAR | A LEVANTAR | Misto — PII pesado + dado sensível (saúde), ver escopo proposto em `DW_MODELO_DADOS.md` | Escopo de entidades proposto (a confirmar campo a campo); conexão e frequência a levantar |
+| Neon (Postgres gerenciado) — tabela `Militar` | Sistema interno (mantido pelo usuário) | Acesso direto a banco (connection string própria, fora da rede interna/VPN) | A LEVANTAR | Sincronizado por script Windmill a partir de planilha Google Sheets — frequência real a levantar | Agregado (contagem por unidade) para este uso — o extrator só grava contagens, nunca linha individual | Confirmado para Efetivo (contagem por `ome`, `ativo=true`) — ver extração em `etl/efetivo/`. Não substitui o SGP para o aprofundamento futuro do domínio |
+
+## Frota
+
+| Sistema/Fonte | Tipo | Formato de acesso | Responsável | Frequência | Sensibilidade | Status |
+|---|---|---|---|---|---|---|
+| Sistema de gestão de frotas (app Rails), banco `frotas_production` | Sistema interno | Acesso direto a banco (Postgres, `10.193.1.252:54329`, rede interna, alcançável pelo Windmill) | A LEVANTAR | Sincronização pontual via Windmill (não agendada ainda) | Não-PII (dados de veículo — placa/chassi/patrimônio não extraídos, só contagem agregada) | Confirmado para Viaturas — OME e status atuais derivados do registro mais recente em `transfers`/`vehicle_statuses` (tabela `vehicles` não tem FK direta pra nenhum dos dois). Ver extração em `etl/viaturas/` |
+| Neon (Postgres gerenciado, dedicado a Frota) — tabela `Viatura` | Sistema interno (mantido pelo usuário) | Acesso direto a banco (connection string própria, fora da rede interna/VPN) | A LEVANTAR | Alimentado pelo Windmill a cada rodada manual do `windmill-viaturas.py` | 1 linha por viatura (id, tipo, OME/status atuais) — sem placa/chassi/patrimônio | Confirmado — só existe pra alimentar este ETL; agregação por unidade fica no script local (`etl/viaturas/extract_viaturas.py`) |
+
+## Financeiro
+
+| Sistema/Fonte | Tipo | Formato de acesso | Responsável | Frequência | Sensibilidade | Status |
+|---|---|---|---|---|---|---|
+| Planilha Google Sheets de Finanças ("Banco de Dados - NÃO MEXER") | Planilha | Link público de export `.xlsx`, carregado no Postgres interno por script Windmill existente (`windmill-financas.py`, não alterado) | A LEVANTAR | Sincronização via Windmill (frequência a levantar) | Misto — linhas de auxílio funeral/suprimento individual têm nome, matrícula e CPF de militar em texto livre (colunas de descrição/observação); não extraídas para o DW | Confirmado para o KPI de Finanças — só linhas EMPENHADO, Autorização/Carnaval restrito a enquadramento "Suprimento Individual", SFI Ordinário completo. Ver `etl/financas/` |
+| Postgres interno (`10.193.1.252:54301`, banco `postgres`) — tabelas `fin_autorizacao`, `fin_carnaval_2026`, `fin_sfi_ordinario` | Sistema interno | Acesso direto a banco (rede interna, alcançável pelo Windmill) | A LEVANTAR | Já existente, alimentado pelo script Windmill da planilha | Não-PII para o que é extraído (colunas com PII — ofício, SEI, descrição, observação — nunca saem daqui para o Neon) | Confirmado como fonte para o novo `windmill-financas-sync.py` |
+| Neon (Postgres gerenciado, mesmo banco de Viaturas) — tabela `FinancaLancamento` | Sistema interno (mantido pelo usuário) | Acesso direto a banco (connection string própria, fora da rede interna/VPN) | A LEVANTAR | Alimentado pelo Windmill a cada rodada manual do `windmill-financas-sync.py` | 1 linha por lançamento financeiro (origem, destino, enquadramento, situação, valores, mês) — sem ofício/SEI/descrição/observação | Confirmado — agregação por unidade fica no script local (`etl/financas/extract_financas.py`) |
+
+## Atividades Operacionais
+
+| Sistema/Fonte | Tipo | Formato de acesso | Responsável | Frequência | Sensibilidade | Status |
+|---|---|---|---|---|---|---|
+| A LEVANTAR | A LEVANTAR | A LEVANTAR | A LEVANTAR | A LEVANTAR | A LEVANTAR | A confirmar |
+
+## Materiais / Patrimônio — Fase 2, fora do escopo atual
+
+Domínio adiado (decisão de 2026-08-07, ver `DW_PLANEJAMENTO.md`). Não
+levantar fontes para este domínio ainda.
+
+## O que já sabemos hoje (nível corporação, não por fonte específica)
+
+- As fontes são mistas entre sistemas internos, planilhas e sistemas
+  externos. A primeira fonte interna (SGP) já foi analisada; fontes
+  externas ainda precisam ser listadas (prioridade atual, ver seção
+  acima).
+- O destino de todas as fontes é o mesmo Postgres em servidor interno,
+  acessível via VPN — mas o papel difere: fontes externas pousam em
+  `raw`/`staging` (coleta) e alimentam o `core`; fontes internas já
+  persistidas (ex. SGP) só têm os principais dados extraídos direto pro
+  `core`, sem passar por `raw`/`staging` (ver [`DW_ARQUITETURA.md`](DW_ARQUITETURA.md)).
+- A frequência de atualização varia por domínio/fonte — a definir linha a
+  linha nas tabelas acima, não um valor único para o DW inteiro.

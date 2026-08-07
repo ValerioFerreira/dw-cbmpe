@@ -161,7 +161,7 @@ export function tituloKpi(k) {
 }
 
 export function valorKpi(k) {
-  if (k.nome === "Materiais") return "Em construção";
+  if (k.nome === "Materiais" || k.nome === "Atividades Específicas") return "Em construção";
   if (k.nome === "Finanças") return fmtMoeda(k.valor);
   return fmtNumero(k.valor);
 }
