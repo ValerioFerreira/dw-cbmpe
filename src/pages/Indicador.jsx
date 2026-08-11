@@ -278,10 +278,22 @@ function TabelaEfetivo({ unidade, unidades }) {
   );
 }
 
-// Tabela de Viaturas — só a própria unidade (não foi pedido virar subárvore).
-function TabelaViaturas({ sigla }) {
+// Tabela de Viaturas — unidade + toda a subárvore de subordinadas (mesmo
+// princípio da tabela de Efetivo — corrige o caso de unidades como
+// COMANDO GERAL/SUBCOMANDO GERAL, que não têm viatura própria nenhuma, só
+// nas subordinadas, e o caso de unidades com ADM + vinculadas, que antes
+// só mostravam a frota do ADM).
+function TabelaViaturas({ unidade, unidades }) {
   const navigate = useNavigate();
-  const registros = viaturasLista.por_unidade[sigla] || [];
+
+  const registros = React.useMemo(() => {
+    if (!unidade) return [];
+    const siglas = [unidade.sigla, ...getSubordinados(unidades, unidade.id).map((u) => u.sigla)];
+    return siglas.flatMap((sigla) =>
+      (viaturasLista.por_unidade[sigla] || []).map((r) => ({ ...r, ome: sigla }))
+    );
+  }, [unidade, unidades]);
+
   if (registros.length === 0) return null;
 
   function abrirDetalhe(registro) {
@@ -291,13 +303,18 @@ function TabelaViaturas({ sigla }) {
   }
 
   return (
-    <SectionCard titulo="Viaturas da Unidade" subtitulo={`${registros.length} registros`} semPadding>
+    <SectionCard
+      titulo="Viaturas da Unidade"
+      subtitulo={`${registros.length} registros (unidade + subordinadas)`}
+      semPadding
+    >
       <div className="max-h-96 overflow-y-auto overflow-x-auto">
         <table className="w-full min-w-[420px] border-collapse text-left">
           <thead className="sticky top-0 bg-card">
             <tr className="border-b border-border text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
               <th className="p-2.5 text-left">Placa</th>
               <th className="p-2.5 text-left">Modelo</th>
+              <th className="p-2.5 text-left">OME</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -309,6 +326,7 @@ function TabelaViaturas({ sigla }) {
               >
                 <td className="whitespace-nowrap p-2.5">{registro.placa || "—"}</td>
                 <td className="whitespace-nowrap p-2.5">{registro.modelo || "—"}</td>
+                <td className="whitespace-nowrap p-2.5">{registro.ome || "—"}</td>
               </tr>
             ))}
           </tbody>
@@ -413,7 +431,7 @@ export default function Indicador() {
       </div>
 
       {mostrarTabela && ind.nome === "Efetivo" && <TabelaEfetivo unidade={unidade} unidades={unidades} />}
-      {mostrarTabela && ind.nome === "Viaturas" && <TabelaViaturas sigla={unidade?.sigla} />}
+      {mostrarTabela && ind.nome === "Viaturas" && <TabelaViaturas unidade={unidade} unidades={unidades} />}
 
       {/* Módulos futuros deste indicador (placeholders — ainda sem dado/dashboard real) */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
