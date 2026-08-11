@@ -10,14 +10,23 @@ Uso:
 
 O efetivo.json só tem contagens agregadas (decisão de minimização em
 DW_GOVERNANCA.md). O efetivo_lista.json é uma exceção deliberada e
-confirmada com o usuário (ver DW_PLANEJAMENTO.md, 2026-08-07): expõe
-posto/graduação + matrícula + nome de guerra por unidade, para a tabela de
-efetivo na página de Indicador — nunca nome completo, data de nascimento
-ou outro campo sensível da tabela Militar.
+confirmada com o usuário (ver DW_PLANEJAMENTO.md): expõe posto/graduação,
+matrícula, nome completo, nome de guerra, sexo e idade por unidade, para a
+tabela de efetivo na página de Indicador. A idade é calculada aqui e só a
+idade (não a data de nascimento) sai no JSON — minimização deliberada de
+um campo que a própria fonte trata como sensível (LGPD).
+
+Cada registro também traz um sub-objeto "completo" com os demais campos
+pedidos pelo usuário para o painel "Verificar dados completos" do app —
+inclusive dado sensível LGPD (raça/cor, PCD, licenças de saúde). Isso só
+funciona DEPOIS que o windmill-neon.py (com as colunas novas, preparado em
+2026-08-11) rodar pelo menos uma vez — a consulta abaixo falha com "column
+does not exist" enquanto isso não acontecer. Nunca inclui "observacao"
+(texto livre, risco imprevisível).
 """
 import json
 import os
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import psycopg2
@@ -43,12 +52,53 @@ def main():
     contagem_por_ome = dict(cur.fetchall())
 
     cur.execute("""
-        SELECT ome, "postoGrad", matricula, "nomeGuerra", "ordemHierarquica"
+        SELECT ome, "postoGrad", matricula, nome, "nomeGuerra", sexo, "dataNascimento", "ordemHierarquica"
         FROM "Militar"
         WHERE ativo = TRUE
         ORDER BY "ordemHierarquica" ASC NULLS LAST, "nomeGuerra" ASC NULLS LAST;
     """)
     militares = cur.fetchall()
+
+    # "Dados completos" (painel retraído) — só funciona depois que o
+    # windmill-neon.py com as colunas novas rodar (ver docstring do módulo).
+    cur.execute("""
+        SELECT matricula, "racaCor", pcd, telefone1, telefone2, "tempoServicoAnos",
+               "tempoObmAtualDias", "omeAnteriorSp", orgao, "horarioEspecial",
+               readaptado, "acumuloCargos", le, ltip, "afastamentoSup90Dias",
+               "suplementoPessoalNumeroAno", "dataSuplementoPessoal", aniversario,
+               "dataMovimentacaoSp", "dataIngresso", "dataUltimaPromocao", pcnh
+        FROM "Militar"
+        WHERE ativo = TRUE;
+    """)
+    completos_por_matricula = {}
+    for (matricula, raca_cor, pcd, telefone1, telefone2, tempo_servico_anos,
+         tempo_obm_atual_dias, ome_anterior_sp, orgao, horario_especial,
+         readaptado, acumulo_cargos, le, ltip, afastamento_sup_90_dias,
+         suplemento_pessoal_numero_ano, data_suplemento_pessoal, aniversario,
+         data_movimentacao_sp, data_ingresso, data_ultima_promocao, pcnh) in cur.fetchall():
+        completos_por_matricula[matricula] = {
+            "racaCor": raca_cor,
+            "pcd": pcd,
+            "telefone1": telefone1,
+            "telefone2": telefone2,
+            "tempoServicoAnos": tempo_servico_anos,
+            "tempoObmAtualDias": tempo_obm_atual_dias,
+            "omeAnteriorSp": ome_anterior_sp,
+            "orgao": orgao,
+            "horarioEspecial": horario_especial,
+            "readaptado": readaptado,
+            "acumuloCargos": acumulo_cargos,
+            "le": le,
+            "ltip": ltip,
+            "afastamentoSup90Dias": afastamento_sup_90_dias,
+            "suplementoPessoalNumeroAno": suplemento_pessoal_numero_ano,
+            "dataSuplementoPessoal": data_suplemento_pessoal.date().isoformat() if data_suplemento_pessoal else None,
+            "aniversario": aniversario,
+            "dataMovimentacaoSp": data_movimentacao_sp.date().isoformat() if data_movimentacao_sp else None,
+            "dataIngresso": data_ingresso.date().isoformat() if data_ingresso else None,
+            "dataUltimaPromocao": data_ultima_promocao.date().isoformat() if data_ultima_promocao else None,
+            "pcnh": pcnh,
+        }
 
     cur.close()
     conn.close()
@@ -92,15 +142,28 @@ def main():
     # Relação nominal por unidade (só campos confirmados com o usuário —
     # ver docstring do módulo)
     # -------------------------
+    hoje = date.today()
+
+    def calcular_idade(data_nascimento):
+        if data_nascimento is None:
+            return None
+        nasc = data_nascimento.date() if hasattr(data_nascimento, "date") else data_nascimento
+        idade = hoje.year - nasc.year - ((hoje.month, hoje.day) < (nasc.month, nasc.day))
+        return idade
+
     lista_por_unidade = {}
-    for ome, posto_grad, matricula, nome_guerra, _ordem in militares:
+    for ome, posto_grad, matricula, nome, nome_guerra, sexo, data_nascimento, _ordem in militares:
         sigla = mapeamento.get(ome)
         if not sigla:
             continue
         lista_por_unidade.setdefault(sigla, []).append({
             "postoGrad": posto_grad,
             "matricula": matricula,
+            "nome": nome,
             "nomeGuerra": nome_guerra,
+            "sexo": sexo,
+            "idade": calcular_idade(data_nascimento),
+            "completo": completos_por_matricula.get(matricula, {}),
         })
 
     OUTPUT_LISTA_PATH.write_text(

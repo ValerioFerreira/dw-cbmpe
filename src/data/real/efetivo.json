@@ -1,8 +1,8 @@
 {
   "fonte": "Neon (tabela Militar, campo ome, ativo=true)",
-  "gerado_em": "2026-08-07T21:19:53.375349+00:00",
+  "gerado_em": "2026-08-11T12:41:42.069282+00:00",
   "nao_lotados": {
-    "ADIDO": 186
+    "ADIDO": 187
   },
   "por_unidade": {
     "1º GB": 126,
@@ -32,7 +32,7 @@
     "DEIP": 14,
     "DF": 18,
     "DGO": 46,
-    "DGP": 40,
+    "DGP": 39,
     "DIESP": 41,
     "DIM": 22,
     "DINTER I": 8,

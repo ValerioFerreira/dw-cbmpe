@@ -249,7 +249,7 @@ export default function Diretoria() {
                         {divisoesProprias.length > 0 && (
                           <ChevronDown className={`h-3 w-3 shrink-0 text-muted-foreground/60 transition-transform ${linhasAbertas.has(unidade.id) ? "" : "-rotate-90"}`} />
                         )}
-                        {unidade.sigla}
+                        {unidade.sigla} (ADM)
                       </span>
                     </td>
                     <td className="whitespace-nowrap p-2.5 text-right tabular-nums">{celulaEfetivoDivisao(proprias)}</td>

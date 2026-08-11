@@ -84,21 +84,43 @@ modelo de permissões granular. Para o DW real:
 
 Decisão registrada em 2026-08-07 (ver `DW_PLANEJAMENTO.md`): ao contrário
 do restante do app (que só expõe contagem agregada por unidade), a página
-de Indicador de Efetivo e Viaturas mostra uma tabela por unidade — Posto/
-Graduação + Matrícula + Nome de Guerra por militar; Placa + Modelo por
-viatura — publicada no mesmo JSON estático, público e sem autenticação
-usado pelo resto do app. Isso é dado identificável (Efetivo) indo para um
-site público, e informação de frota por quartel que também é sensível do
-ponto de vista de segurança operacional (não só LGPD) para um órgão de
-segurança pública. Apresentei esse risco explicitamente ao usuário antes
-de implementar; a decisão foi seguir mesmo assim, como MVP, ciente de que
-`authClient.js` ainda é um stub sem autenticação real (ver seção acima).
-Nome completo, data de nascimento, sexo, saúde, endereço/telefone (do
-militar) e chassi/patrimônio (da viatura) continuam fora de qualquer JSON
-gerado — só os campos explicitamente confirmados saem do Neon.
-**Se/quando a autenticação real for implementada, revisar se essa tabela
-deve passar a exigir login** — está registrado aqui como ponto em aberto,
-não uma decisão permanente.
+de Indicador de Efetivo e Viaturas mostra uma tabela — publicada no mesmo
+JSON estático, público e sem autenticação usado pelo resto do app. Isso é
+dado identificável (Efetivo) indo para um site público, e informação de
+frota por quartel que também é sensível do ponto de vista de segurança
+operacional (não só LGPD) para um órgão de segurança pública. Apresentei
+esse risco explicitamente ao usuário antes de implementar; a decisão foi
+seguir mesmo assim, como MVP, ciente de que `authClient.js` ainda é um
+stub sem autenticação real (ver seção acima).
+
+**Atualização de 2026-08-11 — escopo de campos ampliado, com decisão
+consciente a cada etapa** (a nota original desta seção, que dizia "nome
+completo, data de nascimento, sexo, saúde, endereço/telefone continuam de
+fora", ficou desatualizada e é substituída por esta):
+
+- Tabela principal de Efetivo: Posto/Graduação, Matrícula, **Nome
+  completo** (com nome de guerra em destaque), Sexo, **Idade** (calculada
+  a partir da data de nascimento — só a idade sai no JSON, nunca a data
+  bruta) e OME. Antes dessa expansão, apresentei ao usuário o catálogo
+  completo de campos disponíveis com a classificação de sensibilidade de
+  cada um; a decisão de incluir nome completo/sexo/idade no conjunto
+  "principal" (visível sem clique extra) foi explícita.
+- Painel "Verificar dados completos" (atrás de um clique extra, não
+  visível por padrão): 21 campos adicionais, **incluindo dado sensível
+  LGPD** — raça/cor, PCD, readaptado, LE, LTIP, afastamento >90 dias,
+  telefones. O usuário pediu explicitamente "todas as colunas possíveis,
+  mesmo incluindo dados sensíveis" depois de ver esse catálogo — decisão
+  informada, repetida duas vezes, não presumida por mim. Único campo
+  deliberadamente recusado: `observacao` (texto livre, risco
+  imprevisível). **A coleta desses 21 campos está pausada a pedido do
+  usuário** — o código (`windmill-neon.py`, `extract_efetivo.py`) está
+  pronto, mas o Windmill não foi executado; até rodar, o painel mostra
+  "—" em todas as colunas extras (ver pendência em `DW_PLANEJAMENTO.md`).
+- Viaturas: Placa + Modelo por unidade, sem mudança nesta rodada.
+
+**Se/quando a autenticação real for implementada, revisar se essa tabela —
+principalmente o painel "dados completos" — deve passar a exigir login**
+— está registrado aqui como ponto em aberto, não uma decisão permanente.
 
 ## LGPD — pontos a não esquecer nas próximas fases
 

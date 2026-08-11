@@ -167,6 +167,7 @@ export function valorKpi(k) {
 }
 
 export function extraKpi(k) {
+  if (k.nome === "Efetivo" && k.meta != null) return `Previsto: ${fmtNumero(k.meta)}`;
   if (k.nome === "Finanças" && k.executadoPct != null) return `Executado: ${k.executadoPct}%`;
   return undefined;
 }

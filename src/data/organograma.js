@@ -13,6 +13,7 @@
 // contrato usado pelo resto do app.
 
 import efetivoReal from "./real/efetivo.json";
+import efetivoPrevistoReal from "./real/efetivo_previsto.json";
 import viaturasReal from "./real/viaturas.json";
 import financasReal from "./real/financas.json";
 
@@ -157,6 +158,16 @@ if (efetivoNaoLotado > 0 && METRICAS['COMANDO GERAL']) {
     efetivo: METRICAS['COMANDO GERAL'].efetivo + efetivoNaoLotado,
   };
 }
+
+// ----- Overlay de Efetivo Previsto real (fonte: QOD, ver etl/efetivo/) -----
+// Mesmo princípio dos demais overlays: substitui o previsto fictício
+// (antes um multiplicador aleatório do atual) pelo previsto oficial da
+// planilha QOD, por unidade (0 incluído — ex. DGA, unidade "planejada" que
+// não aparece no QOD). CPPA soma dentro de DGP, mesma regra do Efetivo
+// atual — decisão registrada em DW_PLANEJAMENTO.md.
+Object.keys(METRICAS).forEach((sigla) => {
+  METRICAS[sigla] = { ...METRICAS[sigla], efetivoPrevisto: efetivoPrevistoReal.por_unidade[sigla] ?? 0 };
+});
 
 // ----- Overlay de Viaturas real (fonte: sistema de frotas → Neon, ver
 // etl/viaturas/) -----
@@ -337,15 +348,16 @@ function calcularNivel(sigla, cache = {}) {
 const totaisCache = {};
 function totaisDaSigla(sigla) {
   if (totaisCache[sigla]) return totaisCache[sigla];
-  const proprio = METRICAS[sigla] || { efetivo: 20, viaturas: 2, materiaisPct: 88, financas: 40000, financaPct: 88, acoes: 40 };
+  const proprio = METRICAS[sigla] || { efetivo: 20, efetivoPrevisto: 22, viaturas: 2, materiaisPct: 88, financas: 40000, financaPct: 88, acoes: 40 };
   const filhos = ARVORE[sigla] || [];
-  let total = { efetivo: proprio.efetivo, viaturas: proprio.viaturas, financas: proprio.financas, acoes: proprio.acoes };
+  let total = { efetivo: proprio.efetivo, efetivoPrevisto: proprio.efetivoPrevisto, viaturas: proprio.viaturas, financas: proprio.financas, acoes: proprio.acoes };
   let pesoMat = proprio.materiaisPct * proprio.efetivo;
   let pesoFin = proprio.financaPct * proprio.efetivo;
   let pesoBase = proprio.efetivo;
   filhos.forEach((filho) => {
     const ct = totaisDaSigla(filho);
     total.efetivo += ct.efetivo;
+    total.efetivoPrevisto += ct.efetivoPrevisto;
     total.viaturas += ct.viaturas;
     total.financas += ct.financas;
     total.acoes += ct.acoes;
@@ -359,16 +371,14 @@ function totaisDaSigla(sigla) {
   return total;
 }
 
-const METRICAS_PADRAO = { efetivo: 20, viaturas: 2, materiaisPct: 88, financas: 40000, financaPct: 88, acoes: 40 };
+const METRICAS_PADRAO = { efetivo: 20, efetivoPrevisto: 22, viaturas: 2, materiaisPct: 88, financas: 40000, financaPct: 88, acoes: 40 };
 
 // Métricas próprias (não agregadas com subordinadas) de uma unidade, por sigla.
 export function metricasProprias(sigla) {
   const m = METRICAS[sigla] || METRICAS_PADRAO;
-  const rng = criarRng(`${sigla}:proprio:previsto`);
-  const efetivoPrevisto = Math.round(m.efetivo * (0.9 + rng() * 0.25));
   return {
     efetivo: m.efetivo,
-    efetivoPrevisto,
+    efetivoPrevisto: m.efetivoPrevisto,
     viaturas: m.viaturas,
     materiaisPct: m.materiaisPct,
     financas: m.financas,
@@ -377,11 +387,21 @@ export function metricasProprias(sigla) {
   };
 }
 
+// Seções operacionais (SB/SBI/SBAPH/SBS/SBSA/SBFN/SATec de uma unidade,
+// numeradas ou não — ex. "1ª SB/3º GB", "SBFN/GBI") ficam por último na
+// lista de setores vinculados — a parte administrativa (comando,
+// subcomando, secretaria, divisões) vem primeiro, na ordem em que já está
+// declarada em SUBSETORES — decisão registrada em DW_PLANEJAMENTO.md.
+const PADRAO_SECAO_OPERACIONAL = /\bSB(APH|SA|FN|I|S)?\b|\bSATec\b/i;
+
 function divisoesDaSigla(sigla) {
   const filhos = ARVORE[sigla] || [];
-  return (SUBSETORES[sigla] || [])
+  const divisoes = (SUBSETORES[sigla] || [])
     .filter((item) => !filhos.includes(item))
     .map((item) => item.replace(/^↳\s*/, ''));
+  const administrativas = divisoes.filter((d) => !PADRAO_SECAO_OPERACIONAL.test(d));
+  const operacionais = divisoes.filter((d) => PADRAO_SECAO_OPERACIONAL.test(d));
+  return [...administrativas, ...operacionais];
 }
 
 // Métricas sintéticas por divisão/seção interna de uma unidade — distribuem
@@ -453,20 +473,24 @@ function construirIndicadores() {
   UNIDADES.forEach((u) => {
     const totais = totaisDaSigla(u.sigla);
     const specs = [
-      { base: 'Efetivo', valor: totais.efetivo, max: null },
+      { base: 'Efetivo', valor: totais.efetivo, max: null, metaReal: totais.efetivoPrevisto },
       { base: 'Viaturas', valor: totais.viaturas, max: null },
       { base: 'Materiais', valor: totais.materiaisPct, max: 100 },
       { base: 'Finanças', valor: totais.financas, max: null },
       { base: 'Atividades Específicas', valor: totais.acoes, max: null },
     ];
-    specs.forEach(({ base, valor, max }) => {
+    specs.forEach(({ base, valor, max, metaReal }) => {
       const seed = `${u.id}:${base}`;
       const semMeta = KPI_SEM_META.has(base);
       let meta = null;
       if (!semMeta) {
-        const rng = criarRng(`${seed}:meta`);
-        const fatorMeta = 0.9 + rng() * 0.25;
-        meta = Math.round(valor * fatorMeta);
+        if (metaReal != null) {
+          meta = metaReal;
+        } else {
+          const rng = criarRng(`${seed}:meta`);
+          const fatorMeta = 0.9 + rng() * 0.25;
+          meta = Math.round(valor * fatorMeta);
+        }
       }
       const serie = gerarSerie(valor, seed, { max });
       const { variacao, tendencia } = calcularVariacaoTendencia(serie);

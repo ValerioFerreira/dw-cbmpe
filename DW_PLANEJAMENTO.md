@@ -544,6 +544,107 @@ locais (`extract_efetivo.py`, `extract_viaturas.py`) agora também geram
 pública apresentado e confirmado antes de qualquer código ser escrito —
 `DW_PROCESSO_INTEGRACAO.md`.
 
+### 2026-08-11 — Efetivo Previsto real vem do QOD (planilha oficial de organização e distribuição)
+**Decisão**: o "previsto" do Efetivo (antes um multiplicador aleatório do
+atual) passa a vir da planilha QOD ("08 - QOD - AGOSTO - 2026.xlsx",
+compartilhada pelo usuário), aba "GERAL 001" — coluna TOTAL por unidade,
+mesma granularidade "própria" (não agregada) usada em `efetivo`/
+`viaturas`/`financas` reais; a agregação por subárvore acontece do mesmo
+jeito, em `totaisDaSigla()`. Inspecionei a planilha inteira (97 abas)
+antes de propor qualquer desenho, por `DW_PROCESSO_INTEGRACAO.md`.
+Confirmado com o usuário: (1) usar mesmo com o QOD marcado "a ser
+publicado em BGE após homologação" (ainda não oficial); (2) ignorar as
+abas "mergulho"/"sede"/"destacada" — são um estudo de reorganização à
+parte de 2 seções do 2º GB (têm "qod sugerido" vs "qod atual" vs "SALDO"),
+fora do escopo do previsto vigente; (3) CPPA soma dentro de DGP, mesma
+regra do Efetivo atual/Viaturas/Finanças. A soma lida bateu exatamente com
+o TOTAL GERAL da planilha (5.249) — script (`etl/efetivo/
+extract_previsto.py`) recusa gravar o JSON se a soma não bater, pra nunca
+publicar um previsto incompleto/mal mapeado.
+**Motivo**: resposta direta do usuário a cada uma das 4 perguntas.
+
+### 2026-08-11 — Granularidade de cargo/seção interna do QOD existe, mas fica para uma fase futura
+**Achado**: além do previsto por unidade (aba GERAL 001), o QOD tem uma
+aba por unidade (ex. "DGP 080", "3º GB 058") com o previsto por cargo/
+seção interna (Chefe, Auxiliares, Núcleo de Assistência Social, Divisão de
+Ativos etc.), incluindo casos de 0 vaga própria por ser "encargo" de outro
+cargo — confirmado com o usuário que é exatamente esse nível de detalhe
+que ele queria ver existir. **Não implementado ainda**: mapear cada linha
+dessas abas para as divisões internas sintéticas já existentes em
+`SUBSETORES`/`metricasDivisoesProprias()` (hoje "Em construção") é um
+trabalho de correspondência unidade-a-unidade que não foi feito nesta
+rodada — fica registrado como possível próxima fase, não como pendência
+bloqueante.
+
+### 2026-08-11 — Tabela de Efetivo na página de Indicador: escondida atrás de botão, com a subárvore inteira
+**Decisão**: a tabela de militares (antes sempre aberta, só na própria
+unidade) passa a: (1) ficar escondida por padrão atrás de um botão
+"Exibir tabela com detalhes do efetivo", ao lado do card atual/previsto,
+não mais aberta embaixo por padrão; (2) trazer o efetivo da unidade **e de
+toda a subárvore de subordinadas** (usando `getSubordinados`), não só da
+própria unidade — ex. Comando Geral mostra os ~2.472 militares mapeados de
+toda a corporação (os 187 ADIDO continuam de fora, sem OME conhecida,
+contam só no total agregado); (3) ganha as colunas Posto/Graduação
+(rotulada "Posto" para postos de Aspirante a Coronel, "Graduação" para o
+resto — `isOficial()`), Matrícula, Nome completo (nome de guerra em
+negrito/caixa alta dentro do nome), Sexo, Idade (calculada a partir da
+data de nascimento — só a idade sai no JSON, não a data, minimização
+deliberada) e OME (sigla de origem, útil quando a subárvore mistura várias
+unidades); (4) ganha filtros — busca autocompletada por nome/nome de
+guerra, busca autocompletada por matrícula, seletor de Posto/Graduação,
+seletor de Sexo; (5) ganha paginação client-side (25/página). O mesmo
+padrão de botão (escondida por padrão) foi replicado em Viaturas, mas sem
+virar subárvore (não foi pedido) e sem os filtros/paginação (poucas
+dezenas de linhas por unidade).
+**Motivo**: pedido explícito do usuário, detalhado campo a campo depois
+que eu apresentei o catálogo completo de campos disponíveis (incluindo os
+sensíveis por LGPD) para decisão consciente.
+
+### 2026-08-11 — Painel "dados completos" do Efetivo: campos sensíveis LGPD, sob clique extra, coleta ainda pendente
+**Decisão**: a tabela de Efetivo ganha um botão "Verificar dados
+completos" que expande 21 colunas adicionais (raça/cor, PCD, telefones,
+tempo de serviço, tempo na unidade atual, unidade anterior, órgão,
+horário especial, readaptado, acúmulo de cargos, LE, LTIP, afastamento
+>90 dias, suplementação de pessoal, aniversário hoje, última movimentação,
+data de ingresso, data da última promoção, PCNH). O usuário pediu
+explicitamente "todas as colunas possíveis, mesmo incluindo dados
+sensíveis" depois de eu apresentar o catálogo completo com a classificação
+de sensibilidade de cada campo — decisão informada, não presumida. Único
+campo deliberadamente excluído: `observacao` (texto livre, risco
+imprevisível de conter qualquer coisa). **A pedido explícito do usuário,
+a coleta de dados fica pendente**: o código está todo pronto (
+`windmill-neon.py`, no Downloads do usuário, com `ALTER TABLE`/upsert para
+as novas colunas; `etl/efetivo/extract_efetivo.py` já monta o
+sub-objeto `completo` por militar), mas o Windmill **não foi rodado** —
+até isso acontecer, o painel mostra "—" em todas as 21 colunas
+(comportamento gracioso, verificado no navegador, nenhum erro).
+**Motivo**: resposta explícita do usuário (2 vezes, depois de ver o
+catálogo completo) + pedido explícito de deixar a coleta pendente por
+enquanto.
+
+### 2026-08-11 — Setores Vinculados: (ADM) na linha própria da unidade, seções operacionais sempre por último
+**Decisão**: (1) quando uma unidade tem subordinadas reais E efetivo
+próprio (ex. DGO, DINTER I, DIM, DLOG, DEIP), a linha da própria unidade
+na tabela de Setores Vinculados passa a mostrar "SIGLA (ADM)" (ex. "DGO
+(ADM)") para distinguir da lista de unidades vinculadas de verdade; (2) as
+seções operacionais internas (SB, SBI, SBAPH, SBS, SBSA, SBFN, SATec —
+numeradas ou não, ex. "1ª SB/3º GB", "SBFN/GBI") sempre vão para o final
+da lista de divisões internas, com o resto (comando, subcomando,
+secretaria, divisões administrativas/de operações) mantendo a ordem já
+declarada em `SUBSETORES` — implementado em `divisoesDaSigla()`
+(`organograma.js`), reutilizado tanto para a linha "aberta" quanto para
+unidades-folha sem subordinadas reais (ex. 3º GB, GBI).
+**Motivo**: pedido explícito do usuário, com exemplo concreto (3º GB:
+comando/subcomando/secretaria/2 divisões primeiro, 4 SBs por último).
+
+### 2026-08-11 — KpiCard de Efetivo na página da unidade também mostra Previsto
+**Decisão**: o card "Efetivo Atual" na página de uma unidade (`Diretoria.jsx`)
+passa a mostrar uma linha secundária "Previsto: X" (reaproveitando o slot
+`extra` do `KpiCard`, já usado antes só para Finanças/executadoPct — ver
+`extraKpi()` em `cbmpe.js`), usando o mesmo previsto real agregado por
+subárvore que já alimenta a página de Indicador.
+**Motivo**: pedido explícito do usuário.
+
 ## Pendências práticas (não bloqueiam o planejamento, mas são pré-requisito de implementação)
 
 - **Workspace do Windmill**: ainda precisa ser criado pelo usuário
@@ -553,6 +654,13 @@ pública apresentado e confirmado antes de qualquer código ser escrito —
   Sheets) usados pela corporação ainda precisam ser levantados — é o
   próximo passo prático mais urgente (objetivo 1), com prioridade sobre
   aprofundar sistemas internos.
+- **Rodar o `windmill-neon.py` atualizado (2026-08-11)**: o script (no
+  Downloads do usuário) já tem as colunas novas do painel "dados
+  completos" de Efetivo prontas (`ALTER TABLE`/upsert), mas ainda não foi
+  executado no Windmill — pausado a pedido explícito do usuário. Depois de
+  rodar, falta reexecutar `etl/efetivo/extract_efetivo.py` (a consulta SQL
+  já está pronta para as novas colunas) para o painel parar de mostrar
+  "—" nas 21 colunas extras.
 
 ## Perguntas em aberto
 
