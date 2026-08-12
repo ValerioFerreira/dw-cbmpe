@@ -1,11 +1,19 @@
-// Autenticação local (stub) — mantém as telas de Login/Registro/Recuperação de
-// senha funcionando visualmente sem nenhum backend. Não faz validação real de
-// credenciais: qualquer email/senha não vazios "autenticam" o usuário. Troque
-// este módulo por chamadas a um backend/BaaS real (Supabase, Firebase, API
-// própria etc.) quando houver um — mantenha a mesma assinatura de funções para
-// não precisar tocar nas telas que a consomem.
+// Autenticação local (stub) — sem backend real. Antes aceitava qualquer
+// email/senha não vazios; agora exige o usuário administrador fixo
+// "adm"/"adm" (decisão do usuário, 2026-08-12) — login social e
+// autocadastro foram desativados (eram bypass desse controle).
+//
+// A chave de storage mudou de "cbmpe_auth_user" para "cbmpe_auth_user_v2":
+// como não há sessão de servidor pra invalidar, essa é a forma de forçar
+// logout de qualquer sessão já aberta (qualquer navegador com a chave
+// antiga deixa de ser reconhecido como autenticado assim que carregar esta
+// versão do app) — troque este módulo por um backend/BaaS real (Supabase,
+// Firebase, API própria etc.) quando houver um; mantenha a mesma
+// assinatura de funções para não precisar tocar nas telas que a consomem.
 
-const STORAGE_KEY = "cbmpe_auth_user";
+const STORAGE_KEY = "cbmpe_auth_user_v2";
+const ADMIN_USUARIO = "adm";
+const ADMIN_SENHA = "adm";
 
 function readUser() {
   try {
@@ -20,15 +28,6 @@ function writeUser(user) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
 }
 
-function userFromEmail(email) {
-  return {
-    id: email,
-    email,
-    full_name: email.split("@")[0],
-    role: email.startsWith("admin") ? "admin" : "user",
-  };
-}
-
 export const auth = {
   async me() {
     const user = readUser();
@@ -40,25 +39,24 @@ export const auth = {
     return user;
   },
 
-  async loginViaEmailPassword(email, password) {
-    if (!email || !password) throw new Error("Informe email e senha");
-    writeUser(userFromEmail(email));
+  async loginViaEmailPassword(usuario, senha) {
+    if (!usuario || !senha) throw new Error("Informe usuário e senha");
+    if (usuario.trim().toLowerCase() !== ADMIN_USUARIO || senha !== ADMIN_SENHA) {
+      throw new Error("Usuário ou senha inválidos");
+    }
+    writeUser({ id: "adm", email: "adm", full_name: "Administrador", role: "admin" });
   },
 
-  loginWithProvider(_provider, returnTo) {
-    writeUser(userFromEmail("usuario.google@cbmpe.pe.gov.br"));
-    window.location.href = returnTo || "/";
+  loginWithProvider() {
+    throw new Error("Login social desativado — use o usuário administrador.");
   },
 
-  async register({ email, password }) {
-    if (!email || !password) throw new Error("Informe email e senha");
-    // Nenhum e-mail é enviado de verdade: qualquer código de 6 dígitos é aceito em verifyOtp.
+  async register() {
+    throw new Error("Cadastro desativado — acesso apenas com o usuário administrador.");
   },
 
-  async verifyOtp({ email, otpCode }) {
-    if (!otpCode || otpCode.length < 6) throw new Error("Código de verificação inválido");
-    writeUser(userFromEmail(email));
-    return { access_token: null };
+  async verifyOtp() {
+    throw new Error("Cadastro desativado — acesso apenas com o usuário administrador.");
   },
 
   async resendOtp(_email) {

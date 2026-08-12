@@ -70,9 +70,23 @@ regulares.
 
 ## Autenticação/autorização do app (dependência futura)
 
-`src/lib/authClient.js` hoje é um stub local (`localStorage`, sem validação
-real de credenciais), com um único campo `role` (`admin`/`user`) sem
-modelo de permissões granular. Para o DW real:
+`src/lib/authClient.js` continua um stub local (`localStorage`, sem
+backend real), mas deixou de aceitar "qualquer email/senha não vazios".
+**Atualização de 2026-08-12**: por pedido do usuário, passou a exigir um
+usuário administrador fixo (`adm`/`adm`, hardcoded no módulo) — login
+social ("Continue with Google") e autocadastro foram desativados (eram
+formas de contornar esse controle). Continua sem modelo de permissões
+granular (só o campo `role`, sempre `"admin"` para esse usuário único) e
+sem sessão de servidor — a "chave" de storage mudou de `cbmpe_auth_user`
+para `cbmpe_auth_user_v2` justamente para isso: como não existe sessão
+central pra invalidar, mudar a chave é a forma de forçar logout de
+qualquer navegador que já tivesse uma sessão salva sob a chave antiga (na
+próxima vez que carregar essa versão do app, deixa de ser reconhecido
+como autenticado). Isso é uma medida de acesso mínima, não autenticação
+real — uma senha fixa e pública no código-fonte não protege contra
+alguém com acesso ao repositório; para uso real da corporação (fora de
+teste/demonstração), a dependência de RBAC/backend abaixo continua de
+pé. Para o DW real:
 
 - O RBAC precisa diferenciar, no mínimo, quem pode ver dado PII de quem só
   vê agregado — mapeando para as roles/views definidas na seção anterior.
