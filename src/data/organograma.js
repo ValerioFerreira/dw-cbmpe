@@ -14,6 +14,7 @@
 
 import efetivoReal from "./real/efetivo.json";
 import efetivoPrevistoReal from "./real/efetivo_previsto.json";
+import efetivoPrevistoDivisoesReal from "./real/efetivo_previsto_divisoes.json";
 import viaturasReal from "./real/viaturas.json";
 import financasReal from "./real/financas.json";
 
@@ -208,7 +209,7 @@ const SUBSETORES = {
   'CCS': ['↳ Chefia', '↳ Secretaria e Apoio Administrativo - SAAdm', '↳ Seção de Ações Preventivas - SAP', '↳ Seção de Impressa e Jornalismo - SIJ', '↳ Seção de Marketing e Relações Públicas - SMRP', '↳ Seção de Cerimonial e Eventos - SCE'],
   'CI': ['↳ Chefia', '↳ Secretaria e Apoio Administrativo - SAAdm', '↳ Divisão de Inteligência - DI', '↳ Divisão de Planejamento e Análise de Risco - DPAR'],
   'GSG': ['↳ Chefia', '↳ Secretaria e Apoio Administrativo - SAAdm', '↳ Assessoria de Atividades Técnicas - AAT', '↳ Assessoria de Gestão e Governança de Dados - AGGD'],
-  'DIESP': ['↳ Diretoria', '↳ Secretaria e Apoio Administrativo - SAAdm', '↳ Secretaria da Comissão Interna de Atividades Técnicas - SCIATec', '↳ Divisão de Planejamento de Operações - DPO', '↳ Divisão de Normatização e Doutrina - DND', '↳ Divisão de Isenção e Restituição - DIR', '↳ Divisão de Atendimento ao Público - DAP', '↳ Divisão de Projetos Contra Incêndio e Pânico - DPCIP'],
+  'DIESP': ['↳ Diretoria', '↳ Secretaria e Apoio Administrativo - SAAdm', '↳ Secretaria da Comissão Interna de Atividades Técnicas - SCIATec', '↳ Divisão de Planejamento de Operações - DPO', '↳ Divisão de Normatização e Doutrina - DND', '↳ Divisão de Atendimento ao Público - DAP', '↳ Seção de Isenção e Restituição - SIR', '↳ Divisão de Projetos Contra Incêndio e Pânico - DPCIP'],
   'AJG': ['↳ Chefia', '↳ Secretaria', '↳ Divisão de Protocolo, Publicação e Arquivo', '↳ Divisão Administrativa - DA'],
   'CPP': ['↳ Presidência', '↳ Secretaria da Comissão de Promoção de Praças - SCPP', '↳ Membros'],
   'DGO': ['DIM', 'DINTER I', 'DINTER II', 'DIESP', '↳ Diretoria', '↳ Secretaria e Apoio Administrativo - SAAdm', '↳ Divisão de Planejamento de Operações - DPO', '↳ Divisão de Apoio Operacional - DAO', '↳ Divisão de Coordenação Operacional - DCO'],
@@ -233,7 +234,11 @@ const SUBSETORES = {
   'CAT/SE': ['↳ Comando', '↳ Subcomando', '↳ Secretaria e Apoio do Comando - SAC', '↳ Divisão de Planejamento e Serviços Técnicos', '↳ 1ª SATec (Salgueiro)', '↳ 2ª SATec (Petrolina)', '↳ 3ª SATec (Serra Talhada)', '↳ 4ª SATec (Arcoverde)', '↳ 5ª SATec (Araripina)', '↳ Divisão Administrativa - DA'],
   'DGA': ['DGP', 'DVP', 'DJD', 'DF', 'DAS', 'DTIC', 'DLOG', 'DEIP', 'DPLAG', '↳ Diretoria', '↳ Secretaria e Apoio Administrativo - SAAdm'],
   'DPLAG': ['↳ Diretoria', '↳ Secretaria e Apoio Administrativo - SAAdm', '↳ Divisão de Planejamento e Gestão Estratégica - DPGE', '↳ Divisão Projetos e Captação de Recursos - DPCR', '↳ Divisão de Convênios e Acordo de Cooperação - DCAC', '↳ Divisão de Tributação e Orçamento - DTO'],
-  'DGP': ['↳ Diretoria', '↳ Secretaria e Apoio Administrativo - SAAdm', '↳ Divisão de Ativos - DA', '↳ Divisão de Direitos - DDIr', '↳ Divisão de Movimentação e Controle de Pessoal - DMCP', '↳ Divisão de Normatização e Programas - DNP'],
+  // CPPA (Centro de Pagamento de Pessoal Ativo) tem aba própria no QOD mas
+  // soma dentro de DGP no organograma (não é unidade própria — decisão já
+  // registrada em DW_PLANEJAMENTO.md) — listada aqui como mais uma divisão
+  // de DGP para exibir seu efetivo previsto na tabela de setores vinculados.
+  'DGP': ['↳ Diretoria', '↳ Secretaria e Apoio Administrativo - SAAdm', '↳ Divisão de Ativos - DA', '↳ Divisão de Direitos - DDIr', '↳ Divisão de Movimentação e Controle de Pessoal - DMCP', '↳ Divisão de Normatização e Programas - DNP', '↳ CPPA'],
   'DAS': ['↳ Diretoria', '↳ Secretaria e Apoio Administrativo - SAAdm', '↳ Divisão de Programas Sociais - DPS', '↳ Divisão Administrativa'],
   'DJD': ['↳ Diretoria', '↳ Secretaria e Apoio Administrativo - SAAdm', '↳ Divisão de Planejamento de Justiça e Disciplina - DPJD', '↳ Divisão de Justiça e Disciplina - Div. JD'],
   'DVP': ['↳ Diretoria', '↳ Divisão de Transferência para Reserva e Reformas - DTRR', '↳ Divisão de Inativos - DI', '↳ Divisão de Direitos'],
@@ -404,30 +409,22 @@ function divisoesDaSigla(sigla) {
   return [...administrativas, ...operacionais];
 }
 
-// Métricas sintéticas por divisão/seção interna de uma unidade — distribuem
-// (de forma determinística) os valores próprios da unidade entre suas
-// divisões internas, para exibição em detalhe (não há dado real por seção).
+// Efetivo previsto por divisão/seção interna de uma unidade — fonte real
+// (QOD, ver etl/efetivo/extract_previsto_divisoes.py). Não há, por hora,
+// efetivo ATUAL nesse nível de granularidade (só agregado por unidade) —
+// por isso não expõe um campo "efetivo", só "efetivoPrevisto"; a UI mostra
+// "x/previsto" para deixar claro que só o previsto está disponível aqui —
+// decisão registrada em DW_PLANEJAMENTO.md.
 export function metricasDivisoesProprias(sigla) {
   const divisoes = divisoesDaSigla(sigla);
   if (!divisoes.length) return [];
-  const proprias = metricasProprias(sigla);
-  const rng = criarRng(`${sigla}:divisoes`);
-  const pesos = divisoes.map(() => 0.4 + rng() * 1.2);
-  const soma = pesos.reduce((a, b) => a + b, 0);
-  return divisoes.map((nome, i) => {
-    const fracao = pesos[i] / soma;
-    const efetivo = Math.max(1, Math.round(proprias.efetivo * fracao));
-    return {
-      nome,
-      efetivo,
-      efetivoPrevisto: Math.max(efetivo, Math.round(efetivo * (0.9 + rng() * 0.25))),
-      viaturas: Math.max(0, Math.round(proprias.viaturas * fracao)),
-      materiaisPct: Math.max(0, Math.min(100, Math.round(proprias.materiaisPct + (rng() * 6 - 3)))),
-      financas: Math.max(0, Math.round(proprias.financas * fracao)),
-      financaPct: Math.max(0, Math.min(100, Math.round(proprias.financaPct + (rng() * 6 - 3)))),
-      acoes: Math.max(0, Math.round(proprias.acoes * fracao)),
-    };
-  });
+  const previstoPorNome = new Map(
+    (efetivoPrevistoDivisoesReal.por_unidade[sigla] || []).map((d) => [d.nome, d.previsto])
+  );
+  return divisoes.map((nome) => ({
+    nome,
+    efetivoPrevisto: previstoPorNome.get(nome) ?? 0,
+  }));
 }
 
 function construirUnidades() {

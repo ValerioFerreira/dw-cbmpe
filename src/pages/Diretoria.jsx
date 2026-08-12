@@ -42,9 +42,24 @@ function celulaEfetivoIndicador(ind) {
   return `Atual: ${fmtNumero(ind.valor)} / Previsto: ${ind.meta != null ? fmtNumero(ind.meta) : "—"}`;
 }
 
-// Célula da coluna Efetivo para uma divisão/seção interna (dado sintético).
+// Célula da coluna Efetivo da linha "(ADM)" — efetivo próprio da unidade,
+// atual e previsto reais (não é dado de divisão interna).
 function celulaEfetivoDivisao(d) {
   return `Atual: ${fmtNumero(d.efetivo)} / Previsto: ${fmtNumero(d.efetivoPrevisto)}`;
+}
+
+// Célula da coluna Efetivo para uma divisão/seção interna: só há previsto
+// real (QOD) nesse nível de granularidade, ainda não há efetivo atual —
+// "x" deixa isso explícito em vez de fingir um valor atual (decisão
+// registrada em DW_PLANEJAMENTO.md).
+function celulaPrevistoDivisao(d) {
+  return `x/${fmtNumero(d.efetivoPrevisto)}`;
+}
+
+// Rótulo exibido no cabeçalho da coluna (não altera o nome usado para
+// casar com o indicador — só o texto mostrado ao usuário).
+function rotuloColuna(nome) {
+  return nome === "Efetivo" ? "Efetivo Atual/Previsto" : nome;
 }
 
 function celulaIndicador(nome, ind) {
@@ -176,7 +191,7 @@ export default function Diretoria() {
               <thead>
                 <tr className="border-b border-border text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                   <th className="p-2.5 text-left">Setores</th>
-                  {KPI_BASES.map((nome) => <th key={nome} className="p-2.5 text-right">{nome}</th>)}
+                  {KPI_BASES.map((nome) => <th key={nome} className="p-2.5 text-right">{rotuloColuna(nome)}</th>)}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border text-[12px]">
@@ -213,7 +228,7 @@ export default function Diretoria() {
                       {aberta && divisoesF.map((d) => (
                         <tr key={d.nome} className="bg-muted/10 text-[11px] text-muted-foreground/80">
                           <td className="whitespace-nowrap p-2.5 pl-8 text-left">{d.nome}</td>
-                          <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
+                          <td className="whitespace-nowrap p-2.5 text-right tabular-nums">{celulaPrevistoDivisao(d)}</td>
                           <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
                           <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
                           <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
@@ -229,7 +244,7 @@ export default function Diretoria() {
                 {filhosDiretos.length === 0 && divisoesProprias.map((d) => (
                   <tr key={d.nome} className="text-foreground/80">
                     <td className="whitespace-nowrap p-2.5 text-left font-medium text-foreground">{d.nome}</td>
-                    <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
+                    <td className="whitespace-nowrap p-2.5 text-right tabular-nums">{celulaPrevistoDivisao(d)}</td>
                     <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
                     <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
                     <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
@@ -262,7 +277,7 @@ export default function Diretoria() {
                 {filhosDiretos.length > 0 && proprias && linhasAbertas.has(unidade.id) && divisoesProprias.map((d) => (
                   <tr key={d.nome} className="bg-muted/10 text-[11px] text-muted-foreground/80">
                     <td className="whitespace-nowrap p-2.5 pl-8 text-left">{d.nome}</td>
-                    <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
+                    <td className="whitespace-nowrap p-2.5 text-right tabular-nums">{celulaPrevistoDivisao(d)}</td>
                     <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
                     <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
                     <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>

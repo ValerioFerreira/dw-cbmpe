@@ -1,6 +1,6 @@
 {
   "fonte": "Neon (tabela Militar, campo ome, ativo=true)",
-  "gerado_em": "2026-08-11T12:41:42.069282+00:00",
+  "gerado_em": "2026-08-12T19:19:41.738428+00:00",
   "nao_lotados": {
     "ADIDO": 187
   },
@@ -16,7 +16,7 @@
     "ABMG": 47,
     "AECI": 7,
     "AJG": 73,
-    "CAT/AG": 30,
+    "CAT/AG": 29,
     "CAT/RMR": 41,
     "CAT/SE": 32,
     "CAT/ZM": 32,
@@ -50,5 +50,5 @@
     "GSG": 11,
     "SUBCOMANDO GERAL": 1
   },
-  "total_ativo": 2659
+  "total_ativo": 2658
 }

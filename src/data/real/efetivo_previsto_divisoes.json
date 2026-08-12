@@ -1,0 +1,1155 @@
+{
+  "fonte": "QOD (08 - QOD - AGOSTO - 2026.xlsx, abas por unidade) — pendente de homologação/publicação em BGE",
+  "por_unidade": {
+    "GCG": [
+      {
+        "nome": "Chefia",
+        "previsto": 3
+      },
+      {
+        "nome": "Secretaria e Apoio Administrativo - SAAdm",
+        "previsto": 16
+      },
+      {
+        "nome": "Assessoria Jurídica - AJ",
+        "previsto": 6
+      },
+      {
+        "nome": "Assessoria de Relações Institucionais",
+        "previsto": 0
+      }
+    ],
+    "CI": [
+      {
+        "nome": "Chefia",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio Administrativo - SAAdm",
+        "previsto": 4
+      },
+      {
+        "nome": "Divisão de Inteligência - DI",
+        "previsto": 13
+      },
+      {
+        "nome": "Divisão de Planejamento e Análise de Risco - DPAR",
+        "previsto": 5
+      }
+    ],
+    "CPO": [
+      {
+        "nome": "Presidência",
+        "previsto": 0
+      },
+      {
+        "nome": "Secretaria da Comissão de Promoção de Oficiais - SCPO",
+        "previsto": 6
+      },
+      {
+        "nome": "Membros",
+        "previsto": 0
+      }
+    ],
+    "AECI": [
+      {
+        "nome": "Chefia",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio Administrativo - SAAdm",
+        "previsto": 2
+      },
+      {
+        "nome": "Divisão de Planejamento de Controle Interno - DPCI",
+        "previsto": 9
+      }
+    ],
+    "CCS": [
+      {
+        "nome": "Chefia",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio Administrativo - SAAdm",
+        "previsto": 4
+      },
+      {
+        "nome": "Seção de Ações Preventivas - SAP",
+        "previsto": 4
+      },
+      {
+        "nome": "Seção de Impressa e Jornalismo - SIJ",
+        "previsto": 5
+      },
+      {
+        "nome": "Seção de Marketing e Relações Públicas - SMRP",
+        "previsto": 6
+      },
+      {
+        "nome": "Seção de Cerimonial e Eventos - SCE",
+        "previsto": 26
+      }
+    ],
+    "GSG": [
+      {
+        "nome": "Chefia",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio Administrativo - SAAdm",
+        "previsto": 7
+      },
+      {
+        "nome": "Assessoria de Atividades Técnicas - AAT",
+        "previsto": 5
+      },
+      {
+        "nome": "Assessoria de Gestão e Governança de Dados - AGGD",
+        "previsto": 3
+      }
+    ],
+    "AJG": [
+      {
+        "nome": "Chefia",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria",
+        "previsto": 5
+      },
+      {
+        "nome": "Divisão de Protocolo, Publicação e Arquivo",
+        "previsto": 9
+      },
+      {
+        "nome": "Divisão Administrativa - DA",
+        "previsto": 78
+      }
+    ],
+    "CPP": [
+      {
+        "nome": "Presidência",
+        "previsto": 0
+      },
+      {
+        "nome": "Secretaria da Comissão de Promoção de Praças - SCPP",
+        "previsto": 4
+      },
+      {
+        "nome": "Membros",
+        "previsto": 0
+      }
+    ],
+    "DGO": [
+      {
+        "nome": "Diretoria",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio Administrativo - SAAdm",
+        "previsto": 7
+      },
+      {
+        "nome": "Divisão de Planejamento de Operações - DPO",
+        "previsto": 10
+      },
+      {
+        "nome": "Divisão de Apoio Operacional - DAO",
+        "previsto": 9
+      },
+      {
+        "nome": "Divisão de Coordenação Operacional - DCO",
+        "previsto": 40
+      }
+    ],
+    "DIM": [
+      {
+        "nome": "Diretoria",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio Administrativo - SAAdm",
+        "previsto": 5
+      },
+      {
+        "nome": "Divisão de Planejamento de Operações - DPO",
+        "previsto": 17
+      },
+      {
+        "nome": "Divisão de Resposta a Desastres - DRD",
+        "previsto": 12
+      }
+    ],
+    "GBI": [
+      {
+        "nome": "Comando",
+        "previsto": 1
+      },
+      {
+        "nome": "Subcomando",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio do Comando - SAC",
+        "previsto": 5
+      },
+      {
+        "nome": "Divisão de Operações - Div. Op.",
+        "previsto": 21
+      },
+      {
+        "nome": "1ª SBI/GBI (Jaboatão dos Guararapes)",
+        "previsto": 121
+      },
+      {
+        "nome": "2ª SBI/GBI (Complexo QCG)",
+        "previsto": 111
+      },
+      {
+        "nome": "3ª SBI/GBI (SUAPE)",
+        "previsto": 84
+      },
+      {
+        "nome": "4ª SBI/GBI (AENA)",
+        "previsto": 64
+      },
+      {
+        "nome": "SBFN/GBI (Fernando de Noronha)",
+        "previsto": 63
+      },
+      {
+        "nome": "Divisão Administrativa - DA",
+        "previsto": 49
+      }
+    ],
+    "GBAPH": [
+      {
+        "nome": "Comando",
+        "previsto": 1
+      },
+      {
+        "nome": "Subcomando",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio do Comando - SAC",
+        "previsto": 8
+      },
+      {
+        "nome": "Divisão de Operações - Div. Op.",
+        "previsto": 16
+      },
+      {
+        "nome": "1ª SBAPH/GBAPH (Olinda)",
+        "previsto": 116
+      },
+      {
+        "nome": "2ª SBAPH/GBAPH (Igarassu)",
+        "previsto": 79
+      },
+      {
+        "nome": "3ª SBAPH/GBAPH (São Lourenço da Mata)",
+        "previsto": 71
+      },
+      {
+        "nome": "4ª SBAPH/GBAPH (Motorresgate - Sede)",
+        "previsto": 67
+      },
+      {
+        "nome": "Divisão Administrativa - DA",
+        "previsto": 48
+      }
+    ],
+    "GBS": [
+      {
+        "nome": "Comando",
+        "previsto": 1
+      },
+      {
+        "nome": "Subcomando",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio do Comando - SAC",
+        "previsto": 7
+      },
+      {
+        "nome": "Divisão de Operações - Div. Op.",
+        "previsto": 10
+      },
+      {
+        "nome": "1ª SBS/GBS (Abreu e Lima)",
+        "previsto": 56
+      },
+      {
+        "nome": "2ª SBS/GBS (Canil)",
+        "previsto": 32
+      },
+      {
+        "nome": "3ª SBS/GBS (Mergulho)",
+        "previsto": 45
+      },
+      {
+        "nome": "4ª SBS/GBS (Produtos Perigosos e Incêndio Florestais)",
+        "previsto": 34
+      },
+      {
+        "nome": "5ª SBS/GBS (Respostas a Desastres)",
+        "previsto": 45
+      },
+      {
+        "nome": "Divisão Administrativa - DA",
+        "previsto": 39
+      }
+    ],
+    "GBMar": [
+      {
+        "nome": "Comando",
+        "previsto": 1
+      },
+      {
+        "nome": "Subcomando",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio do Comando - SAC",
+        "previsto": 4
+      },
+      {
+        "nome": "Divisão de Operações - Div. Op.",
+        "previsto": 16
+      },
+      {
+        "nome": "1ª SBSA/GBMar (Jaboatão dos Guararapes)",
+        "previsto": 136
+      },
+      {
+        "nome": "2ª SBSA/GBMar (Jaboatão dos Guararapes)",
+        "previsto": 123
+      },
+      {
+        "nome": "Divisão Administrativa - DA",
+        "previsto": 33
+      }
+    ],
+    "DIESP": [
+      {
+        "nome": "Diretoria",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio Administrativo - SAAdm",
+        "previsto": 5
+      },
+      {
+        "nome": "Secretaria da Comissão Interna de Atividades Técnicas - SCIATec",
+        "previsto": 5
+      },
+      {
+        "nome": "Divisão de Planejamento de Operações - DPO",
+        "previsto": 15
+      },
+      {
+        "nome": "Divisão de Normatização e Doutrina - DND",
+        "previsto": 5
+      },
+      {
+        "nome": "Divisão de Atendimento ao Público - DAP",
+        "previsto": 5
+      },
+      {
+        "nome": "Seção de Isenção e Restituição - SIR",
+        "previsto": 6
+      },
+      {
+        "nome": "Divisão de Projetos Contra Incêndio e Pânico - DPCIP",
+        "previsto": 31
+      }
+    ],
+    "CAT/RMR": [
+      {
+        "nome": "Comando",
+        "previsto": 1
+      },
+      {
+        "nome": "Subcomando",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio do Comando - SAC",
+        "previsto": 6
+      },
+      {
+        "nome": "Divisão de Serviços Técnicos - DSTec",
+        "previsto": 4
+      },
+      {
+        "nome": "1ª SATec",
+        "previsto": 22
+      },
+      {
+        "nome": "2ª SATec",
+        "previsto": 23
+      },
+      {
+        "nome": "3ª SATec",
+        "previsto": 22
+      },
+      {
+        "nome": "4ª SATec",
+        "previsto": 6
+      },
+      {
+        "nome": "Divisão Administrativa - DA",
+        "previsto": 22
+      }
+    ],
+    "DINTER I": [
+      {
+        "nome": "Diretoria",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio Administrativo - SAAdm",
+        "previsto": 5
+      },
+      {
+        "nome": "Divisão de Planejamento de Operações - DPO",
+        "previsto": 10
+      },
+      {
+        "nome": "Divisão de Resposta Operacional - DRD",
+        "previsto": 11
+      }
+    ],
+    "1º GB": [
+      {
+        "nome": "Comando",
+        "previsto": 1
+      },
+      {
+        "nome": "Subcomando",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio do Comando - SAC",
+        "previsto": 4
+      },
+      {
+        "nome": "Divisão de Operações - DO",
+        "previsto": 10
+      },
+      {
+        "nome": "1ª SB/1º GB (Vitória de Santo Antão)",
+        "previsto": 97
+      },
+      {
+        "nome": "2ª SB/1º GB (Palmares)",
+        "previsto": 72
+      },
+      {
+        "nome": "3ª SB/1º GB (Gravatá)",
+        "previsto": 68
+      },
+      {
+        "nome": "Divisão Administrativa - DA",
+        "previsto": 27
+      }
+    ],
+    "2º GB": [
+      {
+        "nome": "Comando",
+        "previsto": 1
+      },
+      {
+        "nome": "Subcomando",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio do Comando - SAC",
+        "previsto": 6
+      },
+      {
+        "nome": "Divisão de Operações - DivOP",
+        "previsto": 11
+      },
+      {
+        "nome": "1ª SB/2º GB (Caruaru)",
+        "previsto": 94
+      },
+      {
+        "nome": "2ª SB/2º GB (Bezerros)",
+        "previsto": 72
+      },
+      {
+        "nome": "3ª SB/2º GB (Belo Jardim)",
+        "previsto": 60
+      },
+      {
+        "nome": "4ª SB/2º GB (Bonito)",
+        "previsto": 60
+      },
+      {
+        "nome": "5ª SB/2º GB (Toritama)",
+        "previsto": 61
+      },
+      {
+        "nome": "6ª SB/2º GB (Santa Cruz do Capibaribe)",
+        "previsto": 61
+      },
+      {
+        "nome": "7ª SB/2º GB (Mergulho ZM e AG)",
+        "previsto": 23
+      },
+      {
+        "nome": "Divisão Administrativa - DA",
+        "previsto": 35
+      }
+    ],
+    "6º GB": [
+      {
+        "nome": "Comando",
+        "previsto": 1
+      },
+      {
+        "nome": "Subcomando",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio do Comando - SAC",
+        "previsto": 6
+      },
+      {
+        "nome": "Divisão de Operações - DO",
+        "previsto": 20
+      },
+      {
+        "nome": "1ª SB/6º GB (Garanhuns)",
+        "previsto": 101
+      },
+      {
+        "nome": "2ª SB/6º GB (Bom Conselho)",
+        "previsto": 70
+      },
+      {
+        "nome": "Divisão Administrativa - DA",
+        "previsto": 33
+      }
+    ],
+    "7º GB": [
+      {
+        "nome": "Comando",
+        "previsto": 1
+      },
+      {
+        "nome": "Subcomando",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio do Comando - SAC",
+        "previsto": 5
+      },
+      {
+        "nome": "Divisão de Operações - DO",
+        "previsto": 14
+      },
+      {
+        "nome": "1ª SB/7º GB (Carpina)",
+        "previsto": 93
+      },
+      {
+        "nome": "2ª SB/7º GB (Goiana)",
+        "previsto": 69
+      },
+      {
+        "nome": "3ª SB/7º GB (Macaparana)",
+        "previsto": 68
+      },
+      {
+        "nome": "4ª SB/7º GB (Surubim)",
+        "previsto": 62
+      },
+      {
+        "nome": "Divisão Administrativa - DA",
+        "previsto": 33
+      }
+    ],
+    "CAT/ZM": [
+      {
+        "nome": "Comando",
+        "previsto": 1
+      },
+      {
+        "nome": "Subcomando",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio do Comando - SAC",
+        "previsto": 3
+      },
+      {
+        "nome": "Divisão de Serviços Técnicos - DSTec",
+        "previsto": 6
+      },
+      {
+        "nome": "1ª SATec (Carpina)",
+        "previsto": 10
+      },
+      {
+        "nome": "2ª SATec (Goiana)",
+        "previsto": 9
+      },
+      {
+        "nome": "3ª SATec (Vitória de Santo Antão)",
+        "previsto": 9
+      },
+      {
+        "nome": "Divisão Administrativa - DA",
+        "previsto": 16
+      }
+    ],
+    "CAT/AG": [
+      {
+        "nome": "Comando",
+        "previsto": 1
+      },
+      {
+        "nome": "Subcomando",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio do Comando - SAC",
+        "previsto": 6
+      },
+      {
+        "nome": "Divisão de Serviços Técnicos - DSTec",
+        "previsto": 6
+      },
+      {
+        "nome": "1ª SATec (Caruaru)",
+        "previsto": 10
+      },
+      {
+        "nome": "2ª SATec (Garanhuns)",
+        "previsto": 10
+      },
+      {
+        "nome": "3ª SATec (Belo Jardim)",
+        "previsto": 8
+      },
+      {
+        "nome": "4ª SATec (Toritama)",
+        "previsto": 6
+      },
+      {
+        "nome": "Divisão Administrativa - DA",
+        "previsto": 15
+      }
+    ],
+    "DINTER II": [
+      {
+        "nome": "Diretoria",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio Administrativo - SAAdm",
+        "previsto": 3
+      },
+      {
+        "nome": "Divisão de Planejamento de Operações - DPO",
+        "previsto": 10
+      },
+      {
+        "nome": "Divisão de Resposta Operacional - DRD",
+        "previsto": 11
+      }
+    ],
+    "3º GB": [
+      {
+        "nome": "Comando",
+        "previsto": 1
+      },
+      {
+        "nome": "Subcomando",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio do Comando - SAC",
+        "previsto": 5
+      },
+      {
+        "nome": "Divisão de Operações - DO",
+        "previsto": 14
+      },
+      {
+        "nome": "1ª SB/3º GB (Serra Talhada)",
+        "previsto": 88
+      },
+      {
+        "nome": "2ª SB/3º GB (Afogados da Ingazeira)",
+        "previsto": 56
+      },
+      {
+        "nome": "3ª SB/3º GB (São José do Egito)",
+        "previsto": 56
+      },
+      {
+        "nome": "4ª SB/3º GB (Petrolândia)",
+        "previsto": 55
+      },
+      {
+        "nome": "Divisão Administrativa - DA",
+        "previsto": 29
+      }
+    ],
+    "4º GB": [
+      {
+        "nome": "Comando",
+        "previsto": 1
+      },
+      {
+        "nome": "Subcomando",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio do Comando - SAC",
+        "previsto": 5
+      },
+      {
+        "nome": "Divisão de Operações - DO",
+        "previsto": 16
+      },
+      {
+        "nome": "1ª SB/4º GB (Petrolina)",
+        "previsto": 110
+      },
+      {
+        "nome": "2ª SB/4º GB (Santa Maria da Boa Vista)",
+        "previsto": 62
+      },
+      {
+        "nome": "3ª SB/4º GB (Mergulho SE)",
+        "previsto": 24
+      },
+      {
+        "nome": "Divisão Administrativa - DA",
+        "previsto": 30
+      }
+    ],
+    "5º GB": [
+      {
+        "nome": "Comando",
+        "previsto": 1
+      },
+      {
+        "nome": "Subcomando",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio do Comando - SAC",
+        "previsto": 4
+      },
+      {
+        "nome": "Divisão de Operações - DO",
+        "previsto": 13
+      },
+      {
+        "nome": "1ª SB/5º GB (Salgueiro)",
+        "previsto": 102
+      },
+      {
+        "nome": "2ª SB/5º GB (São José Belmonte)",
+        "previsto": 61
+      },
+      {
+        "nome": "3ª SB/5º GB (Araripina)",
+        "previsto": 61
+      },
+      {
+        "nome": "4ª SB/5º GB (Ouricuri)",
+        "previsto": 59
+      },
+      {
+        "nome": "Divisão Administrativa - DA",
+        "previsto": 27
+      }
+    ],
+    "9º GB": [
+      {
+        "nome": "Comando",
+        "previsto": 1
+      },
+      {
+        "nome": "Subcomando",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio do Comando - SAC",
+        "previsto": 4
+      },
+      {
+        "nome": "Divisão de Operações - DO",
+        "previsto": 15
+      },
+      {
+        "nome": "1ª SB/9º GB (Arcoverde)",
+        "previsto": 74
+      },
+      {
+        "nome": "2ª SB/9º GB (Pesqueira)",
+        "previsto": 53
+      },
+      {
+        "nome": "3ª SB/9º GB (Custódia)",
+        "previsto": 45
+      },
+      {
+        "nome": "Divisão Administrativa - DA",
+        "previsto": 27
+      }
+    ],
+    "CAT/SE": [
+      {
+        "nome": "Comando",
+        "previsto": 1
+      },
+      {
+        "nome": "Subcomando",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio do Comando - SAC",
+        "previsto": 4
+      },
+      {
+        "nome": "Divisão de Planejamento e Serviços Técnicos",
+        "previsto": 4
+      },
+      {
+        "nome": "1ª SATec (Salgueiro)",
+        "previsto": 6
+      },
+      {
+        "nome": "2ª SATec (Petrolina)",
+        "previsto": 6
+      },
+      {
+        "nome": "3ª SATec (Serra Talhada)",
+        "previsto": 7
+      },
+      {
+        "nome": "4ª SATec (Arcoverde)",
+        "previsto": 7
+      },
+      {
+        "nome": "5ª SATec (Araripina)",
+        "previsto": 7
+      },
+      {
+        "nome": "Divisão Administrativa - DA",
+        "previsto": 19
+      }
+    ],
+    "DAS": [
+      {
+        "nome": "Diretoria",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio Administrativo - SAAdm",
+        "previsto": 5
+      },
+      {
+        "nome": "Divisão de Programas Sociais - DPS",
+        "previsto": 23
+      },
+      {
+        "nome": "Divisão Administrativa",
+        "previsto": 23
+      }
+    ],
+    "DGP": [
+      {
+        "nome": "Diretoria",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio Administrativo - SAAdm",
+        "previsto": 12
+      },
+      {
+        "nome": "Divisão de Ativos - DA",
+        "previsto": 6
+      },
+      {
+        "nome": "Divisão de Direitos - DDIr",
+        "previsto": 15
+      },
+      {
+        "nome": "Divisão de Movimentação e Controle de Pessoal - DMCP",
+        "previsto": 8
+      },
+      {
+        "nome": "Divisão de Normatização e Programas - DNP",
+        "previsto": 3
+      },
+      {
+        "nome": "CPPA",
+        "previsto": 17
+      }
+    ],
+    "DJD": [
+      {
+        "nome": "Diretoria",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio Administrativo - SAAdm",
+        "previsto": 4
+      },
+      {
+        "nome": "Divisão de Planejamento de Justiça e Disciplina - DPJD",
+        "previsto": 1
+      },
+      {
+        "nome": "Divisão de Justiça e Disciplina - Div. JD",
+        "previsto": 7
+      }
+    ],
+    "DVP": [
+      {
+        "nome": "Diretoria",
+        "previsto": 4
+      },
+      {
+        "nome": "Divisão de Transferência para Reserva e Reformas - DTRR",
+        "previsto": 3
+      },
+      {
+        "nome": "Divisão de Inativos - DI",
+        "previsto": 8
+      },
+      {
+        "nome": "Divisão de Direitos",
+        "previsto": 10
+      }
+    ],
+    "DTIC": [
+      {
+        "nome": "Diretoria",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio Administrativo - SAAdm",
+        "previsto": 4
+      },
+      {
+        "nome": "Divisão de Projetos - DP",
+        "previsto": 8
+      },
+      {
+        "nome": "Divisão de Coordenação Técnica - DCT",
+        "previsto": 14
+      }
+    ],
+    "DPLAG": [
+      {
+        "nome": "Diretoria",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio Administrativo - SAAdm",
+        "previsto": 3
+      },
+      {
+        "nome": "Divisão de Planejamento e Gestão Estratégica - DPGE",
+        "previsto": 3
+      },
+      {
+        "nome": "Divisão Projetos e Captação de Recursos - DPCR",
+        "previsto": 6
+      },
+      {
+        "nome": "Divisão de Convênios e Acordo de Cooperação - DCAC",
+        "previsto": 5
+      },
+      {
+        "nome": "Divisão de Tributação e Orçamento - DTO",
+        "previsto": 7
+      }
+    ],
+    "DLOG": [
+      {
+        "nome": "Diretoria",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio Administrativo - SAAdm",
+        "previsto": 4
+      },
+      {
+        "nome": "Divisão de Planejamento Logístico - DPL",
+        "previsto": 9
+      },
+      {
+        "nome": "Divisão de Gestão de Contratos - DGC",
+        "previsto": 8
+      },
+      {
+        "nome": "Divisão de Gestão de Patrimônio - DGPat",
+        "previsto": 8
+      },
+      {
+        "nome": "Divisão de Gestão de Transporte e Combustível - DGTC",
+        "previsto": 9
+      },
+      {
+        "nome": "Divisão de Controle de Inquéritos Administrativos e Logísticos - DCIAL",
+        "previsto": 6
+      },
+      {
+        "nome": "Divisão de Compras e Serviços - DCS",
+        "previsto": 16
+      }
+    ],
+    "CMAN": [
+      {
+        "nome": "Chefia",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio Administrativo - SAAdm",
+        "previsto": 3
+      },
+      {
+        "nome": "Divisão de Gestão de Manutenção - DGM",
+        "previsto": 19
+      },
+      {
+        "nome": "Divisão Administrativa - DA",
+        "previsto": 26
+      }
+    ],
+    "CINT": [
+      {
+        "nome": "Chefia",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio Administrativo - SAAdm",
+        "previsto": 6
+      },
+      {
+        "nome": "Divisão de Gestão de Suprimentos - DGS",
+        "previsto": 26
+      }
+    ],
+    "CEAO": [
+      {
+        "nome": "Chefia",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio Administrativo - SAAdm",
+        "previsto": 3
+      },
+      {
+        "nome": "Divisão de Projetos - DP",
+        "previsto": 18
+      },
+      {
+        "nome": "Divisão Administrativa - DA",
+        "previsto": 11
+      }
+    ],
+    "DF": [
+      {
+        "nome": "Diretoria",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio Administrativo - SAAdm",
+        "previsto": 5
+      },
+      {
+        "nome": "Divisão de Planejamento e Administração Financeira e Orçamentária",
+        "previsto": 7
+      },
+      {
+        "nome": "Divisão de Prestação de Contas",
+        "previsto": 4
+      },
+      {
+        "nome": "Divisão de Tesouraria Geral",
+        "previsto": 3
+      },
+      {
+        "nome": "Divisão de Controle Orçamentário e Financeiro",
+        "previsto": 5
+      }
+    ],
+    "DEIP": [
+      {
+        "nome": "Diretoria",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio Administrativo - SAAdm",
+        "previsto": 4
+      },
+      {
+        "nome": "Divisão de Ensino e Pesquisa - DEP",
+        "previsto": 10
+      },
+      {
+        "nome": "Divisão de Admissão, Credenciamento e Fiscalização - DACF",
+        "previsto": 10
+      }
+    ],
+    "ABMG": [
+      {
+        "nome": "Comando",
+        "previsto": 1
+      },
+      {
+        "nome": "Subcomando",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio do Comando - SAC",
+        "previsto": 5
+      },
+      {
+        "nome": "Divisão de Ensino - DE",
+        "previsto": 17
+      },
+      {
+        "nome": "Corpo de Alunos Oficiais",
+        "previsto": 12
+      },
+      {
+        "nome": "Corpo de Alunos Praças",
+        "previsto": 18
+      },
+      {
+        "nome": "Divisão Administrativa",
+        "previsto": 53
+      }
+    ],
+    "CEFD": [
+      {
+        "nome": "Chefia",
+        "previsto": 1
+      },
+      {
+        "nome": "Secretaria e Apoio Administrativo - SAAdm",
+        "previsto": 4
+      },
+      {
+        "nome": "Seção de Treinamento Físico",
+        "previsto": 9
+      }
+    ]
+  }
+}

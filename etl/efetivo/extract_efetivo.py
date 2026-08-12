@@ -155,7 +155,11 @@ def main():
     for ome, posto_grad, matricula, nome, nome_guerra, sexo, data_nascimento, _ordem in militares:
         sigla = mapeamento.get(ome)
         if not sigla:
-            continue
+            # Não lotados (ex. ADIDO) contam no efetivo do Comando Geral —
+            # mesma regra do efetivo.json/organograma.js (overlay de
+            # efetivoNaoLotado). Sem isso, a tabela de detalhes do Comando
+            # Geral ficava 187 registros menor que o KPI "Efetivo Atual".
+            sigla = "COMANDO GERAL"
         lista_por_unidade.setdefault(sigla, []).append({
             "postoGrad": posto_grad,
             "matricula": matricula,

@@ -12,6 +12,7 @@ import Organograma from '@/pages/Organograma';
 import Diretoria from '@/pages/Diretoria';
 import DashboardDetalhe from '@/pages/DashboardDetalhe';
 import Indicador from '@/pages/Indicador';
+import EfetivoDetalhe from '@/pages/EfetivoDetalhe';
 import Submodulo from '@/pages/Submodulo';
 import Detalhamento from '@/pages/Detalhamento';
 import EmConstrucao from '@/pages/EmConstrucao';
@@ -48,6 +49,7 @@ const AuthenticatedApp = () => {
           <Route path="/diretoria/:id" element={<Diretoria />} />
           <Route path="/dashboard/:id" element={<DashboardDetalhe />} />
           <Route path="/indicador/:id" element={<Indicador />} />
+          <Route path="/efetivo/:id" element={<EfetivoDetalhe />} />
           <Route path="/submodulo/:id/:modulo" element={<Submodulo />} />
           <Route path="/detalhamento/:id/:modulo" element={<Detalhamento />} />
           <Route path="/em-construcao/:nome" element={<EmConstrucao />} />

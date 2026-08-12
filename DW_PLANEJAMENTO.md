@@ -564,6 +564,11 @@ publicar um previsto incompleto/mal mapeado.
 **Motivo**: resposta direta do usuário a cada uma das 4 perguntas.
 
 ### 2026-08-11 — Granularidade de cargo/seção interna do QOD existe, mas fica para uma fase futura
+**Superado em 2026-08-12** — ver entrada "Efetivo Previsto granular por
+divisão implementado" abaixo; a granularidade descrita aqui foi mapeada e
+já está no app. Entrada mantida como registro histórico da decisão
+original.
+
 **Achado**: além do previsto por unidade (aba GERAL 001), o QOD tem uma
 aba por unidade (ex. "DGP 080", "3º GB 058") com o previsto por cargo/
 seção interna (Chefe, Auxiliares, Núcleo de Assistência Social, Divisão de
@@ -645,6 +650,181 @@ passa a mostrar uma linha secundária "Previsto: X" (reaproveitando o slot
 subárvore que já alimenta a página de Indicador.
 **Motivo**: pedido explícito do usuário.
 
+### 2026-08-12 — Efetivo Previsto granular por divisão implementado (supera a nota de 2026-08-11 acima)
+**Decisão**: a granularidade de cargo/seção interna do QOD, até aqui
+registrada como "fica para uma fase futura", foi implementada nesta
+sessão. Varredura completa das ~44 abas de unidade do QOD (ex. "GBI 012",
+"DGP 080", "3º GB 058") via `etl/efetivo/extract_previsto_divisoes.py`:
+- Cada aba tem uma árvore de seções numeradas (ex. "1) Comando", "4.4) 1ª
+  Seção de Bombeiros... - 1ª SBI/GBI"), cada uma com previsto na coluna
+  TOTAL. O script casa cada divisão já existente em `SUBSETORES`
+  (`organograma.js`) com o nó correspondente da árvore (texto exato →
+  abreviação após hífen → nome sem abreviação → posição, nessa ordem de
+  tentativa) e soma o previsto do nó **e de todos os descendentes que não
+  são, eles mesmos, uma outra divisão reivindicada** (ex.: em GBI,
+  "Divisão de Operações" soma Chefe/Auxiliares + núcleos internos, mas
+  não as 1ª-4ª SBI/SBFN, que são divisões próprias na nossa lista).
+- Resultado gravado em `src/data/real/efetivo_previsto_divisoes.json`
+  (`{sigla: [{nome, previsto}]}`), consumido por
+  `metricasDivisoesProprias()` em `organograma.js` — que deixa de gerar
+  número sintético por divisão (RNG determinístico) e passa a devolver só
+  o previsto real, sem campo de atual (não temos atual nesse nível de
+  granularidade).
+- Validação: soma das divisões de cada unidade bate exatamente com
+  `efetivo_previsto.json` (já confirmado, 5.249) — script aborta se não
+  bater. As únicas 2 unidades sem abas de divisão são Comando Geral e
+  Subcomando Geral (previsto = 1 cada, é o próprio ocupante do cargo, sem
+  divisão interna no modelo).
+- **Duas correções de estrutura descobertas na varredura** (a planilha é
+  a fonte de verdade, não o mock que já existia em `SUBSETORES`):
+  1. DIESP: "Divisão de Isenção e Restituição - DIR" não existe no QOD
+     como divisão própria — é na verdade "Seção de Isenção e Restituição
+     - SIR", subseção de "Divisão de Atendimento ao Público - DAP".
+     Renomeado em `SUBSETORES['DIESP']` para refletir a realidade.
+  2. CPPA (Centro de Pagamento de Pessoal Ativo) tem aba própria no QOD
+     ("CPPA 081") mas não é unidade própria no organograma — soma dentro
+     de DGP, mesma regra já usada para o Efetivo atual (ver decisão de
+     2026-08-07 "Coluna `ome` adicionada ao Neon + unidade CPPA criada no
+     organograma", depois revertida). Adicionada como mais uma divisão de
+     DGP (`'↳ CPPA'`) só para exibir seu previsto (17) na tabela — não
+     virou nó da árvore/unidade própria.
+- Na página de Diretoria, a coluna antes chamada "Efetivo" na tabela de
+  Setores Vinculados foi renomeada para "Efetivo Atual/Previsto"
+  (`rotuloColuna()`); as linhas de divisão/seção interna, que antes
+  mostravam "Em construção" nessa coluna, agora mostram "x/{previsto}"
+  (ex. "x/121") — o "x" deixa explícito que só o previsto é real,
+  ainda não há efetivo atual nesse nível de granularidade. As outras 4
+  colunas (Viaturas/Materiais/Finanças/Atividades Específicas) continuam
+  "Em construção" para divisões.
+**Motivo**: pedido explícito do usuário ("quero que isso já fique no
+nosso sistema"), incluindo a instrução de checar se havia previsto no
+nível máximo de granularidade na planilha antes de assumir que não havia.
+
+### 2026-08-12 — Tabela de Efetivo migra para página própria, com filtros estilo planilha
+**Decisão**: o botão "Exibir tabela com detalhes do efetivo" na página de
+Indicador (só para o indicador Efetivo — Viaturas não muda) virou um
+**card** clicável que navega para uma página nova, `/efetivo/:id`
+(`src/pages/EfetivoDetalhe.jsx`), com a tabela completa de militares (a
+mesma lógica de subárvore + paginação de antes, agora só nessa página).
+Os filtros deixam de ser caixa de busca + `<select>` e passam a ser
+**estilo Google Sheets**: um ícone de funil ao lado do nome de cada uma
+das 6 colunas principais (Posto/Graduação, Matrícula, Nome completo,
+Sexo, Idade, OME), que abre um dropdown com busca + checkboxes por valor
+único + "Selecionar tudo"/"Limpar seleção" — os valores disponíveis em
+cada dropdown são recalculados considerando os filtros já aplicados nas
+outras colunas (cascata, igual planilha real). O painel "Verificar dados
+completos" (21 colunas sensíveis LGPD) continua igual, sem filtro próprio
+por enquanto. Viaturas mantém o padrão anterior (tabela inline, toggle
+por botão, sem página própria) — não foi pedido mudar.
+**Motivo**: pedido explícito do usuário.
+
+### 2026-08-12 — Painel "dados completos" do Efetivo: coleta concluída, deixa de ser pendência
+**Decisão/execução**: o usuário rodou o `windmill-neon.py` atualizado no
+Windmill (colunas novas criadas/populadas na tabela `Militar` do Neon).
+Reexecutei `etl/efetivo/extract_efetivo.py` — rodou sem erro e gravou
+`efetivo_lista.json` com o sub-objeto `completo` preenchido para todos os
+militares (raça/cor, PCD, telefones, tempo de serviço/na unidade, unidade
+anterior, órgão, horário especial, readaptado, acúmulo de cargos, LE,
+LTIP, afastamento >90 dias, suplemento pessoal, aniversário, última
+movimentação, datas de ingresso/promoção, PCNH). O painel "Verificar
+dados completos" da tabela de Efetivo deixa de mostrar "—" nessas 21
+colunas. **Nota de volume**: o JSON gerado passou de ~1 MB pra ~2,4 MB
+(o `completo` de ~2.658 militares ativos) — o bundle de produção subiu
+de ~1,25 MB pra ~2,5 MB (gzip ~395 KB); segue dentro do padrão já adotado
+de servir dado estático via JSON no repositório, sem paginação no
+backend (não há backend) — se o volume crescer muito mais, code-splitting
+ou uma API real viram necessários, mas não é o caso ainda.
+**Motivo**: o usuário confirmou ter rodado o Windmill e pediu para
+completar o restante.
+
+### 2026-08-12 — Tabela de Efetivo: paginação configurável, tipos de coluna e agregadores estilo planilha
+**Decisão**: três melhorias na página `/efetivo/:id`
+(`EfetivoDetalhe.jsx`), pedidas explicitamente pelo usuário:
+1. **Tamanho de página**: um seletor 10/20/50 registros por página, fora
+   do card da tabela, centralizado embaixo, junto com os botões
+   Anterior/Próxima (antes só existia paginação fixa de 25, dentro do
+   card). Trocar o tamanho reseta pra página 1.
+2. **Tipo de coluna**: cada coluna (as 6 principais e as 21 do painel
+   "dados completos") ganha um seletor de tipo no cabeçalho — Texto
+   (padrão, mantém a formatação já existente, ex. nome de guerra em
+   negrito), Data (sempre `dd/mm/aaaa`, convertido a partir do ISO da
+   fonte sem problema de fuso horário), Número inteiro ou Número decimal
+   (formatados via `toLocaleString('pt-BR')`). Colunas de data no painel
+   completo (ex. "Data de Ingresso") já nascem tipadas como Data por
+   padrão; Idade/Tempo de Serviço/Tempo na Unidade já nascem como Número
+   inteiro. Trocar o tipo de uma coluna incompatível com o dado (ex.
+   forçar Matrícula pra número) mostra "—" — comportamento aceito, é uma
+   escolha manual do usuário, igual planilha real.
+3. **Seleção de coluna + agregadores**: clicar no rótulo de uma coluna
+   "seleciona" ela (destaque visual no cabeçalho e nas células) e mostra,
+   no canto inferior direito da tabela, Contagem e Contagem Distinta
+   (sempre) e Soma/Média/Mínimo/Máximo (só quando a coluna está tipada
+   como número) — calculados sobre os registros filtrados, não só a
+   página atual, igual barra de status do Google Sheets.
+**Motivo**: pedido explícito do usuário.
+
+### 2026-08-12 — Filtro de coluna: causa raiz do balão deslocado, filtro em todas as colunas, tabela sempre completa, novo cabeçalho
+**Achado/correção de bug**: o usuário relatou que o balão do filtro
+aparecia "muito à direita, em alguns casos até fora da viewport".
+Investigando, a causa raiz é `html { zoom: 1.25 }` (`src/index.css`,
+técnica de escala da página inteira já usada pelo app — 1.05 no mobile,
+1 na impressão): um elemento `position: fixed` dentro do `<html>`
+zoomado interpreta `left`/`top` no espaço **local** (pré-zoom), enquanto
+`getBoundingClientRect()`/`window.innerWidth` sempre devolvem pixels
+**reais** (pós-zoom) — calcular a posição do balão sem dividir pelo zoom
+faz ele "escorregar" proporcionalmente ao fator de zoom. Isso também
+explica por que o `Popover` do Radix (usado antes) calculava a posição
+errada dentro dessa tabela: sua lógica de colisão/posicionamento não
+conhece o `zoom` custom da página. **Correção**: `FiltroColuna`
+(`EfetivoDetalhe.jsx`) parou de usar `Popover`/`PopoverContent` do Radix
+e passou a se posicionar manualmente — mede o botão do funil via
+`getBoundingClientRect()`, divide pelo `zoom` computado
+(`getComputedStyle(document.documentElement).zoom`) antes de aplicar
+como `style.left`/`style.top` de um portal fixo, e limita (`clamp`) a
+posição para nunca ultrapassar a borda direita da viewport. Reposiciona
+em scroll/resize e fecha ao clicar fora.
+**Decisão adicional**: já que a causa raiz foi corrigida, o filtro estilo
+planilha foi estendido para **todas as 27 colunas** (as 21 do antigo
+painel "dados completos" também ganharam funil, inclusive as booleanas,
+que filtram por "Sim"/"Não" em vez de `true`/`false`).
+**Decisão adicional**: o botão "Verificar dados completos" foi removido
+— a tabela em `/efetivo/:id` já abre com todas as colunas visíveis
+(antes escondidas atrás de um clique extra).
+**Decisão adicional**: cabeçalho da página trocado — título "Militares
+da Unidade" → "Militares da OME"; o nome da OME abaixo ganha o sufixo
+"+ unidades vinculadas" quando a unidade tem subordinadas (`getSubordinados`);
+o contador de registros do card ("296 de 296 registros (unidade +
+subordinadas)") virou "Total: N" — ou "Total: N / Filtrado: M" só quando
+há pelo menos um filtro de coluna ativo (`filtroAtivo`), não apenas
+quando a contagem difere.
+**Motivo**: pedido explícito do usuário — bug relatado + 3 mudanças de
+UX pedidas na mesma mensagem.
+
+### 2026-08-12 — Bug: tabela de Efetivo do Comando Geral não batia com o KPI (187 militares "ADIDO" faltando)
+**Achado**: o usuário reportou que o Comando Geral mostra "Efetivo Atual"
+2.658 no card, mas a tabela de detalhamento mostrava "Total: 2.471" —
+diferença de exatamente 187, o mesmo número dos militares com
+`ome = 'ADIDO'` no Neon (mapeados para `null` em
+`mapeamento_unidades.json`, "não lotados" — decisão de 2026-08-07: contam
+só no total geral, nunca atribuídos a uma unidade específica).
+`organograma.js` já somava esses 187 ao `efetivo` de COMANDO GERAL (via
+overlay de `efetivoNaoLotado`), mas `etl/efetivo/extract_efetivo.py`
+**pulava** esses militares inteiramente ao montar `efetivo_lista.json`
+(`if not sigla: continue`) — nunca apareciam em nenhuma tabela.
+**Verificação de escopo**: comparei, para cada sigla, a contagem agregada
+de `efetivo.json` contra o tamanho da lista em `efetivo_lista.json` — bate
+exatamente em 100% das unidades reais (diff zero). Como o Comando Geral é
+a raiz da árvore (não tem "ancestral" que também precisaria desse ajuste),
+esse gap só podia se manifestar ali — confirmado, não é um problema
+generalizado.
+**Correção**: `extract_efetivo.py` agora atribui os militares "não
+lotados" à lista de `COMANDO GERAL` (em vez de descartar), mesma regra do
+agregado. Reexecutado — `efetivo_lista.json` soma 2.658 no total, e
+`COMANDO GERAL` na lista bate exatamente com o KPI. Confirmado também que
+Subcomando Geral (a outra unidade sem "valores próprios" no
+`SEM_VALORES_PROPRIOS`) e GBI continuam batendo card ↔ tabela.
+**Motivo**: correção de bug reportado pelo usuário.
+
 ## Pendências práticas (não bloqueiam o planejamento, mas são pré-requisito de implementação)
 
 - **Workspace do Windmill**: ainda precisa ser criado pelo usuário
@@ -654,13 +834,8 @@ subárvore que já alimenta a página de Indicador.
   Sheets) usados pela corporação ainda precisam ser levantados — é o
   próximo passo prático mais urgente (objetivo 1), com prioridade sobre
   aprofundar sistemas internos.
-- **Rodar o `windmill-neon.py` atualizado (2026-08-11)**: o script (no
-  Downloads do usuário) já tem as colunas novas do painel "dados
-  completos" de Efetivo prontas (`ALTER TABLE`/upsert), mas ainda não foi
-  executado no Windmill — pausado a pedido explícito do usuário. Depois de
-  rodar, falta reexecutar `etl/efetivo/extract_efetivo.py` (a consulta SQL
-  já está pronta para as novas colunas) para o painel parar de mostrar
-  "—" nas 21 colunas extras.
+- ~~Rodar o `windmill-neon.py` atualizado (2026-08-11)~~ — **feito em
+  2026-08-12**, ver log de decisões abaixo.
 
 ## Perguntas em aberto
 

@@ -112,10 +112,10 @@ fora", ficou desatualizada e é substituída por esta):
   mesmo incluindo dados sensíveis" depois de ver esse catálogo — decisão
   informada, repetida duas vezes, não presumida por mim. Único campo
   deliberadamente recusado: `observacao` (texto livre, risco
-  imprevisível). **A coleta desses 21 campos está pausada a pedido do
-  usuário** — o código (`windmill-neon.py`, `extract_efetivo.py`) está
-  pronto, mas o Windmill não foi executado; até rodar, o painel mostra
-  "—" em todas as colunas extras (ver pendência em `DW_PLANEJAMENTO.md`).
+  imprevisível). **Atualização de 2026-08-12**: a coleta foi concluída —
+  o usuário rodou o `windmill-neon.py` e `extract_efetivo.py` foi
+  reexecutado; o painel mostra os 21 campos reais (ver
+  `DW_PLANEJAMENTO.md`).
 - Viaturas: Placa + Modelo por unidade, sem mudança nesta rodada.
 
 **Se/quando a autenticação real for implementada, revisar se essa tabela —
