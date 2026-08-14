@@ -1,7 +1,18 @@
 // Autenticação local (stub) — sem backend real. Antes aceitava qualquer
-// email/senha não vazios; agora exige o usuário administrador fixo
-// "adm"/"adm" (decisão do usuário, 2026-08-12) — login social e
-// autocadastro foram desativados (eram bypass desse controle).
+// email/senha não vazios; agora exige um usuário administrador fixo
+// (decisão do usuário, 2026-08-12) — login social e autocadastro foram
+// desativados (eram bypass desse controle).
+//
+// Usuário/senha vêm de variáveis de ambiente (VITE_ADMIN_USUARIO/
+// VITE_ADMIN_SENHA — ver .env.example), não hardcoded, pra poder ser
+// configurado por ambiente (local via .env.local, produção via variáveis
+// de ambiente da Vercel) sem tocar no código. IMPORTANTE: variáveis
+// VITE_* são embutidas em texto plano no bundle JS de produção — o Vite
+// as substitui em tempo de build (ver https://vite.dev/guide/env-and-mode),
+// não são segredo de servidor. Qualquer pessoa que abrir o DevTools ou
+// inspecionar o bundle final consegue ler o valor — funciona como um
+// controle de acesso mínimo (afasta acesso casual), não como
+// autenticação real; ver ressalva em DW_GOVERNANCA.md.
 //
 // A chave de storage mudou de "cbmpe_auth_user" para "cbmpe_auth_user_v2":
 // como não há sessão de servidor pra invalidar, essa é a forma de forçar
@@ -12,8 +23,8 @@
 // assinatura de funções para não precisar tocar nas telas que a consomem.
 
 const STORAGE_KEY = "cbmpe_auth_user_v2";
-const ADMIN_USUARIO = "adm";
-const ADMIN_SENHA = "adm";
+const ADMIN_USUARIO = (import.meta.env.VITE_ADMIN_USUARIO || "adm").trim().toLowerCase();
+const ADMIN_SENHA = import.meta.env.VITE_ADMIN_SENHA || "adm";
 
 function readUser() {
   try {
