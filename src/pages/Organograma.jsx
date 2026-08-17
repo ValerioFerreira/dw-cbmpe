@@ -31,11 +31,12 @@ const DGA_GRUPOS = [
 
 const KPIS_ATALHO = ["Efetivo", "Viaturas", "Materiais", "Finanças"];
 
-// Classes de destaque/restrição aplicadas em cima do estilo próprio de cada
-// card — usadas pelo protótipo de níveis de acesso (ver @/lib/accessControl).
-// null = sem restrição (visão padrão, sem anel nem esmaecimento).
+// Classe de restrição aplicada em cima do estilo próprio de cada card —
+// usada pelo protótipo de níveis de acesso (ver @/lib/accessControl). Cards
+// liberados mantêm a aparência normal; o destaque vem só do contraste com
+// os cards restritos ao redor (sem anel colorido).
+// null = sem restrição (visão padrão, sem esmaecimento).
 const RESTRITO_CLASSES = "pointer-events-none opacity-55 saturate-[0.35] contrast-[0.9]";
-const DESTACADO_CLASSES = "ring-2 ring-primary shadow-[0_0_12px_-2px_hsl(var(--primary)/0.55)]";
 
 export default function Organograma() {
   const { unidades, indicadores, loading } = useCbmpe();
@@ -115,7 +116,7 @@ export default function Organograma() {
                   <Link
                     key={nome}
                     to={kpi ? `/indicador/${kpi.id}` : "#"}
-                    className={`${base} hover:border-amber-500 ${ok ? DESTACADO_CLASSES : ""}`}
+                    className={`${base} hover:border-amber-500`}
                   >
                     {nome}
                   </Link>
@@ -183,7 +184,6 @@ function NoEstrela({ unidade, tom, onClick, acessoOk }) {
   if (!unidade) return null;
   const isAmber = tom === "amber";
   const restringido = acessoOk === false;
-  const destacado = acessoOk === true;
   return (
     <button
       onClick={restringido ? undefined : onClick}
@@ -194,7 +194,7 @@ function NoEstrela({ unidade, tom, onClick, acessoOk }) {
         isAmber
           ? "border-amber-300 from-amber-500 via-amber-600 to-orange-700 shadow-[0_8px_30px_-6px_rgba(217,119,6,0.35)]"
           : "border-yellow-300 from-yellow-500 via-yellow-600 to-amber-700 shadow-[0_8px_30px_-6px_rgba(202,138,4,0.35)]"
-      } ${destacado ? DESTACADO_CLASSES : ""}`}
+      }`}
     >
       <div className="flex items-center justify-center gap-2">
         <Star className={`h-4 w-4 fill-current ${isAmber ? "text-amber-200" : "text-yellow-200"}`} />
@@ -218,7 +218,6 @@ function LinhaAssessorias({ siglas, bySigla, goto, gridCols, maxWidth, accent, a
         if (!u) return null;
         const ok = acessoDe(sigla);
         const restringido = ok === false;
-        const destacado = ok === true;
         return (
           <button
             key={sigla}
@@ -226,7 +225,7 @@ function LinhaAssessorias({ siglas, bySigla, goto, gridCols, maxWidth, accent, a
             disabled={restringido}
             className={`rounded-lg border border-border bg-card p-2 text-center transition-colors ${
               restringido ? RESTRITO_CLASSES : hoverBorder
-            } ${destacado ? DESTACADO_CLASSES : ""}`}
+            }`}
           >
             <p className="text-xs font-bold text-foreground">{sigla}</p>
             <p className="text-[9px] text-muted-foreground">{u.responsavel} - {u.cargo}</p>
@@ -241,14 +240,13 @@ function CardDiretoria({ unidade, onClick, tamanho = "col", acessoOk }) {
   if (!unidade) return null;
   const isLg = tamanho === "lg";
   const restringido = acessoOk === false;
-  const destacado = acessoOk === true;
   return (
     <button
       onClick={restringido ? undefined : onClick}
       disabled={restringido}
       className={`${isLg ? "w-64 p-3" : "w-full p-2"} rounded-xl border-2 border-yellow-400 bg-yellow-600 text-center shadow-md transition-transform ${
         restringido ? RESTRITO_CLASSES : "hover:-translate-y-0.5"
-      } ${destacado ? DESTACADO_CLASSES : ""}`}
+      }`}
     >
       <p className={`font-black uppercase tracking-wider text-white ${isLg ? "text-base" : "text-xs"}`}>{unidade.sigla}</p>
       <p className={`text-yellow-100 ${isLg ? "mt-0.5 text-[10px] tracking-widest" : "text-[8px]"}`}>{unidade.responsavel} - {unidade.cargo}</p>
@@ -281,7 +279,6 @@ function GrupoDiretoria({ grupo, bySigla, goto, acessoDe }) {
             if (!f) return null;
             const ok = acessoDe(sigla);
             const restringido = ok === false;
-            const destacado = ok === true;
             return (
               <button
                 key={sigla}
@@ -289,7 +286,7 @@ function GrupoDiretoria({ grupo, bySigla, goto, acessoDe }) {
                 disabled={restringido}
                 className={`w-full rounded border border-border bg-card p-1.5 text-center transition-colors ${
                   restringido ? RESTRITO_CLASSES : "hover:border-yellow-400"
-                } ${destacado ? DESTACADO_CLASSES : ""}`}
+                }`}
               >
                 <p className="text-[10px] font-bold text-foreground">{sigla}</p>
                 <p className="text-[7px] text-muted-foreground">{f.responsavel} - {f.cargo}</p>
