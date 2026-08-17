@@ -1,7 +1,7 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ChevronRight, Users, Filter, ArrowLeft } from "lucide-react";
+import { ChevronRight, Users, Filter } from "lucide-react";
 import { useCbmpe } from "@/lib/cbmpe-context";
 import { getCaminho, getSubordinados, fmtNumero } from "@/lib/cbmpe";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -458,12 +458,6 @@ export default function EfetivoDetalhe() {
             </p>
           </div>
         </div>
-        <Link
-          to={`/indicador/${ind.id}`}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" /> Voltar ao indicador
-        </Link>
       </div>
 
       <SectionCard semPadding>

@@ -1,9 +1,18 @@
 import React from "react";
-import { Link } from "react-router-dom";
-import { Search, ChevronRight, Home, FileDown, Menu, Network } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Search, ChevronRight, Home, FileDown, Menu, Network, LogOut } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function Topbar({ caminho = [], onOpenSearch, onOpenMobileNav, titulo }) {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSair = () => {
+    logout(false);
+    navigate("/login");
+  };
+
   return (
     <div className="no-print glass sticky top-0 z-30 flex flex-col border-b border-border">
       <header className="flex h-16 items-center gap-2 px-3 lg:h-20 lg:gap-4 lg:px-5">
@@ -69,6 +78,15 @@ export default function Topbar({ caminho = [], onOpenSearch, onOpenMobileNav, ti
             <FileDown className="h-3.5 w-3.5 shrink-0" />
             <span className="lg:hidden">PDF</span>
             <span className="hidden whitespace-nowrap lg:inline">Gerar PDF desta página</span>
+          </button>
+          <button
+            onClick={handleSair}
+            aria-label="Sair"
+            title="Sair"
+            className="inline-flex h-10 shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-2 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive lg:gap-1.5 lg:px-3.5 lg:py-2.5"
+          >
+            <LogOut className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden whitespace-nowrap lg:inline">Sair</span>
           </button>
         </div>
       </header>
