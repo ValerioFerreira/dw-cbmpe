@@ -15,6 +15,7 @@
 import efetivoReal from "./real/efetivo.json";
 import efetivoPrevistoReal from "./real/efetivo_previsto.json";
 import efetivoPrevistoDivisoesReal from "./real/efetivo_previsto_divisoes.json";
+import lotacaoFuncaoReal from "./real/lotacao_funcao.json";
 import viaturasReal from "./real/viaturas.json";
 import financasReal from "./real/financas.json";
 
@@ -410,20 +411,29 @@ function divisoesDaSigla(sigla) {
 }
 
 // Efetivo previsto por divisão/seção interna de uma unidade — fonte real
-// (QOD, ver etl/efetivo/extract_previsto_divisoes.py). Não há, por hora,
-// efetivo ATUAL nesse nível de granularidade (só agregado por unidade) —
-// por isso não expõe um campo "efetivo", só "efetivoPrevisto"; a UI mostra
-// "x/previsto" para deixar claro que só o previsto está disponível aqui —
-// decisão registrada em DW_PLANEJAMENTO.md.
+// (QOD, ver etl/efetivo/extract_previsto_divisoes.py).
+//
+// Efetivo ATUAL por divisão vem da Repercussão Financeira (CPPA, aba
+// DIST_FUNCOES — ver etl/efetivo/extract_lotacao_funcao.py), que ainda
+// está sendo preenchida pela CPPA: hoje cobre só uma parte do efetivo
+// (ver lotacaoFuncaoReal.cobertura.percentual). "efetivoAtual" fica null
+// (não 0) pra divisão de unidade cuja função ainda não foi lançada em
+// nenhuma linha — evita mostrar "0" como se a seção estivesse vazia
+// quando na verdade é só falta de lançamento na planilha. A UI decide
+// como exibir esse "sem dado ainda" (ver Diretoria.jsx).
 export function metricasDivisoesProprias(sigla) {
   const divisoes = divisoesDaSigla(sigla);
   if (!divisoes.length) return [];
   const previstoPorNome = new Map(
     (efetivoPrevistoDivisoesReal.por_unidade[sigla] || []).map((d) => [d.nome, d.previsto])
   );
+  const atualPorNome = new Map(
+    Object.entries(lotacaoFuncaoReal.por_unidade_divisao[sigla] || {}).map(([nome, matriculas]) => [nome, matriculas.length])
+  );
   return divisoes.map((nome) => ({
     nome,
     efetivoPrevisto: previstoPorNome.get(nome) ?? 0,
+    efetivoAtual: atualPorNome.has(nome) ? atualPorNome.get(nome) : null,
   }));
 }
 

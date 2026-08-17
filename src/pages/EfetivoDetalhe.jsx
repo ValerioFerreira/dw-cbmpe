@@ -1,7 +1,8 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ChevronRight, Users, Filter, ShieldAlert } from "lucide-react";
+import { ChevronRight, Users, Filter, ShieldAlert, Download } from "lucide-react";
+import * as XLSX from "xlsx";
 import { useCbmpe } from "@/lib/cbmpe-context";
 import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import { getCaminho, getSubordinados, fmtNumero } from "@/lib/cbmpe";
@@ -9,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import EmptyState from "@/components/ui/empty-state";
 import SectionCard from "@/components/ui/section-card";
 import efetivoLista from "@/data/real/efetivo_lista.json";
+import lotacaoFuncao from "@/data/real/lotacao_funcao.json";
 
 const LARGURA_PAINEL_FILTRO = 256;
 
@@ -23,6 +25,18 @@ function isOficial(postoGrad) {
   if (/sgt/i.test(p)) return false;
   if (/^(cb|sd|cabo|soldado)\b/i.test(p)) return false;
   return true;
+}
+
+// Função ocupada por um militar, via matrícula — fonte: Repercussão
+// Financeira (CPPA, aba DIST_FUNCOES), ver etl/efetivo/extract_lotacao_funcao.py.
+// Cobertura parcial (planilha em preenchimento pela CPPA): retorna null
+// quando o militar ainda não tem função lançada, não "sem função"
+// confirmado. Acúmulo de função (mesma matrícula, múltiplas linhas) junta
+// os textos com " + ".
+function funcaoDoMilitar(matricula) {
+  const registros = lotacaoFuncao.por_matricula[matricula];
+  if (!registros || !registros.length) return null;
+  return registros.map((r) => r.funcao).join(" + ");
 }
 
 function fmtCampoCompleto(valor) {
@@ -74,6 +88,10 @@ const COLUNAS_PRINCIPAIS = [
   { chave: "sexo", rotulo: "Sexo", tipoPadrao: "texto", filtravel: true, bruto: (r) => r.sexo || null },
   { chave: "idade", rotulo: "Idade", tipoPadrao: "inteiro", filtravel: true, bruto: (r) => (r.idade != null ? r.idade : null) },
   { chave: "ome", rotulo: "OME", tipoPadrao: "texto", filtravel: true, bruto: (r) => r.ome || null },
+  {
+    chave: "funcao", rotulo: "Função", tipoPadrao: "texto", filtravel: true, quebrar: true,
+    bruto: (r) => funcaoDoMilitar(r.matricula),
+  },
 ];
 
 // Colunas do painel "Verificar dados completos" — inclui dado sensível
@@ -160,6 +178,25 @@ function renderCelula(coluna, registro, tipo) {
   if (coluna.especial) return coluna.especial(registro);
   const b = coluna.bruto(registro);
   return b === null || b === undefined || b === "" ? "—" : String(b);
+}
+
+// Valor de uma célula para exportação — sempre texto/número cru (nunca a
+// JSX de renderCelula), respeitando o tipo escolhido pelo usuário pra
+// aquela coluna (mesma lógica de formatação, sem negrito de nome de guerra).
+function valorExportacao(coluna, registro, tipo) {
+  const b = coluna.bruto(registro);
+  if (tipo === "data") return formatarData(b);
+  if (tipo === "inteiro" || tipo === "decimal") {
+    if (b === null || b === undefined || b === "") return "";
+    const n = Number(b);
+    return Number.isNaN(n) ? "" : n;
+  }
+  if (typeof b === "boolean") return b ? "Sim" : "Não";
+  return b === null || b === undefined ? "" : String(b);
+}
+
+function sanitizarNomeArquivo(nome) {
+  return String(nome).replace(/[\\/:*?"<>|]/g, "-").trim();
 }
 
 // Agregadores no estilo da barra de status do Google Sheets: Contagem e
@@ -441,6 +478,19 @@ export default function EfetivoDetalhe() {
     });
   }
 
+  function exportarExcel() {
+    const linhas = registrosFiltrados.map((r) =>
+      Object.fromEntries(
+        colunasVisiveis.map((c) => [c.rotulo, valorExportacao(c, r, tiposColuna[c.chave] || c.tipoPadrao)])
+      )
+    );
+    const planilha = XLSX.utils.json_to_sheet(linhas);
+    const livro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(livro, planilha, "Efetivo");
+    const nomeUnidade = sanitizarNomeArquivo(unidade?.sigla || unidade?.nome || "Unidade");
+    XLSX.writeFile(livro, `Efetivo - ${nomeUnidade}.xlsx`);
+  }
+
   return (
     <div className="space-y-3 animate-fade-in">
       {/* Breadcrumb */}
@@ -471,6 +521,13 @@ export default function EfetivoDetalhe() {
             </p>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={exportarExcel}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-[12px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          <Download className="h-3.5 w-3.5" /> Exportar Excel
+        </button>
       </div>
 
       <SectionCard semPadding>

@@ -887,6 +887,147 @@ acesso para validar com stakeholders antes de decidir se vale a pena
 investir em RBAC real (autenticação/autorização de verdade continua
 dependência futura, ver `DW_GOVERNANCA.md`).
 
+### 2026-08-17 (mesma sessão) — Exportação Excel do Efetivo + desenho da fonte Lotação/Função (Pecúlio, QOD, CPPA)
+
+**Exportação Excel**: adicionado botão "Exportar Excel" na tabela de
+Efetivo Detalhe (`src/pages/EfetivoDetalhe.jsx`), usando a lib `xlsx`
+(SheetJS) — gera um `.xlsx` client-side com as linhas atualmente
+filtradas (respeitando filtros e tipo de coluna escolhidos pelo usuário),
+nome do arquivo `Efetivo - {sigla da unidade}.xlsx`.
+
+**Contexto da nova fonte**: o usuário quer resolver a lacuna de
+granularidade "abaixo da OME" no domínio Efetivo/RH — hoje sabemos que um
+militar está lotado no "GSG", mas não em que seção/divisão dele, nem que
+função exerce. Ele descreveu 3 planilhas que, juntas, resolvem isso —
+seguindo `DW_PROCESSO_INTEGRACAO.md` (esclarecer tudo antes de desenhar):
+
+- **Pecúlio.xlsx** (DGP) — quem são os militares e em que OME estão.
+  **Confirmado pelo usuário: é a mesma fonte que já alimenta o Neon/
+  `efetivo_lista.json`** — não é integração nova.
+- **QOD.xlsx** (DPlaG) — já documentado (`extract_previsto.py`/
+  `extract_previsto_divisoes.py`): quantas vagas de função existem por
+  unidade/seção, e que posto cada uma espera.
+- **Repercussão Financeira.xlsx** (CPPA) — onde as unidades decidem quem
+  ocupa qual função, cruzando a lista de efetivo (Pecúlio) com as vagas
+  disponíveis (QOD).
+
+**Inspeção da Repercussão Financeira.xlsx**: arquivo tem 12 abas; duas
+relevantes:
+- **`DIST_FUNCOES`** — grão 1 linha por (matrícula, função ocupada):
+  matrícula, unidade, posto, nome completo, **nome da função e seção**
+  (texto livre, ex. "Chefe da Divisão de Operações", "Comandante do(a) 5º
+  Grupo de Salvamento da 1ª SBS", "Auxiliar da Seção de Tesouraria"),
+  posto esperado pra função, portaria, BGE. **Confirmado pelo usuário
+  como a fonte-alvo**: "DIST_FUNCOES está sendo atualizada, e irá conter
+  todos os militares do pecúlio" — hoje tem 846 linhas de ~2.659
+  militares ativos (cobertura parcial, ~32%, em expansão). Cobre todos os
+  postos, não só chefias — verificado (223 Sd, 169 3º Sgt, 111 Cb,
+  incluindo funções como "Combatente do Grupo de Salvamento", "Piloto do
+  Grupo de Apoio aos Mergulhadores" — confirma o exemplo do usuário sobre
+  guarda-vidas/auxiliares em funções rasas, que eu tinha avaliado errado
+  numa primeira leitura por ter amostrado só a aba de um setor
+  administrativo pequeno).
+- **`REPERC_FINANC`** — grão 1 linha por militar (~2.531 linhas, cobertura
+  maior), mas só com o **posto-tier da função** (ex. "CAP QOC"), sem nome
+  de seção — parece existir pra reconciliar vagas disponíveis x ocupadas
+  por posto (o "impacto financeiro" do nome do arquivo). **Não integrada
+  agora** — redundante com `DIST_FUNCOES` pro nosso propósito
+  (função+seção) e sem confirmação de que as duas abas estão sempre
+  sincronizadas.
+
+**De-para de unidades**: a coluna `UNIDADE` da Repercussão Financeira usa
+nomes distintos do organograma (ex. "DIInter/1"/"DIInter/2" em vez de
+"DINTER I"/"DINTER II", "CAT/Zona da Mata (Carpina)" em vez de "CAT/ZM")
+— usuário autorizou construir por inferência de nome (mesmo padrão do
+`mapeamento_previsto.json` do QOD), com revisão dele depois.
+
+**Modelo proposto**: ver `DW_MODELO_DADOS.md` (nova seção "Efetivo/RH —
+Lotação e Função"). Resumo: entidade `lotacao_funcao` (grão
+matrícula+função, de `DIST_FUNCOES`) ligada a `militar` (via matrícula,
+já existente) e a `unidade` (via de-para novo). Sem tentar casar
+automaticamente com o nível de `SUBSETORES` do app hoje — o texto de
+função de `DIST_FUNCOES` é mais granular em vários casos (ex. "grupo de
+salvamento" dentro de uma SBS) do que as divisões que o app já exibe.
+
+**Pendência explícita**: cobertura de `DIST_FUNCOES` é parcial (~32%) —
+pro restante do efetivo, continuamos só com granularidade de OME
+(Pecúlio/Neon) até a planilha ser completada pela CPPA. Não presumir
+100% de cobertura em nenhuma extração futura.
+
+**Status**: isto é só o desenho da integração (passo 3 do
+`DW_PROCESSO_INTEGRACAO.md`) — nenhum script de extração foi escrito
+ainda. Aguardando revisão do usuário antes de implementar.
+
+### 2026-08-17 (mesma sessão) — Implementação da Lotação/Função: script, catálogo oficial e wiring no app
+
+Continuação direta da entrada anterior (desenho). O usuário confirmou onde
+isso deveria aparecer na UI e forneceu um 4º arquivo, mudando a estratégia
+de casamento de texto:
+
+**Novo arquivo: `Funções - DPlaG.xlsx`** (DPlaG, aba `QOD_FUNCOES`, 1.754
+linhas) — catálogo oficial de toda função existente no CBMPE (ID_FUNCAO,
+TIPO_FUNCAO, OME, SEÇÃO, FUNÇÃO, observações). **Confirmado pelo
+usuário**: "Esse NOME DA FUNÇÃO E SEÇÃO/OME será preenchido, a partir da
+próxima planilha, com os valores da coluna FUNÇÃO desta planilha que
+enviei" — ou seja, o texto livre do `DIST_FUNCOES` vai deixar de ser
+texto livre e passa a ser um valor exato deste catálogo. Isso muda
+`extract_lotacao_funcao.py` de "heurística de texto pura" pra "casamento
+por catálogo, com heurística só como fallback pra lançamentos antigos".
+
+**Onde aparece na UI** (decisão do usuário, respondendo "de que forma
+isso será adicionado ao sistema?"):
+1. Nova coluna "Função" na tabela de Efetivo (`EfetivoDetalhe.jsx`).
+2. Fonte da contagem de "efetivo atual" por seção/divisão nos Setores
+   Vinculados de cada OME (`Diretoria.jsx`) — antes mostrava sempre "x"
+   (nenhum dado atual nesse nível, só previsto).
+
+**Implementação**:
+- `etl/efetivo/extract_lotacao_funcao.py` (novo) — lê `DIST_FUNCOES`,
+  casa cada matrícula com a unidade já conhecida em
+  `efetivo_lista.json` (Pecúlio/Neon, nunca a coluna UNIDADE do próprio
+  DIST_FUNCOES, que é só fallback/aviso de divergência), e casa o texto
+  da função com uma divisão de `SUBSETORES` (organograma.js) em 3 camadas
+  de prioridade: (1) catálogo oficial `Funções - DPlaG.xlsx`, (2)
+  heurística de texto direto (normalização + contenção de substring +
+  sobreposição de palavras + regras de Comando/Subcomando/Diretoria/
+  Chefia), (3) rollup subindo a árvore real do QOD (reaproveitando a
+  lógica de `extract_previsto_divisoes.py`) pra seções mais finas do que
+  `SUBSETORES` reconhece hoje (ex. "Seção de Instrução" dentro de
+  "Divisão de Operações"). Gera `src/data/real/lotacao_funcao.json` com
+  `por_matricula` (função + posto esperado + portaria + BGE + antiguidade,
+  lista pra suportar acúmulo de função) e `por_unidade_divisao` (sigla →
+  divisão → lista de matrículas).
+- Rodada de 2026-08-17: **716 de 2.659 militares ativos com função
+  lançada (~27%)** — confirma a cobertura parcial já esperada. Desses,
+  **629 (~88%) foram atribuídos a uma divisão específica** (386 via
+  catálogo, 218 via heurística, 154 via rollup — alguns via mais de uma
+  camada quando a primeira falhou); 87 ficaram "não classificados"
+  (contam no total da unidade, não em nenhuma divisão) — resíduo aceito
+  por ora, não vale a pena caçar cada caso residual dado que a cobertura
+  de base (27% do efetivo) já é o gargalo principal, não a precisão do
+  casamento textual.
+- `src/data/organograma.js` (`metricasDivisoesProprias`) — passa a
+  expor `efetivoAtual` por divisão (`null` quando a seção ainda não tem
+  nenhuma função lançada, nunca `0` fingido).
+- `src/pages/Diretoria.jsx` — `celulaPrevistoDivisao` mostra o atual real
+  quando existe (`efetivoAtual/previsto`), "x" só quando não há dado
+  ainda; legenda nova no rodapé da tabela de Setores Vinculados explicando
+  que "x" é dado pendente de lançamento pela CPPA, não confirmação de
+  efetivo zero — decisão deliberada pra não deixar a tabela sugerir
+  "seção vazia" quando é só falta de lançamento na planilha.
+- `src/pages/EfetivoDetalhe.jsx` — nova coluna "Função" (principal,
+  filtrável, com o mesmo tratamento de "—" quando ausente); acúmulo de
+  função (mesma matrícula, múltiplas linhas em `DIST_FUNCOES`) aparece
+  concatenado com " + ".
+- Também nesta rodada: botão "Exportar Excel" na tabela de Efetivo
+  Detalhe (lib `xlsx`/SheetJS), nome do arquivo `Efetivo - {sigla}.xlsx`,
+  respeita os filtros e tipos de coluna ativos.
+
+**Pendência que continua de pé**: 73% do efetivo ainda sem função
+lançada — a tabela/coluna vai ficando mais completa conforme a CPPA
+avança o preenchimento de `DIST_FUNCOES`, sem precisar de mudança de
+código (só re-rodar o script com o arquivo atualizado).
+
 ## Pendências práticas (não bloqueiam o planejamento, mas são pré-requisito de implementação)
 
 - **Workspace do Windmill**: ainda precisa ser criado pelo usuário

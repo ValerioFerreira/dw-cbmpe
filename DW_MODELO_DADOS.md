@@ -155,6 +155,73 @@ usuário. Tratar como proposta até confirmação explícita.
   para modelar efetivo previsto/autorizado vs. realizado — só uma
   observação registrada, não implementar agora.
 
+## Efetivo/RH — Lotação e Função (Pecúlio, QOD, CPPA)
+
+Segunda fonte real analisada para este domínio (ver `DW_PLANEJAMENTO.md`,
+2026-08-17) — complementar à fonte SGP acima, focada num problema
+específico: hoje só sabemos a **OME** de um militar (via Pecúlio/Neon),
+não a seção/divisão interna nem a função que exerce. Três planilhas juntas
+resolvem isso — **confirmado com o usuário, não presumido**:
+
+- **Pecúlio.xlsx** (DGP) — mesma fonte que já alimenta o Neon/
+  `efetivo_lista.json` (confirmado pelo usuário) — não é uma nova
+  superfície de integração, só o "quem" e "em que OME".
+- **QOD.xlsx** (DPlaG) — já documentado acima nas extrações de Efetivo
+  Previsto (`etl/efetivo/extract_previsto.py`/`extract_previsto_divisoes.py`)
+  — define quantas vagas de função existem por unidade/seção e que posto
+  cada uma espera.
+- **Repercussão Financeira.xlsx** (CPPA) — conecta as duas: quem ocupa
+  qual função.
+
+### Entidade `lotacao_funcao` (grão: 1 por (militar, função ocupada))
+
+Fonte: aba `DIST_FUNCOES` da Repercussão Financeira.xlsx. Campos: matrícula
+(FK `militar`), unidade (texto bruto — de-para pro organograma a
+construir), posto do militar, **nome completo da função e seção** (texto
+livre, ex. "Chefe da Divisão de Operações", "Comandante do(a) 5º Grupo de
+Salvamento da 1ª SBS"), posto esperado pela função, portaria, BGE,
+antiguidade. Permite N linhas por matrícula (acúmulo de função —
+confirmado pelo usuário e observado nos dados: mesma matrícula em 2 linhas
+com funções diferentes).
+
+**Cobertura parcial, não 100%**: hoje 846 linhas de ~2.659 militares
+ativos (~32%). Confirmado pelo usuário: "DIST_FUNCOES está sendo
+atualizada, e irá conter todos os militares do pecúlio" — é uma planilha
+viva, em expansão pela CPPA, não um snapshot completo. Cobre todos os
+postos (verificado: 223 Sd, 169 3º Sgt, 111 Cb nas amostras, com funções
+como "Combatente do Grupo de Salvamento", não só chefias — não é só
+função de chefia/comando). Pro efetivo ainda fora de `DIST_FUNCOES`, a
+granularidade continua só OME (via Pecúlio/Neon) até a cobertura
+aumentar.
+
+**Aba `REPERC_FINANC` (mesmo arquivo) — catalogada, não integrada agora**:
+~2.531 linhas, grão 1 por militar, mas só com o posto-tier da função (ex.
+"CAP QOC"), sem nome de seção — parece servir pra reconciliar vagas
+disponíveis x ocupadas por posto (repercussão financeira/gratificação de
+função). Redundante com `DIST_FUNCOES` pro nosso propósito (função+seção)
+e o usuário não confirmou sincronismo garantido entre as duas abas — fica
+de fora do modelo até haver motivo concreto pra usá-la (ex. validação
+cruzada de contagem por posto).
+
+### Pendências explícitas desta fonte (não resolver por suposição)
+
+- **De-para de unidades da Repercussão Financeira → organograma**: nomes
+  divergem em vários casos (ex. "DIInter/1"/"DIInter/2" → "DINTER I"/
+  "DINTER II", "CAT/Zona da Mata (Carpina)" → "CAT/ZM"). Usuário autorizou
+  construir por inferência de nome (mesmo padrão do
+  `etl/efetivo/mapeamento_previsto.json` do QOD), com revisão dele depois
+  — ainda não construído.
+- **Granularidade de `SUBSETORES`**: o texto de função de `DIST_FUNCOES` é
+  mais fino em vários casos (ex. "grupo de salvamento" dentro de uma SBS)
+  do que as divisões que o app já exibe hoje (`SUBSETORES` em
+  `organograma.js`). Não forçar casamento automático até decidir se o app
+  deve descer a esse nível ou se essa granularidade fica só no `core`.
+- **Cobertura parcial de `DIST_FUNCOES`** (~32% hoje) — qualquer extração
+  precisa deixar claro que "sem função" não significa "não tem função",
+  só que ainda não foi lançada na planilha.
+- Sem extração/script escrito ainda — isto é só o desenho (passo 3 do
+  `DW_PROCESSO_INTEGRACAO.md`), aguardando revisão do usuário.
+
 ## Demais domínios (Frota, Financeiro, Atividades Operacionais)
 
 Ainda sem fonte real analisada — candidatos hipotéticos, grão a confirmar

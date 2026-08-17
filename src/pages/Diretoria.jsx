@@ -49,12 +49,14 @@ function celulaEfetivoDivisao(d) {
   return `Atual: ${fmtNumero(d.efetivo)} / Previsto: ${fmtNumero(d.efetivoPrevisto)}`;
 }
 
-// Célula da coluna Efetivo para uma divisão/seção interna: só há previsto
-// real (QOD) nesse nível de granularidade, ainda não há efetivo atual —
-// "x" deixa isso explícito em vez de fingir um valor atual (decisão
-// registrada em DW_PLANEJAMENTO.md).
+// Célula da coluna Efetivo para uma divisão/seção interna: efetivo atual
+// vem da Repercussão Financeira (DIST_FUNCOES, cobertura parcial — ver
+// organograma.js/metricasDivisoesProprias) — "x" só aparece quando a seção
+// ainda não teve nenhuma função lançada na planilha, não quando o valor é
+// realmente 0 (decisão registrada em DW_PLANEJAMENTO.md).
 function celulaPrevistoDivisao(d) {
-  return `x/${fmtNumero(d.efetivoPrevisto)}`;
+  const atual = d.efetivoAtual != null ? fmtNumero(d.efetivoAtual) : "x";
+  return `${atual}/${fmtNumero(d.efetivoPrevisto)}`;
 }
 
 // Rótulo exibido no cabeçalho da coluna (não altera o nome usado para
@@ -113,6 +115,8 @@ export default function Diretoria() {
     () => (unidade && temValoresProprios ? metricasDivisoesProprias(unidade.sigla) : []),
     [unidade, temValoresProprios]
   );
+  const temDivisoesInternas =
+    divisoesProprias.length > 0 || Object.values(divisoesPorFilho).some((arr) => arr.length > 0);
 
   const [linhasAbertas, setLinhasAbertas] = useState(() => new Set());
   const toggleLinha = (key) => {
@@ -300,6 +304,11 @@ export default function Diretoria() {
               </tbody>
             </table>
           </div>
+          {temDivisoesInternas && (
+            <p className="border-t border-border px-2.5 py-2 text-[11px] text-muted-foreground">
+              "x" = seção ainda sem função lançada na Repercussão Financeira (CPPA) — o efetivo atual por seção está sendo preenchido gradualmente, não é um valor confirmado de zero.
+            </p>
+          )}
         </SectionCard>
       )}
     </div>
