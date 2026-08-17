@@ -3,7 +3,7 @@
 // (decisão do usuário, 2026-08-12) — login social e autocadastro foram
 // desativados (eram bypass desse controle).
 //
-// Usuário/senha vêm de variáveis de ambiente (VITE_ADMIN_USUARIO/
+// Usuário/senha do admin vêm de variáveis de ambiente (VITE_ADMIN_USUARIO/
 // VITE_ADMIN_SENHA — ver .env.example), não hardcoded, pra poder ser
 // configurado por ambiente (local via .env.local, produção via variáveis
 // de ambiente da Vercel) sem tocar no código. IMPORTANTE: variáveis
@@ -14,6 +14,12 @@
 // controle de acesso mínimo (afasta acesso casual), não como
 // autenticação real; ver ressalva em DW_GOVERNANCA.md.
 //
+// Além do admin, existe um protótipo de níveis de acesso (2026-08-17,
+// ver DW_PLANEJAMENTO.md e @/lib/accessControl): usuários de demonstração
+// com senha = USUARIO em maiúsculo + "@GSG" (regra definida pelo usuário),
+// hardcoded aqui de propósito — é um protótipo interno de UI, não uma
+// credencial real de produção.
+//
 // A chave de storage mudou de "cbmpe_auth_user" para "cbmpe_auth_user_v2":
 // como não há sessão de servidor pra invalidar, essa é a forma de forçar
 // logout de qualquer sessão já aberta (qualquer navegador com a chave
@@ -21,6 +27,8 @@
 // versão do app) — troque este módulo por um backend/BaaS real (Supabase,
 // Firebase, API própria etc.) quando houver um; mantenha a mesma
 // assinatura de funções para não precisar tocar nas telas que a consomem.
+
+import { NIVEIS_ACESSO, senhaEsperada } from "./accessControl";
 
 const STORAGE_KEY = "cbmpe_auth_user_v2";
 const ADMIN_USUARIO = (import.meta.env.VITE_ADMIN_USUARIO || "adm").trim().toLowerCase();
@@ -52,10 +60,20 @@ export const auth = {
 
   async loginViaEmailPassword(usuario, senha) {
     if (!usuario || !senha) throw new Error("Informe usuário e senha");
-    if (usuario.trim().toLowerCase() !== ADMIN_USUARIO || senha !== ADMIN_SENHA) {
-      throw new Error("Usuário ou senha inválidos");
+
+    if (usuario.trim().toLowerCase() === ADMIN_USUARIO && senha === ADMIN_SENHA) {
+      writeUser({ id: "adm", email: "adm", full_name: "Administrador", role: "admin", nivelAcesso: null });
+      return;
     }
-    writeUser({ id: "adm", email: "adm", full_name: "Administrador", role: "admin" });
+
+    const chave = usuario.trim().toUpperCase();
+    const nivel = NIVEIS_ACESSO[chave];
+    if (nivel && senha === senhaEsperada(chave)) {
+      writeUser({ id: chave, email: chave, full_name: nivel.nome, role: "nivel", nivelAcesso: chave });
+      return;
+    }
+
+    throw new Error("Usuário ou senha inválidos");
   },
 
   loginWithProvider() {

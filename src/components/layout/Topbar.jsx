@@ -1,11 +1,11 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, ChevronRight, Home, FileDown, Menu, Network, LogOut } from "lucide-react";
+import { Search, ChevronRight, Home, FileDown, Menu, Network, LogOut, UserRound } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "@/lib/AuthContext";
 
 export default function Topbar({ caminho = [], onOpenSearch, onOpenMobileNav, titulo }) {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleSair = () => {
@@ -13,32 +13,35 @@ export default function Topbar({ caminho = [], onOpenSearch, onOpenMobileNav, ti
     navigate("/login");
   };
 
+  const nomeExibido = user?.full_name || user?.id;
+
   return (
     <div className="no-print glass sticky top-0 z-30 flex flex-col border-b border-border">
-      <header className="flex h-16 items-center gap-2 px-3 lg:h-20 lg:gap-4 lg:px-5">
-        <button
-          onClick={onOpenMobileNav}
-          aria-label="Abrir menu"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
+      <header className="grid h-16 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-3 lg:h-20 lg:gap-4 lg:px-5">
+        {/* Esquerda: menu mobile + breadcrumb + bem-vindo */}
+        <div className="flex min-w-0 items-center gap-3 overflow-hidden">
+          <button
+            onClick={onOpenMobileNav}
+            aria-label="Abrir menu"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
 
-        <div className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden">
           {caminho.length > 0 && (
-            <nav className="hidden items-center gap-1.5 text-[13px] lg:flex">
-              <Link to="/organograma" className="text-muted-foreground transition-colors hover:text-foreground">
+            <nav className="hidden min-w-0 items-center gap-1.5 text-[13px] lg:flex">
+              <Link to="/organograma" className="shrink-0 text-muted-foreground transition-colors hover:text-foreground">
                 <Home className="h-3.5 w-3.5" />
               </Link>
               {caminho.map((c, i) => (
                 <React.Fragment key={c.id || i}>
-                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" />
+                  <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
                   {i === caminho.length - 1 ? (
-                    <span className="font-medium text-foreground">{c.sigla || c.nome}</span>
+                    <span className="truncate font-medium text-foreground">{c.sigla || c.nome}</span>
                   ) : (
                     <Link
                       to={c.to || `/diretoria/${c.id}`}
-                      className="text-muted-foreground transition-colors hover:text-foreground"
+                      className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
                     >
                       {c.sigla || c.nome}
                     </Link>
@@ -47,17 +50,32 @@ export default function Topbar({ caminho = [], onOpenSearch, onOpenMobileNav, ti
               ))}
             </nav>
           )}
+
+          {nomeExibido && (
+            <div className="hidden shrink-0 items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 lg:flex">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <UserRound className="h-3.5 w-3.5" />
+              </span>
+              <span className="whitespace-nowrap text-[12px] text-muted-foreground">
+                Bem-vindo, <span className="font-semibold text-foreground">{nomeExibido}</span>
+              </span>
+            </div>
+          )}
         </div>
 
-        <button
-          onClick={onOpenSearch}
-          aria-label="Buscar unidades, dashboards..."
-          className="hidden min-w-0 items-center gap-2 rounded-full border-2 border-primary/25 bg-card px-4 py-2.5 text-primary shadow-sm transition-all hover:border-primary/50 hover:shadow-md lg:flex lg:flex-1 lg:max-w-md lg:justify-start"
-        >
-          <Search className="h-4 w-4 shrink-0" />
-          <span className="truncate text-[13px] text-muted-foreground">Buscar unidades, dashboards...</span>
-        </button>
+        {/* Centro: busca */}
+        <div className="hidden justify-self-center lg:flex">
+          <button
+            onClick={onOpenSearch}
+            aria-label="Buscar unidades, dashboards..."
+            className="flex w-80 items-center gap-2 rounded-full border-2 border-primary/25 bg-card px-4 py-2.5 text-primary shadow-sm transition-all hover:border-primary/50 hover:shadow-md xl:w-96"
+          >
+            <Search className="h-4 w-4 shrink-0" />
+            <span className="truncate text-[13px] text-muted-foreground">Buscar unidades, dashboards...</span>
+          </button>
+        </div>
 
+        {/* Direita: ações */}
         <div className="flex shrink-0 items-center justify-end gap-1 lg:gap-2.5">
           {titulo && <span className="hidden truncate text-[13px] font-medium text-muted-foreground lg:inline">{titulo}</span>}
           <Link
@@ -90,6 +108,17 @@ export default function Topbar({ caminho = [], onOpenSearch, onOpenMobileNav, ti
           </button>
         </div>
       </header>
+
+      {nomeExibido && (
+        <div className="mx-3 mb-2.5 flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 lg:hidden">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <UserRound className="h-3.5 w-3.5" />
+          </span>
+          <span className="truncate text-[12px] text-muted-foreground">
+            Bem-vindo, <span className="font-semibold text-foreground">{nomeExibido}</span>
+          </span>
+        </div>
+      )}
 
       <button
         onClick={onOpenSearch}

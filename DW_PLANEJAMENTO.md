@@ -825,6 +825,68 @@ Subcomando Geral (a outra unidade sem "valores próprios" no
 `SEM_VALORES_PROPRIOS`) e GBI continuam batendo card ↔ tabela.
 **Motivo**: correção de bug reportado pelo usuário.
 
+### 2026-08-17 — Ajustes de UI (fundo, logout) e protótipo de controle de acesso por níveis
+**Ajustes de UI pontuais**: fundo da aplicação passou a `#F5F5F5` (mais
+contraste com os cards, que continuam brancos); botão "Voltar ao
+indicador" removido da tabela de detalhamento do Efetivo (retorno só pelo
+botão nativo do navegador); botão "Sair" adicionado ao `Topbar`, chamando
+`useAuth().logout()`.
+
+**Protótipo de controle de acesso por níveis** (`src/lib/accessControl.js`):
+o usuário forneceu 5 perfis de demonstração, cada um com senha =
+`USUARIO` em maiúsculo + `@GSG` (regra definida pelo usuário, hardcoded
+de propósito — é protótipo, não credencial real):
+
+| Usuário | Escopo |
+|---|---|
+| `4GB` | 4º GB e tudo abaixo (é folha na árvore atual — só o próprio card) |
+| `DINTER2` | DINTER II e toda a subárvore (3º/4º/5º/9º GB, CAT/SE) |
+| `DGO` | DGO e toda a subárvore (DIM, DINTER I, DINTER II, DIESP + filhos) |
+| `DGP` | só o card da DGP + o atalho de KPI "Efetivo" no topo do organograma (sob CBMPE - Geral) — sem cascata para descendentes |
+| `AGGD` | acesso total, todos os cards |
+
+`authClient.js` continua aceitando o login admin (`VITE_ADMIN_USUARIO`/
+`VITE_ADMIN_SENHA`, ver seção de 2026-08-12 acima) sem nenhuma restrição
+visual — é o "modo irrestrito" técnico. Os 5 usuários de nível logam com
+`role: "nivel"` e `nivelAcesso` = a chave (`"DGP"` etc.); `Organograma.jsx`
+usa isso pra decidir se aplica alguma restrição visual.
+
+**Comportamento visual no organograma**: o usuário de nível continua
+vendo a árvore inteira (nenhuma unidade some), mas só os cards liberados
+ficam clicáveis e recebem destaque (anel `ring-2 ring-primary` + glow); os
+demais ficam com `pointer-events-none` + opacidade/saturação reduzidas
+(sem efeito de hover — `:hover` não dispara em elemento com
+`pointer-events: none`, então não precisei duplicar classes sem `hover:`).
+`AGGD` (acesso total) portanto aparece com **todos** os cards destacados,
+não "sem restrição" — é intencional: ele é um usuário de nível como os
+outros, só que com escopo total, diferente do login admin que não passa
+por essa lógica.
+
+**Escopo é só de VISUALIZAÇÃO no organograma** — é um protótipo. Clicar
+num card restrito não navega (onClick desabilitado), mas as rotas
+`/diretoria/:id` e `/indicador/:id` continuam sem guarda: quem tiver o
+link direto ainda acessa a página. Não implementei RBAC real nem guarda
+de rota nesta rodada — ver pendência de RBAC já registrada em
+`DW_GOVERNANCA.md`.
+
+**Card "Bem-vindo, {usuário}"** adicionado ao `Topbar` (nome exibido =
+`full_name` do usuário logado); aproveitei a mudança de layout do header
+para colocar a caixa de busca centralizada (`grid-cols-[1fr_auto_1fr]`,
+busca na coluna do meio) em vez de alinhada à esquerda.
+
+**Correção de cor no organograma**: os cards de diretoria abaixo do
+Subcomando Geral (DIM, DINTER I, DINTER II, DIESP, DGP, DVP, DJD, DPLAG,
+DF, DAS, DTIC, DLOG, DEIP) usavam tons translúcidos (`bg-yellow-600/80` e
+`/90`, herdados do protótipo Power BI de referência) — ficavam
+visivelmente "lavados" comparados ao card da DGO/DGA (tom sólido). Unifiquei
+todos para o mesmo tom sólido do DGO — pedido do usuário, não relacionado
+ao controle de acesso.
+
+**Motivo**: pedido explícito do usuário — protótipo de UI de controle de
+acesso para validar com stakeholders antes de decidir se vale a pena
+investir em RBAC real (autenticação/autorização de verdade continua
+dependência futura, ver `DW_GOVERNANCA.md`).
+
 ## Pendências práticas (não bloqueiam o planejamento, mas são pré-requisito de implementação)
 
 - **Workspace do Windmill**: ainda precisa ser criado pelo usuário

@@ -34,7 +34,7 @@ export default function Login() {
     <AuthLayout
       icon={LogIn}
       title="Bem-vindo"
-      subtitle="Entre com o usuário administrador"
+      subtitle="Entre com o seu usuário"
     >
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">

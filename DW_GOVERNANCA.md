@@ -94,6 +94,20 @@ pé. Para o DW real:
   `DW_PLANEJAMENTO.md`), não algo a resolver nesta etapa de planejamento
   puro.
 
+**Atualização de 2026-08-17 — protótipo de níveis de acesso, ainda sem
+RBAC real**: `src/lib/accessControl.js` define 5 usuários de demonstração
+(`4GB`, `DINTER2`, `DGO`, `DGP`, `AGGD`), com senha = usuário em maiúsculo
++ `@GSG`, hardcoded no módulo de propósito — é protótipo de UI para
+validar com stakeholders o *conceito* de acesso por unidade, não uma
+implementação de segurança. Efeito real: no organograma
+(`src/pages/Organograma.jsx`), cards fora do escopo do usuário ficam
+visualmente esmaecidos e não navegam a partir dali. **Isso não é uma
+barreira de acesso** — as rotas `/diretoria/:id` e `/indicador/:id`
+continuam abertas para qualquer sessão autenticada, com ou sem link
+direto; nenhuma tabela nominal (Efetivo/Viaturas, ver seção acima) ficou
+mais restrita por causa disso. Continua valendo a pendência de RBAC real
+desta seção — este protótipo não a substitui, só ilustra a intenção.
+
 ## Exceção confirmada: tabela nominal de Efetivo/Viaturas no app (MVP, sem autenticação)
 
 Decisão registrada em 2026-08-07 (ver `DW_PLANEJAMENTO.md`): ao contrário
