@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
-  FileBarChart, Calendar, Download, ChevronRight, Table2, LayoutGrid
+  FileBarChart, Calendar, Download, ChevronRight, Table2, LayoutGrid, ShieldAlert
 } from "lucide-react";
 import { useCbmpe } from "@/lib/cbmpe-context";
+import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import { CATEGORIAS, fmtNumero, parseSerie, tituloKpi, valorKpi, extraKpi } from "@/lib/cbmpe";
 import KpiCard from "@/components/ui/kpi-card";
 import SectionCard from "@/components/ui/section-card";
@@ -14,6 +15,7 @@ import EmptyState from "@/components/ui/empty-state";
 export default function DashboardDetalhe() {
   const { id } = useParams();
   const { dashboards, porId, indicadores, unidades } = useCbmpe();
+  const { permiteSigla } = useAcessoUsuario();
   const [periodo, setPeriodo] = useState("6m");
   const [view, setView] = useState("grid");
 
@@ -92,6 +94,17 @@ export default function DashboardDetalhe() {
         icon={FileBarChart}
         titulo="Dashboard não encontrado"
         acao={<Link to="/" className="text-[13px] font-medium text-primary hover:underline">Voltar ao início</Link>}
+      />
+    );
+  }
+
+  if (!permiteSigla(unidade?.sigla)) {
+    return (
+      <EmptyState
+        icon={ShieldAlert}
+        titulo="Acesso restrito"
+        descricao="Seu usuário não tem permissão para ver este dashboard."
+        acao={<Link to="/organograma" className="text-[13px] font-medium text-primary hover:underline">Voltar ao organograma</Link>}
       />
     );
   }

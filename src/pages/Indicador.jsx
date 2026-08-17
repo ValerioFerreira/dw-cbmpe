@@ -1,9 +1,10 @@
 import React from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
-  ChevronRight, Calendar, BarChart3, Table2
+  ChevronRight, Calendar, BarChart3, Table2, ShieldAlert
 } from "lucide-react";
 import { useCbmpe } from "@/lib/cbmpe-context";
+import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import {
   CATEGORIAS, getCaminho, getSubordinados, fmtNumero, fmtMoeda
 } from "@/lib/cbmpe";
@@ -76,6 +77,7 @@ function TabelaViaturas({ unidade, unidades }) {
 export default function Indicador() {
   const { id } = useParams();
   const { indicadores, unidades, porId, loading } = useCbmpe();
+  const { permiteIndicador } = useAcessoUsuario();
   const [mostrarTabela, setMostrarTabela] = React.useState(false);
 
   const ind = indicadores.find((i) => i.id === id);
@@ -90,6 +92,17 @@ export default function Indicador() {
         icon={BarChart3}
         titulo="Indicador não encontrado"
         acao={<Link to="/" className="text-[13px] font-medium text-primary hover:underline">Voltar ao início</Link>}
+      />
+    );
+  }
+
+  if (!permiteIndicador(ind, unidade?.sigla)) {
+    return (
+      <EmptyState
+        icon={ShieldAlert}
+        titulo="Acesso restrito"
+        descricao="Seu usuário não tem permissão para ver este indicador."
+        acao={<Link to="/organograma" className="text-[13px] font-medium text-primary hover:underline">Voltar ao organograma</Link>}
       />
     );
   }

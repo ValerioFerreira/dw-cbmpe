@@ -2,9 +2,7 @@ import React, { useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Star, TrendingUp } from "lucide-react";
 import { useCbmpe } from "@/lib/cbmpe-context";
-import { useAuth } from "@/lib/AuthContext";
-import { getSubordinados } from "@/lib/cbmpe";
-import { calcularAcesso } from "@/lib/accessControl";
+import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 
 // Layout fixo do organograma — replica fielmente a árvore validada pelo
 // Comandante Geral no protótipo de referência (Power BI CBMPE - Organograma
@@ -40,7 +38,7 @@ const RESTRITO_CLASSES = "pointer-events-none opacity-55 saturate-[0.35] contras
 
 export default function Organograma() {
   const { unidades, indicadores, loading } = useCbmpe();
-  const { user } = useAuth();
+  const { restrito, acesso } = useAcessoUsuario();
   const navigate = useNavigate();
 
   const bySigla = useMemo(() => {
@@ -57,17 +55,13 @@ export default function Organograma() {
     return mapa;
   }, [indicadores, bySigla]);
 
-  // Protótipo de níveis de acesso (2026-08-17, ver DW_PLANEJAMENTO.md): o
-  // login "adm" (role "admin") continua vendo o organograma sem nenhuma
-  // restrição visual. Usuários de nível ("role" nivel) veem tudo, mas só os
-  // cards liberados ficam clicáveis/destacados — o resto fica com cor e
-  // contraste reduzidos, sem efeito de hover.
-  const restrito = user?.role === "nivel";
-  const acesso = useMemo(
-    () => (restrito ? calcularAcesso(user.nivelAcesso, unidades, getSubordinados) : null),
-    [restrito, user, unidades]
-  );
-
+  // Protótipo de níveis de acesso (2026-08-17, ver DW_PLANEJAMENTO.md e
+  // @/lib/useAcessoUsuario): o login "adm" (role "admin") continua vendo o
+  // organograma sem nenhuma restrição visual. Usuários de nível ("role"
+  // nivel) veem tudo, mas só os cards liberados ficam clicáveis/destacados —
+  // o resto fica com cor e contraste reduzidos, sem efeito de hover. A mesma
+  // regra de acesso (calcularAcesso) também bloqueia a navegação direta nas
+  // páginas de detalhe — ver useAcessoUsuario.
   const acessoDe = (sigla) => {
     if (!restrito) return null;
     if (acesso.total) return true;

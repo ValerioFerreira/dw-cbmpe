@@ -1,9 +1,10 @@
 import React, { useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
-  ChevronRight, Table2, Layers, ArrowLeft
+  ChevronRight, Table2, Layers, ArrowLeft, ShieldAlert
 } from "lucide-react";
 import { useCbmpe } from "@/lib/cbmpe-context";
+import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import {
   getCaminho, getFilhos, getIndicadoresSubordinados,
   getModulosIndicador, fmtNumero, parseSerie
@@ -65,6 +66,7 @@ const SYNTH = {
 export default function Submodulo() {
   const { id, modulo } = useParams();
   const { indicadores, unidades, porId, loading } = useCbmpe();
+  const { permiteIndicador } = useAcessoUsuario();
 
   const ind = indicadores.find((i) => i.id === id);
   const unidade = ind ? porId[ind.unidade_id] : null;
@@ -103,6 +105,17 @@ export default function Submodulo() {
         icon={Layers}
         titulo="Submódulo não encontrado"
         acao={<Link to="/" className="text-[13px] font-medium text-primary hover:underline">Voltar ao início</Link>}
+      />
+    );
+  }
+
+  if (!permiteIndicador(ind, unidade?.sigla)) {
+    return (
+      <EmptyState
+        icon={ShieldAlert}
+        titulo="Acesso restrito"
+        descricao="Seu usuário não tem permissão para ver este submódulo."
+        acao={<Link to="/organograma" className="text-[13px] font-medium text-primary hover:underline">Voltar ao organograma</Link>}
       />
     );
   }

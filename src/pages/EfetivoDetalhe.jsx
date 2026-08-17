@@ -1,8 +1,9 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ChevronRight, Users, Filter } from "lucide-react";
+import { ChevronRight, Users, Filter, ShieldAlert } from "lucide-react";
 import { useCbmpe } from "@/lib/cbmpe-context";
+import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import { getCaminho, getSubordinados, fmtNumero } from "@/lib/cbmpe";
 import { Checkbox } from "@/components/ui/checkbox";
 import EmptyState from "@/components/ui/empty-state";
@@ -342,6 +343,7 @@ export default function EfetivoDetalhe() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { indicadores, unidades, porId, loading } = useCbmpe();
+  const { permiteIndicador } = useAcessoUsuario();
 
   const ind = indicadores.find((i) => i.id === id);
   const unidade = ind ? porId[ind.unidade_id] : null;
@@ -406,6 +408,17 @@ export default function EfetivoDetalhe() {
         icon={Users}
         titulo="Indicador de Efetivo não encontrado"
         acao={<Link to="/organograma" className="text-[13px] font-medium text-primary hover:underline">Voltar ao início</Link>}
+      />
+    );
+  }
+
+  if (!permiteIndicador(ind, unidade?.sigla)) {
+    return (
+      <EmptyState
+        icon={ShieldAlert}
+        titulo="Acesso restrito"
+        descricao="Seu usuário não tem permissão para ver os dados de efetivo desta unidade."
+        acao={<Link to="/organograma" className="text-[13px] font-medium text-primary hover:underline">Voltar ao organograma</Link>}
       />
     );
   }

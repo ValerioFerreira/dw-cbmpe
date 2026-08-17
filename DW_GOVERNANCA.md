@@ -99,14 +99,27 @@ RBAC real**: `src/lib/accessControl.js` define 5 usuários de demonstração
 (`4GB`, `DINTER2`, `DGO`, `DGP`, `AGGD`), com senha = usuário em maiúsculo
 + `@GSG`, hardcoded no módulo de propósito — é protótipo de UI para
 validar com stakeholders o *conceito* de acesso por unidade, não uma
-implementação de segurança. Efeito real: no organograma
-(`src/pages/Organograma.jsx`), cards fora do escopo do usuário ficam
-visualmente esmaecidos e não navegam a partir dali. **Isso não é uma
-barreira de acesso** — as rotas `/diretoria/:id` e `/indicador/:id`
-continuam abertas para qualquer sessão autenticada, com ou sem link
-direto; nenhuma tabela nominal (Efetivo/Viaturas, ver seção acima) ficou
-mais restrita por causa disso. Continua valendo a pendência de RBAC real
-desta seção — este protótipo não a substitui, só ilustra a intenção.
+implementação de segurança com a robustez de um backend real. Efeito
+real: no organograma (`src/pages/Organograma.jsx`), cards fora do escopo
+do usuário ficam visualmente esmaecidos e não navegam a partir dali.
+
+**Atualização de 2026-08-17 (mesma sessão) — guarda de rota client-side**:
+o usuário reportou que a restrição valia só visualmente — navegando direto
+(URL, breadcrumb, ou qualquer link para uma unidade fora do escopo) ainda
+dava pra ver os dados de qualquer unidade. Corrigido com
+`src/lib/useAcessoUsuario.js`, aplicado no topo de todas as páginas que
+resolvem dado por unidade (`Diretoria`, `Indicador`, `EfetivoDetalhe`,
+`DashboardDetalhe`, `Submodulo`, `Detalhamento`): se o usuário de nível
+não tem permissão pra unidade (ou, no caso da DGP, pro atalho de KPI
+"Efetivo" do topo do organograma), a página renderiza "Acesso restrito"
+em vez do conteúdo, qualquer que seja o caminho de navegação. **Ainda é
+proteção client-side** — os JSONs estáticos (`efetivo.json`,
+`efetivo_lista.json` etc.) continuam sendo baixados inteiros pelo
+navegador (são arquivos públicos servidos pela Vercel); alguém inspecionando
+o bundle/rede consegue ler o dado de qualquer unidade mesmo estando
+"bloqueado" na UI. Pra virar controle de acesso real, precisaria de RBAC
+no backend (API filtrando por permissão antes de responder) — a mesma
+dependência já registrada acima, não resolvida por este protótipo.
 
 ## Exceção confirmada: tabela nominal de Efetivo/Viaturas no app (MVP, sem autenticação)
 

@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
-  Building2, Network, ChevronRight, ChevronDown
+  Building2, Network, ChevronRight, ChevronDown, ShieldAlert
 } from "lucide-react";
 import { useCbmpe } from "@/lib/cbmpe-context";
+import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import {
   CORES_TIPO, KPI_BASES,
   getSubordinados, fmtNumero, fmtMoeda,
@@ -74,6 +75,7 @@ export default function Diretoria() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { unidades, indicadores, porId, registrarRecente, loading } = useCbmpe();
+  const { permiteSigla } = useAcessoUsuario();
 
   useEffect(() => {
     if (id) registrarRecente(id);
@@ -132,6 +134,17 @@ export default function Diretoria() {
         titulo="Unidade não encontrada"
         descricao="A unidade solicitada não existe na estrutura organizacional."
         acao={<Link to="/organograma" className="text-[13px] font-medium text-primary hover:underline">Ver organograma</Link>}
+      />
+    );
+  }
+
+  if (!permiteSigla(unidade.sigla)) {
+    return (
+      <EmptyState
+        icon={ShieldAlert}
+        titulo="Acesso restrito"
+        descricao="Seu usuário não tem permissão para ver os dados desta unidade."
+        acao={<Link to="/organograma" className="text-[13px] font-medium text-primary hover:underline">Voltar ao organograma</Link>}
       />
     );
   }
