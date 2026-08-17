@@ -1,6 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { ChevronRight, Users, Filter, ShieldAlert, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useCbmpe } from "@/lib/cbmpe-context";
@@ -379,6 +379,8 @@ function CabecalhoColuna({ coluna, selecionada, onSelecionar, tipo, onTipo, filt
 export default function EfetivoDetalhe() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const setor = searchParams.get("setor") || null;
   const { indicadores, unidades, porId, loading } = useCbmpe();
   const { permiteIndicador } = useAcessoUsuario();
 
@@ -394,18 +396,29 @@ export default function EfetivoDetalhe() {
 
   const registrosBase = React.useMemo(() => {
     if (!unidade) return [];
+    // Filtro por setor/divisão (vindo de "Setores Vinculados" na página da
+    // Diretoria): só a própria unidade, restrita às matrículas que a
+    // Repercussão Financeira (DIST_FUNCOES) já lançou naquela divisão —
+    // nunca soma unidades subordinadas nesse modo.
+    if (setor) {
+      const matriculasDoSetor = new Set(lotacaoFuncao.por_unidade_divisao[unidade.sigla]?.[setor] || []);
+      return (efetivoLista.por_unidade[unidade.sigla] || [])
+        .filter((r) => matriculasDoSetor.has(r.matricula))
+        .map((r) => ({ ...r, ome: unidade.sigla }));
+    }
     const siglas = [unidade.sigla, ...getSubordinados(unidades, unidade.id).map((u) => u.sigla)];
     return siglas.flatMap((sigla) =>
       (efetivoLista.por_unidade[sigla] || []).map((r) => ({ ...r, ome: sigla }))
     );
-  }, [unidade, unidades]);
+  }, [unidade, unidades, setor]);
 
-  // Reseta filtros/seleção ao trocar de unidade (navegação pelo breadcrumb).
+  // Reseta filtros/seleção ao trocar de unidade ou de setor (navegação pelo
+  // breadcrumb ou por "Setores Vinculados").
   React.useEffect(() => {
     setFiltros({});
     setColunaSelecionada(null);
     setPagina(1);
-  }, [unidade?.id]);
+  }, [unidade?.id, setor]);
 
   const colunasFiltraveis = React.useMemo(() => TODAS_COLUNAS.filter((c) => c.filtravel), []);
 
@@ -488,7 +501,8 @@ export default function EfetivoDetalhe() {
     const livro = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(livro, planilha, "Efetivo");
     const nomeUnidade = sanitizarNomeArquivo(unidade?.sigla || unidade?.nome || "Unidade");
-    XLSX.writeFile(livro, `Efetivo - ${nomeUnidade}.xlsx`);
+    const sufixoSetor = setor ? ` - ${sanitizarNomeArquivo(setor)}` : "";
+    XLSX.writeFile(livro, `Efetivo - ${nomeUnidade}${sufixoSetor}.xlsx`);
   }
 
   return (
@@ -505,7 +519,15 @@ export default function EfetivoDetalhe() {
         ))}
         <Link to={`/indicador/${ind.id}`} className="hover:text-foreground">Efetivo</Link>
         <ChevronRight className="h-3 w-3" />
-        <span className="text-foreground">Detalhamento</span>
+        {setor ? (
+          <>
+            <Link to={`/efetivo/${ind.id}`} className="hover:text-foreground">Detalhamento</Link>
+            <ChevronRight className="h-3 w-3" />
+            <span className="text-foreground">{setor}</span>
+          </>
+        ) : (
+          <span className="text-foreground">Detalhamento</span>
+        )}
       </div>
 
       {/* Header */}
@@ -517,7 +539,7 @@ export default function EfetivoDetalhe() {
           <div>
             <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">Militares da OME</h1>
             <p className="mt-0.5 text-[13px] text-muted-foreground">
-              {unidade?.nome}{temSubordinadas ? " + unidades vinculadas" : ""}
+              {setor ? `${unidade?.nome} · ${setor}` : `${unidade?.nome}${temSubordinadas ? " + unidades vinculadas" : ""}`}
             </p>
           </div>
         </div>

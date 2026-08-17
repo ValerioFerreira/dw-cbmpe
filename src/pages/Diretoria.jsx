@@ -59,6 +59,23 @@ function celulaPrevistoDivisao(d) {
   return `${atual}/${fmtNumero(d.efetivoPrevisto)}`;
 }
 
+// Nome de uma seção/divisão em "Setores Vinculados" — vira link pra
+// tabela de Efetivo já filtrada naquela seção (mesma tabela, filtrando
+// por src/data/real/lotacao_funcao.json) quando existe indicador de
+// Efetivo pra essa unidade; senão fica só texto.
+function CelulaSetor({ efetivoId, nome }) {
+  if (!efetivoId) return nome;
+  return (
+    <Link
+      to={`/efetivo/${efetivoId}?setor=${encodeURIComponent(nome)}`}
+      onClick={(e) => e.stopPropagation()}
+      className="hover:text-primary hover:underline"
+    >
+      {nome}
+    </Link>
+  );
+}
+
 // Rótulo exibido no cabeçalho da coluna (não altera o nome usado para
 // casar com o indicador — só o texto mostrado ao usuário).
 function rotuloColuna(nome) {
@@ -91,6 +108,7 @@ export default function Diretoria() {
   }, [subordinados, id, unidade]);
 
   const kpis = useMemo(() => indicadores.filter((i) => i.unidade_id === id), [indicadores, id]);
+  const efetivoIdProprio = kpis.find((k) => k.nome === "Efetivo")?.id;
 
   const indicadoresPorFilho = useMemo(() => {
     const mapa = {};
@@ -244,7 +262,9 @@ export default function Diretoria() {
                       </tr>
                       {aberta && divisoesF.map((d) => (
                         <tr key={d.nome} className="bg-muted/10 text-[11px] text-muted-foreground/80">
-                          <td className="whitespace-nowrap p-2.5 pl-8 text-left">{d.nome}</td>
+                          <td className="whitespace-nowrap p-2.5 pl-8 text-left">
+                            <CelulaSetor efetivoId={porNome["Efetivo"]?.id} nome={d.nome} />
+                          </td>
                           <td className="whitespace-nowrap p-2.5 text-right tabular-nums">{celulaPrevistoDivisao(d)}</td>
                           <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
                           <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
@@ -260,7 +280,9 @@ export default function Diretoria() {
                     seções internas diretamente na lista, sem linha "guarda-chuva". */}
                 {filhosDiretos.length === 0 && divisoesProprias.map((d) => (
                   <tr key={d.nome} className="text-foreground/80">
-                    <td className="whitespace-nowrap p-2.5 text-left font-medium text-foreground">{d.nome}</td>
+                    <td className="whitespace-nowrap p-2.5 text-left font-medium text-foreground">
+                      <CelulaSetor efetivoId={efetivoIdProprio} nome={d.nome} />
+                    </td>
                     <td className="whitespace-nowrap p-2.5 text-right tabular-nums">{celulaPrevistoDivisao(d)}</td>
                     <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
                     <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
@@ -293,7 +315,9 @@ export default function Diretoria() {
                 )}
                 {filhosDiretos.length > 0 && proprias && linhasAbertas.has(unidade.id) && divisoesProprias.map((d) => (
                   <tr key={d.nome} className="bg-muted/10 text-[11px] text-muted-foreground/80">
-                    <td className="whitespace-nowrap p-2.5 pl-8 text-left">{d.nome}</td>
+                    <td className="whitespace-nowrap p-2.5 pl-8 text-left">
+                      <CelulaSetor efetivoId={efetivoIdProprio} nome={d.nome} />
+                    </td>
                     <td className="whitespace-nowrap p-2.5 text-right tabular-nums">{celulaPrevistoDivisao(d)}</td>
                     <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
                     <td className="whitespace-nowrap p-2.5 text-right tabular-nums">Em construção</td>
