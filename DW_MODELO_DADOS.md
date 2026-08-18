@@ -145,6 +145,28 @@ usuário. Tratar como proposta até confirmação explícita.
 *(Carteira funcional, contatos, dependentes, dados bancários e documentos
 — ver acima, propostos para ficarem só na fonte por ora.)*
 
+### Ficha do militar no app — mapa de blocos por tabela (Caminho A × B)
+
+Feature `/militar/:matricula` (2026-08-19). A junção com o SGP é pela
+matrícula (`tb_pess.nr_matr_pess`), a mesma chave que já usamos na base
+Neon `Militar`. Cada bloco dos prints do SGP mapeia assim:
+
+| Bloco (print SGP) | Tabelas SGP | Caminho |
+|---|---|---|
+| Dados Funcionais (posto, unidade, ingresso, promoção, movimentação) | `tb_pess`, `tb_cargo`, `tb_ome`, `tb_movim`, `tb_prom` | **A (público)** — subconjunto administrativo |
+| Dados Pessoais (filiação, naturalidade, religião, estado civil, endereço, escolaridade) | `tb_pess` (`nm_gntr`/`nm_gntra`, `en_*`, `id_tipo_relig_fk`…) | B (interno) |
+| Dados Físicos (cor, altura, peso, tipo sanguíneo, saúde, medidas) | `tb_pess` (`nr_altu_pess`, `ds_doen_cron`, `ds_alerg`…) | B (interno) |
+| Registros Pessoais / Documentos (CPF, RG, CNH, título, anexos) | `tb_pess`, `tb_docm` | B (interno) |
+| Dependentes | `tb_depen` | B (interno) |
+| Cursos | `tb_pess_x_curso`, `tb_curso` | B (interno na 1ª versão; candidato a A se confirmado não sensível) |
+| Históricos (afastamentos, inativação, agregação) | `tb_afast`, `tb_inatv`, `tb_agreg` | B (interno) |
+
+O Caminho A não depende de nova sincronização: lê o subconjunto já presente
+em `efetivo_lista.json`. O Caminho B (blocos acima) só passa a existir com o
+`windmill-sgp.py` (a escrever — ver `DW_ETL.md`) carregando pra schema/role
+restrito no Neon, servido só atrás de autenticação real. A allowlist/
+denylist exata de campos está em `DW_GOVERNANCA.md`.
+
 ### Pendências explícitas desta fonte (não resolver por suposição)
 
 - **Regra de "efetivo ativo" e tratamento de Adido/Agregado** no cômputo

@@ -1498,6 +1498,60 @@ vermelha `rgb(197,17,50)` e nota à direita no `Diretoria`; e o usuário de
 nível "4GB" com cards bloqueados a `opacity 0.5` + cadeado (superior direito
 nos comuns, inferior direito no COMANDO GERAL).
 
+### 2026-08-19 — Ficha do militar a partir do SGP: Caminho A (público, não sensível) agora; Caminho B (completo) engatilhado
+
+O usuário pediu que, ao clicar num militar na tabela de Efetivo, abra uma
+ficha com dados do SGP (`ovrsgp`), como fizemos pra viatura. Seguindo
+`DW_PROCESSO_INTEGRACAO.md`, esclareci antes de desenhar. Confirmado:
+
+- **Chave de junção**: a **matrícula**. A "planilha do pecúlio" é a mesma
+  lista que já mostramos (base Neon `Militar`); a matrícula dela é a chave
+  para o SGP. Ou seja, não há um novo universo de militares — o SGP entra
+  só pra enriquecer quem já aparece.
+- **Sensibilidade / publicação (decisão-chave)**: a ficha viraria um JSON
+  no repositório público + deploy Vercel público, sem login real (o auth
+  atual é protótipo em localStorage). O `tb_pess` do SGP contém dado
+  sensível de categoria especial (LGPD): CPF/RG/título/PIS/CNH/passaporte,
+  endereço residencial, filiação, saúde (doença crônica, medicamento
+  controlado, alergia, tipo sanguíneo), biometria (foto/assinatura/
+  digitais), raça/cor, religião — além de dependentes (incl. menores).
+  Publicar isso na internet aberta seria violação de LGPD e risco real a
+  terceiros que não consentiram. **Decisão do usuário: Caminho A agora,
+  Caminho B engatilhado.**
+  - **Caminho A (feito, público)**: a ficha `/militar/:matricula`
+    (`src/pages/MilitarFicha.jsx`) mostra só campos **não sensíveis** —
+    posto/graduação, nome, nome de guerra, sexo, idade, OME, função, e os
+    blocos de carreira administrativa que já temos em `efetivo_lista.json`
+    (ingresso, última promoção, última movimentação, unidade anterior,
+    órgão, tempo de serviço, tempo na unidade, horário especial,
+    readaptado, acúmulo de cargos, LE, LTIP, afastamento > 90 dias,
+    suplemento pessoal, PCNH). **Nunca** CPF/RG/endereço/filiação/saúde/
+    biometria/raça/religião/telefone/dependentes. Não depende de nova
+    sincronização: lê o que já está no `efetivo_lista.json`. O clique na
+    linha da tabela de Efetivo passou de `/em-construcao/:matricula` para
+    `/militar/:matricula`.
+  - **Caminho B (engatilhado, não público)**: ficha completa (todos os
+    blocos dos prints do SGP — Pessoais, Físicos, Documentos, Dependentes,
+    Cursos, Históricos de promoção/movimentação/afastamento) só quando o
+    app estiver atrás de **autenticação real no servidor interno**. O dado
+    sensível nunca entra num arquivo versionado/público. O gatilho está
+    documentado em `DW_GOVERNANCA.md` (allowlist público × denylist
+    sensível), `DW_MODELO_DADOS.md` (mapeamento das tabelas do SGP pra
+    cada bloco) e `DW_ETL.md` (o `windmill-sgp.py`, a escrever quando a
+    conexão ao SGP for definida — ainda pendente, ver perguntas em aberto).
+
+- **Ressalva de consistência (registrada, não resolvida agora)**: o painel
+  "Verificar dados completos" da tabela de Efetivo já expõe hoje `racaCor`
+  (raça/cor) e `pcd` (deficiência), ambos categoria especial LGPD, no
+  `efetivo_lista.json` público — decisão anterior (2026-08-11, task de
+  exposição de dados individuais). Isso contradiz a linha da ficha A.
+  Recomendação: remover `racaCor`/`pcd`/telefones do `efetivo_lista.json`
+  público também, num próximo passo — ver perguntas em aberto.
+
+Verificado no navegador: `/militar/798007-8` renderiza "Cel ARARIPE" com só
+"Dados Funcionais" e "Situação Administrativa", sem nenhum campo sensível, e
+com o aviso de que o restante fica no acesso interno autenticado.
+
 ## Pendências práticas (não bloqueiam o planejamento, mas são pré-requisito de implementação)
 
 - **Workspace do Windmill**: ainda precisa ser criado pelo usuário
@@ -1512,6 +1566,15 @@ nos comuns, inferior direito no COMANDO GERAL).
 
 ## Perguntas em aberto
 
+- **Conexão ao SGP (`ovrsgp`)**: host, credenciais e alcance de rede a
+  partir do Windmill — necessários pra escrever/rodar o `windmill-sgp.py`
+  que engatilha o Caminho B da ficha do militar (histórico de promoção/
+  movimentação/afastamento, cursos, dependentes, dados pessoais/físicos).
+  Sem isso, o Caminho B fica só documentado.
+- **Vazamento de dado sensível já público**: `efetivo_lista.json` (público)
+  hoje inclui `racaCor` e `pcd` (categoria especial LGPD) e telefones,
+  usados no painel "Verificar dados completos". Contradiz a linha da ficha
+  A — remover num próximo passo (confirmar com o usuário).
 - **Catálogo de fontes por domínio**: quais sistemas/planilhas exatos
   alimentam cada um dos 5 domínios da Fase 1? (ver
   [`DW_CATALOGO_FONTES.md`](DW_CATALOGO_FONTES.md), hoje cheio de

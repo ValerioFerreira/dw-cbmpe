@@ -47,6 +47,20 @@ scripts/
   sync-windmill.ps1    # wrapper pra `wmill sync push` — publicação manual (ver Agendamento/Publicação)
 ```
 
+### `windmill-sgp.py` — engatilhado (Caminho B da ficha do militar)
+
+Planejado, ainda **não escrito** (aguarda a definição da conexão ao SGP —
+host/credenciais/rede a partir do Windmill; ver `DW_PLANEJAMENTO.md`,
+perguntas em aberto). Quando existir, roda dentro da rede interna, lê o
+schema `ovrsgp` e carrega os blocos completos da ficha do militar
+(`tb_pess`, `tb_depen`, `tb_docm`, `tb_afast`, `tb_inatv`, `tb_agreg`,
+`tb_pess_x_curso`/`tb_curso`, `tb_movim`, `tb_prom`) — mapa por bloco em
+`DW_MODELO_DADOS.md`. **Regra dura**: o dado sensível (denylist em
+`DW_GOVERNANCA.md`) só pode ir pra schema/role restrito no Neon e ser
+servido atrás de autenticação real; **nunca** pro JSON público. O Caminho A
+(ficha `/militar/:matricula` só com campos não sensíveis) já está no ar
+lendo `efetivo_lista.json`, sem depender deste script.
+
 Cada domínio é isolado (extract/transform/load próprios), para permitir
 frequências de atualização diferentes por domínio sem acoplamento.
 

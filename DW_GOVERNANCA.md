@@ -163,6 +163,44 @@ fora", ficou desatualizada e é substituída por esta):
 principalmente o painel "dados completos" — deve passar a exigir login**
 — está registrado aqui como ponto em aberto, não uma decisão permanente.
 
+## Ficha do militar (SGP) — Caminho A público × Caminho B interno (2026-08-19)
+
+Ao clicar num militar na tabela de Efetivo abre-se `/militar/:matricula`
+(`src/pages/MilitarFicha.jsx`). O SGP (`ovrsgp.tb_pess` + satélites) tem
+dado sensível de categoria especial. Como a ficha, por ora, é servida pelo
+build público sem login real, vale uma regra dura de allowlist/denylist:
+
+**Allowlist — pode ir pro build público (Caminho A):** posto/graduação,
+matrícula, nome, nome de guerra, sexo, idade (nunca a data de nascimento
+bruta), OME, função; e blocos de carreira administrativa: data de ingresso,
+última promoção, última movimentação, unidade anterior, órgão, tempo de
+serviço, tempo na unidade, horário especial, readaptado, acúmulo de cargos,
+LE, LTIP, afastamento > 90 dias, suplemento pessoal (nº/ano e data), PCNH.
+
+**Denylist — NUNCA em arquivo versionado/público (só Caminho B, atrás de
+autenticação real no servidor interno):** CPF, RG (militar e civil), título
+de eleitor, PIS/PASEP, CNH, passaporte, carteira profissional, reservista;
+endereço residencial (rua/nº/bairro/cidade/CEP/complemento/ponto de
+referência); filiação (nomes do pai/mãe); **saúde** (doença crônica,
+medicamento controlado, alergia, imunização, acidentes, tipo/fator
+sanguíneo); **biometria** (foto, assinatura, digitais); características
+físicas/medidas; **raça/cor**; **religião**; estado civil; naturalidade/
+nacionalidade; telefones; dados bancários (`tb_pess_x_banco`); documentos
+anexados (`tb_docm`); **dependentes** (`tb_depen`, incl. menores); e o
+histórico nominal completo de promoção/movimentação/afastamento.
+
+O gatilho do Caminho B fica pronto: a página já isola o que mostra, o
+mapeamento das tabelas do SGP por bloco está em `DW_MODELO_DADOS.md`, e o
+`windmill-sgp.py` (a escrever quando a conexão ao SGP for definida) deve
+carregar o denylist só em schema/role restrito no Neon, nunca no JSON
+público. Enquanto o Caminho B não existir, a ficha exibe explicitamente que
+o restante é de acesso interno autenticado.
+
+**Ressalva**: o painel "Verificar dados completos" (seção acima) já expõe
+hoje `racaCor`/`pcd`/telefones no `efetivo_lista.json` público, o que
+contradiz este denylist. Registrado como pendência em `DW_PLANEJAMENTO.md`
+(remover num próximo passo).
+
 ## LGPD — pontos a não esquecer nas próximas fases
 
 - Base legal para tratamento dos dados de efetivo/RH (dado de servidor

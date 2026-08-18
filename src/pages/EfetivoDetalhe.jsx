@@ -298,9 +298,9 @@ export default function EfetivoDetalhe() {
   );
 
   function abrirDetalhe(registro) {
-    navigate(`/em-construcao/${encodeURIComponent(registro.matricula ?? "registro")}`, {
-      state: { titulo: "Dados do Militar" },
-    });
+    const matricula = (registro.matricula || "").toString().trim();
+    if (!matricula) return; // sem matrícula não há ficha pra abrir
+    navigate(`/militar/${encodeURIComponent(matricula)}`);
   }
 
   function exportarExcel() {
