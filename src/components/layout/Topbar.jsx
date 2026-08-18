@@ -17,19 +17,12 @@ export default function Topbar({ caminho = [], onOpenSearch, onOpenMobileNav, ti
 
   return (
     <div className="no-print glass sticky top-0 z-30 flex flex-col border-b border-border">
-      <header className="grid h-16 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-3 lg:h-20 lg:gap-4 lg:px-5">
-        {/* Esquerda: menu mobile + breadcrumb + bem-vindo */}
+      {/* ===================== Desktop ===================== */}
+      <header className="hidden h-20 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 px-5 lg:grid">
+        {/* Esquerda: breadcrumb + bem-vindo */}
         <div className="flex min-w-0 items-center gap-3 overflow-hidden">
-          <button
-            onClick={onOpenMobileNav}
-            aria-label="Abrir menu"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-
           {caminho.length > 0 && (
-            <nav className="hidden min-w-0 items-center gap-1.5 text-[13px] lg:flex">
+            <nav className="flex min-w-0 items-center gap-1.5 text-[13px]">
               <Link to="/organograma" className="shrink-0 text-muted-foreground transition-colors hover:text-foreground">
                 <Home className="h-3.5 w-3.5" />
               </Link>
@@ -52,7 +45,7 @@ export default function Topbar({ caminho = [], onOpenSearch, onOpenMobileNav, ti
           )}
 
           {nomeExibido && (
-            <div className="hidden shrink-0 items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 lg:flex">
+            <div className="flex shrink-0 items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <UserRound className="h-3.5 w-3.5" />
               </span>
@@ -64,7 +57,7 @@ export default function Topbar({ caminho = [], onOpenSearch, onOpenMobileNav, ti
         </div>
 
         {/* Centro: busca */}
-        <div className="hidden justify-self-center lg:flex">
+        <div className="flex justify-self-center">
           <button
             onClick={onOpenSearch}
             aria-label="Buscar unidades, dashboards..."
@@ -76,58 +69,93 @@ export default function Topbar({ caminho = [], onOpenSearch, onOpenMobileNav, ti
         </div>
 
         {/* Direita: ações */}
-        <div className="flex shrink-0 items-center justify-end gap-1 lg:gap-2.5">
+        <div className="flex shrink-0 items-center justify-end gap-2.5">
           {titulo && <span className="hidden truncate text-[13px] font-medium text-muted-foreground lg:inline">{titulo}</span>}
-          <Link
-            to="/organograma"
-            aria-label="Ir para o Organograma"
-            className="inline-flex h-10 shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-2 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden"
-          >
-            <Network className="h-4 w-4 shrink-0" />
-            <span className="whitespace-nowrap">Organograma</span>
-          </Link>
           <ThemeToggle />
           <button
             onClick={() => window.print()}
             aria-label="Gerar PDF desta página"
             title="Gerar PDF desta página"
-            className="inline-flex h-10 shrink-0 items-center gap-1 rounded-lg bg-primary px-2 text-[12px] font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 lg:gap-1.5 lg:px-3.5 lg:py-2.5"
+            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2.5 text-[12px] font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
           >
             <FileDown className="h-3.5 w-3.5 shrink-0" />
-            <span className="lg:hidden">PDF</span>
-            <span className="hidden whitespace-nowrap lg:inline">Gerar PDF desta página</span>
+            <span className="whitespace-nowrap">Gerar PDF desta página</span>
           </button>
           <button
             onClick={handleSair}
             aria-label="Sair"
             title="Sair"
-            className="inline-flex h-10 shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-2 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive lg:gap-1.5 lg:px-3.5 lg:py-2.5"
+            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2.5 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
           >
             <LogOut className="h-3.5 w-3.5 shrink-0" />
-            <span className="hidden whitespace-nowrap lg:inline">Sair</span>
+            <span className="whitespace-nowrap">Sair</span>
           </button>
         </div>
       </header>
 
-      {nomeExibido && (
-        <div className="mx-3 mb-2.5 flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 lg:hidden">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <UserRound className="h-3.5 w-3.5" />
-          </span>
-          <span className="truncate text-[12px] text-muted-foreground">
-            Bem-vindo, <span className="font-semibold text-foreground">{nomeExibido}</span>
-          </span>
-        </div>
-      )}
+      {/* ===================== Mobile ===================== */}
+      <div className="flex flex-col gap-2 px-3 py-2 lg:hidden">
+        {/* Linha única de ações: Org., Claro/Escuro, PDF, Usuário, Sair
+            (o botão de menu abre a árvore de estrutura no drawer lateral). */}
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={onOpenMobileNav}
+            aria-label="Abrir menu"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
 
-      <button
-        onClick={onOpenSearch}
-        aria-label="Buscar unidades, dashboards..."
-        className="mx-3 mb-2.5 flex h-10 items-center gap-2 rounded-full border-2 border-primary/25 bg-card px-4 text-primary shadow-sm transition-colors hover:border-primary/50 lg:hidden"
-      >
-        <Search className="h-4 w-4 shrink-0" />
-        <span className="truncate text-[13px] text-muted-foreground">Buscar unidades, dashboards...</span>
-      </button>
+          <Link
+            to="/organograma"
+            aria-label="Ir para o Organograma"
+            className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-2 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <Network className="h-4 w-4 shrink-0" />
+            <span>Org.</span>
+          </Link>
+
+          <ThemeToggle />
+
+          <button
+            onClick={() => window.print()}
+            aria-label="Gerar PDF desta página"
+            title="Gerar PDF desta página"
+            className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-primary px-2 text-[12px] font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+          >
+            <FileDown className="h-3.5 w-3.5 shrink-0" />
+            <span>PDF</span>
+          </button>
+
+          {nomeExibido && (
+            <span className="flex min-w-0 flex-1 items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <UserRound className="h-3.5 w-3.5" />
+              </span>
+              <span className="truncate text-[12px] font-semibold text-foreground">{nomeExibido}</span>
+            </span>
+          )}
+
+          <button
+            onClick={handleSair}
+            aria-label="Sair"
+            title="Sair"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+          >
+            <LogOut className="h-4 w-4 shrink-0" />
+          </button>
+        </div>
+
+        {/* Caixa de pesquisa logo abaixo */}
+        <button
+          onClick={onOpenSearch}
+          aria-label="Buscar unidades, dashboards..."
+          className="flex h-10 items-center gap-2 rounded-full border-2 border-primary/25 bg-card px-4 text-primary shadow-sm transition-colors hover:border-primary/50"
+        >
+          <Search className="h-4 w-4 shrink-0" />
+          <span className="truncate text-[13px] text-muted-foreground">Buscar unidades, dashboards...</span>
+        </button>
+      </div>
     </div>
   );
 }

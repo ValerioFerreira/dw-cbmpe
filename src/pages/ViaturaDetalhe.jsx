@@ -7,6 +7,7 @@ import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import { getCaminho, getSubordinados, fmtNumero } from "@/lib/cbmpe";
 import EmptyState from "@/components/ui/empty-state";
 import SectionCard from "@/components/ui/section-card";
+import ScrollDuplo from "@/components/ui/scroll-duplo";
 import BadgeSituacao from "@/components/ui/badge-situacao";
 import { FiltroColuna, passaFiltro, valorFiltro } from "@/components/ui/filtro-coluna";
 import viaturasLista from "@/data/real/viaturas_lista.json";
@@ -61,11 +62,22 @@ export default function ViaturaDetalhe() {
   // Unidade + toda a subárvore de subordinadas — mesmo princípio já usado
   // no Efetivo (corrige unidades como COMANDO GERAL/SUBCOMANDO GERAL, que
   // não têm viatura própria, só nas subordinadas).
+  //
+  // Regras de situação (pedido do usuário, 2026-08-18): viaturas
+  // "Descarregada" são omitidas da tabela; "Devolvida" é exibida como
+  // "Ativa". A transformação é feita aqui na base pra valer também no
+  // filtro, no badge e na exportação.
   const registrosBase = React.useMemo(() => {
     if (!unidade) return [];
     const siglas = [unidade.sigla, ...getSubordinados(unidades, unidade.id).map((u) => u.sigla)];
     return siglas.flatMap((sigla) =>
-      (viaturasLista.por_unidade[sigla] || []).map((r) => ({ ...r, ome: sigla }))
+      (viaturasLista.por_unidade[sigla] || [])
+        .filter((r) => r.situacao !== "Descarregada")
+        .map((r) => ({
+          ...r,
+          ome: sigla,
+          situacao: r.situacao === "Devolvida" ? "Ativa" : r.situacao,
+        }))
     );
   }, [unidade, unidades]);
 
@@ -199,13 +211,13 @@ export default function ViaturaDetalhe() {
           )}
         </div>
 
-        <div className="max-h-[36rem] overflow-y-auto overflow-x-auto">
+        <ScrollDuplo maxHeight="36rem">
           <table className="w-full min-w-[720px] border-collapse text-left">
-            <thead className="sticky top-0 z-10 bg-muted/70 backdrop-blur-sm">
+            <thead className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
               <tr className="border-b-2 border-primary/25 text-[10.5px] font-bold uppercase tracking-wide text-foreground/70">
                 {COLUNAS.map((c) => (
-                  <th key={c.chave} className="px-3 py-2.5 text-left align-bottom">
-                    <div className="flex items-center gap-1.5">
+                  <th key={c.chave} className="px-2.5 py-2 text-left align-middle">
+                    <div className="flex items-center gap-1">
                       <span>{c.rotulo}</span>
                       {c.filtravel && (
                         <FiltroColuna
@@ -219,15 +231,15 @@ export default function ViaturaDetalhe() {
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody>
               {registrosPagina.map((r, i) => (
                 <tr
                   key={`${r.placa}-${i}`}
                   onClick={() => abrirDetalhe(r)}
-                  className="cursor-pointer text-foreground/80 transition-colors even:bg-muted/25 hover:bg-primary/10"
+                  className="cursor-pointer text-foreground/80 transition-colors odd:bg-card even:bg-muted/60 hover:bg-primary/10"
                 >
                   {COLUNAS.map((c) => (
-                    <td key={c.chave} className={`px-3 py-2.5 ${c.quebrar ? "" : "whitespace-nowrap"}`}>
+                    <td key={c.chave} className={`px-2.5 py-2 ${c.quebrar ? "" : "whitespace-nowrap"}`}>
                       {renderCelula(c, r)}
                     </td>
                   ))}
@@ -242,7 +254,7 @@ export default function ViaturaDetalhe() {
               )}
             </tbody>
           </table>
-        </div>
+        </ScrollDuplo>
       </SectionCard>
 
       {/* Paginação — fora da tabela, centralizada embaixo. */}

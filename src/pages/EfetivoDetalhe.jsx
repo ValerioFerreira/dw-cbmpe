@@ -7,6 +7,7 @@ import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import { getCaminho, getSubordinados, fmtNumero } from "@/lib/cbmpe";
 import EmptyState from "@/components/ui/empty-state";
 import SectionCard from "@/components/ui/section-card";
+import ScrollDuplo from "@/components/ui/scroll-duplo";
 import { FiltroColuna, passaFiltro, valorFiltro } from "@/components/ui/filtro-coluna";
 import efetivoLista from "@/data/real/efetivo_lista.json";
 import lotacaoFuncao from "@/data/real/lotacao_funcao.json";
@@ -150,11 +151,13 @@ function formatarNumero(valor, casas) {
   return n.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
 }
 
-// Renderiza uma célula segundo o tipo escolhido pro usuário pra essa
-// coluna — "texto" (padrão) usa a renderização especial da coluna quando
-// existe (ex. nome de guerra em negrito), os demais tipos reformatam o
-// valor cru, ignorando a renderização especial.
-function renderCelula(coluna, registro, tipo) {
+// Renderiza uma célula segundo o tipo fixo da coluna (tipoPadrao) — "texto"
+// usa a renderização especial da coluna quando existe (ex. nome de guerra
+// em negrito), os demais tipos reformatam o valor cru. O usuário não define
+// mais o tipo na UI: se quiser reinterpretar, exporta pro Excel e ajusta lá
+// (decisão de 2026-08-18, deixa as colunas mais estreitas).
+function renderCelula(coluna, registro) {
+  const tipo = coluna.tipoPadrao;
   if (tipo === "data") return formatarData(coluna.bruto(registro));
   if (tipo === "inteiro") return formatarNumero(coluna.bruto(registro), 0);
   if (tipo === "decimal") return formatarNumero(coluna.bruto(registro), 2);
@@ -164,9 +167,9 @@ function renderCelula(coluna, registro, tipo) {
 }
 
 // Valor de uma célula para exportação — sempre texto/número cru (nunca a
-// JSX de renderCelula), respeitando o tipo escolhido pelo usuário pra
-// aquela coluna (mesma lógica de formatação, sem negrito de nome de guerra).
-function valorExportacao(coluna, registro, tipo) {
+// JSX de renderCelula), respeitando o tipo fixo da coluna.
+function valorExportacao(coluna, registro) {
+  const tipo = coluna.tipoPadrao;
   const b = coluna.bruto(registro);
   if (tipo === "data") return formatarData(b);
   if (tipo === "inteiro" || tipo === "decimal") {
@@ -182,54 +185,14 @@ function sanitizarNomeArquivo(nome) {
   return String(nome).replace(/[\\/:*?"<>|]/g, "-").trim();
 }
 
-// Agregadores no estilo da barra de status do Google Sheets: Contagem e
-// Contagem Distinta sempre que há valores; Soma/Média/Mínimo/Máximo só
-// quando a coluna está tipada como número (inteiro ou decimal) — "sempre
-// que possível", conforme pedido.
-function calcularAgregados(registros, coluna, tipo) {
-  const valores = registros.map((r) => coluna.bruto(r)).filter((v) => v !== null && v !== undefined && v !== "");
-  const contagem = valores.length;
-  const distintos = new Set(valores.map(String)).size;
-  let soma = null, media = null, minimo = null, maximo = null;
-  if (tipo === "inteiro" || tipo === "decimal") {
-    const nums = valores.map(Number).filter((n) => !Number.isNaN(n));
-    if (nums.length) {
-      soma = nums.reduce((a, b) => a + b, 0);
-      media = soma / nums.length;
-      minimo = Math.min(...nums);
-      maximo = Math.max(...nums);
-    }
-  }
-  return { contagem, distintos, soma, media, minimo, maximo };
-}
-
-// Cabeçalho de uma coluna: rótulo clicável (seleciona a coluna pros
-// agregadores), funil de filtro (só nas principais) e seletor de tipo.
-function CabecalhoColuna({ coluna, selecionada, onSelecionar, tipo, onTipo, filtro }) {
+// Cabeçalho de uma coluna: rótulo + funil de filtro (só isso — sem seletor
+// de tipo, sem agregadores).
+function CabecalhoColuna({ coluna, filtro }) {
   return (
-    <th className={`px-3 py-2.5 text-left align-bottom ${selecionada ? "bg-primary/10" : ""}`}>
-      <div className="flex items-center gap-1.5">
-        <button
-          type="button"
-          onClick={onSelecionar}
-          title="Selecionar coluna para ver os agregadores"
-          className={`text-left ${selecionada ? "text-primary" : ""}`}
-        >
-          {coluna.rotulo}
-        </button>
+    <th className="px-2.5 py-2 text-left align-middle">
+      <div className="flex items-center gap-1">
+        <span>{coluna.rotulo}</span>
         {filtro}
-        <select
-          value={tipo}
-          onChange={(e) => onTipo(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          title="Tipo da coluna"
-          className="h-4 shrink-0 rounded border-none bg-transparent text-[9px] font-normal normal-case tracking-normal text-muted-foreground/70 outline-none"
-        >
-          <option value="texto">Texto</option>
-          <option value="data">Data</option>
-          <option value="inteiro">Nº inteiro</option>
-          <option value="decimal">Nº decimal</option>
-        </select>
       </div>
     </th>
   );
@@ -248,8 +211,6 @@ export default function EfetivoDetalhe() {
   const caminho = ind ? getCaminho(unidades, ind.unidade_id) : [];
 
   const [filtros, setFiltros] = React.useState({});
-  const [tiposColuna, setTiposColuna] = React.useState({});
-  const [colunaSelecionada, setColunaSelecionada] = React.useState(null);
   const [pagina, setPagina] = React.useState(1);
   const [tamanhoPagina, setTamanhoPagina] = React.useState(20);
 
@@ -259,15 +220,18 @@ export default function EfetivoDetalhe() {
     // Diretoria): só a própria unidade, restrita às matrículas que a
     // Repercussão Financeira (DIST_FUNCOES) já lançou naquela divisão —
     // nunca soma unidades subordinadas nesse modo.
+    // Militares adidos (omeExibicao preenchido, ex. "ADIDO") contam no
+    // efetivo do Comando Geral mas mostram a origem real na coluna OME — só
+    // o comandante geral mostra "COMANDO GERAL". Ver extract_efetivo.py.
     if (setor) {
       const matriculasDoSetor = new Set(lotacaoFuncao.por_unidade_divisao[unidade.sigla]?.[setor] || []);
       return (efetivoLista.por_unidade[unidade.sigla] || [])
         .filter((r) => matriculasDoSetor.has(r.matricula))
-        .map((r) => ({ ...r, ome: unidade.sigla }));
+        .map((r) => ({ ...r, ome: r.omeExibicao || unidade.sigla }));
     }
     const siglas = [unidade.sigla, ...getSubordinados(unidades, unidade.id).map((u) => u.sigla)];
     return siglas.flatMap((sigla) =>
-      (efetivoLista.por_unidade[sigla] || []).map((r) => ({ ...r, ome: sigla }))
+      (efetivoLista.por_unidade[sigla] || []).map((r) => ({ ...r, ome: r.omeExibicao || sigla }))
     );
   }, [unidade, unidades, setor]);
 
@@ -275,7 +239,6 @@ export default function EfetivoDetalhe() {
   // breadcrumb ou por "Setores Vinculados").
   React.useEffect(() => {
     setFiltros({});
-    setColunaSelecionada(null);
     setPagina(1);
   }, [unidade?.id, setor]);
 
@@ -333,9 +296,6 @@ export default function EfetivoDetalhe() {
   }
 
   const colunasVisiveis = TODAS_COLUNAS;
-  const colunaAgregada = colunasVisiveis.find((c) => c.chave === colunaSelecionada);
-  const tipoColunaAgregada = colunaAgregada ? (tiposColuna[colunaAgregada.chave] || colunaAgregada.tipoPadrao) : null;
-  const agregados = colunaAgregada ? calcularAgregados(registrosFiltrados, colunaAgregada, tipoColunaAgregada) : null;
 
   const totalPaginas = Math.max(1, Math.ceil(registrosFiltrados.length / tamanhoPagina));
   const paginaAtual = Math.min(pagina, totalPaginas);
@@ -353,7 +313,7 @@ export default function EfetivoDetalhe() {
   function exportarExcel() {
     const linhas = registrosFiltrados.map((r) =>
       Object.fromEntries(
-        colunasVisiveis.map((c) => [c.rotulo, valorExportacao(c, r, tiposColuna[c.chave] || c.tipoPadrao)])
+        colunasVisiveis.map((c) => [c.rotulo, valorExportacao(c, r)])
       )
     );
     const planilha = XLSX.utils.json_to_sheet(linhas);
@@ -423,18 +383,14 @@ export default function EfetivoDetalhe() {
           )}
         </div>
 
-        <div className="max-h-[36rem] overflow-y-auto overflow-x-auto">
+        <ScrollDuplo maxHeight="36rem">
           <table className="w-full min-w-[760px] border-collapse text-left">
-            <thead className="sticky top-0 z-10 bg-muted/70 backdrop-blur-sm">
+            <thead className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
               <tr className="border-b-2 border-primary/25 text-[10.5px] font-bold uppercase tracking-wide text-foreground/70">
                 {colunasVisiveis.map((c) => (
                   <CabecalhoColuna
                     key={c.chave}
                     coluna={c}
-                    selecionada={colunaSelecionada === c.chave}
-                    onSelecionar={() => setColunaSelecionada((prev) => (prev === c.chave ? null : c.chave))}
-                    tipo={tiposColuna[c.chave] || c.tipoPadrao}
-                    onTipo={(tipo) => setTiposColuna((prev) => ({ ...prev, [c.chave]: tipo }))}
                     filtro={c.filtravel && (
                       <FiltroColuna
                         valoresDisponiveis={valoresPorColuna[c.chave] || []}
@@ -446,19 +402,19 @@ export default function EfetivoDetalhe() {
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody>
               {registrosPagina.map((r, i) => (
                 <tr
                   key={`${r.matricula}-${i}`}
                   onClick={() => abrirDetalhe(r)}
-                  className="cursor-pointer text-foreground/80 transition-colors even:bg-muted/25 hover:bg-primary/10"
+                  className="cursor-pointer text-foreground/80 transition-colors odd:bg-card even:bg-muted/60 hover:bg-primary/10"
                 >
                   {colunasVisiveis.map((c) => (
                     <td
                       key={c.chave}
-                      className={`px-3 py-2.5 ${c.quebrar ? "" : "whitespace-nowrap"} ${colunaSelecionada === c.chave ? "bg-primary/5" : ""}`}
+                      className={`px-2.5 py-2 ${c.quebrar ? "" : "whitespace-nowrap"}`}
                     >
-                      {renderCelula(c, r, tiposColuna[c.chave] || c.tipoPadrao)}
+                      {renderCelula(c, r)}
                     </td>
                   ))}
                 </tr>
@@ -472,20 +428,7 @@ export default function EfetivoDetalhe() {
               )}
             </tbody>
           </table>
-        </div>
-
-        {/* Barra de agregadores da coluna selecionada — canto inferior direito da tabela. */}
-        {agregados && (
-          <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 border-t border-border bg-muted/20 px-3 py-2 text-[11px] text-muted-foreground">
-            <span className="font-semibold text-foreground">{colunaAgregada.rotulo}</span>
-            <span>Contagem: <strong className="font-medium text-foreground">{agregados.contagem}</strong></span>
-            <span>Contagem distinta: <strong className="font-medium text-foreground">{agregados.distintos}</strong></span>
-            {agregados.soma != null && <span>Soma: <strong className="font-medium text-foreground">{formatarNumero(agregados.soma, tipoColunaAgregada === "decimal" ? 2 : 0)}</strong></span>}
-            {agregados.media != null && <span>Média: <strong className="font-medium text-foreground">{formatarNumero(agregados.media, 2)}</strong></span>}
-            {agregados.minimo != null && <span>Mínimo: <strong className="font-medium text-foreground">{formatarNumero(agregados.minimo, tipoColunaAgregada === "decimal" ? 2 : 0)}</strong></span>}
-            {agregados.maximo != null && <span>Máximo: <strong className="font-medium text-foreground">{formatarNumero(agregados.maximo, tipoColunaAgregada === "decimal" ? 2 : 0)}</strong></span>}
-          </div>
-        )}
+        </ScrollDuplo>
       </SectionCard>
 
       {/* Paginação — fora da tabela, centralizada embaixo. */}

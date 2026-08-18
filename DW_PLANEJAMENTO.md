@@ -1396,6 +1396,53 @@ verificação antes do commit:
 
 Commit e push autorizados pelo usuário após essa verificação.
 
+### 2026-08-18 — Ajustes de UX nas tabelas, header mobile, OME de adidos e sinais de acesso no organograma
+
+Lote de ajustes pedidos pelo usuário:
+
+1. **Tabelas (Efetivo e Viaturas) sem seletor de tipo de coluna**: o
+   dropdown de tipo (Texto/Data/Nº) por coluna e a barra de agregadores
+   (que dependia dele) foram removidos — "manter só os filtros". Cada
+   coluna passa a usar o tipo fixo que já era o padrão; quem quiser
+   reinterpretar exporta o `.xlsx` e ajusta lá. Cabeçalhos ficaram mais
+   estreitos (só rótulo + funil de filtro).
+2. **Barra de rolagem horizontal no topo E embaixo da tabela**, mais
+   escura/visível: novo componente `src/components/ui/scroll-duplo.jsx`
+   (duas barras sincronizadas) + utilitário CSS `.scrollbar-escuro` em
+   `index.css`. Aplicado nas duas tabelas.
+3. **Zebra striping mais forte**: linhas ímpares brancas, pares
+   `bg-muted/60` (antes `even:bg-muted/25`).
+4. **OME "ADIDO"**: militares adidos apareciam na tabela do Comando Geral
+   com OME "COMANDO GERAL". Agora mostram "ADIDO" (fonte de origem
+   `ome='ADIDO'`); só o comandante geral (`ome='CG'`) mostra "COMANDO
+   GERAL". Feito em `extract_efetivo.py` (novo campo `omeExibicao` por
+   registro) + `EfetivoDetalhe.jsx`. Reextraído do Neon (2.658 no total,
+   inalterado).
+5. **Header mobile reordenado** (`Topbar.jsx`): linha única com menu,
+   Org., Claro/Escuro, PDF, nome do usuário (ícone de perfil, sem
+   "Bem-vindo") e Sair; caixa de busca logo abaixo. Layout desktop
+   separado do mobile (antes era um grid único com overrides `lg:`).
+6. **Viaturas — regras de situação**: viatura "Descarregada" some da
+   tabela; "Devolvida" é exibida como "Ativa" (transformação na base, vale
+   pro badge, filtro e exportação). Total do Comando Geral: 840 → 771.
+7. **Organograma — fundo/cantos das divisões de agrupamento**: as `div`s
+   que agrupam cards (assessorias, DGO/DGA, grupos de diretoria, atalhos de
+   KPI) passaram de `bg-muted/30` para `bg-background` (#F5F5F5, igual ao
+   body); os cards individuais continuam brancos. As divisões de
+   assessorias do Comando/Subcomando estavam com cantos errados
+   (`rounded-t-none border-t-0`) — agora têm os 4 cantos arredondados e
+   borda em cima e embaixo.
+8. **Organograma — sinais de acesso** (usuário de nível, acesso parcial):
+   cards SEM acesso ganham um cadeado semitransparente centralizado
+   (`Lock`), com as informações ainda visíveis por baixo; cards COM acesso
+   ganham uma borda amarela fina constante (o realce que antes só aparecia
+   no hover). O banner "CBMPE - Geral" fica apagado (opacity + cadeado)
+   quando o usuário de nível não tem nenhum acesso ao topo (nem COMANDO
+   GERAL, nem KPI do topo). Substitui o antigo esmaecimento geral
+   (`RESTRITO_CLASSES`). Verificado no navegador com o usuário de nível
+   "4GB": 4º GB com borda amarela, GBI/etc. com cadeado, CBMPE-Geral
+   apagado.
+
 ## Pendências práticas (não bloqueiam o planejamento, mas são pré-requisito de implementação)
 
 - **Workspace do Windmill**: ainda precisa ser criado pelo usuário

@@ -122,11 +122,7 @@ export default function ViaturaFicha() {
               <Campo rotulo="Rastreado?" valor={fmtSimNao(ficha.rastreado)} />
               <Campo rotulo="Chassis" valor={ficha.chassis} />
               <Campo rotulo="Caracterizado?" valor={fmtSimNao(ficha.caracterizado)} />
-              <Campo
-                rotulo="Condutores"
-                valor={ficha.condutores}
-                nota="Contagem preliminar de condutores distintos registrados nos abastecimentos — ainda não confirmada, ver DW_PLANEJAMENTO.md"
-              />
+              <Campo rotulo="Condutores" valor="—" />
               <Campo rotulo="Categoria de Habilitação" valor={ficha.categoriaHabilitacao} />
             </div>
           </SectionCard>

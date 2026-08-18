@@ -129,6 +129,30 @@
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.5);
   }
+  /* Barra de rolagem mais escura/visível — usada nas tabelas de detalhe
+     (Efetivo/Viaturas), onde a scrollbar-thin quase não aparecia. */
+  .scrollbar-escuro {
+    scrollbar-width: auto;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.85) hsl(var(--muted) / 0.6);
+  }
+  .scrollbar-escuro::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  .scrollbar-escuro::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.6);
+    border-radius: 9999px;
+  }
+  .scrollbar-escuro::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.75);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  .scrollbar-escuro::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+    background-clip: padding-box;
+  }
   .glass {
     backdrop-filter: saturate(180%) blur(12px);
     background: hsl(var(--background) / 0.72);

@@ -154,12 +154,19 @@ def main():
     lista_por_unidade = {}
     for ome, posto_grad, matricula, nome, nome_guerra, sexo, data_nascimento, _ordem in militares:
         sigla = mapeamento.get(ome)
+        ome_exibicao = None
         if not sigla:
             # Não lotados (ex. ADIDO) contam no efetivo do Comando Geral —
             # mesma regra do efetivo.json/organograma.js (overlay de
             # efetivoNaoLotado). Sem isso, a tabela de detalhes do Comando
             # Geral ficava 187 registros menor que o KPI "Efetivo Atual".
             sigla = "COMANDO GERAL"
+            # ...mas na COLUNA OME da tabela eles devem aparecer como a
+            # origem real ("ADIDO"), não "COMANDO GERAL" — o único militar
+            # que deve mostrar "COMANDO GERAL" é o próprio comandante geral
+            # (ome de origem = "CG", que mapeia direto). Ver
+            # DW_PLANEJAMENTO.md (2026-08-18).
+            ome_exibicao = ome
         lista_por_unidade.setdefault(sigla, []).append({
             "postoGrad": posto_grad,
             "matricula": matricula,
@@ -167,6 +174,7 @@ def main():
             "nomeGuerra": nome_guerra,
             "sexo": sexo,
             "idade": calcular_idade(data_nascimento),
+            "omeExibicao": ome_exibicao,
             "completo": completos_por_matricula.get(matricula, {}),
         })
 

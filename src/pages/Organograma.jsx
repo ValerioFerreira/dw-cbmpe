@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Star, TrendingUp } from "lucide-react";
+import { Star, TrendingUp, Lock } from "lucide-react";
 import { useCbmpe } from "@/lib/cbmpe-context";
 import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 
@@ -29,12 +29,25 @@ const DGA_GRUPOS = [
 
 const KPIS_ATALHO = ["Efetivo", "Viaturas", "Materiais", "Finanças"];
 
-// Classe de restrição aplicada em cima do estilo próprio de cada card —
-// usada pelo protótipo de níveis de acesso (ver @/lib/accessControl). Cards
-// liberados mantêm a aparência normal; o destaque vem só do contraste com
-// os cards restritos ao redor (sem anel colorido).
-// null = sem restrição (visão padrão, sem esmaecimento).
-const RESTRITO_CLASSES = "pointer-events-none opacity-55 saturate-[0.35] contrast-[0.9]";
+// Protótipo de níveis de acesso (ver @/lib/accessControl). Quando o usuário
+// tem acesso PARCIAL (nível, sem acesso total), cada card ganha um indicador:
+// - card SEM acesso: fica não-clicável e recebe um cadeado semitransparente
+//   centralizado (as informações do card continuam visíveis por baixo).
+// - card COM acesso: ganha uma borda amarela fina constante (o mesmo realce
+//   que antes só aparecia no hover).
+// acessoDe/acessoKpiDe devolvem "ok" | "no" | null (null = admin ou acesso
+// total → sem indicadores, comportamento normal com hover).
+const CADEADO_BLOQUEADO = "pointer-events-none";
+
+// Cadeado centralizado ao fundo do card (semitransparente). `claro` usa
+// tom branco, pros cards de fundo colorido (estrelas/diretorias).
+function CadeadoOverlay({ claro = false }) {
+  return (
+    <span className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+      <Lock className={`h-6 w-6 ${claro ? "text-white/70" : "text-foreground/30"}`} />
+    </span>
+  );
+}
 
 export default function Organograma() {
   const { unidades, indicadores, loading } = useCbmpe();
@@ -63,15 +76,21 @@ export default function Organograma() {
   // regra de acesso (calcularAcesso) também bloqueia a navegação direta nas
   // páginas de detalhe — ver useAcessoUsuario.
   const acessoDe = (sigla) => {
-    if (!restrito) return null;
-    if (acesso.total) return true;
-    return acesso.siglas.has(sigla);
+    if (!restrito || acesso.total) return null; // admin/total → sem indicadores
+    return acesso.siglas.has(sigla) ? "ok" : "no";
   };
   const acessoKpiDe = (nome) => {
-    if (!restrito) return null;
-    if (acesso.total) return true;
-    return acesso.kpisTopo.has(nome);
+    if (!restrito || acesso.total) return null;
+    return acesso.kpisTopo.has(nome) ? "ok" : "no";
   };
+
+  // Banner "CBMPE - Geral" (topo) fica apagado quando o usuário de nível não
+  // tem acesso ao topo da corporação (nem COMANDO GERAL, nem nenhum KPI do
+  // topo) — ver pedido de 2026-08-18.
+  const cbmpeBloqueado =
+    restrito && !acesso.total &&
+    !acesso.siglas.has("COMANDO GERAL") &&
+    acesso.kpisTopo.size === 0;
 
   const goto = (sigla) => {
     const u = bySigla[sigla];
@@ -91,18 +110,20 @@ export default function Organograma() {
         <div className="mx-auto flex w-full max-w-[1520px] flex-col items-center gap-6 py-2 sm:gap-8">
           {/* ===== Comando Geral ===== */}
           <div className="flex w-full flex-col items-center">
-            <div className="w-full max-w-md rounded-xl rounded-b-none border-2 border-amber-300 bg-gradient-to-br from-amber-500 via-amber-600 to-orange-700 p-3 text-center shadow-[0_8px_30px_-6px_rgba(217,119,6,0.35)]">
+            <div className={`relative w-full max-w-md rounded-xl rounded-b-none border-2 border-amber-300 bg-gradient-to-br from-amber-500 via-amber-600 to-orange-700 p-3 text-center shadow-[0_8px_30px_-6px_rgba(217,119,6,0.35)] ${cbmpeBloqueado ? "opacity-50 saturate-[0.4]" : ""}`}>
               <p className="text-base font-black uppercase tracking-wider text-white">CBMPE - Geral</p>
+              {cbmpeBloqueado && <CadeadoOverlay claro />}
             </div>
-            <div className="grid w-full max-w-md grid-cols-2 gap-2 rounded-xl rounded-t-none border border-t-0 border-border bg-muted/30 p-2 sm:grid-cols-4">
+            <div className="grid w-full max-w-md grid-cols-2 gap-2 rounded-xl rounded-t-none border border-t-0 border-border bg-background p-2 sm:grid-cols-4">
               {KPIS_ATALHO.map((nome) => {
                 const kpi = kpisComandoGeral[nome];
                 const ok = acessoKpiDe(nome);
-                const base = "flex min-h-[2.75rem] items-center justify-center rounded-lg border border-border bg-card px-2 text-center text-xs font-bold text-foreground transition-colors";
-                if (ok === false) {
+                const base = "relative flex min-h-[2.75rem] items-center justify-center rounded-lg border bg-card px-2 text-center text-xs font-bold text-foreground transition-colors";
+                if (ok === "no") {
                   return (
-                    <span key={nome} className={`${base} ${RESTRITO_CLASSES}`}>
+                    <span key={nome} className={`${base} border-border ${CADEADO_BLOQUEADO}`}>
                       {nome}
+                      <CadeadoOverlay />
                     </span>
                   );
                 }
@@ -110,7 +131,7 @@ export default function Organograma() {
                   <Link
                     key={nome}
                     to={kpi ? `/indicador/${kpi.id}` : "#"}
-                    className={`${base} hover:border-amber-500`}
+                    className={`${base} ${ok === "ok" ? "border-amber-400" : "border-border hover:border-amber-500"}`}
                   >
                     {nome}
                   </Link>
@@ -147,7 +168,7 @@ export default function Organograma() {
 
           {/* ===== DGO x DGA ===== */}
           <div className="grid w-full grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
-            <div className="flex flex-col items-center rounded-2xl border border-border bg-muted/30 p-3 sm:p-4">
+            <div className="flex flex-col items-center rounded-2xl border border-border bg-background p-3 sm:p-4">
               <CardDiretoria unidade={bySigla["DGO"]} onClick={() => goto("DGO")} tamanho="lg" acessoOk={acessoDe("DGO")} />
               <div className="mt-4 grid w-full grid-cols-2 gap-3 lg:grid-cols-4">
                 {DGO_GRUPOS.map((g) => (
@@ -156,7 +177,7 @@ export default function Organograma() {
               </div>
             </div>
 
-            <div className="flex flex-col items-center rounded-2xl border border-border bg-muted/30 p-3 sm:p-4">
+            <div className="flex flex-col items-center rounded-2xl border border-border bg-background p-3 sm:p-4">
               <CardDiretoria unidade={bySigla["DGA"]} onClick={() => goto("DGA")} tamanho="lg" acessoOk={acessoDe("DGA")} />
               <div className="mt-4 grid w-full grid-cols-2 gap-2 lg:grid-cols-4">
                 {DGA_COLUNAS_EMPILHADAS.map((col, idx) => (
@@ -177,13 +198,13 @@ export default function Organograma() {
 function NoEstrela({ unidade, tom, onClick, acessoOk }) {
   if (!unidade) return null;
   const isAmber = tom === "amber";
-  const restringido = acessoOk === false;
+  const bloqueado = acessoOk === "no";
   return (
     <button
-      onClick={restringido ? undefined : onClick}
-      disabled={restringido}
+      onClick={bloqueado ? undefined : onClick}
+      disabled={bloqueado}
       className={`relative z-10 mt-8 w-72 rounded-xl border-2 bg-gradient-to-br p-4 text-center transition-transform ${
-        restringido ? RESTRITO_CLASSES : "hover:-translate-y-1 hover:scale-[1.02]"
+        bloqueado ? CADEADO_BLOQUEADO : "hover:-translate-y-1 hover:scale-[1.02]"
       } ${
         isAmber
           ? "border-amber-300 from-amber-500 via-amber-600 to-orange-700 shadow-[0_8px_30px_-6px_rgba(217,119,6,0.35)]"
@@ -199,30 +220,34 @@ function NoEstrela({ unidade, tom, onClick, acessoOk }) {
       <div className={`mt-2 inline-flex items-center gap-1 rounded-full bg-black/20 px-3 py-1 text-[10px] font-semibold ${isAmber ? "text-amber-100" : "text-yellow-100"}`}>
         <TrendingUp className="h-3 w-3" /> Detalhar
       </div>
+      {bloqueado && <CadeadoOverlay claro />}
     </button>
   );
 }
 
 function LinhaAssessorias({ siglas, bySigla, goto, gridCols, maxWidth, accent, acessoDe }) {
   const hoverBorder = accent === "yellow" ? "hover:border-yellow-500" : "hover:border-amber-500";
+  // Div de agrupamento: fundo igual ao body (#F5F5F5 = bg-background), 4
+  // cantos arredondados e borda em cima e embaixo (antes só embaixo).
   return (
-    <div className={`grid w-full ${maxWidth} ${gridCols} gap-2 rounded-xl rounded-t-none border border-t-0 border-border bg-muted/30 p-2`}>
+    <div className={`mt-3 grid w-full ${maxWidth} ${gridCols} gap-2 rounded-xl border border-border bg-background p-2`}>
       {siglas.map((sigla) => {
         const u = bySigla[sigla];
         if (!u) return null;
         const ok = acessoDe(sigla);
-        const restringido = ok === false;
+        const bloqueado = ok === "no";
         return (
           <button
             key={sigla}
-            onClick={restringido ? undefined : () => goto(sigla)}
-            disabled={restringido}
-            className={`rounded-lg border border-border bg-card p-2 text-center transition-colors ${
-              restringido ? RESTRITO_CLASSES : hoverBorder
+            onClick={bloqueado ? undefined : () => goto(sigla)}
+            disabled={bloqueado}
+            className={`relative rounded-lg border bg-card p-2 text-center transition-colors ${
+              bloqueado ? `border-border ${CADEADO_BLOQUEADO}` : ok === "ok" ? "border-amber-400" : `border-border ${hoverBorder}`
             }`}
           >
             <p className="text-xs font-bold text-foreground">{sigla}</p>
             <p className="text-[9px] text-muted-foreground">{u.responsavel} - {u.cargo}</p>
+            {bloqueado && <CadeadoOverlay />}
           </button>
         );
       })}
@@ -233,17 +258,18 @@ function LinhaAssessorias({ siglas, bySigla, goto, gridCols, maxWidth, accent, a
 function CardDiretoria({ unidade, onClick, tamanho = "col", acessoOk }) {
   if (!unidade) return null;
   const isLg = tamanho === "lg";
-  const restringido = acessoOk === false;
+  const bloqueado = acessoOk === "no";
   return (
     <button
-      onClick={restringido ? undefined : onClick}
-      disabled={restringido}
-      className={`${isLg ? "w-64 p-3" : "w-full p-2"} rounded-xl border-2 border-yellow-400 bg-yellow-600 text-center shadow-md transition-transform ${
-        restringido ? RESTRITO_CLASSES : "hover:-translate-y-0.5"
+      onClick={bloqueado ? undefined : onClick}
+      disabled={bloqueado}
+      className={`relative ${isLg ? "w-64 p-3" : "w-full p-2"} rounded-xl border-2 border-yellow-400 bg-yellow-600 text-center shadow-md transition-transform ${
+        bloqueado ? CADEADO_BLOQUEADO : "hover:-translate-y-0.5"
       }`}
     >
       <p className={`font-black uppercase tracking-wider text-white ${isLg ? "text-base" : "text-xs"}`}>{unidade.sigla}</p>
       <p className={`text-yellow-100 ${isLg ? "mt-0.5 text-[10px] tracking-widest" : "text-[8px]"}`}>{unidade.responsavel} - {unidade.cargo}</p>
+      {bloqueado && <CadeadoOverlay claro />}
     </button>
   );
 }
@@ -264,7 +290,7 @@ function GrupoDiretoria({ grupo, bySigla, goto, acessoDe }) {
   const u = bySigla[grupo.diretoria];
   if (!u) return null;
   return (
-    <div className="flex flex-col items-center rounded-xl border border-border bg-muted/30 p-2">
+    <div className="flex flex-col items-center rounded-xl border border-border bg-background p-2">
       <CardDiretoria unidade={u} onClick={() => goto(grupo.diretoria)} tamanho="col" acessoOk={acessoDe(grupo.diretoria)} />
       {grupo.filhos.length > 0 && (
         <div className="mt-2 w-full space-y-1.5">
@@ -272,18 +298,19 @@ function GrupoDiretoria({ grupo, bySigla, goto, acessoDe }) {
             const f = bySigla[sigla];
             if (!f) return null;
             const ok = acessoDe(sigla);
-            const restringido = ok === false;
+            const bloqueado = ok === "no";
             return (
               <button
                 key={sigla}
-                onClick={restringido ? undefined : () => goto(sigla)}
-                disabled={restringido}
-                className={`w-full rounded border border-border bg-card p-1.5 text-center transition-colors ${
-                  restringido ? RESTRITO_CLASSES : "hover:border-yellow-400"
+                onClick={bloqueado ? undefined : () => goto(sigla)}
+                disabled={bloqueado}
+                className={`relative w-full rounded border bg-card p-1.5 text-center transition-colors ${
+                  bloqueado ? `border-border ${CADEADO_BLOQUEADO}` : ok === "ok" ? "border-amber-400" : "border-border hover:border-yellow-400"
                 }`}
               >
                 <p className="text-[10px] font-bold text-foreground">{sigla}</p>
                 <p className="text-[7px] text-muted-foreground">{f.responsavel} - {f.cargo}</p>
+                {bloqueado && <CadeadoOverlay />}
               </button>
             );
           })}
