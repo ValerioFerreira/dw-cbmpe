@@ -9,21 +9,11 @@ import EmptyState from "@/components/ui/empty-state";
 import SectionCard from "@/components/ui/section-card";
 import ScrollDuplo from "@/components/ui/scroll-duplo";
 import { FiltroColuna, passaFiltro, valorFiltro } from "@/components/ui/filtro-coluna";
+import { useLarguras, ColGroup, AlcaResize, CELULA_TRUNCADA } from "@/components/ui/tabela-colunas";
 import efetivoLista from "@/data/real/efetivo_lista.json";
 import lotacaoFuncao from "@/data/real/lotacao_funcao.json";
 
 const TAMANHOS_PAGINA = [10, 20, 50];
-
-// Postos vão de Aspirante a Coronel; o resto (Subtenente a Soldado) é
-// graduação — usado só pra rotular a célula de Posto/Graduação.
-function isOficial(postoGrad) {
-  const p = (postoGrad || "").trim();
-  if (!p) return true;
-  if (/sub/i.test(p)) return false;
-  if (/sgt/i.test(p)) return false;
-  if (/^(cb|sd|cabo|soldado)\b/i.test(p)) return false;
-  return true;
-}
 
 // Função ocupada por um militar, via matrícula — fonte: Repercussão
 // Financeira (CPPA, aba DIST_FUNCOES), ver etl/efetivo/extract_lotacao_funcao.py.
@@ -66,28 +56,20 @@ function NomeComGuerra({ nome, nomeGuerra }) {
 // (tipo "texto") quando existe algo além de mostrar o valor cru.
 const COLUNAS_PRINCIPAIS = [
   {
-    chave: "postoGrad", rotulo: "Posto/Graduação", tipoPadrao: "texto", filtravel: true,
+    chave: "postoGrad", rotulo: "Posto/Graduação", tipoPadrao: "texto", filtravel: true, largura: 150,
     bruto: (r) => r.postoGrad || null,
-    especial: (r) => (
-      <>
-        <div className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
-          {isOficial(r.postoGrad) ? "Posto" : "Graduação"}
-        </div>
-        <div>{r.postoGrad || "—"}</div>
-      </>
-    ),
   },
-  { chave: "matricula", rotulo: "Matrícula", tipoPadrao: "texto", filtravel: true, bruto: (r) => r.matricula || null },
+  { chave: "matricula", rotulo: "Matrícula", tipoPadrao: "texto", filtravel: true, largura: 110, bruto: (r) => r.matricula || null },
   {
-    chave: "nome", rotulo: "Nome completo", tipoPadrao: "texto", filtravel: true, quebrar: true,
+    chave: "nome", rotulo: "Nome completo", tipoPadrao: "texto", filtravel: true, largura: 240,
     bruto: (r) => r.nome || null,
     especial: (r) => <NomeComGuerra nome={r.nome} nomeGuerra={r.nomeGuerra} />,
   },
-  { chave: "sexo", rotulo: "Sexo", tipoPadrao: "texto", filtravel: true, bruto: (r) => r.sexo || null },
-  { chave: "idade", rotulo: "Idade", tipoPadrao: "inteiro", filtravel: true, bruto: (r) => (r.idade != null ? r.idade : null) },
-  { chave: "ome", rotulo: "OME", tipoPadrao: "texto", filtravel: true, bruto: (r) => r.ome || null },
+  { chave: "sexo", rotulo: "Sexo", tipoPadrao: "texto", filtravel: true, largura: 80, bruto: (r) => r.sexo || null },
+  { chave: "idade", rotulo: "Idade", tipoPadrao: "inteiro", filtravel: true, largura: 75, bruto: (r) => (r.idade != null ? r.idade : null) },
+  { chave: "ome", rotulo: "OME", tipoPadrao: "texto", filtravel: true, largura: 120, bruto: (r) => r.ome || null },
   {
-    chave: "funcao", rotulo: "Função", tipoPadrao: "texto", filtravel: true, quebrar: true,
+    chave: "funcao", rotulo: "Função", tipoPadrao: "texto", filtravel: true, largura: 200,
     bruto: (r) => funcaoDoMilitar(r.matricula),
   },
 ];
@@ -96,31 +78,32 @@ const COLUNAS_PRINCIPAIS = [
 // LGPD (raça/cor, PCD, licenças de saúde), decisão explícita do usuário
 // (ver DW_GOVERNANCA.md). Também filtráveis, como as principais.
 const COLUNAS_COMPLETAS = [
-  ["racaCor", "Raça/Cor", "texto"],
-  ["pcd", "PCD", "texto"],
-  ["telefone1", "Telefone 1", "texto"],
-  ["telefone2", "Telefone 2", "texto"],
-  ["tempoServicoAnos", "Tempo de Serviço (anos)", "inteiro"],
-  ["tempoObmAtualDias", "Tempo na Unidade (dias)", "inteiro"],
-  ["omeAnteriorSp", "Unidade Anterior", "texto"],
-  ["orgao", "Órgão", "texto"],
-  ["horarioEspecial", "Horário Especial", "texto"],
-  ["readaptado", "Readaptado", "texto"],
-  ["acumuloCargos", "Acúmulo de Cargos", "texto"],
-  ["le", "LE", "texto"],
-  ["ltip", "LTIP", "texto"],
-  ["afastamentoSup90Dias", "Afastamento > 90 dias", "texto"],
-  ["suplementoPessoalNumeroAno", "Suplemento Pessoal (Nº/Ano)", "texto"],
-  ["dataSuplementoPessoal", "Data do Suplemento Pessoal", "data"],
-  ["aniversario", "Aniversário Hoje", "texto"],
-  ["dataMovimentacaoSp", "Última Movimentação", "data"],
-  ["dataIngresso", "Data de Ingresso", "data"],
-  ["dataUltimaPromocao", "Data da Última Promoção", "data"],
-  ["pcnh", "Promoção PCNH", "texto"],
-].map(([campo, rotulo, tipoPadrao]) => ({
+  ["racaCor", "Raça/Cor", "texto", 120],
+  ["pcd", "PCD", "texto", 90],
+  ["telefone1", "Telefone 1", "texto", 120],
+  ["telefone2", "Telefone 2", "texto", 120],
+  ["tempoServicoAnos", "Tempo de Serviço (anos)", "inteiro", 130],
+  ["tempoObmAtualDias", "Tempo na Unidade (dias)", "inteiro", 130],
+  ["omeAnteriorSp", "Unidade Anterior", "texto", 150],
+  ["orgao", "Órgão", "texto", 120],
+  ["horarioEspecial", "Horário Especial", "texto", 120],
+  ["readaptado", "Readaptado", "texto", 110],
+  ["acumuloCargos", "Acúmulo de Cargos", "texto", 130],
+  ["le", "LE", "texto", 80],
+  ["ltip", "LTIP", "texto", 90],
+  ["afastamentoSup90Dias", "Afastamento > 90 dias", "texto", 140],
+  ["suplementoPessoalNumeroAno", "Suplemento Pessoal (Nº/Ano)", "texto", 160],
+  ["dataSuplementoPessoal", "Data do Suplemento Pessoal", "data", 150],
+  ["aniversario", "Aniversário Hoje", "texto", 120],
+  ["dataMovimentacaoSp", "Última Movimentação", "data", 150],
+  ["dataIngresso", "Data de Ingresso", "data", 130],
+  ["dataUltimaPromocao", "Data da Última Promoção", "data", 150],
+  ["pcnh", "Promoção PCNH", "texto", 120],
+].map(([campo, rotulo, tipoPadrao, largura]) => ({
   chave: campo,
   rotulo,
   tipoPadrao,
+  largura,
   filtravel: true,
   bruto: (r) => (r.completo ? r.completo[campo] ?? null : null),
   especial: (r) => fmtCampoCompleto(r.completo?.[campo]),
@@ -185,15 +168,16 @@ function sanitizarNomeArquivo(nome) {
   return String(nome).replace(/[\\/:*?"<>|]/g, "-").trim();
 }
 
-// Cabeçalho de uma coluna: rótulo + funil de filtro (só isso — sem seletor
-// de tipo, sem agregadores).
-function CabecalhoColuna({ coluna, filtro }) {
+// Cabeçalho de uma coluna: rótulo (truncado) + funil de filtro + alça de
+// redimensionamento na borda direita (sem seletor de tipo, sem agregadores).
+function CabecalhoColuna({ coluna, filtro, onResize }) {
   return (
-    <th className="px-2.5 py-2 text-left align-middle">
-      <div className="flex items-center gap-1">
-        <span>{coluna.rotulo}</span>
-        {filtro}
+    <th className="relative overflow-hidden px-2.5 py-2 text-left align-middle">
+      <div className="flex min-w-0 items-center gap-1">
+        <span className="truncate">{coluna.rotulo}</span>
+        {filtro && <span className="shrink-0">{filtro}</span>}
       </div>
+      <AlcaResize onMouseDown={(e) => onResize(coluna.chave, e)} />
     </th>
   );
 }
@@ -213,6 +197,7 @@ export default function EfetivoDetalhe() {
   const [filtros, setFiltros] = React.useState({});
   const [pagina, setPagina] = React.useState(1);
   const [tamanhoPagina, setTamanhoPagina] = React.useState(20);
+  const { larguras, iniciarResize, larguraTotal } = useLarguras(TODAS_COLUNAS);
 
   const registrosBase = React.useMemo(() => {
     if (!unidade) return [];
@@ -223,16 +208,24 @@ export default function EfetivoDetalhe() {
     // Militares adidos (omeExibicao preenchido, ex. "ADIDO") contam no
     // efetivo do Comando Geral mas mostram a origem real na coluna OME — só
     // o comandante geral mostra "COMANDO GERAL". Ver extract_efetivo.py.
+    // Ordenação global por antiguidade (campo "ordem" = ordemHierarquica do
+    // Neon), não agrupada por OME — pedido do usuário (2026-08-19). Quem não
+    // tem ordem lançada (null) vai pro fim.
+    const porAntiguidade = (a, b) =>
+      (a.ordem ?? Number.POSITIVE_INFINITY) - (b.ordem ?? Number.POSITIVE_INFINITY);
     if (setor) {
       const matriculasDoSetor = new Set(lotacaoFuncao.por_unidade_divisao[unidade.sigla]?.[setor] || []);
       return (efetivoLista.por_unidade[unidade.sigla] || [])
         .filter((r) => matriculasDoSetor.has(r.matricula))
-        .map((r) => ({ ...r, ome: r.omeExibicao || unidade.sigla }));
+        .map((r) => ({ ...r, ome: r.omeExibicao || unidade.sigla }))
+        .sort(porAntiguidade);
     }
     const siglas = [unidade.sigla, ...getSubordinados(unidades, unidade.id).map((u) => u.sigla)];
-    return siglas.flatMap((sigla) =>
-      (efetivoLista.por_unidade[sigla] || []).map((r) => ({ ...r, ome: r.omeExibicao || sigla }))
-    );
+    return siglas
+      .flatMap((sigla) =>
+        (efetivoLista.por_unidade[sigla] || []).map((r) => ({ ...r, ome: r.omeExibicao || sigla }))
+      )
+      .sort(porAntiguidade);
   }, [unidade, unidades, setor]);
 
   // Reseta filtros/seleção ao trocar de unidade ou de setor (navegação pelo
@@ -384,13 +377,15 @@ export default function EfetivoDetalhe() {
         </div>
 
         <ScrollDuplo maxHeight="36rem">
-          <table className="w-full min-w-[760px] border-collapse text-left">
+          <table className="table-fixed border-collapse text-left" style={{ width: larguraTotal }}>
+            <ColGroup colunas={colunasVisiveis} larguras={larguras} />
             <thead className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
               <tr className="border-b-2 border-primary/25 text-[10.5px] font-bold uppercase tracking-wide text-foreground/70">
                 {colunasVisiveis.map((c) => (
                   <CabecalhoColuna
                     key={c.chave}
                     coluna={c}
+                    onResize={iniciarResize}
                     filtro={c.filtravel && (
                       <FiltroColuna
                         valoresDisponiveis={valoresPorColuna[c.chave] || []}
@@ -412,7 +407,8 @@ export default function EfetivoDetalhe() {
                   {colunasVisiveis.map((c) => (
                     <td
                       key={c.chave}
-                      className={`px-2.5 py-2 ${c.quebrar ? "" : "whitespace-nowrap"}`}
+                      title={String(valorExportacao(c, r)) || undefined}
+                      className={`px-2.5 py-2 ${CELULA_TRUNCADA}`}
                     >
                       {renderCelula(c, r)}
                     </td>

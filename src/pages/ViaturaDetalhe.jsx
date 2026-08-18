@@ -10,6 +10,7 @@ import SectionCard from "@/components/ui/section-card";
 import ScrollDuplo from "@/components/ui/scroll-duplo";
 import BadgeSituacao from "@/components/ui/badge-situacao";
 import { FiltroColuna, passaFiltro, valorFiltro } from "@/components/ui/filtro-coluna";
+import { useLarguras, ColGroup, AlcaResize, CELULA_TRUNCADA } from "@/components/ui/tabela-colunas";
 import viaturasLista from "@/data/real/viaturas_lista.json";
 
 const TAMANHOS_PAGINA = [10, 20, 50];
@@ -17,14 +18,14 @@ const TAMANHOS_PAGINA = [10, 20, 50];
 // Ordem pedida pelo usuário (2026-08-18): Nome, OME, Placa, Patrimônio,
 // Modelo, Ano, Situação (com badge colorido).
 const COLUNAS = [
-  { chave: "nome", rotulo: "Nome", filtravel: true, bruto: (r) => r.nome || null },
-  { chave: "ome", rotulo: "OME", filtravel: true, bruto: (r) => r.ome || null },
-  { chave: "placa", rotulo: "Placa", filtravel: true, bruto: (r) => r.placa || null },
-  { chave: "patrimonio", rotulo: "Patrimônio", filtravel: true, bruto: (r) => r.patrimonio || null },
-  { chave: "modelo", rotulo: "Modelo", filtravel: true, quebrar: true, bruto: (r) => r.modelo || null },
-  { chave: "ano", rotulo: "Ano", filtravel: true, bruto: (r) => r.ano ?? null },
+  { chave: "nome", rotulo: "Nome", filtravel: true, largura: 160, bruto: (r) => r.nome || null },
+  { chave: "ome", rotulo: "OME", filtravel: true, largura: 120, bruto: (r) => r.ome || null },
+  { chave: "placa", rotulo: "Placa", filtravel: true, largura: 110, bruto: (r) => r.placa || null },
+  { chave: "patrimonio", rotulo: "Patrimônio", filtravel: true, largura: 120, bruto: (r) => r.patrimonio || null },
+  { chave: "modelo", rotulo: "Modelo", filtravel: true, largura: 220, bruto: (r) => r.modelo || null },
+  { chave: "ano", rotulo: "Ano", filtravel: true, largura: 85, bruto: (r) => r.ano ?? null },
   {
-    chave: "situacao", rotulo: "Situação", filtravel: true,
+    chave: "situacao", rotulo: "Situação", filtravel: true, largura: 210,
     bruto: (r) => r.situacao || null,
     especial: (r) => <BadgeSituacao situacao={r.situacao} />,
   },
@@ -58,6 +59,7 @@ export default function ViaturaDetalhe() {
   const [filtros, setFiltros] = React.useState({});
   const [pagina, setPagina] = React.useState(1);
   const [tamanhoPagina, setTamanhoPagina] = React.useState(20);
+  const { larguras, iniciarResize, larguraTotal } = useLarguras(COLUNAS);
 
   // Unidade + toda a subárvore de subordinadas — mesmo princípio já usado
   // no Efetivo (corrige unidades como COMANDO GERAL/SUBCOMANDO GERAL, que
@@ -212,21 +214,25 @@ export default function ViaturaDetalhe() {
         </div>
 
         <ScrollDuplo maxHeight="36rem">
-          <table className="w-full min-w-[720px] border-collapse text-left">
+          <table className="table-fixed border-collapse text-left" style={{ width: larguraTotal }}>
+            <ColGroup colunas={COLUNAS} larguras={larguras} />
             <thead className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
               <tr className="border-b-2 border-primary/25 text-[10.5px] font-bold uppercase tracking-wide text-foreground/70">
                 {COLUNAS.map((c) => (
-                  <th key={c.chave} className="px-2.5 py-2 text-left align-middle">
-                    <div className="flex items-center gap-1">
-                      <span>{c.rotulo}</span>
+                  <th key={c.chave} className="relative overflow-hidden px-2.5 py-2 text-left align-middle">
+                    <div className="flex min-w-0 items-center gap-1">
+                      <span className="truncate">{c.rotulo}</span>
                       {c.filtravel && (
-                        <FiltroColuna
-                          valoresDisponiveis={valoresPorColuna[c.chave] || []}
-                          selecionado={filtros[c.chave]}
-                          onChange={(next) => setFiltros((prev) => ({ ...prev, [c.chave]: next }))}
-                        />
+                        <span className="shrink-0">
+                          <FiltroColuna
+                            valoresDisponiveis={valoresPorColuna[c.chave] || []}
+                            selecionado={filtros[c.chave]}
+                            onChange={(next) => setFiltros((prev) => ({ ...prev, [c.chave]: next }))}
+                          />
+                        </span>
                       )}
                     </div>
+                    <AlcaResize onMouseDown={(e) => iniciarResize(c.chave, e)} />
                   </th>
                 ))}
               </tr>
@@ -239,7 +245,11 @@ export default function ViaturaDetalhe() {
                   className="cursor-pointer text-foreground/80 transition-colors odd:bg-card even:bg-muted/60 hover:bg-primary/10"
                 >
                   {COLUNAS.map((c) => (
-                    <td key={c.chave} className={`px-2.5 py-2 ${c.quebrar ? "" : "whitespace-nowrap"}`}>
+                    <td
+                      key={c.chave}
+                      title={c.chave === "situacao" ? (r.situacao || undefined) : (String(valorExportacao(c, r)) || undefined)}
+                      className={`px-2.5 py-2 ${CELULA_TRUNCADA}`}
+                    >
                       {renderCelula(c, r)}
                     </td>
                   ))}

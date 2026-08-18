@@ -152,7 +152,7 @@ def main():
         return idade
 
     lista_por_unidade = {}
-    for ome, posto_grad, matricula, nome, nome_guerra, sexo, data_nascimento, _ordem in militares:
+    for ome, posto_grad, matricula, nome, nome_guerra, sexo, data_nascimento, ordem in militares:
         sigla = mapeamento.get(ome)
         ome_exibicao = None
         if not sigla:
@@ -174,6 +174,9 @@ def main():
             "nomeGuerra": nome_guerra,
             "sexo": sexo,
             "idade": calcular_idade(data_nascimento),
+            # Antiguidade (ordemHierarquica do Neon) — a tabela de Efetivo
+            # ordena por este campo, não por OME (pedido de 2026-08-19).
+            "ordem": ordem,
             "omeExibicao": ome_exibicao,
             "completo": completos_por_matricula.get(matricula, {}),
         })

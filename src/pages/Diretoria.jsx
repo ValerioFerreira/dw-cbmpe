@@ -6,7 +6,7 @@ import {
 import { useCbmpe } from "@/lib/cbmpe-context";
 import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import {
-  CORES_TIPO, KPI_BASES,
+  KPI_BASES,
   getSubordinados, fmtNumero, fmtMoeda,
   tituloKpi, valorKpi, extraKpi,
   metricasProprias, metricasDivisoesProprias
@@ -171,7 +171,6 @@ export default function Diretoria() {
     );
   }
 
-  const cor = CORES_TIPO[unidade.tipo] || CORES_TIPO.diretoria;
   const temSetoresVinculados = filhosDiretos.length > 0 || divisoesProprias.length > 0;
 
   return (
@@ -179,7 +178,7 @@ export default function Diretoria() {
       {/* Cabeçalho do workspace */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-start gap-3">
-          <span className={`mt-1 h-12 w-1.5 shrink-0 rounded-full ${cor.dot}`} />
+          <span className="mt-1 h-12 w-1.5 shrink-0 rounded-full bg-primary" />
           <div>
             <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">{unidade.nome}</h1>
             {unidade.responsavel && (
@@ -329,7 +328,7 @@ export default function Diretoria() {
             </table>
           </div>
           {temDivisoesInternas && (
-            <p className="border-t border-border px-2.5 py-2 text-[11px] text-muted-foreground">
+            <p className="border-t border-border px-2.5 py-2 text-right text-[11px] text-muted-foreground">
               "x" = seção ainda sem função lançada na Repercussão Financeira (CPPA) — o efetivo atual por seção está sendo preenchido gradualmente, não é um valor confirmado de zero.
             </p>
           )}

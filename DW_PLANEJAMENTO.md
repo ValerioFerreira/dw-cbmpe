@@ -1443,6 +1443,61 @@ Lote de ajustes pedidos pelo usuário:
    "4GB": 4º GB com borda amarela, GBI/etc. com cadeado, CBMPE-Geral
    apagado.
 
+### 2026-08-19 — Segundo lote de ajustes de UX (tabelas + organograma)
+
+Novo lote pedido pelo usuário, sobre o de 2026-08-18:
+
+1. **Efetivo — célula de Posto/Graduação sem rótulo interno**: a célula
+   mostrava um mini-rótulo "Posto"/"Graduação" acima do valor; removido —
+   fica só o valor, o título da coluna já diz o que é. Removida também a
+   função `isOficial` (só servia pra esse rótulo).
+2. **Colunas com largura limitada + redimensionáveis pelo usuário**: novo
+   componente compartilhado `src/components/ui/tabela-colunas.jsx`
+   (`useLarguras`, `ColGroup`, `AlcaResize`, `CELULA_TRUNCADA`). As duas
+   tabelas passaram a `table-fixed` com `<colgroup>` de larguras por coluna;
+   conteúdo que passa da largura é cortado com reticências (`title` no
+   `td` mostra o valor completo no hover). Cada cabeçalho tem uma alça na
+   borda direita pra arrastar e mudar a largura (delta dividido pelo
+   `zoom` 1.25 da página pra casar com o cursor). Larguras iniciais
+   declaradas por coluna; estado só em memória (reseta ao trocar de
+   unidade). Removida a quebra de linha (`quebrar`) de Nome/Função —
+   agora tudo trunca.
+3. **Efetivo ordenado por antiguidade, não por OME**: a tabela agrupava
+   por OME (unidade + subordinadas em sequência). Agora ordena globalmente
+   pelo índice de antiguidade do Neon (`ordemHierarquica`), novo campo
+   `ordem` por registro em `extract_efetivo.py` (reextraído: 2.658, 187
+   ADIDO — inalterado). Quem tem `ordem` nula vai pro fim. Verificado: o
+   comandante geral aparece em 1º e as OMEs ficam intercaladas.
+4. **Organograma — cards bloqueados apagados + cadeado no canto**: reverteu
+   o cadeado central de 2026-08-18 para o comportamento "apagado" anterior
+   (`opacity-50 saturate-[0.4]`) com o cadeado num canto — superior direito
+   na maioria, inferior direito nos cards de COMANDO GERAL e SUBCOMANDO
+   GERAL (`CadeadoOverlay` ganhou prop `posicao`).
+5. **Organograma — divisões de agrupamento com mais contraste**: as `div`s
+   dos grupos de diretoria (DIM, DINTER I/II, DIESP, DLOG, DEIP) passaram
+   de `bg-background` (#F5F5F5, igual ao container-pai) para
+   `bg-black/[0.05]`, um cinza um pouco mais escuro.
+6. **Sombra 3D leve em todos os cards**: constante `SOMBRA_CARD`
+   (`shadow-[2px_3px_5px_-2px_rgba(0,0,0,0.14)]`) no canto inferior direito,
+   aplicada aos cards que não tinham sombra (atalhos de KPI, assessorias,
+   filhos de grupo); os cards de estrela/diretoria já tinham sombra própria.
+7. **Nota "x = seção ainda sem função…" alinhada à direita** (`Diretoria.jsx`,
+   `text-right`).
+8. **Barras verticais ao lado dos nomes de OME todas vermelhas**: as barras
+   coloridas por tipo de unidade (`CORES_TIPO[tipo].dot` — vermelho, verde,
+   azul, laranja) em `Diretoria.jsx` e `org-node-card.jsx` passaram todas a
+   `bg-primary` (o vermelho do menu lateral). Removido o import agora ocioso
+   de `CORES_TIPO` em `Diretoria.jsx`.
+
+Tudo verificado no navegador embutido (computed styles, sem screenshot — o
+painel não estava compondo frames): tabela de Efetivo `table-fixed` com 28
+colunas, alça de resize funcionando (largura muda ao arrastar), truncagem
+com reticências, célula de posto sem rótulo, ordenação por antiguidade;
+tabela de Viaturas idem (7 colunas, badge de situação intacto); barra
+vermelha `rgb(197,17,50)` e nota à direita no `Diretoria`; e o usuário de
+nível "4GB" com cards bloqueados a `opacity 0.5` + cadeado (superior direito
+nos comuns, inferior direito no COMANDO GERAL).
+
 ## Pendências práticas (não bloqueiam o planejamento, mas são pré-requisito de implementação)
 
 - **Workspace do Windmill**: ainda precisa ser criado pelo usuário

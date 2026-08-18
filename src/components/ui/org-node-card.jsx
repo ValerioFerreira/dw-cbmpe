@@ -16,7 +16,7 @@ export default function OrgNodeCard({ unidade, variant = "card" }) {
         onClick={() => navigate(`/diretoria/${unidade.id}`)}
         className="group flex w-full items-center gap-3 rounded-xl border border-border bg-card p-3 text-left transition-all hover:border-input hover:shadow-sm"
       >
-        <span className={`h-9 w-1.5 shrink-0 rounded-full ${cor.dot}`} />
+        <span className="h-9 w-1.5 shrink-0 rounded-full bg-primary" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-[13px] font-semibold text-foreground">{unidade.nome}</p>
           <p className="text-[11px] text-muted-foreground">{unidade.sigla} · {cor.label}</p>
@@ -31,7 +31,7 @@ export default function OrgNodeCard({ unidade, variant = "card" }) {
       onClick={() => navigate(`/diretoria/${unidade.id}`)}
       className="group relative cursor-pointer overflow-hidden rounded-xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-input hover:shadow-md"
     >
-      <span className={`absolute left-0 top-0 h-full w-1 ${cor.dot}`} />
+      <span className="absolute left-0 top-0 h-full w-1 bg-primary" />
       <div className="flex items-start justify-between gap-2 pl-2">
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{cor.label}</p>

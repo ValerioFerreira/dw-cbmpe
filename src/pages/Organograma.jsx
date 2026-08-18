@@ -31,20 +31,27 @@ const KPIS_ATALHO = ["Efetivo", "Viaturas", "Materiais", "Finanças"];
 
 // Protótipo de níveis de acesso (ver @/lib/accessControl). Quando o usuário
 // tem acesso PARCIAL (nível, sem acesso total), cada card ganha um indicador:
-// - card SEM acesso: fica não-clicável e recebe um cadeado semitransparente
-//   centralizado (as informações do card continuam visíveis por baixo).
+// - card SEM acesso: fica não-clicável e apagado (opacidade/saturação
+//   reduzidas), com um cadeado no canto — superior direito na maioria, e
+//   inferior direito nos cards de COMANDO GERAL e SUBCOMANDO GERAL (pedido de
+//   2026-08-19).
 // - card COM acesso: ganha uma borda amarela fina constante (o mesmo realce
 //   que antes só aparecia no hover).
 // acessoDe/acessoKpiDe devolvem "ok" | "no" | null (null = admin ou acesso
 // total → sem indicadores, comportamento normal com hover).
-const CADEADO_BLOQUEADO = "pointer-events-none";
+const CADEADO_BLOQUEADO = "pointer-events-none opacity-50 saturate-[0.4]";
 
-// Cadeado centralizado ao fundo do card (semitransparente). `claro` usa
-// tom branco, pros cards de fundo colorido (estrelas/diretorias).
-function CadeadoOverlay({ claro = false }) {
+// Sombra leve no canto inferior direito de todos os cards, pro leve efeito 3D
+// pedido em 2026-08-19.
+const SOMBRA_CARD = "shadow-[2px_3px_5px_-2px_rgba(0,0,0,0.14)]";
+
+// Cadeado no canto do card. `claro` usa tom branco (cards de fundo colorido);
+// `posicao` = "top-right" (padrão) ou "bottom-right" (Comando/Subcomando).
+function CadeadoOverlay({ claro = false, posicao = "top-right" }) {
+  const canto = posicao === "bottom-right" ? "bottom-1 right-1.5" : "top-1 right-1.5";
   return (
-    <span className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
-      <Lock className={`h-6 w-6 ${claro ? "text-white/70" : "text-foreground/30"}`} />
+    <span className={`pointer-events-none absolute ${canto} z-20`}>
+      <Lock className={`h-4 w-4 ${claro ? "text-white" : "text-foreground/70"}`} />
     </span>
   );
 }
@@ -118,7 +125,7 @@ export default function Organograma() {
               {KPIS_ATALHO.map((nome) => {
                 const kpi = kpisComandoGeral[nome];
                 const ok = acessoKpiDe(nome);
-                const base = "relative flex min-h-[2.75rem] items-center justify-center rounded-lg border bg-card px-2 text-center text-xs font-bold text-foreground transition-colors";
+                const base = `relative flex min-h-[2.75rem] items-center justify-center rounded-lg border bg-card px-2 text-center text-xs font-bold text-foreground transition-colors ${SOMBRA_CARD}`;
                 if (ok === "no") {
                   return (
                     <span key={nome} className={`${base} border-border ${CADEADO_BLOQUEADO}`}>
@@ -220,7 +227,7 @@ function NoEstrela({ unidade, tom, onClick, acessoOk }) {
       <div className={`mt-2 inline-flex items-center gap-1 rounded-full bg-black/20 px-3 py-1 text-[10px] font-semibold ${isAmber ? "text-amber-100" : "text-yellow-100"}`}>
         <TrendingUp className="h-3 w-3" /> Detalhar
       </div>
-      {bloqueado && <CadeadoOverlay claro />}
+      {bloqueado && <CadeadoOverlay claro posicao="bottom-right" />}
     </button>
   );
 }
@@ -241,7 +248,7 @@ function LinhaAssessorias({ siglas, bySigla, goto, gridCols, maxWidth, accent, a
             key={sigla}
             onClick={bloqueado ? undefined : () => goto(sigla)}
             disabled={bloqueado}
-            className={`relative rounded-lg border bg-card p-2 text-center transition-colors ${
+            className={`relative rounded-lg border bg-card p-2 text-center transition-colors ${SOMBRA_CARD} ${
               bloqueado ? `border-border ${CADEADO_BLOQUEADO}` : ok === "ok" ? "border-amber-400" : `border-border ${hoverBorder}`
             }`}
           >
@@ -289,8 +296,10 @@ function ColunaEmpilhada({ siglas, bySigla, goto, acessoDe }) {
 function GrupoDiretoria({ grupo, bySigla, goto, acessoDe }) {
   const u = bySigla[grupo.diretoria];
   if (!u) return null;
+  // Fundo um pouco mais escuro que o #F5F5F5 do container-pai, pra dar
+  // contraste (pedido de 2026-08-19 — DIM, DINTER I/II, DLOG, DEIP).
   return (
-    <div className="flex flex-col items-center rounded-xl border border-border bg-background p-2">
+    <div className="flex flex-col items-center rounded-xl border border-border bg-black/[0.05] p-2">
       <CardDiretoria unidade={u} onClick={() => goto(grupo.diretoria)} tamanho="col" acessoOk={acessoDe(grupo.diretoria)} />
       {grupo.filhos.length > 0 && (
         <div className="mt-2 w-full space-y-1.5">
@@ -304,7 +313,7 @@ function GrupoDiretoria({ grupo, bySigla, goto, acessoDe }) {
                 key={sigla}
                 onClick={bloqueado ? undefined : () => goto(sigla)}
                 disabled={bloqueado}
-                className={`relative w-full rounded border bg-card p-1.5 text-center transition-colors ${
+                className={`relative w-full rounded border bg-card p-1.5 text-center transition-colors ${SOMBRA_CARD} ${
                   bloqueado ? `border-border ${CADEADO_BLOQUEADO}` : ok === "ok" ? "border-amber-400" : "border-border hover:border-yellow-400"
                 }`}
               >
