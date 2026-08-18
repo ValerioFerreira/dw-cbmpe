@@ -1028,6 +1028,127 @@ lançada — a tabela/coluna vai ficando mais completa conforme a CPPA
 avança o preenchimento de `DIST_FUNCOES`, sem precisar de mudança de
 código (só re-rodar o script com o arquivo atualizado).
 
+### 2026-08-17 (mesma sessão) — Bug corrigido: vagas de 1 pessoa (Comando/Subcomando/Diretoria/Chefia) com mais de 1 militar
+
+Usuário reportou que algumas unidades mostravam mais de 1 militar em
+seções que só comportam 1 (Comandante, Subcomandante, Diretor — 1 por
+unidade final). Causa raiz, achada por depuração direta no
+`lotacao_funcao.json`: **`"comandante"` é literalmente uma substring de
+`"subcomandante"`** (palavras coladas, sem espaço) — o casamento por
+contenção de substring pura (tanto contra o catálogo de funções quanto
+contra as divisões de `SUBSETORES`) tratava "Comandante" como se
+"casasse" dentro de "Subcomandante", e vice-versa a heurística genérica
+também deixava "Comando"/"Diretoria" (nomes curtos e comuns) vencerem
+por engano quando o texto real da função só continha a palavra solta
+"comando" em outro contexto (ex. "Secretaria e **Ajudância do Comando**",
+que devia casar com a seção "Secretaria e Apoio do Comando", não com o
+cargo de Comandante). O rollup na árvore do QOD piorava isso: ao não
+achar nada mais específico, subia até a raiz da árvore (frequentemente
+literalmente chamada "Comando"/"Diretoria") e atribuía a ela qualquer
+função não classificada.
+
+**Correção em `etl/efetivo/extract_lotacao_funcao.py`**:
+1. Comparações de substring passam a exigir borda de palavra
+   (`contem_palavra()`, regex `\bpalavra\b`) em vez de `in` puro — resolve
+   a colisão "comandante"/"subcomandante".
+2. Divisões de vaga única (`DIVISOES_SINGULARES = {"comando",
+   "subcomando", "diretoria", "chefia"}`) ficaram **fora** das passagens
+   genéricas de substring/sobreposição de palavras — só podem ser
+   preenchidas pelas regras explícitas de prefixo (a função tem que
+   começar com "comand"/"subcomand"/"diretor", ou ser "Chefe do/da
+   {sigla}").
+3. O rollup na árvore do QOD nunca aceita mais essas divisões como
+   destino — se a única correspondência encontrada subindo a árvore for
+   uma vaga singular, o resultado fica "não classificado" em vez de
+   forçar a atribuição.
+
+**Resultado após a correção**: rodada de re-extração confirmou que
+nenhuma das divisões singulares (Comando, Subcomando, Diretoria, Chefia)
+tem mais de 1 militar em nenhuma unidade — todas com exatamente 0 ou 1.
+Efeito colateral positivo: em pelo menos um caso (GBI "Secretaria e
+Ajudância do Comando"), remover "Comando" da disputa fez o casamento por
+sobreposição de palavras achar a divisão certa ("Secretaria e Apoio do
+Comando - SAC") em vez de nenhuma. Total classificado caiu ligeiramente
+(747 de 845 linhas, vs. 716 antes — a base de comparação mudou porque
+"não classificado" honesto agora é preferido a uma atribuição errada).
+
+**Segundo caso achado ao verificar se o erro se repetia em outros
+setores** (checagem sistemática: atual > previsto em toda `SUBSETORES`
+de toda unidade coberta): `DJD / Divisão de Planejamento de Justiça e
+Disciplina` tinha 2 militares pra previsto=1 — o Diretor de Justiça e
+Disciplina estava caindo lá em vez de em "Diretoria", porque o título
+"Diretor(a) de Justiça e Disciplina" empata na sobreposição de palavras
+com "Divisão de Justiça e Disciplina" e com "Divisão de Planejamento de
+Justiça e Disciplina" (o cargo cita o domínio da própria unidade, que
+também aparece no nome das divisões internas) — a regra de prefixo
+"diretor" só era testada depois desse fallback fuzzy, tarde demais.
+**Correção**: as regras explícitas de prefixo (Comandante/Subcomandante/
+Diretor/Chefe do X) agora rodam antes do fallback de sobreposição de
+palavras, não depois. Reverificado: também corrigido.
+
+**Único resíduo restante** (checado e não é bug de casamento): `GBS /
+Divisão de Operações - Div. Op.` mostra atual=11 pra previsto=10.
+Inspecionei a aba bruta do QOD pra essa unidade — o previsto=10 está
+certo (1 Chefe + 2 Auxiliares próprios + 3 Auxiliares da SICT + 4
+Auxiliares da SEO). As 11 pessoas atribuídas têm texto de função
+genuinamente específico (5 delas com o texto literal "Auxiliar da
+Divisão de Operações", só 2 vagas previstas com esse texto exato) — não
+é erro de casamento, é uma divergência real entre o QOD (plano de vagas)
+e o `DIST_FUNCOES` (lotação real, que pode ter excedente ou registro
+menos detalhado que o esperado). Registrado como limitação conhecida,
+não como bug.
+
+### 2026-08-17 (mesma sessão) — Tabela de Viaturas ganha Situação; NOME/PATRIMÔNIO/ANO pendentes (não existem no Neon)
+
+Usuário pediu SITUAÇÃO, NOME, OME, PLACA, PATRIMÔNIO, MARCA/MODELO e ANO
+na tabela de Viaturas. OME/PLACA/MARCA-MODELO já eram as 3 colunas
+existentes. Inspecionei a tabela `Viatura` do Neon diretamente
+(`information_schema.columns`) antes de mexer em qualquer coisa —
+colunas reais: `id, tipo, omeId, omeAcronym, status, stillUsable,
+updatedAt, placa, marca, modelo`. **NOME, PATRIMÔNIO e ANO não existem
+nessa tabela** — não dava pra simplesmente "puxar", perguntei antes de
+assumir.
+
+**Decisão do usuário**: adicionar SITUAÇÃO (`status`) agora, já que
+existe; estender a sincronização via Windmill pra trazer NOME/PATRIMÔNIO/
+ANO da fonte original de frotas (mesmo padrão já usado pro Efetivo com
+`windmill-neon.py`) — ainda não escrito, porque não tenho visibilidade
+do schema da fonte original de frotas (não há `windmill-viaturas.py` no
+repo nem no Downloads compartilhado) — fica pendente até o usuário
+compartilhar essa fonte ou o schema dela.
+
+**Implementado**: `etl/viaturas/extract_viaturas.py` passou a selecionar
+`status` também, gravando `situacao` em cada item de
+`viaturas_lista.json`. Tabela em `src/pages/Indicador.jsx`
+(`TabelaViaturas`) ganhou a coluna "Situação". Rodei o script contra o
+Neon real (`DATABASE_URL_VIATURAS` já configurado em `.env.local`) —
+valores reais confirmados: Ativa, Manutenção, Devolvida, Descarregada,
+Processo de Desfazimento.
+
+**Resolvido na mesma sessão**: o usuário colou o script Windmill real
+(`windmill-viaturas.py`, sync Frota→Neon), o que deu visibilidade da
+fonte original. Conectei direto na base interna de frotas
+(`10.193.1.252`, acessível a partir deste ambiente) e inspecionei
+`information_schema.columns` de `vehicles` antes de escrever qualquer
+coisa:
+- **NOME** = `vehicle_types.name` (nome do tipo de viatura, ex. "Auto
+  Bomba Tanque") — já vinha sincronizado pro Neon como `tipo`, só não
+  estava exposto em `viaturas_lista.json`/na tabela. Resolvido sem
+  precisar de mudança no Windmill — só extrair de novo e adicionar a
+  coluna "Nome" na UI. Verificado no navegador com dados reais (29
+  tipos distintos, ex. "Auto Bomba Tanque", "Auto Resgate", "Reboque").
+- **ANO** = `vehicles.year`, **PATRIMÔNIO** = `vehicles.patrimony` —
+  existem na fonte, mas não estavam sendo sincronizados pro Neon.
+  Preparei `etl/viaturas/windmill-viaturas.py` (versão estendida do
+  script que o usuário roda no Windmill, com `ano`/`patrimonio`
+  adicionados à tabela `Viatura` do Neon) — **não rodei esta parte**,
+  por ser um `TRUNCATE` + reinserção numa tabela Neon compartilhada;
+  fica pro usuário publicar no Windmill e rodar, mesmo fluxo já usado
+  pro Efetivo. Depois disso, `extract_viaturas.py` precisa ganhar
+  `ano`/`patrimonio` no SELECT (ainda não fiz essa parte porque tentar
+  rodar antes do Windmill sincronizar quebraria — as colunas não
+  existem no Neon ainda).
+
 ## Pendências práticas (não bloqueiam o planejamento, mas são pré-requisito de implementação)
 
 - **Workspace do Windmill**: ainda precisa ser criado pelo usuário

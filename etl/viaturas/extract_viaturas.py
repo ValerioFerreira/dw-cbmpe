@@ -11,8 +11,16 @@ Uso:
 O viaturas.json só tem contagens agregadas (decisão de minimização, mesma
 usada em extract_efetivo.py). O viaturas_lista.json é uma exceção
 deliberada e confirmada com o usuário (ver DW_PLANEJAMENTO.md,
-2026-08-07): expõe placa + modelo por unidade, para a tabela de viaturas
-na página de Indicador — nunca chassi ou patrimônio.
+2026-08-07): expõe placa + modelo + situação por unidade, para a tabela
+de viaturas na página de Indicador — nunca chassi.
+
+**Atualização de 2026-08-17**: usuário pediu também NOME, PATRIMÔNIO e
+ANO. NOME = "tipo" (nome do tipo de viatura, ex. "Auto Bomba Tanque") —
+já vinha sendo sincronizado pro Neon, só não estava exposto aqui; agora
+sai como campo "nome" em cada item. PATRIMÔNIO e ANO existem na fonte
+(vehicles.patrimony, vehicles.year) mas ainda não estão na tabela
+"Viatura" do Neon — dependem da extensão do script Windmill de sync
+(ver DW_PLANEJAMENTO.md) antes de aparecerem aqui.
 """
 import json
 import os
@@ -42,7 +50,7 @@ def main():
     contagem_por_ome_id = dict(cur.fetchall())
 
     cur.execute("""
-        SELECT "omeId", placa, marca, modelo, tipo
+        SELECT "omeId", placa, marca, modelo, tipo, status
         FROM "Viatura"
         ORDER BY tipo ASC NULLS LAST, placa ASC NULLS LAST;
     """)
@@ -103,7 +111,7 @@ def main():
     # usuário — ver docstring do módulo)
     # -------------------------
     lista_por_unidade = {}
-    for ome_id, placa, marca, modelo, _tipo in viaturas_detalhe:
+    for ome_id, placa, marca, modelo, tipo, status in viaturas_detalhe:
         if ome_id is None:
             continue
         sigla = mapeamento.get(str(ome_id))
@@ -112,6 +120,8 @@ def main():
         lista_por_unidade.setdefault(sigla, []).append({
             "placa": placa,
             "modelo": " ".join(p for p in [marca, modelo] if p) or None,
+            "situacao": status,
+            "nome": tipo,
         })
 
     OUTPUT_LISTA_PATH.write_text(

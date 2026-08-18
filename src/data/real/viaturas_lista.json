@@ -1,3449 +1,5129 @@
 {
   "fonte": "Neon (tabela Viatura)",
-  "gerado_em": "2026-08-07T21:20:00.469746+00:00",
+  "gerado_em": "2026-08-17T19:27:09.990579+00:00",
   "por_unidade": {
     "1º GB": [
       {
         "modelo": "Volkswagen 17.280 MITREN",
-        "placa": "JAU3B83"
+        "nome": "Auto Bomba Tanque",
+        "placa": "JAU3B83",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen 17.250 E",
-        "placa": "KJG4501"
+        "nome": "Auto Bomba Tanque",
+        "placa": "KJG4501",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen 17250",
-        "placa": "PEU6500"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PEU6500",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Volvo VM 270 4X2R",
-        "placa": "PFW5365"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PFW5365",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "MERCEDES BENZ ATEGO 1729",
-        "placa": "QYE4714"
+        "nome": "Auto Bomba Tanque",
+        "placa": "QYE4714",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Ford F350",
-        "placa": "KJM0555"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "KJM0555",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Mitsubishi L200 TRITON SPT GL P",
-        "placa": "QYX9D29"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "QYX9D29",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "SOH1H80"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SOH1H80",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "RZK2I87"
+        "nome": "Auto Comando Operacional",
+        "placa": "RZK2I87",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Mitsubishi L200 Triton",
-        "placa": "SNU6B90"
+        "nome": "Auto Comando Operacional",
+        "placa": "SNU6B90",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCEDES BENZ Sprinter 313 CDI",
-        "placa": "KGY6I88"
+        "nome": "Auto Resgate",
+        "placa": "KGY6I88",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "MERCEDES BENZ Sprinter 313 CDI",
-        "placa": "KHT2G90"
+        "nome": "Auto Resgate",
+        "placa": "KHT2G90",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Merc. Benz SPRINT RONT AMB",
-        "placa": "KII9786"
+        "nome": "Auto Resgate",
+        "placa": "KII9786",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "MERCEDES BENZ Sprinter 313 CDI",
-        "placa": "KJY0280"
+        "nome": "Auto Resgate",
+        "placa": "KJY0280",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Merc. Benz SPRINT RONT AMB",
-        "placa": "OYL2926"
+        "nome": "Auto Resgate",
+        "placa": "OYL2926",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Merc. Benz SPRINT RONT AMB",
-        "placa": "OYZ7795"
+        "nome": "Auto Resgate",
+        "placa": "OYZ7795",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "MERCEDES BENZ SPRINTER MODIFICAR",
-        "placa": "PGW8A43"
+        "nome": "Auto Resgate",
+        "placa": "PGW8A43",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Renault Master",
-        "placa": "SNR1G39"
+        "nome": "Auto Resgate",
+        "placa": "SNR1G39",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RENAUT MASTER VER AMBP3",
-        "placa": "UHR8J83"
+        "nome": "Auto Resgate",
+        "placa": "UHR8J83",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nissan Kicks",
-        "placa": "SOC1H38"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOC1H38",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen Saveiro CS",
-        "placa": "OYS9651"
+        "nome": "Auto Transporte de Material",
+        "placa": "OYS9651",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen Saveiro CS",
-        "placa": "OYS9731"
+        "nome": "Auto Transporte de Material",
+        "placa": "OYS9731",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FIAT UNO EVOLUTIO 1.4",
-        "placa": "PGZ0790"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PGZ0790",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Levefort Levefort",
-        "placa": "BSA0253"
+        "nome": "Barco de Salvamento em Alumínio",
+        "placa": "BSA0253",
+        "situacao": "Ativa"
       },
       {
         "modelo": "DB-300",
-        "placa": ""
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "ZEFIR F360 de 3,6m",
-        "placa": "BIS0432"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0432",
+        "situacao": "Ativa"
       },
       {
         "modelo": "ZEFIR F 440 de 4,4m",
-        "placa": "BIS0528"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0528",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "POLIMARINE RIB370, de 3,70m.",
-        "placa": "BIS0742"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0742",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "CENTURY BARCO INFLAVEL",
-        "placa": "BIS0844"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0844",
+        "situacao": "Ativa"
       },
       {
         "modelo": "CENTURY BARCO INFLAVEL",
-        "placa": "BIS0847"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0847",
+        "situacao": "Ativa"
       },
       {
         "modelo": "CENTURY BARCO INFLAVEL",
-        "placa": "BIS0848"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0848",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nautiflex BOTE INFLAVEL NXC413",
-        "placa": "BIS0857"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0857",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HIDEA HD30FHS",
-        "placa": ""
+        "nome": "Motor de Popa",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCURY 25HP",
-        "placa": "MTP0508"
+        "nome": "Motor de Popa",
+        "placa": "MTP0508",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCURY 40 HP Super",
-        "placa": "MTP0577"
+        "nome": "Motor de Popa",
+        "placa": "MTP0577",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCURY 40 HP Super",
-        "placa": "MTP0579"
+        "nome": "Motor de Popa",
+        "placa": "MTP0579",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "MERCURY 25 HP",
-        "placa": "MTP0584"
+        "nome": "Motor de Popa",
+        "placa": "MTP0584",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "MERCURY 25HP - 2 Tempos",
-        "placa": "MTP0713"
+        "nome": "Motor de Popa",
+        "placa": "MTP0713",
+        "situacao": "Ativa"
       },
       {
         "modelo": "TOYAMA 25HP - 2 Tempos",
-        "placa": "MTP0871"
+        "nome": "Motor de Popa",
+        "placa": "MTP0871",
+        "situacao": "Ativa"
       },
       {
         "modelo": "R/RUSSO CJ100 1 E",
-        "placa": "KGO5254"
+        "nome": "Reboque",
+        "placa": "KGO5254",
+        "situacao": "Ativa"
       },
       {
         "modelo": "R/RUSSO CJ100 1 E",
-        "placa": "KGP4D74"
+        "nome": "Reboque",
+        "placa": "KGP4D74",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CC301 1E",
-        "placa": "PDC0821"
+        "nome": "Reboque",
+        "placa": "PDC0821",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CC301 1E",
-        "placa": "PDC5491"
+        "nome": "Reboque",
+        "placa": "PDC5491",
+        "situacao": "Ativa"
       },
       {
         "modelo": "4,4 Metros",
-        "placa": "PFJ5308"
+        "nome": "Reboque",
+        "placa": "PFJ5308",
+        "situacao": "Ativa"
       },
       {
         "modelo": "4,4 Metros",
-        "placa": "PFJ5F88"
+        "nome": "Reboque",
+        "placa": "PFJ5F88",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CR 1700 1E",
-        "placa": "QYR0H62"
+        "nome": "Reboque",
+        "placa": "QYR0H62",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CR 1700 1E",
-        "placa": "QYR0I52"
+        "nome": "Reboque",
+        "placa": "QYR0I52",
+        "situacao": "Ativa"
       }
     ],
     "2º GB": [
       {
         "modelo": "MERCEDES BENZ 1720",
-        "placa": "CBM0196"
+        "nome": "Auto Bomba Tanque",
+        "placa": "CBM0196",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Volkswagen 17.250 E",
-        "placa": "KFZ0I86"
+        "nome": "Auto Bomba Tanque",
+        "placa": "KFZ0I86",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Volkswagen 17250",
-        "placa": "KLR6228"
+        "nome": "Auto Bomba Tanque",
+        "placa": "KLR6228",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Volkswagen 17250",
-        "placa": "KLR6B78"
+        "nome": "Auto Bomba Tanque",
+        "placa": "KLR6B78",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volvo VM 270 4X2R",
-        "placa": "OYP5485"
+        "nome": "Auto Bomba Tanque",
+        "placa": "OYP5485",
+        "situacao": "Ativa"
       },
       {
         "modelo": "IVECO TECTOR 170E30",
-        "placa": "PCH1683"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PCH1683",
+        "situacao": "Ativa"
       },
       {
         "modelo": "IVECO TECTOR 170E31",
-        "placa": "PCH1733"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PCH1733",
+        "situacao": "Ativa"
       },
       {
         "modelo": "IVECO TECTOR 170E29",
-        "placa": "PCH1833"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PCH1833",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volvo VM 270 4X2R",
-        "placa": "PGK3858"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PGK3858",
+        "situacao": "Ativa"
       },
       {
         "modelo": "VW DELIVERY MTR 11.180 B",
-        "placa": "UIA8J50"
+        "nome": "Auto Bomba Tanque",
+        "placa": "UIA8J50",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Chevrolet S10 LS DD4",
-        "placa": "QYQ6I31"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "QYQ6I31",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "RZK1F95"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "RZK1F95",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Mitsubishi L200 Triton",
-        "placa": "SNU6C00"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SNU6C00",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "SOH1H50"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SOH1H50",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "SOH1I60"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SOH1I60",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mercedez Benz Sprinter",
-        "placa": "SOM4G91"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SOM4G91",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "RZK1F57"
+        "nome": "Auto Comando Operacional",
+        "placa": "RZK1F57",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Mitsubishi L200 Triton",
-        "placa": "SNU6C50"
+        "nome": "Auto Comando Operacional",
+        "placa": "SNU6C50",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCEDES BENZ Sprinter 313 CDI",
-        "placa": " "
+        "nome": "Auto Resgate",
+        "placa": " ",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "MERCEDES BENZ Sprinter 313 CDI",
-        "placa": "KHT4170"
+        "nome": "Auto Resgate",
+        "placa": "KHT4170",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "MERCEDES BENZ Sprinter 313 CDI",
-        "placa": "KHT4840"
+        "nome": "Auto Resgate",
+        "placa": "KHT4840",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "MERCEDES BENZ Sprinter 313 CDI",
-        "placa": "KHT4980"
+        "nome": "Auto Resgate",
+        "placa": "KHT4980",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Merc. Benz SPRINT RONT AMB",
-        "placa": "KII9856"
+        "nome": "Auto Resgate",
+        "placa": "KII9856",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Merc. Benz SPRINT RONT AMB",
-        "placa": "KII9G86"
+        "nome": "Auto Resgate",
+        "placa": "KII9G86",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Merc. Benz SPRINT RONT AMB",
-        "placa": "KII9H76"
+        "nome": "Auto Resgate",
+        "placa": "KII9H76",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "MERCEDES BENZ Sprinter 313 CDI",
-        "placa": "KKV4780"
+        "nome": "Auto Resgate",
+        "placa": "KKV4780",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "MERCEDES BENZ SPRINTER MODIFICAR",
-        "placa": "PGW8A93"
+        "nome": "Auto Resgate",
+        "placa": "PGW8A93",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RENAULT Nova Renault Master Grand Furgao L2H2",
-        "placa": "SNO3C00"
+        "nome": "Auto Resgate",
+        "placa": "SNO3C00",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Renault Master",
-        "placa": "SNR2A29"
+        "nome": "Auto Resgate",
+        "placa": "SNR2A29",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RENAUT MASTER VER AMBP3",
-        "placa": "UHQ0D65"
+        "nome": "Auto Resgate",
+        "placa": "UHQ0D65",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RENAUT MASTER VER AMBP3",
-        "placa": "UHR7G13"
+        "nome": "Auto Resgate",
+        "placa": "UHR7G13",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RENAUT MASTER VER AMBP3",
-        "placa": "UHR8F03"
+        "nome": "Auto Resgate",
+        "placa": "UHR8F03",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCEDES BENZ L 1620",
-        "placa": "CBM0197"
+        "nome": "Auto Tanque/1",
+        "placa": "CBM0197",
+        "situacao": "Ativa"
       },
       {
         "modelo": "VOLVO VM 360 MITREN",
-        "placa": "UHZ3H00"
+        "nome": "Auto Tanque/1",
+        "placa": "UHZ3H00",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Levefort",
-        "placa": "BSA0254"
+        "nome": "Barco de Salvamento em Alumínio",
+        "placa": "BSA0254",
+        "situacao": "Ativa"
       },
       {
         "modelo": "DB-300",
-        "placa": ""
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "DB-300",
-        "placa": ""
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "ZEFIR F 440 de 4,4m",
-        "placa": "BIS0530"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0530",
+        "situacao": "Ativa"
       },
       {
         "modelo": "POLIMARINE RIB370, de 3,70m.",
-        "placa": "BIS0743"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0743",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "CENTURY BARCO INFLAVEL",
-        "placa": "BIS0845"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0845",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nautiflex BOTE INFLAVEL NXC410",
-        "placa": "BIS0860"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0860",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nautiflex BOTE INFLAVEL NXC410",
-        "placa": "BIS0861"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0861",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "HONDA XRE 300",
-        "placa": "PDV5343"
+        "nome": "Moto Administrativa",
+        "placa": "PDV5343",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "HONDA XRE 300",
-        "placa": "PDV9983"
+        "nome": "Moto Administrativa",
+        "placa": "PDV9983",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "SNT8H33"
+        "nome": "Moto Administrativa",
+        "placa": "SNT8H33",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "SNT8J43"
+        "nome": "Moto Administrativa",
+        "placa": "SNT8J43",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "SNT9B13"
+        "nome": "Moto Administrativa",
+        "placa": "SNT9B13",
+        "situacao": "Ativa"
       },
       {
         "modelo": "YAMAHA XTZ 250 LANDER",
-        "placa": "SOI6I81"
+        "nome": "Moto Resgate",
+        "placa": "SOI6I81",
+        "situacao": "Ativa"
       },
       {
         "modelo": "YAMAHA 2025",
-        "placa": "SOI7E81"
+        "nome": "Moto Resgate",
+        "placa": "SOI7E81",
+        "situacao": "Ativa"
       },
       {
         "modelo": "YAMAHA XTZ 250 LANDER",
-        "placa": "SOI7H01"
+        "nome": "Moto Resgate",
+        "placa": "SOI7H01",
+        "situacao": "Ativa"
       },
       {
         "modelo": "YAMAHA 2025",
-        "placa": "SOI8A31"
+        "nome": "Moto Resgate",
+        "placa": "SOI8A31",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HONDA XRE 300",
-        "placa": "PDV5443"
+        "nome": "Moto Vistoria",
+        "placa": "PDV5443",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "HIDEA HD30FHS",
-        "placa": ""
+        "nome": "Motor de Popa",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HIDEA HD30FHS",
-        "placa": ""
+        "nome": "Motor de Popa",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCURY 25HP",
-        "placa": "MTP0492"
+        "nome": "Motor de Popa",
+        "placa": "MTP0492",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCURY 25HP",
-        "placa": "MTP0507"
+        "nome": "Motor de Popa",
+        "placa": "MTP0507",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCURY 40 HP Super",
-        "placa": "MTP0576"
+        "nome": "Motor de Popa",
+        "placa": "MTP0576",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCURY 25HP - 2 Tempos",
-        "placa": "MTP0714"
+        "nome": "Motor de Popa",
+        "placa": "MTP0714",
+        "situacao": "Ativa"
       },
       {
         "modelo": "TOYAMA 25HP - 2 Tempos",
-        "placa": "MTP0872"
+        "nome": "Motor de Popa",
+        "placa": "MTP0872",
+        "situacao": "Ativa"
       },
       {
         "modelo": "R/RUSSO CJ100 1 E",
-        "placa": "KGO2894"
+        "nome": "Reboque",
+        "placa": "KGO2894",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "R/RONDON RD1 C",
-        "placa": "KKC3935"
+        "nome": "Reboque",
+        "placa": "KKC3935",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CC301 1E",
-        "placa": "PDC5521"
+        "nome": "Reboque",
+        "placa": "PDC5521",
+        "situacao": "Ativa"
       },
       {
         "modelo": "3,5 Metros",
-        "placa": "PFJ5228"
+        "nome": "Reboque",
+        "placa": "PFJ5228",
+        "situacao": "Ativa"
       },
       {
         "modelo": "4,4 Metros",
-        "placa": "PFJ5448"
+        "nome": "Reboque",
+        "placa": "PFJ5448",
+        "situacao": "Ativa"
       },
       {
         "modelo": "GAMMA TORRE DE ILUMINAÇÃO",
-        "placa": "PGR7980"
+        "nome": "Reboque",
+        "placa": "PGR7980",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "RUSSO R/RUSSO CR 1700 1E",
-        "placa": "QYR0H72"
+        "nome": "Reboque",
+        "placa": "QYR0H72",
+        "situacao": "Ativa"
       }
     ],
     "3º GB": [
       {
         "modelo": "Volkswagen 17250",
-        "placa": "KLO6887"
+        "nome": "Auto Bomba Tanque",
+        "placa": "KLO6887",
+        "situacao": "Ativa"
       },
       {
         "modelo": "IVECO TECTOR 170E33",
-        "placa": "PCH1493"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PCH1493",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volvo VM 270 4X2R",
-        "placa": "PFF9105"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PFF9105",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volvo VM 270 4X2R",
-        "placa": "PFF9145"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PFF9145",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volvo VM 270 4X2R",
-        "placa": "PGE0544"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PGE0544",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "MERCEDES BENZ ATEGO 1729",
-        "placa": "QYE4624"
+        "nome": "Auto Bomba Tanque",
+        "placa": "QYE4624",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "SCANIA P-114 GA 320 4x2 NZ 2p",
-        "placa": "SOO5E00"
+        "nome": "Auto Bomba Tanque",
+        "placa": "SOO5E00",
+        "situacao": "Ativa"
       },
       {
         "modelo": "VW DELIVERY MTR 11.180 B",
-        "placa": "UIA8I80"
+        "nome": "Auto Bomba Tanque",
+        "placa": "UIA8I80",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Bandeirante Toyota",
-        "placa": "KJC2927"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "KJC2927",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Mitsubishi L200 Triton",
-        "placa": "RZH3C09"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "RZH3C09",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "RZK1I77"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "RZK1I77",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "RZK2A87"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "RZK2A87",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "RZK3B77"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "RZK3B77",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Mitisubishi L200 Triton",
-        "placa": "SNU6E50"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SNU6E50",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "SOH0E90"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SOH0E90",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "SOH1G30"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SOH1G30",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "SOH1H30"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SOH1H30",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mercedez Benz Sprinter",
-        "placa": "SOM4E11"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SOM4E11",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCEDES BENZ Sprinter 313 CDI",
-        "placa": "KGY7598"
+        "nome": "Auto Resgate",
+        "placa": "KGY7598",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "MERCEDES BENZ Sprinter 313 CDI",
-        "placa": "KGY9218"
+        "nome": "Auto Resgate",
+        "placa": "KGY9218",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Merc. Benz SPRINT RONT AMB",
-        "placa": "KII9676"
+        "nome": "Auto Resgate",
+        "placa": "KII9676",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Merc. Benz SPRINT RONT AMB",
-        "placa": "KII9886"
+        "nome": "Auto Resgate",
+        "placa": "KII9886",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCEDES BENZ Sprinter 313 CDI",
-        "placa": "KJZ5528"
+        "nome": "Auto Resgate",
+        "placa": "KJZ5528",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Merc. Benz SPRINT RONT AMB",
-        "placa": "OYL0316"
+        "nome": "Auto Resgate",
+        "placa": "OYL0316",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "MERCEDES BENZ SPRINTER MODIFICAR",
-        "placa": "PGW7953"
+        "nome": "Auto Resgate",
+        "placa": "PGW7953",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RENAULT Nova Renault Master Grand Furgao L2H3",
-        "placa": "SNO3A70"
+        "nome": "Auto Resgate",
+        "placa": "SNO3A70",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Renault Master",
-        "placa": "SNR2A89"
+        "nome": "Auto Resgate",
+        "placa": "SNR2A89",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RENAUT MASTER VER AMBP3",
-        "placa": "UHR8I43"
+        "nome": "Auto Resgate",
+        "placa": "UHR8I43",
+        "situacao": "Ativa"
       },
       {
         "modelo": "NISSAN KICKS",
-        "placa": "SOE4A67"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOE4A67",
+        "situacao": "Ativa"
       },
       {
         "modelo": "VOLVO VM 360 BITREN",
-        "placa": "UHZ3H20"
+        "nome": "Auto Tanque/1",
+        "placa": "UHZ3H20",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FIAT UNO EVOLUTIO 1.4",
-        "placa": "PCB9580"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PCB9580",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "DB-300",
-        "placa": ""
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "ZEFIR F360 de 3,6m",
-        "placa": "BIS0424"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0424",
+        "situacao": "Ativa"
       },
       {
         "modelo": "ZEFIR F360 de 3,6m",
-        "placa": "BIS0433"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0433",
+        "situacao": "Ativa"
       },
       {
         "modelo": "ZEFIR F360 de 3,6m",
-        "placa": "BIS0446"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0446",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Nautiflex BOTE INFLAVEL NXC410",
-        "placa": "BIS0854"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0854",
+        "situacao": "Ativa"
       },
       {
         "modelo": "ZEFIR BOTE INFLAVEL GOLD F360",
-        "placa": "BIS0947"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0947",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HONDA XRE 300",
-        "placa": "PDW0103"
+        "nome": "Moto Resgate",
+        "placa": "PDW0103",
+        "situacao": "Ativa"
       },
       {
         "modelo": "SEADOO GTI 170 S",
-        "placa": ""
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Yamaha XL 700",
-        "placa": "MSA0224"
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "MSA0224",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "HIDEA HD30FHS",
-        "placa": ""
+        "nome": "Motor de Popa",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HIDEA HD30FHS",
-        "placa": ""
+        "nome": "Motor de Popa",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCURY 25HP",
-        "placa": "MTP0479"
+        "nome": "Motor de Popa",
+        "placa": "MTP0479",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "MERCURY 25HP",
-        "placa": "MTP0499"
+        "nome": "Motor de Popa",
+        "placa": "MTP0499",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "MERCURY 25HP",
-        "placa": "MTP0500"
+        "nome": "Motor de Popa",
+        "placa": "MTP0500",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCURY 25HP - 2 Tempos",
-        "placa": "MTP0715"
+        "nome": "Motor de Popa",
+        "placa": "MTP0715",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "MERCURY 25HP - 2 Tempos",
-        "placa": "MTP0719"
+        "nome": "Motor de Popa",
+        "placa": "MTP0719",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "TOYAMA 25HP - 2 Tempos",
-        "placa": "MTP0873"
+        "nome": "Motor de Popa",
+        "placa": "MTP0873",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "TOYAMA 25HP - 2 Tempos",
-        "placa": "MTP0874"
+        "nome": "Motor de Popa",
+        "placa": "MTP0874",
+        "situacao": "Ativa"
       },
       {
         "modelo": "R/RUSSO CJ100 1 E",
-        "placa": "KGP3894"
+        "nome": "Reboque",
+        "placa": "KGP3894",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "RUSSO R/RUSSO CC301 1E",
-        "placa": "PDC0781"
+        "nome": "Reboque",
+        "placa": "PDC0781",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CC301 1E",
-        "placa": "PDC5001"
+        "nome": "Reboque",
+        "placa": "PDC5001",
+        "situacao": "Ativa"
       },
       {
         "modelo": "3,5 Metros",
-        "placa": "PFJ5268"
+        "nome": "Reboque",
+        "placa": "PFJ5268",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CR 1700 1E",
-        "placa": "QYR1A32"
+        "nome": "Reboque",
+        "placa": "QYR1A32",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FREE HOBBY FH20",
-        "placa": "SNW6H75"
+        "nome": "Reboque",
+        "placa": "SNW6H75",
+        "situacao": "Ativa"
       }
     ],
     "4º GB": [
       {
         "modelo": "Volvo VM 270 4X2R",
-        "placa": "OYQ5465"
+        "nome": "Auto Bomba Tanque",
+        "placa": "OYQ5465",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Volvo VM 270 4X2R",
-        "placa": "PGE0674"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PGE0674",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Scania P320 TRIEL",
-        "placa": "SOQ3E78"
+        "nome": "Auto Bomba Tanque",
+        "placa": "SOQ3E78",
+        "situacao": "Ativa"
       },
       {
         "modelo": "VW DELIVERY MTR 11.180 B",
-        "placa": "UIA8H70"
+        "nome": "Auto Bomba Tanque",
+        "placa": "UIA8H70",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Chevrolet S10 LS DD4",
-        "placa": "QYQ6C81"
+        "nome": "Auto Busca e Salvamento Aquático",
+        "placa": "QYQ6C81",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Ford F350",
-        "placa": "KJM0815"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "KJM0815",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "RZK2A74"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "RZK2A74",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Mitisubishi L200 Triton",
-        "placa": "SNU6F80"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SNU6F80",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "SOH1H70"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SOH1H70",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MITSUBISHI TRITON SPORT GLS AP L200",
-        "placa": "SSI4G76"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SSI4G76",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FIAT TORO FREEDON MT D4",
-        "placa": "PDN1B77"
+        "nome": "Auto Comando Operacional",
+        "placa": "PDN1B77",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Merc. Benz SPRINT RONT AMB",
-        "placa": "KII9746"
+        "nome": "Auto Resgate",
+        "placa": "KII9746",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Merc. Benz SPRINT RONT AMB",
-        "placa": "KII9866"
+        "nome": "Auto Resgate",
+        "placa": "KII9866",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Merc. Benz SPRINT RONT AMB",
-        "placa": "OYZ7735"
+        "nome": "Auto Resgate",
+        "placa": "OYZ7735",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Renault Master",
-        "placa": "SNR2B99"
+        "nome": "Auto Resgate",
+        "placa": "SNR2B99",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RENAUT MASTER VER AMBP3",
-        "placa": "UHR8G33"
+        "nome": "Auto Resgate",
+        "placa": "UHR8G33",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FIAT UNO WAY 1.3 E 2017",
-        "placa": "PGV1121"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "PGV1121",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "MERCEDES BENZ L 1620",
-        "placa": "KLH1A98"
+        "nome": "Auto Tanque/1",
+        "placa": "KLH1A98",
+        "situacao": "Ativa"
       },
       {
         "modelo": "VOLVO VM 360 BITREN",
-        "placa": "UHY0A59"
+        "nome": "Auto Tanque/1",
+        "placa": "UHY0A59",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Ford F250 XLT W21",
-        "placa": "KLH5J67"
+        "nome": "Auto Transporte de Material",
+        "placa": "KLH5J67",
+        "situacao": "Ativa"
       },
       {
         "modelo": "DB-300",
-        "placa": ""
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "ZEFIR F360 de 3,6m",
-        "placa": "BIS0436"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0436",
+        "situacao": "Ativa"
       },
       {
         "modelo": "ZEFIR F 440 de 4,4m",
-        "placa": "BIS0531"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0531",
+        "situacao": "Ativa"
       },
       {
         "modelo": "ZEFIR SR de 5,5m",
-        "placa": "BIS0535"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0535",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nautiflex BOTE NXC410 COMANDER",
-        "placa": "BIS0868"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0868",
+        "situacao": "Ativa"
       },
       {
         "modelo": "ZEFIR BOTE INFLAVEL GOLD F360",
-        "placa": "BIS0953"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0953",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Sport Fishe",
-        "placa": "LSA0620"
+        "nome": "Lancha de Salvamento Aquático",
+        "placa": "LSA0620",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "SNT7G84"
+        "nome": "Moto Administrativa",
+        "placa": "SNT7G84",
+        "situacao": "Ativa"
       },
       {
         "modelo": "SEADOO GTI 170 S",
-        "placa": ""
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "SEADOO GTI 170 S",
-        "placa": ""
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "VX 700-G US-YAMA3655C808",
-        "placa": "BIS0310"
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "BIS0310",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Yamaha 60HP",
-        "placa": "MTP0461"
+        "nome": "Motor de Popa",
+        "placa": "MTP0461",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Yamaha 25HP",
-        "placa": "MTP0484"
+        "nome": "Motor de Popa",
+        "placa": "MTP0484",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCURY 25HP",
-        "placa": "MTP0485"
+        "nome": "Motor de Popa",
+        "placa": "MTP0485",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCURY 40 HP Super",
-        "placa": "MTP0583"
+        "nome": "Motor de Popa",
+        "placa": "MTP0583",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCURY 135HP Super",
-        "placa": "MTP0585"
+        "nome": "Motor de Popa",
+        "placa": "MTP0585",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Suzuki 30HP DT30",
-        "placa": "MTP0621"
+        "nome": "Motor de Popa",
+        "placa": "MTP0621",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCURY 25HP - 2 Tempos",
-        "placa": "MTP0716"
+        "nome": "Motor de Popa",
+        "placa": "MTP0716",
+        "situacao": "Ativa"
       },
       {
         "modelo": "TOYAMA 25HP - 2 Tempos",
-        "placa": "MTP0875"
+        "nome": "Motor de Popa",
+        "placa": "MTP0875",
+        "situacao": "Ativa"
       },
       {
         "modelo": "R/RUSSO CJ100 1 E",
-        "placa": "KGP4344"
+        "nome": "Reboque",
+        "placa": "KGP4344",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nauti Boone 3,5 Metros",
-        "placa": "KKE0993"
+        "nome": "Reboque",
+        "placa": "KKE0993",
+        "situacao": "Ativa"
       },
       {
         "modelo": "GAMMA TORRE DE ILUMINAÇÃO",
-        "placa": "OYQ6314"
+        "nome": "Reboque",
+        "placa": "OYQ6314",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CC301 1E",
-        "placa": "PDC0671"
+        "nome": "Reboque",
+        "placa": "PDC0671",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CC301 1E",
-        "placa": "PDC0711"
+        "nome": "Reboque",
+        "placa": "PDC0711",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CC301 1E",
-        "placa": "PDC0731"
+        "nome": "Reboque",
+        "placa": "PDC0731",
+        "situacao": "Ativa"
       },
       {
         "modelo": "5,5 Metros",
-        "placa": "PFD5637"
+        "nome": "Reboque",
+        "placa": "PFD5637",
+        "situacao": "Ativa"
       },
       {
         "modelo": "3,5 Metros",
-        "placa": "PFJ5178"
+        "nome": "Reboque",
+        "placa": "PFJ5178",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CR 1700 1E",
-        "placa": "QYR1A62"
+        "nome": "Reboque",
+        "placa": "QYR1A62",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FREE HOBBY FH20",
-        "placa": "SNW2F71"
+        "nome": "Reboque",
+        "placa": "SNW2F71",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FREE HOBBY FH20",
-        "placa": "SNX9J88"
+        "nome": "Reboque",
+        "placa": "SNX9J88",
+        "situacao": "Ativa"
       },
       {
         "modelo": null,
-        "placa": null
+        "nome": "Reboque",
+        "placa": null,
+        "situacao": "Ativa"
       }
     ],
     "5º GB": [
       {
         "modelo": "Volkswagen 17250",
-        "placa": "KLR6318"
+        "nome": "Auto Bomba Tanque",
+        "placa": "KLR6318",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen 17250",
-        "placa": "KLR6418"
+        "nome": "Auto Bomba Tanque",
+        "placa": "KLR6418",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen 17250",
-        "placa": "KLR6488"
+        "nome": "Auto Bomba Tanque",
+        "placa": "KLR6488",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Volkswagen 17.25O",
-        "placa": "PEU6550"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PEU6550",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCEDES BENZ ATEGO 1729",
-        "placa": "QYE4524"
+        "nome": "Auto Bomba Tanque",
+        "placa": "QYE4524",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Ford F250 XLT W21",
-        "placa": "KLH6077"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "KLH6077",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "RZK1G75"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "RZK1G75",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Mitisubishi L200 Triton",
-        "placa": "SNU6G80"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SNU6G80",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "SOH0C50"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SOH0C50",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Chevrolet S10 LS DD4",
-        "placa": "QYQ7C61"
+        "nome": "Auto Comando Operacional",
+        "placa": "QYQ7C61",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Mitsubish L200 Triton",
-        "placa": "SNU6D80"
+        "nome": "Auto Comando Operacional",
+        "placa": "SNU6D80",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCEDES BENZ Sprinter 313 CDI",
-        "placa": "KGY8498"
+        "nome": "Auto Resgate",
+        "placa": "KGY8498",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Merc. Benz SPRINT RONT AMB",
-        "placa": "KII9766"
+        "nome": "Auto Resgate",
+        "placa": "KII9766",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Merc. Benz SPRINT RONT AMB",
-        "placa": "KII9826"
+        "nome": "Auto Resgate",
+        "placa": "KII9826",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "MERCEDES BENZ Sprinter",
-        "placa": "KKJ8648"
+        "nome": "Auto Resgate",
+        "placa": "KKJ8648",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Merc. Benz SPRINT RONT AMB",
-        "placa": "OYZ7725"
+        "nome": "Auto Resgate",
+        "placa": "OYZ7725",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "FIAT Ducato Minibus",
-        "placa": "PFH3921"
+        "nome": "Auto Resgate",
+        "placa": "PFH3921",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "MERCEDES BENZ SPRINTER MODIFICAR",
-        "placa": "PGW7G93"
+        "nome": "Auto Resgate",
+        "placa": "PGW7G93",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RENAULT Nova Renault Master Grand Furgao L2H2",
-        "placa": "SNO3J31"
+        "nome": "Auto Resgate",
+        "placa": "SNO3J31",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Renault Master",
-        "placa": "SNR2C09"
+        "nome": "Auto Resgate",
+        "placa": "SNR2C09",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RENAUT MASTER VER AMBP3",
-        "placa": "UHS2D72"
+        "nome": "Auto Resgate",
+        "placa": "UHS2D72",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RENAUT MASTER VER AMBP3",
-        "placa": "UHS2E12"
+        "nome": "Auto Resgate",
+        "placa": "UHS2E12",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nissan Kicks",
-        "placa": "SOE5A60"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOE5A60",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FIAT UNO EVOLUTIO 1.4",
-        "placa": "PGZ0520"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PGZ0520",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Levefort Levefort",
-        "placa": "BSA0256"
+        "nome": "Barco de Salvamento em Alumínio",
+        "placa": "BSA0256",
+        "situacao": "Ativa"
       },
       {
         "modelo": "DB-300",
-        "placa": ""
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "DB-300",
-        "placa": ""
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "POLIMARINE BARCO INFLAVEL",
-        "placa": "BIS0849"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0849",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Nautiflex BOTE NXC410 COMANDER",
-        "placa": "BIS0869"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0869",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HONDA XRE 300",
-        "placa": "PDV9943"
+        "nome": "Moto Resgate",
+        "placa": "PDV9943",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "HONDA XRE 300",
-        "placa": "PDV9963"
+        "nome": "Moto Resgate",
+        "placa": "PDV9963",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "RZM6G77"
+        "nome": "Moto Vistoria",
+        "placa": "RZM6G77",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "SNT8G63"
+        "nome": "Moto Vistoria",
+        "placa": "SNT8G63",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HIDEA HD30FHS",
-        "placa": ""
+        "nome": "Motor de Popa",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HIDEA HD30FHS",
-        "placa": ""
+        "nome": "Motor de Popa",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Yamaha 25HP",
-        "placa": "MTP0481"
+        "nome": "Motor de Popa",
+        "placa": "MTP0481",
+        "situacao": "Ativa"
       },
       {
         "modelo": "TOYAMA 25HP - 2 Tempos",
-        "placa": "MTP0876"
+        "nome": "Motor de Popa",
+        "placa": "MTP0876",
+        "situacao": "Ativa"
       },
       {
         "modelo": "R/RONDON RD1 C",
-        "placa": "KKC4055"
+        "nome": "Reboque",
+        "placa": "KKC4055",
+        "situacao": "Ativa"
       },
       {
         "modelo": "4,4 Metros",
-        "placa": "PFJ5C98"
+        "nome": "Reboque",
+        "placa": "PFJ5C98",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CR 1700 1E",
-        "placa": "QYR5F41"
+        "nome": "Reboque",
+        "placa": "QYR5F41",
+        "situacao": "Ativa"
       }
     ],
     "6º GB": [
       {
         "modelo": "Volvo VM 270 4X2R",
-        "placa": "PGK3748"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PGK3748",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCEDES BENZ ATEGO 1729",
-        "placa": "QYE4D54"
+        "nome": "Auto Bomba Tanque",
+        "placa": "QYE4D54",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "RZK3B67"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "RZK3B67",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Mitsubishi L200 Triton",
-        "placa": "SNU6C70"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SNU6C70",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "SOH1G50"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SOH1G50",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 Triton",
-        "placa": "RZH3C29"
+        "nome": "Auto Comando Operacional",
+        "placa": "RZH3C29",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Merc. Benz SPRINT RONT AMB",
-        "placa": "KII9696"
+        "nome": "Auto Resgate",
+        "placa": "KII9696",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RENAULT Nova Renault Master Grand Furgao L2H2",
-        "placa": "SNO3G60"
+        "nome": "Auto Resgate",
+        "placa": "SNO3G60",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Renault Master",
-        "placa": "SNR2E29"
+        "nome": "Auto Resgate",
+        "placa": "SNR2E29",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen POLO",
-        "placa": "SNO1E09"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "SNO1E09",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Nissan Kicks",
-        "placa": "SOE4C67"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "SOE4C67",
+        "situacao": "Ativa"
       },
       {
         "modelo": "ZEFIR F360 de 3,6m",
-        "placa": "BIS0444"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0444",
+        "situacao": "Ativa"
       },
       {
         "modelo": "DB-300",
-        "placa": "BIS1048"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS1048",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HIDEA HIDEA",
-        "placa": ""
+        "nome": "Motor de Popa",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCURY 25HP",
-        "placa": "MTP0495"
+        "nome": "Motor de Popa",
+        "placa": "MTP0495",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCURY 25HP - 2 Tempos",
-        "placa": "MTP0720"
+        "nome": "Motor de Popa",
+        "placa": "MTP0720",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CC301 1E",
-        "placa": "PDC0981"
+        "nome": "Reboque",
+        "placa": "PDC0981",
+        "situacao": "Ativa"
       },
       {
         "modelo": "3,5 Metros",
-        "placa": "PFJ5528"
+        "nome": "Reboque",
+        "placa": "PFJ5528",
+        "situacao": "Ativa"
       },
       {
         "modelo": "3,5 Metros",
-        "placa": "PFJ5F08"
+        "nome": "Reboque",
+        "placa": "PFJ5F08",
+        "situacao": "Ativa"
       }
     ],
     "7º GB": [
       {
         "modelo": "IVECO TECTOR 170E32",
-        "placa": "PCH1623"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PCH1623",
+        "situacao": "Ativa"
       },
       {
         "modelo": "IVECO TECTOR 170E34",
-        "placa": "PCH1773"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PCH1773",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen 17.280 CRM 4X2 4P",
-        "placa": "PCI1782"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PCI1782",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "IVECO IVECO/TECTOR 170E29",
-        "placa": "PDJ1095"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PDJ1095",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen 17250",
-        "placa": "PEU6E20"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PEU6E20",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "RZK3B47"
+        "nome": "Auto Busca e Salvamento Aquático",
+        "placa": "RZK3B47",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Ford 2018",
-        "placa": "PBZ2C44"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "PBZ2C44",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Mitsubishi L200 Triton",
-        "placa": "SNU6D30"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SNU6D30",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "SOH1I30"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SOH1I30",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Ford RANGER",
-        "placa": "PCZ2G01"
+        "nome": "Auto Comando Operacional",
+        "placa": "PCZ2G01",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Merc. Benz SPRINT RONT AMB",
-        "placa": "KII9H36"
+        "nome": "Auto Resgate",
+        "placa": "KII9H36",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Merc. Benz CDI SPR TCA AMB",
-        "placa": "PCI1682"
+        "nome": "Auto Resgate",
+        "placa": "PCI1682",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCEDES BENZ SPRINTER MODIFICAR",
-        "placa": "PGW7623"
+        "nome": "Auto Resgate",
+        "placa": "PGW7623",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "MERCEDES BENZ SPRINTER MODIFICAR",
-        "placa": "PGW7653"
+        "nome": "Auto Resgate",
+        "placa": "PGW7653",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RENAULT Nova Renault Master Grand Furgao L2H2",
-        "placa": "SNO3G10"
+        "nome": "Auto Resgate",
+        "placa": "SNO3G10",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RENAUT MASTER VER AMBP3",
-        "placa": "UHR8H03"
+        "nome": "Auto Resgate",
+        "placa": "UHR8H03",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RENAUT MASTER VER AMBP3",
-        "placa": "UHR9A23"
+        "nome": "Auto Resgate",
+        "placa": "UHR9A23",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nissan Kicks",
-        "placa": "SOE3J97"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOE3J97",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FIAT UNO EVOLUTIO 1.4",
-        "placa": "PCB8870"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PCB8870",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Volkswagen Gol 1.6 City",
-        "placa": "PGT6A68"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PGT6A68",
+        "situacao": "Ativa"
       },
       {
         "modelo": "DB-300",
-        "placa": ""
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "DB-300",
-        "placa": ""
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "CENTURY BARCO INFLAVEL",
-        "placa": "BIS0846"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0846",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Nautiflex BOTE INFLAVEL NXC414",
-        "placa": "BIS0858"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0858",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nautiflex BOTE INFLAVEL NXC410",
-        "placa": "BIS0862"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0862",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "RZM5E87"
+        "nome": "Moto Administrativa",
+        "placa": "RZM5E87",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "SNT5J25"
+        "nome": "Moto Administrativa",
+        "placa": "SNT5J25",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HIDEA HD30FHS",
-        "placa": ""
+        "nome": "Motor de Popa",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HIDEA HD30FHS",
-        "placa": ""
+        "nome": "Motor de Popa",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCURY 25HP",
-        "placa": "MTP0454"
+        "nome": "Motor de Popa",
+        "placa": "MTP0454",
+        "situacao": "Ativa"
       },
       {
         "modelo": "TOYAMA 25HP - 2 Tempos",
-        "placa": "MTP0877"
+        "nome": "Motor de Popa",
+        "placa": "MTP0877",
+        "situacao": "Ativa"
       },
       {
         "modelo": "3,5 Metros",
-        "placa": "PFJ5488"
+        "nome": "Reboque",
+        "placa": "PFJ5488",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CR 1700 1E",
-        "placa": "QYR1A02"
+        "nome": "Reboque",
+        "placa": "QYR1A02",
+        "situacao": "Ativa"
       }
     ],
     "9º GB": [
       {
         "modelo": "MERCEDES BENZ 1720",
-        "placa": "CBM0230"
+        "nome": "Auto Bomba Tanque",
+        "placa": "CBM0230",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Volkswagen 17.250 E",
-        "placa": "KFZ0986"
+        "nome": "Auto Bomba Tanque",
+        "placa": "KFZ0986",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen 17250",
-        "placa": "KLR6198"
+        "nome": "Auto Bomba Tanque",
+        "placa": "KLR6198",
+        "situacao": "Ativa"
       },
       {
         "modelo": "IVECO TECTOR 170E28",
-        "placa": "PCH1373"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PCH1373",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen 17250",
-        "placa": "PEU6390"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PEU6390",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volvo VM 270 4X2R",
-        "placa": "PFW5305"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PFW5305",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "CHEVROLET S10 LT DD4",
-        "placa": "PAF3E52"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "PAF3E52",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 Triton",
-        "placa": "RZH3B79"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "RZH3B79",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Mitsubish L200 Triton",
-        "placa": "SNU6C90"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SNU6C90",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitisubishi L200 Triton",
-        "placa": "SNU6H60"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SNU6H60",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "SOH1G60"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SOH1G60",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "RZK2E97"
+        "nome": "Auto Comando Operacional",
+        "placa": "RZK2E97",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "MERCEDES BENZ Sprinter 313 CDI",
-        "placa": "KGY5818"
+        "nome": "Auto Resgate",
+        "placa": "KGY5818",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Merc. Benz SPRINT RONT AMB",
-        "placa": "KII9716"
+        "nome": "Auto Resgate",
+        "placa": "KII9716",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Merc. Benz SPRINT RONT AMB",
-        "placa": "KII9756"
+        "nome": "Auto Resgate",
+        "placa": "KII9756",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "Merc. Benz SPRINT RONT AMB",
-        "placa": "KII9896"
+        "nome": "Auto Resgate",
+        "placa": "KII9896",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Merc. Benz SPRINT RONT AMB",
-        "placa": "OYZ7765"
+        "nome": "Auto Resgate",
+        "placa": "OYZ7765",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RENAULT Nova Renault Master Grand Furgao L2H2",
-        "placa": "SNO3D80"
+        "nome": "Auto Resgate",
+        "placa": "SNO3D80",
+        "situacao": "Ativa"
       },
       {
         "modelo": "REAUT MASTER VER AMBP3",
-        "placa": "UHR8I13"
+        "nome": "Auto Resgate",
+        "placa": "UHR8I13",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nissan Kicks",
-        "placa": "SOE4C17"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOE4C17",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCEDES BENZ L 1620",
-        "placa": "KLH0768"
+        "nome": "Auto Tanque/1",
+        "placa": "KLH0768",
+        "situacao": "Ativa"
       },
       {
         "modelo": "VOLKSWAGEN SAVEIRO STARTLINE 1.6 T.FLEX 8V",
-        "placa": "OYS9431"
+        "nome": "Auto Transporte de Material",
+        "placa": "OYS9431",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FIAT STRADA HD W CC E",
-        "placa": "PDL3B87"
+        "nome": "Auto Transporte de Material",
+        "placa": "PDL3B87",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Levefort Levefort",
-        "placa": "BSA0255"
+        "nome": "Barco de Salvamento em Alumínio",
+        "placa": "BSA0255",
+        "situacao": "Ativa"
       },
       {
         "modelo": "DB-300",
-        "placa": ""
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "DB-300",
-        "placa": ""
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "ZEFIR F360 de 3,6m",
-        "placa": "BIS0434"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0434",
+        "situacao": "Ativa"
       },
       {
         "modelo": "ZEFIR F 440 de 4,4m",
-        "placa": "BIS0529"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0529",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nautiflex BOTE INFLAVEL NXC410",
-        "placa": "BIS0859"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0859",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HONDA XRE 300",
-        "placa": "PDW0053"
+        "nome": "Moto Vistoria",
+        "placa": "PDW0053",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HIDEA HD30FHS",
-        "placa": ""
+        "nome": "Motor de Popa",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HIDEA HD30FHS",
-        "placa": ""
+        "nome": "Motor de Popa",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HIDEA HD30FHS",
-        "placa": ""
+        "nome": "Motor de Popa",
+        "placa": "",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "TOYAMA 25HP - 2 Tempos",
-        "placa": "MTP0884"
+        "nome": "Motor de Popa",
+        "placa": "MTP0884",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "TOYAMA 25HP - 2 Tempos",
-        "placa": "MTP0888"
+        "nome": "Motor de Popa",
+        "placa": "MTP0888",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "R/RONDON RD1 C",
-        "placa": "KKG1545"
+        "nome": "Reboque",
+        "placa": "KKG1545",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CR 1700 1E",
-        "placa": "QYR0F02"
+        "nome": "Reboque",
+        "placa": "QYR0F02",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CR 1700 1E",
-        "placa": "QYR0G22"
+        "nome": "Reboque",
+        "placa": "QYR0G22",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CR 1700 1E",
-        "placa": "QYR0I92"
+        "nome": "Reboque",
+        "placa": "QYR0I92",
+        "situacao": "Ativa"
       }
     ],
     "ABMG": [
       {
         "modelo": "MERCEDES BENZ Sprinter 313 CDI",
-        "placa": "KGY8248"
+        "nome": "Auto Transporte Especial",
+        "placa": "KGY8248",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Volkswagen Saveiro CS",
-        "placa": "OYS9681"
+        "nome": "Auto Transporte de Material",
+        "placa": "OYS9681",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 Triton",
-        "placa": "RZH3C49"
+        "nome": "Auto Transporte de Material",
+        "placa": "RZH3C49",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen Gol 1.6 City",
-        "placa": "PGK0473"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PGK0473",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen Gol 1.6 City",
-        "placa": "PGK0E73"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PGK0E73",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "FIAT Argo Trekking 1.3",
-        "placa": "SNR1B27"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "SNR1B27",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "VOLKSWAGEN POLO",
-        "placa": "UHT7E15"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "UHT7E15",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Marcopolo VOLARE W9 ON",
-        "placa": "KJW4092"
+        "nome": "Auto Transporte de Pessoal/2",
+        "placa": "KJW4092",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MARCOPOLO 8.150 PLUS",
-        "placa": "PFA2736"
+        "nome": "Auto Transporte de Pessoal/2",
+        "placa": "PFA2736",
+        "situacao": "Ativa"
       }
     ],
     "AECI": [
       {
         "modelo": "Volkswagen GOL MPI",
-        "placa": "RZQ0G02"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "RZQ0G02",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "FIAT ARGO",
-        "placa": "SOU0A14"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "SOU0A14",
+        "situacao": "Ativa"
       }
     ],
     "AJG": [
       {
         "modelo": "FORD RANGER XLT CD 4A32C",
-        "placa": "PBE9A75"
+        "nome": "Auto Transporte de Material",
+        "placa": "PBE9A75",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "FORD RANGER XLTCD4A32C",
-        "placa": "PBZ2B61"
+        "nome": "Auto Transporte de Material",
+        "placa": "PBZ2B61",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "SNT9A33"
+        "nome": "Moto Administrativa",
+        "placa": "SNT9A33",
+        "situacao": "Ativa"
       }
     ],
     "CAT/AG": [
       {
         "modelo": "Volkswagen Gol 1.6 City",
-        "placa": "PGO3387"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "PGO3387",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "FIAT UNO WAY 1.3 E 2017",
-        "placa": "PGV1131"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "PGV1131",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "FIAT UNO WAY 1.3 E 2017",
-        "placa": "PGX1I81"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "PGX1I81",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "RENAULT DUSTER ZEN 16",
-        "placa": "RZM2D36"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "RZM2D36",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "RENAULT DUSTER ZEN 16",
-        "placa": "RZM2E96"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "RZM2E96",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Nissan Kicks",
-        "placa": "SOC1H58"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOC1H58",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nissan Kicks",
-        "placa": "SOC1H78"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOC1H78",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nissan Kicks",
-        "placa": "SOC1I58"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOC1I58",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Fiat Argo Trekking 1.3",
-        "placa": "SOF2I78"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOF2I78",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Fiat Argo Trekking 1.3",
-        "placa": "SOG2B81"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOG2B81",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen Saveiro CS",
-        "placa": "OYS9F71"
+        "nome": "Auto Serviço de Vistoria/2",
+        "placa": "OYS9F71",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "FIAT TORO FREEDON MT D4",
-        "placa": "PDH2A27"
+        "nome": "Auto Serviço de Vistoria/2",
+        "placa": "PDH2A27",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "FIAT STRADA HD W CC E",
-        "placa": "PDY8I99"
+        "nome": "Auto Serviço de Vistoria/2",
+        "placa": "PDY8I99",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "HONDA XRE 300",
-        "placa": "PDV5473"
+        "nome": "Moto Vistoria",
+        "placa": "PDV5473",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "HONDA XRE 300",
-        "placa": "PDW0013"
+        "nome": "Moto Vistoria",
+        "placa": "PDW0013",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "RZM6C77"
+        "nome": "Moto Vistoria",
+        "placa": "RZM6C77",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "SNT5I85"
+        "nome": "Moto Vistoria",
+        "placa": "SNT5I85",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Honda XRE 300",
-        "placa": "SNU3A94"
+        "nome": "Moto Vistoria",
+        "placa": "SNU3A94",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Honda XRE 300",
-        "placa": "SNU4A82"
+        "nome": "Moto Vistoria",
+        "placa": "SNU4A82",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Honda XRE300",
-        "placa": "SNU4C32"
+        "nome": "Moto Vistoria",
+        "placa": "SNU4C32",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Honda XRE300",
-        "placa": "SNU4H32"
+        "nome": "Moto Vistoria",
+        "placa": "SNU4H32",
+        "situacao": "Ativa"
       }
     ],
     "CAT/RMR": [
       {
         "modelo": "RENAULT DUSTER ZEN 16",
-        "placa": "RZM1H26"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "RZM1H26",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "RENAULT DUSTER ZEN 16",
-        "placa": "RZM1H96"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "RZM1H96",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "RENAULT DUSTER ZEN 16",
-        "placa": "RZM1I56"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "RZM1I56",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "RENAULT DUSTER ZEN 16",
-        "placa": "RZM1I66"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "RZM1I66",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "RENAULT DUSTER ZEN 16",
-        "placa": "RZM2A36"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "RZM2A36",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "RENAULT DUSTER ZEN 16",
-        "placa": "RZM2A76"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "RZM2A76",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Nissan Kicks",
-        "placa": "SOC1H18"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOC1H18",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nissan Kicks",
-        "placa": "SOC1H48"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOC1H48",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nissan Kicks",
-        "placa": "SOC1I08"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOC1I08",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nissan Kicks",
-        "placa": "SOC1I28"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOC1I28",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nissan Kicks",
-        "placa": "SOC1I38"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOC1I38",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nissan Kicks",
-        "placa": "SOC5I49"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOC5I49",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nissan Kicks",
-        "placa": "SOD0F42"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOD0F42",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Fiat Argo Trekking 1.3",
-        "placa": "SOF1B48"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOF1B48",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Fiat Argo Trekking 1.3",
-        "placa": "SOG0I22"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOG0I22",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Fiat Argo Trekking 1.3",
-        "placa": "SOG2C91"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOG2C91",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Fiat Argo Trekking 1.3",
-        "placa": "SOG8B44"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOG8B44",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Fiat Argo Trekking 1.3",
-        "placa": "SOH8E78"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOH8E78",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "RZM2D57"
+        "nome": "Moto Vistoria",
+        "placa": "RZM2D57",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "RZM5D37"
+        "nome": "Moto Vistoria",
+        "placa": "RZM5D37",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "RZM6F47"
+        "nome": "Moto Vistoria",
+        "placa": "RZM6F47",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "RZM6I47"
+        "nome": "Moto Vistoria",
+        "placa": "RZM6I47",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "RZM6J37"
+        "nome": "Moto Vistoria",
+        "placa": "RZM6J37",
+        "situacao": "Devolvida"
       }
     ],
     "CAT/SE": [
       {
         "modelo": "FIAT UNO EVOLUTIO 1.4",
-        "placa": "PGZ0740"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "PGZ0740",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "RENAULT DUSTER ZEN 16",
-        "placa": "RZM1F56"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "RZM1F56",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "RENAULT DUSTER ZEN 16",
-        "placa": "RZM2G76"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "RZM2G76",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "RENAULT DUSTER ZEN 16",
-        "placa": "RZM2H06"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "RZM2H06",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "RENAULT DUSTER ZEN 16",
-        "placa": "RZM2I16"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "RZM2I16",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "RENAULT DUSTER ZEN 16",
-        "placa": "RZM2I66"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "RZM2I66",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "RENAULT DUSTER ZEN 16",
-        "placa": "RZM2I76"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "RZM2I76",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "RENAULT DUSTER ZEN 16",
-        "placa": "RZM2J96"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "RZM2J96",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Nissan Kicks",
-        "placa": "SOC1I18"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOC1I18",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nissan Kicks",
-        "placa": "SOC5G27"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOC5G27",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Fiat Argo Trekking 1.3",
-        "placa": "SOF2J18"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOF2J18",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Fiat Argo Trekking 1.3",
-        "placa": "SOG2B01"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOG2B01",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Fiat Argo Trekking 1.3",
-        "placa": "SOG4C86"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOG4C86",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Fiat Argo Trekking 1.3",
-        "placa": "SOG4E16"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOG4E16",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Fiat Argo Trekking 1.3",
-        "placa": "SOG7J64"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOG7J64",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Fiat Argo Trekking 1.3",
-        "placa": "SOH0G42"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOH0G42",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Fiat Argo Trekking 1.3",
-        "placa": "SOH0G52"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOH0G52",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Fiat Argo Trekking 1.3",
-        "placa": "SOH8E58"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOH8E58",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FIAT STRADA HD W CC E",
-        "placa": "PDK1937"
+        "nome": "Auto Serviço de Vistoria/2",
+        "placa": "PDK1937",
+        "situacao": "Ativa"
       }
     ],
     "CAT/ZM": [
       {
         "modelo": "FIAT UNO WAY 1.3 E 2017",
-        "placa": "PGX1H61"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "PGX1H61",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FIAT UNO WAY 1.3 E 2017",
-        "placa": "PGX1J91"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "PGX1J91",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RENAULT DUSTER ZEN 16",
-        "placa": "RZM2A06"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "RZM2A06",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "RENAULT DUSTER ZEN 16",
-        "placa": "RZM2C26"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "RZM2C26",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "RENAULT DUSTER ZEN 16",
-        "placa": "RZM2G06"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "RZM2G06",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Nissan Kicks",
-        "placa": "SOC1H08"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOC1H08",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nissan Kicks",
-        "placa": "SOC1H88"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOC1H88",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nissan Kicks",
-        "placa": "SOC1I48"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOC1I48",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Fiat Argo Trekking 1.3",
-        "placa": "SOF2J78"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOF2J78",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Fiat Argo Trekking 1.3",
-        "placa": "SOG4D06"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOG4D06",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Fiat Argo Trekking 1.3",
-        "placa": "SOH0I22"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOH0I22",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FIAT STRADA HD W CC E",
-        "placa": "PDK2A47"
+        "nome": "Auto Serviço de Vistoria/2",
+        "placa": "PDK2A47",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HONDA XRE 300",
-        "placa": "PDV5D73"
+        "nome": "Moto Vistoria",
+        "placa": "PDV5D73",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HONDA XRE 300",
-        "placa": "PDW0033"
+        "nome": "Moto Vistoria",
+        "placa": "PDW0033",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "HONDA XRE 300",
-        "placa": "PDW0153"
+        "nome": "Moto Vistoria",
+        "placa": "PDW0153",
+        "situacao": "Ativa"
       }
     ],
     "CCS": [
       {
         "modelo": "Mitsubishi L200 Triton",
-        "placa": "RZH3C39"
+        "nome": "Auto Transporte de Material",
+        "placa": "RZH3C39",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FIAT UNO WAY 1.3 E 2017",
-        "placa": "PGV1041"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PGV1041",
+        "situacao": "Ativa"
       }
     ],
     "CEAO": [
       {
         "modelo": "Volkswagen Saveiro CS",
-        "placa": "OYS9521"
+        "nome": "Auto Transporte de Material",
+        "placa": "OYS9521",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Ford Ranger XLT 3.2 20V 4x4",
-        "placa": "PBZ2B59"
+        "nome": "Auto Transporte de Material",
+        "placa": "PBZ2B59",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 Triton",
-        "placa": "RZH3C59"
+        "nome": "Auto Transporte de Material",
+        "placa": "RZH3C59",
+        "situacao": "Ativa"
       }
     ],
     "CEFD": [
       {
         "modelo": "Volkswagen Saveiro CS",
-        "placa": "OYS9561"
+        "nome": "Auto Transporte de Material",
+        "placa": "OYS9561",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "CHEVROLET S10 LT DD4",
-        "placa": "PAE0J45"
+        "nome": "Auto Transporte de Material",
+        "placa": "PAE0J45",
+        "situacao": "Ativa"
       }
     ],
     "CI": [
       {
         "modelo": "Volkswagen GOL MPI",
-        "placa": "RZQ0G62"
+        "nome": "Auto Serviço de Inteligência",
+        "placa": "RZQ0G62",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Chevrolet S10 LT",
-        "placa": "SGP6F99"
+        "nome": "Auto Serviço de Inteligência",
+        "placa": "SGP6F99",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FIAT ARGO",
-        "placa": "SOU0A44"
+        "nome": "Auto Serviço de Inteligência",
+        "placa": "SOU0A44",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HONDA NXR 160 BROS",
-        "placa": "PCI0H84"
+        "nome": "Moto Serviço de Inteligência",
+        "placa": "PCI0H84",
+        "situacao": "Ativa"
       }
     ],
     "CINT": [
       {
         "modelo": "FORD RANGER XLTCD4A32C",
-        "placa": "PBG5G48"
+        "nome": "Auto Transporte de Material",
+        "placa": "PBG5G48",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mercedes Bens Accelo 817",
-        "placa": "SOE1I33"
+        "nome": "Auto Transporte de Material",
+        "placa": "SOE1I33",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FIAT UNO EVOLUTIO 1.4",
-        "placa": "PCB9990"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PCB9990",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "SNT8F33"
+        "nome": "Moto Resgate",
+        "placa": "SNT8F33",
+        "situacao": "Ativa"
       }
     ],
     "CMAN": [
       {
         "modelo": "MERCEDES BENZ L 1620",
-        "placa": "CBM0192"
+        "nome": "Auto Apoio Social",
+        "placa": "CBM0192",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCEDES BENZ L 1620",
-        "placa": "KLH0778"
+        "nome": "Auto Bomba Tanque",
+        "placa": "KLH0778",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "MERCEDES BENZ L 1620",
-        "placa": "CBM0212"
+        "nome": "Auto Transporte de Material",
+        "placa": "CBM0212",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "MERCEDES BENZ L 1620",
-        "placa": "KLH0798"
+        "nome": "Auto Transporte de Material",
+        "placa": "KLH0798",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCEDES BENZ L 1620",
-        "placa": "KLH0818"
+        "nome": "Auto Transporte de Material",
+        "placa": "KLH0818",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Ford F250 XLT W21",
-        "placa": "KLH6117"
+        "nome": "Auto Transporte de Material",
+        "placa": "KLH6117",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen 8.150 PLUS",
-        "placa": "PEF1126"
+        "nome": "Auto Transporte de Material",
+        "placa": "PEF1126",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Ford Ranger XLT",
-        "placa": "PFL5757"
+        "nome": "Auto Transporte de Material",
+        "placa": "PFL5757",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON SPT GL P",
-        "placa": "QYX9C79"
+        "nome": "Auto Transporte de Material",
+        "placa": "QYX9C79",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON SPT GL P",
-        "placa": "QYX9D39"
+        "nome": "Auto Transporte de Material",
+        "placa": "QYX9D39",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FIAT UNO EVOLUTIO 1.4",
-        "placa": "PCB9160"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PCB9160",
+        "situacao": "Manutenção"
       }
     ],
     "CPO": [
       {
         "modelo": "FIAT UNO EVOLUTIO 1.4",
-        "placa": "PCB9000"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PCB9000",
+        "situacao": "Ativa"
       }
     ],
     "DAS": [
       {
         "modelo": "VOLKSWAGEN POLO",
-        "placa": "UHM3H40"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "UHM3H40",
+        "situacao": "Ativa"
       },
       {
         "modelo": "PEUGEOT PEUGEOT/MARIMAR",
-        "placa": "RZI6G16"
+        "nome": "Auto Transporte Especial",
+        "placa": "RZI6G16",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "FIAT TORO FREEDON MT D4",
-        "placa": "PDH2A67"
+        "nome": "Auto Transporte de Material",
+        "placa": "PDH2A67",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "CHEVROLET SPIN 1.8L MT LT",
-        "placa": "OVS8D35"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "OVS8D35",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FIAT UNO EVOLUTIO 1.4",
-        "placa": "PCB9100"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PCB9100",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "FIAT UNO EVOLUTIO 1.4",
-        "placa": "PCF1532"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PCF1532",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Hyundai CRETA",
-        "placa": "PEB2H79"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PEB2H79",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FIAT UNO EVOLUTIO 1.4",
-        "placa": "PGZ0600"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PGZ0600",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "JEEP RENEGADE",
-        "placa": "RED7G02"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "RED7G02",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HONDA XRE 300",
-        "placa": "PDV9853"
+        "nome": "Moto Administrativa",
+        "placa": "PDV9853",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "SNT7J14"
+        "nome": "Moto Administrativa",
+        "placa": "SNT7J14",
+        "situacao": "Ativa"
       }
     ],
     "DEIP": [
       {
         "modelo": "Volkswagen POLO",
-        "placa": "SNO1E29"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "SNO1E29",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "VOLKSWAGEN POLO",
-        "placa": "UHM3J80"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "UHM3J80",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "SNT5J05"
+        "nome": "Moto Administrativa",
+        "placa": "SNT5J05",
+        "situacao": "Ativa"
       }
     ],
     "DF": [
       {
         "modelo": "Volkswagen POLO",
-        "placa": "SNO3A98"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "SNO3A98",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "VOLKSWAGEN POLO",
-        "placa": "UHM2I90"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "UHM2I90",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "HONDA NXR 160 BROS",
-        "placa": "PGW6498"
+        "nome": "Moto Administrativa",
+        "placa": "PGW6498",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "SNT7J54"
+        "nome": "Moto Administrativa",
+        "placa": "SNT7J54",
+        "situacao": "Ativa"
       }
     ],
     "DGO": [
       {
         "modelo": "Mitsubishi L200 Triton",
-        "placa": "RZH3B89"
+        "nome": "Auto Transporte de Material",
+        "placa": "RZH3B89",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 Triton",
-        "placa": "RZH3B99"
+        "nome": "Auto Transporte de Material",
+        "placa": "RZH3B99",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen POLO",
-        "placa": "SNO7G45"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "SNO7G45",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "HONDA XRE 300",
-        "placa": "PDW0073"
+        "nome": "Moto Administrativa",
+        "placa": "PDW0073",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HONDA XRE 300",
-        "placa": "PED4846"
+        "nome": "Moto Administrativa",
+        "placa": "PED4846",
+        "situacao": "Ativa"
       }
     ],
     "DGP": [
       {
         "modelo": "FIAT UNO WAY 1.3 E 2017",
-        "placa": "PGX2041"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PGX2041",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen POLO",
-        "placa": "SNO7G85"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "SNO7G85",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "VOLKSWAGEN POLO",
-        "placa": "UHM3G50"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "UHM3G50",
+        "situacao": "Ativa"
       }
     ],
     "DIESP": [
       {
         "modelo": "RENAULT DUSTER ZEN 16",
-        "placa": "RZM2B56"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "RZM2B56",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Volkswagen POLO",
-        "placa": "SNM5C94"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SNM5C94",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Volkswagen POLO",
-        "placa": "SNO3A78"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SNO3A78",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Fiat Argo Trekking 1.3",
-        "placa": "SOG4D36"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOG4D36",
+        "situacao": "Ativa"
       },
       {
         "modelo": "VOLKSWAGEN POLO",
-        "placa": "UHM3C60"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "UHM3C60",
+        "situacao": "Ativa"
       }
     ],
     "DIM": [
       {
         "modelo": "Mitsubishi L200 TRITON",
-        "placa": "TUY9F03"
+        "nome": "Auto Comando Operacional",
+        "placa": "TUY9F03",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nissan Kicks",
-        "placa": "SOE4F12"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOE4F12",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FIAT UNO EVOLUTIO 1.4",
-        "placa": "PCB8950"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PCB8950",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen GOL MPI",
-        "placa": "RZQ0E82"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "RZQ0E82",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "FIAT ARGO",
-        "placa": "SOU8C63"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "SOU8C63",
+        "situacao": "Ativa"
       }
     ],
     "DINTER I": [
       {
         "modelo": "FORD RANGER XLTCD4A32C",
-        "placa": "PBG5G81"
+        "nome": "Auto Comando Operacional",
+        "placa": "PBG5G81",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen POLO",
-        "placa": "SNO1E19"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SNO1E19",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "PEUGEOT PEUGEOT/MARIMAR",
-        "placa": "RZF2G82"
+        "nome": "Auto Transporte Especial",
+        "placa": "RZF2G82",
+        "situacao": "Ativa"
       },
       {
         "modelo": "VOLKSWAGEN POLO",
-        "placa": "UHM3D00"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "UHM3D00",
+        "situacao": "Ativa"
       }
     ],
     "DINTER II": [
       {
         "modelo": "Mitsubishi L200 TRITON SPT GL P",
-        "placa": "QYX9C59"
+        "nome": "Auto Comando Operacional",
+        "placa": "QYX9C59",
+        "situacao": "Ativa"
       },
       {
         "modelo": "PEUGEOT PEUGEOT/MARIMAR",
-        "placa": "RZF3A22"
+        "nome": "Auto Transporte Especial",
+        "placa": "RZF3A22",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RENAULT DUSTER ZEN 16",
-        "placa": "RZM1G66"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "RZM1G66",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Volkswagen POLO",
-        "placa": "SNO0D09"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "SNO0D09",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "VOLKSWAGEN POLO",
-        "placa": "UHM2E20"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "UHM2E20",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MARCOPOLO VOLARE V8 ON",
-        "placa": "PFA4906"
+        "nome": "Auto Transporte de Pessoal/2",
+        "placa": "PFA4906",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "SNT7H54"
+        "nome": "Moto Administrativa",
+        "placa": "SNT7H54",
+        "situacao": "Ativa"
       }
     ],
     "DJD": [
       {
         "modelo": "Volkswagen GOL MPI",
-        "placa": "RZQ0F32"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "RZQ0F32",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "FIAT ARGO",
-        "placa": "SOU9J43"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "SOU9J43",
+        "situacao": "Ativa"
       }
     ],
     "DLOG": [
       {
         "modelo": "Volkswagen Gol 1.6 City",
-        "placa": "PGR9741"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "PGR9741",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "FORD RANGER XLTCD4A32C",
-        "placa": "PBG5G21"
+        "nome": "Auto Transporte de Material",
+        "placa": "PBG5G21",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Ford 2018",
-        "placa": "PBG5G88"
+        "nome": "Auto Transporte de Material",
+        "placa": "PBG5G88",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Chevrolet S10 LT DD4A",
-        "placa": "REV5F70"
+        "nome": "Auto Transporte de Material",
+        "placa": "REV5F70",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FIAT UNO WAY 1.3 E 2017",
-        "placa": "PGX1J41"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PGX1J41",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Volkswagen POLO",
-        "placa": "SNO8D59"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "SNO8D59",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "VOLKSWAGEN POLO",
-        "placa": "UHM3D90"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "UHM3D90",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HONDA XRE 300",
-        "placa": "PDV9903"
+        "nome": "Moto Administrativa",
+        "placa": "PDV9903",
+        "situacao": "Ativa"
       }
     ],
     "DPLAG": [
       {
         "modelo": "Volkswagen POLO",
-        "placa": "SNO0D29"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "SNO0D29",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Volkswagen POLO",
-        "placa": "SNO7G95"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "SNO7G95",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "VOLKSWAGEN POLO",
-        "placa": "UHM5I55"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "UHM5I55",
+        "situacao": "Ativa"
       }
     ],
     "DTIC": [
       {
         "modelo": "Volkswagen POLO",
-        "placa": "UHM4A10"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "UHM4A10",
+        "situacao": "Ativa"
       }
     ],
     "DVP": [
       {
         "modelo": "Volkswagen GOL MPI",
-        "placa": "RZQ0F52"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "RZQ0F52",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "FIAT ARGO",
-        "placa": "SOU9J83"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "SOU9J83",
+        "situacao": "Ativa"
       }
     ],
     "GBAPH": [
       {
         "modelo": "Mitsubishi L200 TRITON SPT GL P",
-        "placa": "QYX9C09"
+        "nome": "Auto Comando Operacional",
+        "placa": "QYX9C09",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 Triton",
-        "placa": "SNU6B40"
+        "nome": "Auto Comando Operacional",
+        "placa": "SNU6B40",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RENAULT MASTER",
-        "placa": "FEK8E16"
+        "nome": "Auto Resgate",
+        "placa": "FEK8E16",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Merc. Benz SPRINT RONT AMB",
-        "placa": "KII9806"
+        "nome": "Auto Resgate",
+        "placa": "KII9806",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Merc. Benz SPRINT RONT AMB",
-        "placa": "KII9I16"
+        "nome": "Auto Resgate",
+        "placa": "KII9I16",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "FIAT Ducato Minibus",
-        "placa": "PFH3911"
+        "nome": "Auto Resgate",
+        "placa": "PFH3911",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "MERCEDES BENZ SPRINTER MODIFICAR",
-        "placa": "PGW7873"
+        "nome": "Auto Resgate",
+        "placa": "PGW7873",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "MERCEDES BENZ SPRINTER MODIFICAR",
-        "placa": "PGW7H43"
+        "nome": "Auto Resgate",
+        "placa": "PGW7H43",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "MERCEDES BENZ SPRINTER MODIFICAR",
-        "placa": "PGW7J13"
+        "nome": "Auto Resgate",
+        "placa": "PGW7J13",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "MERCEDES BENZ SPRINTER MODIFICAR",
-        "placa": "PGW8A03"
+        "nome": "Auto Resgate",
+        "placa": "PGW8A03",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Renault Master",
-        "placa": "SNR1F19"
+        "nome": "Auto Resgate",
+        "placa": "SNR1F19",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Renault Master",
-        "placa": "SNR1H19"
+        "nome": "Auto Resgate",
+        "placa": "SNR1H19",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Renault Master",
-        "placa": "SNR1J09"
+        "nome": "Auto Resgate",
+        "placa": "SNR1J09",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Renault Master",
-        "placa": "SNR1J79"
+        "nome": "Auto Resgate",
+        "placa": "SNR1J79",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Renault Master",
-        "placa": "SNR2D09"
+        "nome": "Auto Resgate",
+        "placa": "SNR2D09",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RENAULT MASTER FL2 ",
-        "placa": "SNY6F26"
+        "nome": "Auto Resgate",
+        "placa": "SNY6F26",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "RENAULT MASTER FL2",
-        "placa": "SNY6H16"
+        "nome": "Auto Resgate",
+        "placa": "SNY6H16",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RENAUT MASTER VER AMBP3",
-        "placa": "UHR7D93"
+        "nome": "Auto Resgate",
+        "placa": "UHR7D93",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen Saveiro CS",
-        "placa": "OYS9511"
+        "nome": "Auto Transporte de Material",
+        "placa": "OYS9511",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FIAT STRADA HD W CC E",
-        "placa": "PDJ6C47"
+        "nome": "Auto Transporte de Material",
+        "placa": "PDJ6C47",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Toyota Hilux",
-        "placa": "PEO7937"
+        "nome": "Auto Transporte de Material",
+        "placa": "PEO7937",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Toyota Hilux CS 4x4",
-        "placa": "PEQ8904"
+        "nome": "Auto Transporte de Material",
+        "placa": "PEQ8904",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Ford Ranger XLT",
-        "placa": "PFL6197"
+        "nome": "Auto Transporte de Material",
+        "placa": "PFL6197",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "FIAT UNO EVOLUTIO 1.4",
-        "placa": "PCB8700"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PCB8700",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "FIAT UNO EVOLUTIO 1.4",
-        "placa": "PGZ0400"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PGZ0400",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Volkswagen POLO",
-        "placa": "SNO1D99"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "SNO1D99",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "VOLKSWAGEN POLO",
-        "placa": "UHM2J40"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "UHM2J40",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "RZM1J17"
+        "nome": "Moto Resgate",
+        "placa": "RZM1J17",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "RZM2A07"
+        "nome": "Moto Resgate",
+        "placa": "RZM2A07",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "RZM2A97"
+        "nome": "Moto Resgate",
+        "placa": "RZM2A97",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "RZM2B47"
+        "nome": "Moto Resgate",
+        "placa": "RZM2B47",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "RZM2E97"
+        "nome": "Moto Resgate",
+        "placa": "RZM2E97",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "RZM2F57"
+        "nome": "Moto Resgate",
+        "placa": "RZM2F57",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "RZM2H37"
+        "nome": "Moto Resgate",
+        "placa": "RZM2H37",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "RZM4J67"
+        "nome": "Moto Resgate",
+        "placa": "RZM4J67",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "RZM5B17"
+        "nome": "Moto Resgate",
+        "placa": "RZM5B17",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "RZM8E76"
+        "nome": "Moto Resgate",
+        "placa": "RZM8E76",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "SNT5J55"
+        "nome": "Moto Resgate",
+        "placa": "SNT5J55",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "SNT5J95"
+        "nome": "Moto Resgate",
+        "placa": "SNT5J95",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "SNT7H84"
+        "nome": "Moto Resgate",
+        "placa": "SNT7H84",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "SNT8I13"
+        "nome": "Moto Resgate",
+        "placa": "SNT8I13",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Honda XRE 300",
-        "placa": "SNU3H04"
+        "nome": "Moto Resgate",
+        "placa": "SNU3H04",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Honda XRE 300",
-        "placa": "SNU4I52"
+        "nome": "Moto Resgate",
+        "placa": "SNU4I52",
+        "situacao": "Ativa"
       },
       {
         "modelo": "YAMAHA XTZ 250 LANDER",
-        "placa": "SOI5B61"
+        "nome": "Moto Resgate",
+        "placa": "SOI5B61",
+        "situacao": "Ativa"
       },
       {
         "modelo": "YAMAHA XTZ 250 LANDER",
-        "placa": "SOI5B81"
+        "nome": "Moto Resgate",
+        "placa": "SOI5B81",
+        "situacao": "Ativa"
       },
       {
         "modelo": "YAMAHA XTZ 250 LANDER",
-        "placa": "SOI5C01"
+        "nome": "Moto Resgate",
+        "placa": "SOI5C01",
+        "situacao": "Ativa"
       },
       {
         "modelo": "YAMAHA XTZ 250 LANDER",
-        "placa": "SOI5C81"
+        "nome": "Moto Resgate",
+        "placa": "SOI5C81",
+        "situacao": "Ativa"
       },
       {
         "modelo": "YAMAHA XTZ 250 LANDER",
-        "placa": "SOI5D01"
+        "nome": "Moto Resgate",
+        "placa": "SOI5D01",
+        "situacao": "Ativa"
       },
       {
         "modelo": "YAMAHA XTZ 250 LANDER",
-        "placa": "SOI7F91"
+        "nome": "Moto Resgate",
+        "placa": "SOI7F91",
+        "situacao": "Ativa"
       },
       {
         "modelo": "YAMAHA XTZ 250 LANDER",
-        "placa": "SOI7H81"
+        "nome": "Moto Resgate",
+        "placa": "SOI7H81",
+        "situacao": "Ativa"
       },
       {
         "modelo": "YAMAHA XTZ 250 LANDER",
-        "placa": "SOI7I81"
+        "nome": "Moto Resgate",
+        "placa": "SOI7I81",
+        "situacao": "Ativa"
       },
       {
         "modelo": "YAMAHA XTZ 250 LANDER",
-        "placa": "SOI7J71"
+        "nome": "Moto Resgate",
+        "placa": "SOI7J71",
+        "situacao": "Ativa"
       },
       {
         "modelo": "YAMAHA XTZ 250 LANDER",
-        "placa": "SOI8B51"
+        "nome": "Moto Resgate",
+        "placa": "SOI8B51",
+        "situacao": "Ativa"
       },
       {
         "modelo": "YAMAHA XTZ 250 ABS",
-        "placa": "SOJ0A06"
+        "nome": "Moto Resgate",
+        "placa": "SOJ0A06",
+        "situacao": "Ativa"
       },
       {
         "modelo": "YAMAHA XTZ 250 ABS",
-        "placa": "SOJ0F36"
+        "nome": "Moto Resgate",
+        "placa": "SOJ0F36",
+        "situacao": "Ativa"
       },
       {
         "modelo": "YAMAHA XTZ 250 ABS",
-        "placa": "SOJ0G66"
+        "nome": "Moto Resgate",
+        "placa": "SOJ0G66",
+        "situacao": "Ativa"
       },
       {
         "modelo": "YAMAHA XTZ 250 ABS",
-        "placa": "SOJ9J65"
+        "nome": "Moto Resgate",
+        "placa": "SOJ9J65",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CC301 1E",
-        "placa": "PGP0554"
+        "nome": "Reboque",
+        "placa": "PGP0554",
+        "situacao": "Ativa"
       }
     ],
     "GBI": [
       {
         "modelo": "Volkswagen 17.280 MITREN",
-        "placa": "JAU3B85"
+        "nome": "Auto Bomba Tanque",
+        "placa": "JAU3B85",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen 17.280 MITREN",
-        "placa": "JAU3B86"
+        "nome": "Auto Bomba Tanque",
+        "placa": "JAU3B86",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen 17.280 MITREN",
-        "placa": "JAU3B88"
+        "nome": "Auto Bomba Tanque",
+        "placa": "JAU3B88",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen 17.280 MITREN",
-        "placa": "JAU3B90"
+        "nome": "Auto Bomba Tanque",
+        "placa": "JAU3B90",
+        "situacao": "Ativa"
       },
       {
         "modelo": "IVECO IVECO/TECTOR 170E28",
-        "placa": "PDJ1085"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PDJ1085",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen 17250",
-        "placa": "PEU6E80"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PEU6E80",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "Volvo VM 270 4X2R",
-        "placa": "PFF9A75"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PFF9A75",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volvo VM 270 4X2R",
-        "placa": "PFW5385"
+        "nome": "Auto Bomba Tanque",
+        "placa": "PFW5385",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "MERCEDES BENZ ATEGO 1729",
-        "placa": "QYE4754"
+        "nome": "Auto Bomba Tanque",
+        "placa": "QYE4754",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "SCANIA P-114 GA 320 4x2 NZ 2p",
-        "placa": "SOO5J80"
+        "nome": "Auto Bomba Tanque",
+        "placa": "SOO5J80",
+        "situacao": "Ativa"
       },
       {
         "modelo": "SCANIA P 360 6X4",
-        "placa": "SOT8I11"
+        "nome": "Auto Bomba Tanque",
+        "placa": "SOT8I11",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "RZK1G85"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "RZK1G85",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Mitsubishi MMC/L200 TRITON SPO GLSA",
-        "placa": "RZL4B86"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "RZL4B86",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "SOH1I40"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SOH1I40",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Ford Ranger XLT",
-        "placa": "PFL5727"
+        "nome": "Auto Comando Operacional",
+        "placa": "PFL5727",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Mitsubishi L200 TRITON SPT GL P",
-        "placa": "QYX9C99"
+        "nome": "Auto Comando Operacional",
+        "placa": "QYX9C99",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 Triton",
-        "placa": "SNU4J11"
+        "nome": "Auto Comando Operacional",
+        "placa": "SNU4J11",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCEDES BENZ I/M.BENZ ACTOS 4140K 8X4",
-        "placa": "KJX1487"
+        "nome": "Auto Plataforma",
+        "placa": "KJX1487",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Renault Master",
-        "placa": "SNR2D59"
+        "nome": "Auto Resgate",
+        "placa": "SNR2D59",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Fiat Argo Trekking 1.3",
-        "placa": "SOH0F62"
+        "nome": "Auto Serviço de Vistoria/1",
+        "placa": "SOH0F62",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen Constellation 24-250",
-        "placa": "KKD1251"
+        "nome": "Auto Tanque/1",
+        "placa": "KKD1251",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen Constellation 24-250",
-        "placa": "KKD1A61"
+        "nome": "Auto Tanque/1",
+        "placa": "KKD1A61",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Volkswagen Constellation 24-250",
-        "placa": "KKD1B91"
+        "nome": "Auto Tanque/1",
+        "placa": "KKD1B91",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCEDES BENZ L 1620",
-        "placa": "KKR7012"
+        "nome": "Auto Tanque/1",
+        "placa": "KKR7012",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "VOLVO VM 360 MITREN BOMB",
-        "placa": "UHZ3F60"
+        "nome": "Auto Tanque/1",
+        "placa": "UHZ3F60",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen Cam. 25.370 Constel",
-        "placa": "KKG4951"
+        "nome": "Auto Tanque/2",
+        "placa": "KKG4951",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Nissan Frontier",
-        "placa": "KGY1708"
+        "nome": "Auto Transporte de Material",
+        "placa": "KGY1708",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "FIAT STRADA HD W CC E",
-        "placa": "PDK9997"
+        "nome": "Auto Transporte de Material",
+        "placa": "PDK9997",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen Gol 1.6 City",
-        "placa": "KHM8987"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "KHM8987",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "FIAT UNO EVOLUTIO 1.4",
-        "placa": "PCB9850"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PCB9850",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "FIAT STRADA HD W CC E",
-        "placa": "PDK1997"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PDK1997",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FIAT UNO WAY 1.3 E 2017",
-        "placa": "PGX1831"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PGX1831",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Marcopolo VOLARE W9 ON",
-        "placa": "KJW4012"
+        "nome": "Auto Transporte de Pessoal/2",
+        "placa": "KJW4012",
+        "situacao": "Ativa"
       },
       {
         "modelo": "LCL 500 GPM SÉRIE 276",
-        "placa": "BIR0647"
+        "nome": "Bomba de Incêndio Rebocável",
+        "placa": "BIR0647",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "DB-300",
-        "placa": ""
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "DB-300",
-        "placa": ""
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Zefir F360",
-        "placa": "BIS0169"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0169",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "ZEFIR F360 de 3,6m",
-        "placa": "BIS0429"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0429",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "ZEFIR F360 de 3,6m",
-        "placa": "BIS0445"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0445",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "ZEFIR F360 de 3,6m",
-        "placa": "BIS0447"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0447",
+        "situacao": "Ativa"
       },
       {
         "modelo": "ZEFIR F360 de 3,6m",
-        "placa": "BIS0448"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0448",
+        "situacao": "Ativa"
       },
       {
         "modelo": "POLIMARINE RIB370, de 3,70m.",
-        "placa": "BIS0739"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0739",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "POLIMARINE RIB370, de 3,70m.",
-        "placa": "BIS0740"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0740",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "ZEFIR BOTE INFLAVEL GOLD F360",
-        "placa": "BIS0954"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0954",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HONDA NXR 160 BROS",
-        "placa": "PDQ9028"
+        "nome": "Moto Administrativa",
+        "placa": "PDQ9028",
+        "situacao": "Ativa"
       },
       {
         "modelo": "SEADOO GTI 170 S.",
-        "placa": ""
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "SEADOO GTI 170 S.",
-        "placa": ""
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Yamaha WR/X/700cc",
-        "placa": "BIS0170"
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "BIS0170",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "Yamaha VX-700, 80HP",
-        "placa": "MSA0613"
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "MSA0613",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "BRP SEADOO, VERSÃO SPARK 3UP 900HO",
-        "placa": "MSA0802"
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "MSA0802",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "HIDEA HD30FHS",
-        "placa": ""
+        "nome": "Motor de Popa",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HIDEA HD30FHS",
-        "placa": ""
+        "nome": "Motor de Popa",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Yamaha 25HP",
-        "placa": "MTP0475"
+        "nome": "Motor de Popa",
+        "placa": "MTP0475",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "MERCURY 25HP",
-        "placa": "MTP0503"
+        "nome": "Motor de Popa",
+        "placa": "MTP0503",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "MERCURY 40 HP Super",
-        "placa": "MTP0578"
+        "nome": "Motor de Popa",
+        "placa": "MTP0578",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "MERCURY 40 HP Super",
-        "placa": "MTP0581"
+        "nome": "Motor de Popa",
+        "placa": "MTP0581",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "MERCURY 25HP - 2 Tempos",
-        "placa": "MTP0700"
+        "nome": "Motor de Popa",
+        "placa": "MTP0700",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "MERCURY 25HP - 2 Tempos",
-        "placa": "MTP0710"
+        "nome": "Motor de Popa",
+        "placa": "MTP0710",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "MERCURY 25HP - 2 Tempos",
-        "placa": "MTP0711"
+        "nome": "Motor de Popa",
+        "placa": "MTP0711",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "TOYAMA 25HP - 2 Tempos",
-        "placa": "MTP0885"
+        "nome": "Motor de Popa",
+        "placa": "MTP0885",
+        "situacao": "Ativa"
       },
       {
         "modelo": "TOYAMA 25HP - 2 Tempos",
-        "placa": "MTP0886"
+        "nome": "Motor de Popa",
+        "placa": "MTP0886",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "TOYAMA 25HP - 2 Tempos",
-        "placa": "MTP0887"
+        "nome": "Motor de Popa",
+        "placa": "MTP0887",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "R/RUSSO CJ100 1 E",
-        "placa": "KGO5114"
+        "nome": "Reboque",
+        "placa": "KGO5114",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "R/RUSSO CJ100 1 E",
-        "placa": "KGP4214"
+        "nome": "Reboque",
+        "placa": "KGP4214",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "R/RUSSO CJ100 1 E",
-        "placa": "KGP4234"
+        "nome": "Reboque",
+        "placa": "KGP4234",
+        "situacao": "Ativa"
       },
       {
         "modelo": "KRONORTE SR/ KRONORTE ET2",
-        "placa": "KKH5905"
+        "nome": "Reboque",
+        "placa": "KKH5905",
+        "situacao": "Ativa"
       },
       {
         "modelo": "KRONORTE SR/ KRONORTE ET1",
-        "placa": "KKH5925"
+        "nome": "Reboque",
+        "placa": "KKH5925",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CC301 1E",
-        "placa": "PDC5311"
+        "nome": "Reboque",
+        "placa": "PDC5311",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "RUSSO R/RUSSO CC301 1E",
-        "placa": "PDC5421"
+        "nome": "Reboque",
+        "placa": "PDC5421",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "RUSSO R/RUSSO CC301 1E",
-        "placa": "PDC5461"
+        "nome": "Reboque",
+        "placa": "PDC5461",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "3,5 Metros",
-        "placa": "PFJ5288"
+        "nome": "Reboque",
+        "placa": "PFJ5288",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "4,4 Metros",
-        "placa": "PFJ5468"
+        "nome": "Reboque",
+        "placa": "PFJ5468",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "3,5 Metros",
-        "placa": "PFJ5518"
+        "nome": "Reboque",
+        "placa": "PFJ5518",
+        "situacao": "Ativa"
       },
       {
         "modelo": "4,4 Metros",
-        "placa": "PFJ5638"
+        "nome": "Reboque",
+        "placa": "PFJ5638",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "GAMMA TORRE DE ILUMINAÇÃO",
-        "placa": "PGU1850"
+        "nome": "Reboque",
+        "placa": "PGU1850",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "GAMMA TORRE DE ILUMINAÇÃO",
-        "placa": "PGU2030"
+        "nome": "Reboque",
+        "placa": "PGU2030",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "RUSSO R/RUSSO CR 1700 1E",
-        "placa": "QYR0G62"
+        "nome": "Reboque",
+        "placa": "QYR0G62",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CR 1700 1E",
-        "placa": "QYR0I32"
+        "nome": "Reboque",
+        "placa": "QYR0I32",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FREE HOBBY FH20",
-        "placa": "SNW3J12"
+        "nome": "Reboque",
+        "placa": "SNW3J12",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FREE HOBBY FH20",
-        "placa": "SNW6G45"
+        "nome": "Reboque",
+        "placa": "SNW6G45",
+        "situacao": "Ativa"
       },
       {
         "modelo": "R/RUSSO CR100",
-        "placa": "UHX8F43"
+        "nome": "Reboque",
+        "placa": "UHX8F43",
+        "situacao": "Ativa"
       },
       {
         "modelo": "R/RUSSO CR100",
-        "placa": "UHX8J53"
+        "nome": "Reboque",
+        "placa": "UHX8J53",
+        "situacao": "Ativa"
       }
     ],
     "GBMar": [
       {
         "modelo": "Chevrolet S10 LS DD4",
-        "placa": "QYQ7B01"
+        "nome": "Auto Comando Operacional",
+        "placa": "QYQ7B01",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "RZK2B37"
+        "nome": "Auto Comando Operacional",
+        "placa": "RZK2B37",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Mitsubishi L200 Triton",
-        "placa": "SNU5I90"
+        "nome": "Auto Comando Operacional",
+        "placa": "SNU5I90",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 Triton",
-        "placa": "SNU6A90"
+        "nome": "Auto Comando Operacional",
+        "placa": "SNU6A90",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi  L200 TRITON SPO GL",
-        "placa": "SNU6F10"
+        "nome": "Auto Comando Operacional",
+        "placa": "SNU6F10",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen Saveiro 1.8",
-        "placa": "KLT4452"
+        "nome": "Auto Transporte de Material",
+        "placa": "KLT4452",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen GOL",
-        "placa": "KLT4612"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "KLT4612",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FIAT UNO WAY 1.3 E 2017",
-        "placa": "PGX1941"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PGX1941",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Volkswagen POLO",
-        "placa": "SNO0D59"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "SNO0D59",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "VOLKSWAGEN POLO",
-        "placa": "UHM3I50"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "UHM3I50",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MARCOPOLO VOLARE V8 ON",
-        "placa": "PFA4576"
+        "nome": "Auto Transporte de Pessoal/2",
+        "placa": "PFA4576",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "MARCOPOLO VOLARE",
-        "placa": "SOV2B06"
+        "nome": "Auto Transporte de Pessoal/2",
+        "placa": "SOV2B06",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MARCOPOLO  VOLARE",
-        "placa": "SOV2D46"
+        "nome": "Auto Transporte de Pessoal/2",
+        "placa": "SOV2D46",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nautiflex BOTE INFLAVEL NXC412",
-        "placa": "BIS0856"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0856",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "EIRELI BARCO INFLAVEL",
-        "placa": "BIS0865"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0865",
+        "situacao": "Ativa"
       },
       {
         "modelo": "EIRELI BARCO INFLAVEL",
-        "placa": "BIS0866"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0866",
+        "situacao": "Ativa"
       },
       {
         "modelo": "ZEFIR BOTE INFLAVEL GOLD F360",
-        "placa": "BIS0945"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0945",
+        "situacao": "Ativa"
       },
       {
         "modelo": "ZEFIR BOTE INFLAVEL GOLD F360",
-        "placa": "BIS0946"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0946",
+        "situacao": "Ativa"
       },
       {
         "modelo": "ZEFIR BOTE INFLAVEL GOLD F360",
-        "placa": "BIS0948"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0948",
+        "situacao": "Ativa"
       },
       {
         "modelo": "ZEFIR BOTE INFLAVEL GOLD F360",
-        "placa": "BIS0949"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0949",
+        "situacao": "Ativa"
       },
       {
         "modelo": "ZEFIR BOTE INFLAVEL GOLD F360",
-        "placa": "BIS0950"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0950",
+        "situacao": "Ativa"
       },
       {
         "modelo": "NÁUTICA BD-300",
-        "placa": "BIS1024"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS1024",
+        "situacao": "Ativa"
       },
       {
         "modelo": "NÁUTICA  DB-300",
-        "placa": "BIS1025"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS1025",
+        "situacao": "Ativa"
       },
       {
         "modelo": "NAUTICA DB-300",
-        "placa": "BIS1026"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS1026",
+        "situacao": "Ativa"
       },
       {
         "modelo": "ECOMARINER / ALFA 500 OCEANIC 36",
-        "placa": "LSA0339"
+        "nome": "Lancha de Salvamento Aquático",
+        "placa": "LSA0339",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HONDA NXR 160 BROS",
-        "placa": "PGW6598"
+        "nome": "Moto Administrativa",
+        "placa": "PGW6598",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Honda XRE 300 ABS",
-        "placa": "SNT8F83"
+        "nome": "Moto Administrativa",
+        "placa": "SNT8F83",
+        "situacao": "Ativa"
       },
       {
         "modelo": "SEADOO GTI 170 S",
-        "placa": ""
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Seadoo GTI 170 S",
-        "placa": ""
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Seadoo GTI 170 S",
-        "placa": ""
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Seadoo GTI 170 S",
-        "placa": ""
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Seadoo GTI 170 S.",
-        "placa": ""
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Seadoo GTI 170 S",
-        "placa": ""
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Seadoo GTI 170 S",
-        "placa": ""
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Seadoo GTI 170 S.",
-        "placa": ""
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Seadoo GTI 170 S.",
-        "placa": ""
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Yamaha VX-700, 80HP",
-        "placa": "MSA0616"
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "MSA0616",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "BRP SEADOO, VERSÃO SPARK 3UP 900HO",
-        "placa": "MSA0798"
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "MSA0798",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "BRP SEADOO, VERSÃO SPARK 3UP 900HO",
-        "placa": "MSA0799"
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "MSA0799",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "BRP SEADOO, VERSÃO SPARK 3UP 900HO",
-        "placa": "MSA0800"
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "MSA0800",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "BRP SEADOO, VERSÃO SPARK 3UP 900HO",
-        "placa": "MSA0801"
+        "nome": "Moto de Salvamento Aquático",
+        "placa": "MSA0801",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "HIDEA HD30FHS",
-        "placa": ""
+        "nome": "Motor de Popa",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HIDEA HD30FHS",
-        "placa": ""
+        "nome": "Motor de Popa",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "HIDEA HD30FHS",
-        "placa": ""
+        "nome": "Motor de Popa",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Yamaha 25HP",
-        "placa": "MTP0477"
+        "nome": "Motor de Popa",
+        "placa": "MTP0477",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCURY 25HP - 2 Tempos",
-        "placa": "MTP0704"
+        "nome": "Motor de Popa",
+        "placa": "MTP0704",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "MERCURY 25HP - 2 Tempos",
-        "placa": "MTP0712"
+        "nome": "Motor de Popa",
+        "placa": "MTP0712",
+        "situacao": "Ativa"
       },
       {
         "modelo": "TOYAMA 25HP - 2 Tempos",
-        "placa": "MTP0879"
+        "nome": "Motor de Popa",
+        "placa": "MTP0879",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "TOYAMA 25HP - 2 Tempos",
-        "placa": "MTP0880"
+        "nome": "Motor de Popa",
+        "placa": "MTP0880",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "TOYAMA 25HP - 2 Tempos",
-        "placa": "MTP0881"
+        "nome": "Motor de Popa",
+        "placa": "MTP0881",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "TOYAMA 25HP - 2 Tempos",
-        "placa": "MTP0882"
+        "nome": "Motor de Popa",
+        "placa": "MTP0882",
+        "situacao": "Ativa"
       },
       {
         "modelo": "R/RUSSO CJ100 1 E",
-        "placa": "KGP4384"
+        "nome": "Reboque",
+        "placa": "KGP4384",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CC301 1E",
-        "placa": "PDC0951"
+        "nome": "Reboque",
+        "placa": "PDC0951",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CC301 1E",
-        "placa": "PDC4961"
+        "nome": "Reboque",
+        "placa": "PDC4961",
+        "situacao": "Ativa"
       },
       {
         "modelo": "4,4 Metros",
-        "placa": "PEW1209"
+        "nome": "Reboque",
+        "placa": "PEW1209",
+        "situacao": "Ativa"
       },
       {
         "modelo": "3,5 Metros",
-        "placa": "PFJ5548"
+        "nome": "Reboque",
+        "placa": "PFJ5548",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CR 1700 1E",
-        "placa": "QYR0G02"
+        "nome": "Reboque",
+        "placa": "QYR0G02",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CR 1700 1E",
-        "placa": "QYR0J12"
+        "nome": "Reboque",
+        "placa": "QYR0J12",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CR 1700 1E",
-        "placa": "QYR1A82"
+        "nome": "Reboque",
+        "placa": "QYR1A82",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "RUSSO R/RUSSO CR 1700 1E",
-        "placa": "QYR9J11"
+        "nome": "Reboque",
+        "placa": "QYR9J11",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FREE HOBBY FH20",
-        "placa": "SNX0D49"
+        "nome": "Reboque",
+        "placa": "SNX0D49",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FREE HOBBY FH20",
-        "placa": "SNX0F49"
+        "nome": "Reboque",
+        "placa": "SNX0F49",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FREE HOBBY FH20",
-        "placa": "SNX3C68"
+        "nome": "Reboque",
+        "placa": "SNX3C68",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FREE HOBBY FH20",
-        "placa": "SNX4H05"
+        "nome": "Reboque",
+        "placa": "SNX4H05",
+        "situacao": "Ativa"
       },
       {
         "modelo": null,
-        "placa": "SNX4I68"
+        "nome": "Reboque",
+        "placa": "SNX4I68",
+        "situacao": "Ativa"
       },
       {
         "modelo": null,
-        "placa": "SNX4J48"
+        "nome": "Reboque",
+        "placa": "SNX4J48",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FREE HOBBY FH20",
-        "placa": "SNX4J78"
+        "nome": "Reboque",
+        "placa": "SNX4J78",
+        "situacao": "Ativa"
       },
       {
         "modelo": null,
-        "placa": "SNX5A18"
+        "nome": "Reboque",
+        "placa": "SNX5A18",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FREE HOBBY FH20",
-        "placa": "SNX6I66"
+        "nome": "Reboque",
+        "placa": "SNX6I66",
+        "situacao": "Ativa"
       },
       {
         "modelo": "R/RUSSO CR100",
-        "placa": "UHX2B46"
+        "nome": "Reboque",
+        "placa": "UHX2B46",
+        "situacao": "Ativa"
       },
       {
         "modelo": "R/RUSSO CR100",
-        "placa": "UHX2E96"
+        "nome": "Reboque",
+        "placa": "UHX2E96",
+        "situacao": "Ativa"
       },
       {
         "modelo": "R/RUSSO CR100",
-        "placa": "UHX8H43"
+        "nome": "Reboque",
+        "placa": "UHX8H43",
+        "situacao": "Ativa"
       }
     ],
     "GBS": [
       {
         "modelo": "Chevrolet S10 LS DD4",
-        "placa": "QYQ7D01"
+        "nome": "Auto Busca e Salvamento Aquático",
+        "placa": "QYQ7D01",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Mitsubish L 200 Triton",
-        "placa": "SNU6A40"
+        "nome": "Auto Busca e Salvamento Aquático",
+        "placa": "SNU6A40",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Ford F350",
-        "placa": "KJM0675"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "KJM0675",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Ford F350",
-        "placa": "KJM1075"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "KJM1075",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Ford F250 XLT W21",
-        "placa": "KLH6127"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "KLH6127",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Ford F 4000 4X4 P",
-        "placa": "PDG2635"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "PDG2635",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Mitsubishi MMC/ L200 TRITON",
-        "placa": "QYW7E29"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "QYW7E29",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "RZK2B04"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "RZK2B04",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "RZK3D77"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "RZK3D77",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "Mitsubishi L200 Triton",
-        "placa": "SNU6B80"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SNU6B80",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "SOH1B80"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SOH1B80",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mitsubishi L200 TRITON GL",
-        "placa": "SOH1G80"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SOH1G80",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mercedez Benz Sprinter",
-        "placa": "SOM2J11"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SOM2J11",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mercedez Benz Sprinter",
-        "placa": "SOM4F91"
+        "nome": "Auto Busca e Salvamento Leve",
+        "placa": "SOM4F91",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Ford Caminhão/Cargo 815E",
-        "placa": "KJZ3275"
+        "nome": "Auto Busca e Salvamento Pesado",
+        "placa": "KJZ3275",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Ford Caminhão/Cargo 815E",
-        "placa": "KJZ3855"
+        "nome": "Auto Busca e Salvamento Pesado",
+        "placa": "KJZ3855",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Volkswagen VW/11.180 BMB DRC 4X4",
-        "placa": "RZO3H77"
+        "nome": "Auto Busca e Salvamento Pesado",
+        "placa": "RZO3H77",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Nissan Frontier ATK X4",
-        "placa": "JCI7F18"
+        "nome": "Auto Busca e Salvamento com Cães",
+        "placa": "JCI7F18",
+        "situacao": "Ativa"
       },
       {
         "modelo": "CHEVROLET S-10 LT DD4A",
-        "placa": "PBW0I17"
+        "nome": "Auto Busca e Salvamento com Cães",
+        "placa": "PBW0I17",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Ford F250 XLT W21",
-        "placa": "KLH6027"
+        "nome": "Auto Comando Operacional",
+        "placa": "KLH6027",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "YAMMAR SOUTH MINI ESCAVADEIRA COM ESTEIRA DE BORRACHA VIO17- RPR NOVA VERSÃO SÉRIE: 17247/ MOTOR: X2701 ",
-        "placa": "CBM1033"
+        "nome": "Auto Plataforma",
+        "placa": "CBM1033",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCEDES BENZ 712 C",
-        "placa": "ILH0536"
+        "nome": "Auto Plataforma",
+        "placa": "ILH0536",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Volkswagen Saveiro CS",
-        "placa": "PGY7860"
+        "nome": "Auto Transporte de Material",
+        "placa": "PGY7860",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "FIAT UNO EVOLUTIO 1.4",
-        "placa": "PCB9770"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PCB9770",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Volkswagen POLO",
-        "placa": "SNO3A68"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "SNO3A68",
+        "situacao": "Devolvida"
       },
       {
         "modelo": "VOLKSWAGEN POLO",
-        "placa": "UHM5I95"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "UHM5I95",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MARCOPOLO VOLARE W9 ON",
-        "placa": "KKG5031"
+        "nome": "Auto Transporte de Pessoal/2",
+        "placa": "KKG5031",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Levefort Levefort",
-        "placa": "BSA0252"
+        "nome": "Barco de Salvamento em Alumínio",
+        "placa": "BSA0252",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Levefort",
-        "placa": "BSA0355"
+        "nome": "Barco de Salvamento em Alumínio",
+        "placa": "BSA0355",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Levefort",
-        "placa": "BSA0356"
+        "nome": "Barco de Salvamento em Alumínio",
+        "placa": "BSA0356",
+        "situacao": "Ativa"
       },
       {
         "modelo": "DB-300",
-        "placa": ""
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "ZEFIR F360 de 3,6m",
-        "placa": "BIS0426"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0426",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "ZEFIR F360 de 3,6m",
-        "placa": "BIS0430"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0430",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "ZEFIR F360 de 3,6m",
-        "placa": "BIS0431"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0431",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "SR de 5,5m",
-        "placa": "BIS0533"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0533",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "SR de 5,5m",
-        "placa": "BIS0603"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0603",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Starboat SR760 de 8 metros",
-        "placa": "BIS0607"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0607",
+        "situacao": "Ativa"
       },
       {
         "modelo": "CENTURY BARCO INFLAVEL",
-        "placa": "BIS0841"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0841",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "CENTURY BARCO INFLAVEL",
-        "placa": "BIS0842"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0842",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "CENTURY BARCO INFLAVEL",
-        "placa": "BIS0843"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0843",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "POLIMARINE BARCO INFLAVEL",
-        "placa": "BIS0850"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0850",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Nautiflex BOTE INFLAVEL NXC411",
-        "placa": "BIS0855"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0855",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "Nautiflex BOTE INFLAVEL NXC410",
-        "placa": "BIS0863"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0863",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "ZEFIR BOTE INFLAVEL GOLD F360",
-        "placa": "BIS0951"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0951",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "ZEFIR BOTE INFLAVEL GOLD F360",
-        "placa": "BIS0952"
+        "nome": "Bote Inflável de Salvamento",
+        "placa": "BIS0952",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Starboat SR760 de 8 metros",
-        "placa": "LSA0607"
+        "nome": "Lancha de Salvamento Aquático",
+        "placa": "LSA0607",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Starboat SR760 de 8 metros",
-        "placa": "LSA0610"
+        "nome": "Lancha de Salvamento Aquático",
+        "placa": "LSA0610",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "HONDA XRE 300",
-        "placa": "PED4876"
+        "nome": "Moto Administrativa",
+        "placa": "PED4876",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "HIDEA HD30FHS",
-        "placa": ""
+        "nome": "Motor de Popa",
+        "placa": "",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "MERCURY 40 HP Super",
-        "placa": ""
+        "nome": "Motor de Popa",
+        "placa": "",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCURY 25HP",
-        "placa": "MTP0476"
+        "nome": "Motor de Popa",
+        "placa": "MTP0476",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "MERCURY 25HP",
-        "placa": "MTP0478"
+        "nome": "Motor de Popa",
+        "placa": "MTP0478",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "MERCURY 25HP",
-        "placa": "MTP0493"
+        "nome": "Motor de Popa",
+        "placa": "MTP0493",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "MERCURY 25HP",
-        "placa": "MTP0505"
+        "nome": "Motor de Popa",
+        "placa": "MTP0505",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "MERCURY 135HP Super",
-        "placa": "MTP0573"
+        "nome": "Motor de Popa",
+        "placa": "MTP0573",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Yamaha 225HP",
-        "placa": "MTP0592"
+        "nome": "Motor de Popa",
+        "placa": "MTP0592",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "Yamaha 225HP Super",
-        "placa": "MTP0604"
+        "nome": "Motor de Popa",
+        "placa": "MTP0604",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Mercury 135HP Super",
-        "placa": "MTP0605"
+        "nome": "Motor de Popa",
+        "placa": "MTP0605",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Yamaha 5 HP",
-        "placa": "MTP0606"
+        "nome": "Motor de Popa",
+        "placa": "MTP0606",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "MERCURY 25HP - 2 Tempos",
-        "placa": "MTP0707"
+        "nome": "Motor de Popa",
+        "placa": "MTP0707",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCURY 25HP - 2 Tempos",
-        "placa": "MTP0708"
+        "nome": "Motor de Popa",
+        "placa": "MTP0708",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCURY 25HP - 2 Tempos",
-        "placa": "MTP0709"
+        "nome": "Motor de Popa",
+        "placa": "MTP0709",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCURY 25HP - 2 Tempos",
-        "placa": "MTP0717"
+        "nome": "Motor de Popa",
+        "placa": "MTP0717",
+        "situacao": "Ativa"
       },
       {
         "modelo": "MERCURY 25HP - 2 Tempos",
-        "placa": "MTP0718"
+        "nome": "Motor de Popa",
+        "placa": "MTP0718",
+        "situacao": "Ativa"
       },
       {
         "modelo": "TOYAMA 25HP - 2 Tempos",
-        "placa": "MTP0878"
+        "nome": "Motor de Popa",
+        "placa": "MTP0878",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "TOYAMA 25HP - 2 Tempos",
-        "placa": "MTP0883"
+        "nome": "Motor de Popa",
+        "placa": "MTP0883",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "REBOQUE",
-        "placa": "JKK8I58"
+        "nome": "Reboque",
+        "placa": "JKK8I58",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "R/RUSSO CJ100 1 E",
-        "placa": "KGP4114"
+        "nome": "Reboque",
+        "placa": "KGP4114",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "R/RONDON RD1 C",
-        "placa": "KKC4A25"
+        "nome": "Reboque",
+        "placa": "KKC4A25",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "RUSSO R/RUSSO CC301 1E",
-        "placa": "PDC5071"
+        "nome": "Reboque",
+        "placa": "PDC5071",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "RUSSO R/RUSSO CC301 1E",
-        "placa": "PDC5131"
+        "nome": "Reboque",
+        "placa": "PDC5131",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "5,5 Metros",
-        "placa": "PEP5581"
+        "nome": "Reboque",
+        "placa": "PEP5581",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO CR5052E",
-        "placa": "PEP5601"
+        "nome": "Reboque",
+        "placa": "PEP5601",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO CR5052E",
-        "placa": "PEY3501"
+        "nome": "Reboque",
+        "placa": "PEY3501",
+        "situacao": "Ativa"
       },
       {
         "modelo": "5,5 Metros",
-        "placa": "PFD5717"
+        "nome": "Reboque",
+        "placa": "PFD5717",
+        "situacao": "Ativa"
       },
       {
         "modelo": "5,5 Metros",
-        "placa": "PFD5757"
+        "nome": "Reboque",
+        "placa": "PFD5757",
+        "situacao": "Ativa"
       },
       {
         "modelo": "R/CHICOCIT T C FECHADA 1E",
-        "placa": "PFH5F65"
+        "nome": "Reboque",
+        "placa": "PFH5F65",
+        "situacao": "Ativa"
       },
       {
         "modelo": "3,5 Metros",
-        "placa": "PFJ5198"
+        "nome": "Reboque",
+        "placa": "PFJ5198",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "3,5 Metros",
-        "placa": "PFJ5368"
+        "nome": "Reboque",
+        "placa": "PFJ5368",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "3,5 Metros",
-        "placa": "PFJ5378"
+        "nome": "Reboque",
+        "placa": "PFJ5378",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "3,5 Metros",
-        "placa": "PFJ5398"
+        "nome": "Reboque",
+        "placa": "PFJ5398",
+        "situacao": "Processo de Desfazimento"
       },
       {
         "modelo": "3,5 Metros",
-        "placa": "PFJ5558"
+        "nome": "Reboque",
+        "placa": "PFJ5558",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CC301 1E",
-        "placa": "PGP0444"
+        "nome": "Reboque",
+        "placa": "PGP0444",
+        "situacao": "Ativa"
       },
       {
         "modelo": "GAMMA TORRE DE ILUMINAÇÃO",
-        "placa": "PGS5708"
+        "nome": "Reboque",
+        "placa": "PGS5708",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CR 1700 1E",
-        "placa": "QYR0E32"
+        "nome": "Reboque",
+        "placa": "QYR0E32",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CR 1700 1E",
-        "placa": "QYR0F62"
+        "nome": "Reboque",
+        "placa": "QYR0F62",
+        "situacao": "Ativa"
       },
       {
         "modelo": "RUSSO R/RUSSO CR 1700 1E",
-        "placa": "QYR0H22"
+        "nome": "Reboque",
+        "placa": "QYR0H22",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "RUSSO R/RUSSO CR 1700 1E",
-        "placa": "QYR0J42"
+        "nome": "Reboque",
+        "placa": "QYR0J42",
+        "situacao": "Ativa"
       },
       {
         "modelo": "COMPRESSOR/ R/MILTONBSB BRASILIA CA MILTONBSB BRASILIA CA",
-        "placa": "SBX2I56"
+        "nome": "Reboque",
+        "placa": "SBX2I56",
+        "situacao": "Manutenção"
       },
       {
         "modelo": "ALLMAND LEON HEIMER TORRE DE ILUMINAÇÃO",
-        "placa": "TDI0864"
+        "nome": "Reboque",
+        "placa": "TDI0864",
+        "situacao": "Ativa"
       }
     ],
     "GCG": [
       {
         "modelo": "FORD RANGER XLTCD4A32C",
-        "placa": "PBZ2B99"
+        "nome": "Auto Comando Operacional",
+        "placa": "PBZ2B99",
+        "situacao": "Ativa"
       },
       {
         "modelo": "FIAT LINEA HLX 1.8 DUAL",
-        "placa": "PFF0924"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PFF0924",
+        "situacao": "Descarregada"
       },
       {
         "modelo": "HONDA CIVIC LXS",
-        "placa": "PFT5F19"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "PFT5F19",
+        "situacao": "Ativa"
       },
       {
         "modelo": "Toyota Hilux",
-        "placa": "SOI0A30"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "SOI0A30",
+        "situacao": "Ativa"
       }
     ],
     "GSG": [
       {
         "modelo": "Mitsubishi L200 Triton",
-        "placa": "RZH3C19"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "RZH3C19",
+        "situacao": "Ativa"
       },
       {
         "modelo": "VOLKSWAGEN POLO",
-        "placa": "UHM3G90"
+        "nome": "Auto Transporte de Pessoal/1",
+        "placa": "UHM3G90",
+        "situacao": "Ativa"
       }
     ]
   }

@@ -50,9 +50,11 @@ function TabelaViaturas({ unidade, unidades }) {
         <table className="w-full min-w-[420px] border-collapse text-left">
           <thead className="sticky top-0 bg-card">
             <tr className="border-b border-border text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <th className="p-2.5 text-left">Nome</th>
               <th className="p-2.5 text-left">Placa</th>
               <th className="p-2.5 text-left">Modelo</th>
               <th className="p-2.5 text-left">OME</th>
+              <th className="p-2.5 text-left">Situação</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -62,9 +64,11 @@ function TabelaViaturas({ unidade, unidades }) {
                 onClick={() => abrirDetalhe(registro)}
                 className="cursor-pointer text-foreground/80 hover:bg-muted/40"
               >
+                <td className="whitespace-nowrap p-2.5">{registro.nome || "—"}</td>
                 <td className="whitespace-nowrap p-2.5">{registro.placa || "—"}</td>
                 <td className="whitespace-nowrap p-2.5">{registro.modelo || "—"}</td>
                 <td className="whitespace-nowrap p-2.5">{registro.ome || "—"}</td>
+                <td className="whitespace-nowrap p-2.5">{registro.situacao || "—"}</td>
               </tr>
             ))}
           </tbody>

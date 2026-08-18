@@ -21,7 +21,7 @@
     ]
   },
   "fonte": "Repercussão Financeira.xlsx, aba DIST_FUNCOES (CPPA) — planilha viva, em atualização contínua, cobertura parcial",
-  "gerado_em": "2026-08-17T17:36:50.059925+00:00",
+  "gerado_em": "2026-08-17T18:59:11.761764+00:00",
   "por_matricula": {
     "27098-9": [
       {
@@ -7449,19 +7449,17 @@
       "Secretaria e Apoio Administrativo - SAAdm": [
         "27098-9",
         "707345-3",
-        "707440-9",
-        "707441-7",
-        "707455-7",
-        "707468-9",
         "710045-0",
         "710234-8",
         "711319-6",
         "718088-8",
-        "725120-3",
-        "798104-0"
+        "725120-3"
       ]
     },
     "DGP": {
+      "Diretoria": [
+        "798020-5"
+      ],
       "Divisão de Ativos - DA": [
         "704006-7",
         "707211-2",
@@ -7485,8 +7483,7 @@
         "707242-2",
         "707244-9",
         "710301-8",
-        "725207-2",
-        "798020-5"
+        "725207-2"
       ],
       "Divisão de Normatização e Programas - DNP": [
         "704006-7",
@@ -7513,6 +7510,9 @@
       ]
     },
     "DJD": {
+      "Diretoria": [
+        "950743-4"
+      ],
       "Divisão de Justiça e Disciplina - Div. JD": [
         "707062-4",
         "707153-1",
@@ -7521,8 +7521,7 @@
         "725234-0"
       ],
       "Divisão de Planejamento de Justiça e Disciplina - DPJD": [
-        "704133-0",
-        "950743-4"
+        "704133-0"
       ],
       "Secretaria e Apoio Administrativo - SAAdm": [
         "707062-4",
@@ -7590,6 +7589,9 @@
       ]
     },
     "DPLAG": {
+      "Diretoria": [
+        "798013-2"
+      ],
       "Divisão Projetos e Captação de Recursos - DPCR": [
         "707094-2",
         "707163-9",
@@ -7603,8 +7605,7 @@
       ],
       "Divisão de Planejamento e Gestão Estratégica - DPGE": [
         "707437-9",
-        "710310-7",
-        "798013-2"
+        "710310-7"
       ],
       "Divisão de Tributação e Orçamento - DTO": [
         "707125-6",
@@ -7619,6 +7620,9 @@
       ]
     },
     "DTIC": {
+      "Diretoria": [
+        "798015-9"
+      ],
       "Divisão de Coordenação Técnica - DCT": [
         "707160-4",
         "710168-6",
@@ -7641,13 +7645,11 @@
       ],
       "Secretaria e Apoio Administrativo - SAAdm": [
         "710395-6",
-        "725149-1",
-        "798015-9"
+        "725149-1"
       ]
     },
     "DVP": {
       "Diretoria": [
-        "725175-0",
         "798017-5"
       ],
       "Divisão de Direitos": [
@@ -7876,10 +7878,7 @@
         "798304-2"
       ],
       "Comando": [
-        "707127-2",
-        "722063-4",
-        "725062-2",
-        "940333-7"
+        "798003-5"
       ],
       "Divisão Administrativa - DA": [
         "704022-9",
@@ -7957,16 +7956,13 @@
         "951021-4"
       ],
       "Secretaria e Apoio do Comando - SAC": [
-        "710003-5",
-        "711158-4",
+        "707127-2",
         "722063-4",
-        "726226-4",
-        "798101-5",
-        "950193-2"
+        "725062-2",
+        "940333-7"
       ],
       "Subcomando": [
-        "704109-8",
-        "798003-5"
+        "704109-8"
       ]
     },
     "GBMar": {
@@ -8062,9 +8058,7 @@
         "725322-2"
       ],
       "Comando": [
-        "707406-9",
-        "707459-0",
-        "718140-0"
+        "707459-0"
       ],
       "Divisão Administrativa - DA": [
         "707023-3",
@@ -8090,6 +8084,10 @@
         "718188-4",
         "722210-6",
         "723004-4"
+      ],
+      "Secretaria e Apoio do Comando - SAC": [
+        "707406-9",
+        "718140-0"
       ],
       "Subcomando": [
         "704096-2"
@@ -8181,8 +8179,7 @@
         "940458-9"
       ],
       "Comando": [
-        "707422-0",
-        "726010-5"
+        "707422-0"
       ],
       "Divisão Administrativa - DA": [
         "707246-5",
@@ -8211,6 +8208,9 @@
         "725035-5",
         "725194-7",
         "725321-4"
+      ],
+      "Secretaria e Apoio do Comando - SAC": [
+        "726010-5"
       ],
       "Subcomando": [
         "707443-3"

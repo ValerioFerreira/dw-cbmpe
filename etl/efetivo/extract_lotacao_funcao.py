@@ -87,6 +87,27 @@ PREFIXOS_COMANDO = [
     (re.compile(r"^diretor"), "diretor"),
 ]
 
+# Divisões de vaga única (1 comandante, 1 subcomandante, 1 diretor, 1
+# chefe) — só podem ser preenchidas pelas regras explícitas de prefixo
+# acima (ou pelo casamento "Chefe do/da {sigla}"), nunca pelas passagens
+# genéricas de substring/sobreposição de palavras nem pelo rollup na
+# árvore do QOD. Sem isso, texto como "Secretaria e Ajudância do Comando"
+# batia por conter a palavra solta "comando", e o rollup, ao não achar
+# nada mais específico, subia até a raiz "Diretoria"/"Comando" da árvore
+# e atribuía qualquer função não classificada a essas vagas de 1 pessoa —
+# bug relatado pelo usuário (mais gente que o previsto=1 em Comando/
+# Subcomando/Diretoria/Chefia).
+DIVISOES_SINGULARES = {"comando", "subcomando", "diretoria", "chefia"}
+
+
+def contem_palavra(maior, menor):
+    """Como `menor in maior`, mas exigindo borda de palavra — evita que
+    "comandante" seja considerado "contido" em "subcomandante" (são
+    palavras diferentes coladas, não um caso de substring válido)."""
+    if not menor or not maior:
+        return False
+    return re.search(r"\b" + re.escape(menor) + r"\b", maior) is not None
+
 
 def normalizar(s):
     s = str(s or "").strip()
@@ -185,8 +206,10 @@ def casar_divisao(funcao_texto, divisoes):
             return None
         melhores = []
         for divisao, variantes in candidatos:
+            if normalizar(divisao) in DIVISOES_SINGULARES:
+                continue  # só pelas regras explícitas de prefixo, mais abaixo
             for v in variantes:
-                if len(v) >= 4 and (v in texto_norm or texto_norm in v):
+                if len(v) >= 4 and (contem_palavra(texto_norm, v) or contem_palavra(v, texto_norm)):
                     melhores.append((len(v), divisao))
         if melhores:
             melhores.sort(reverse=True)
@@ -199,6 +222,30 @@ def casar_divisao(funcao_texto, divisoes):
     achado = tenta(core_hint)
     if achado:
         return achado
+
+    # Regras especiais pra comando/subcomando/diretoria (função não cita o
+    # nome da divisão, só o cargo de topo da própria unidade) — testadas
+    # ANTES do fallback fuzzy de sobreposição de palavras, de propósito:
+    # são bem mais precisas (a função tem que começar literalmente com
+    # "Comandante"/"Subcomandante"/"Diretor(a)") do que a heurística
+    # abaixo, que pode empatar por engano quando o título do diretor cita
+    # o próprio domínio da unidade (ex. "Diretor(a) de Justiça e
+    # Disciplina" tem sobreposição de palavras tão forte com "Divisão de
+    # Justiça e Disciplina" quanto com "Divisão de Planejamento de Justiça
+    # e Disciplina" — só a regra de prefixo sabe que é o cargo de Diretor).
+    for padrao, prefixo in PREFIXOS_COMANDO:
+        if padrao.match(core):
+            for divisao, variantes in candidatos:
+                if any(v.startswith(prefixo) for v in variantes):
+                    return divisao
+
+    # "Chefe do/da {sigla da própria unidade}" (ex. "Chefe do GCG") — cargo
+    # de topo da unidade, mapeia pra divisão "Chefia" quando existir.
+    m = re.match(r"^chefe d[oae]\s+(.+)$", core)
+    if m and len(m.group(1)) <= 6:
+        for divisao, variantes in candidatos:
+            if any(v.startswith("chefia") for v in variantes):
+                return divisao
 
     # Fallback por sobreposição de palavras (não exige substring exata) —
     # cobre casos como "Transporte, Serviços e Telemática" vs "Transporte,
@@ -223,26 +270,7 @@ def casar_divisao(funcao_texto, divisoes):
             return melhores[0][2]
         return None
 
-    achado = tenta_tokens(core)
-    if achado:
-        return achado
-
-    # Regras especiais pra comando/subcomando/diretoria (função não cita o
-    # nome da divisão, só o cargo de topo da própria unidade).
-    for padrao, prefixo in PREFIXOS_COMANDO:
-        if padrao.match(core):
-            for divisao, variantes in candidatos:
-                if any(v.startswith(prefixo) for v in variantes):
-                    return divisao
-
-    # "Chefe do/da {sigla da própria unidade}" (ex. "Chefe do GCG") — cargo
-    # de topo da unidade, mapeia pra divisão "Chefia" quando existir.
-    m = re.match(r"^chefe d[oae]\s+(.+)$", core)
-    if m and len(m.group(1)) <= 6:
-        for divisao, variantes in candidatos:
-            if any(v.startswith("chefia") for v in variantes):
-                return divisao
-    return None
+    return tenta_tokens(core)
 
 
 # sigla -> índice da aba de unidade no QOD (mesma tabela usada em
@@ -334,7 +362,7 @@ def construir_rollup_qod(sigla, wb_qod, divisoes):
         candidatos = []
         for no in nos:
             nucleo = normalizar(re.sub(r"\s*/\s*\S+\s*\([^)]*\)\s*$", "", no.titulo))
-            if len(nucleo) >= 4 and (nucleo in core or core in nucleo):
+            if len(nucleo) >= 4 and (contem_palavra(core, nucleo) or contem_palavra(nucleo, core)):
                 candidatos.append(no)
         if not candidatos:
             return None
@@ -343,7 +371,11 @@ def construir_rollup_qod(sigla, wb_qod, divisoes):
         no = candidatos[0]
         while no is not None:
             achado = casar_divisao(no.titulo, divisoes)
-            if achado:
+            # Nunca aceita rollup pousando numa vaga de 1 pessoa só (ver
+            # DIVISOES_SINGULARES) — só o casamento direto sobre o texto
+            # original da função (regras de prefixo em casar_divisao) pode
+            # preencher essas divisões.
+            if achado and normalizar(achado) not in DIVISOES_SINGULARES:
                 return achado
             no = no.pai
         return None
@@ -440,7 +472,7 @@ def casar_via_catalogo(funcao_texto, candidatos_catalogo):
             continue
         if alvo == core:
             melhores.append((1000, linha))
-        elif alvo in core or core in alvo:
+        elif contem_palavra(core, alvo) or contem_palavra(alvo, core):
             melhores.append((len(alvo), linha))
     if not melhores:
         return None
