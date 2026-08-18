@@ -3,10 +3,10 @@
     "omeId 41": 1
   },
   "fonte": "Neon (tabela Viatura, sincronizada do sistema de frotas via Windmill)",
-  "gerado_em": "2026-08-17T19:27:09.988786+00:00",
+  "gerado_em": "2026-08-18T14:44:42.895475+00:00",
   "por_unidade": {
     "1º GB": 47,
-    "2º GB": 66,
+    "2º GB": 67,
     "3º GB": 55,
     "4º GB": 51,
     "5º GB": 40,
@@ -27,7 +27,7 @@
     "CINT": 4,
     "CMAN": 11,
     "CPO": 1,
-    "DAS": 11,
+    "DAS": 10,
     "DEIP": 3,
     "DF": 4,
     "DGO": 5,

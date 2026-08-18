@@ -1149,6 +1149,253 @@ coisa:
   rodar antes do Windmill sincronizar quebraria — as colunas não
   existem no Neon ainda).
 
+### 2026-08-18 — Fluxo de acesso da tabela de Viaturas igualado ao de Efetivo; tabelas redesenhadas; NOME muda de definição
+
+**Resolvido**: o usuário rodou a extensão do Windmill preparada na sessão
+anterior — `ano` e `patrimonio` já estão no Neon, populados (confirmado
+via `information_schema.columns` + amostra: `id=1, placa=KJX1487,
+ano=2006, patrimonio=270600040`, batendo com o print da AP-32 que o
+usuário enviou). `etl/viaturas/extract_viaturas.py` passou a selecionar
+os dois e gravá-los em cada item de `viaturas_lista.json`; rodei contra o
+Neon real, 840 viaturas.
+
+**Pedido do usuário**: dois ajustes na tabela de Viaturas.
+
+1. **Fluxo de acesso igual ao de Efetivo**: a tabela de Viaturas abria
+   inline (toggle escondendo/mostrando) dentro de `Indicador.jsx`,
+   diferente do Efetivo, que navega pra uma página própria
+   (`/efetivo/:id`) com filtros por coluna e exportação Excel. Corrigido:
+   nova página `src/pages/ViaturaDetalhe.jsx` (rota `/viaturas/:id`),
+   mesmo padrão de `EfetivoDetalhe.jsx` — breadcrumb, unidade + subárvore
+   de subordinadas, filtro "funil" por coluna, paginação (10/20/50),
+   exportação `.xlsx`. O botão em `Indicador.jsx` virou um card-link
+   idêntico ao de Efetivo (antes era um botão de toggle). A
+   `TabelaViaturas` inline foi removida de `Indicador.jsx`.
+
+   Extraí o componente `FiltroColuna` (+ `passaFiltro`/`valorFiltro`) de
+   dentro de `EfetivoDetalhe.jsx` pra `src/components/ui/filtro-coluna.jsx`
+   — é lógica não-trivial (cálculo manual de posição do balão, corrigindo
+   o `html { zoom: 1.25 }` global) que agora as duas páginas
+   (Efetivo e Viaturas) reaproveitam, em vez de duplicar.
+
+   Clique numa linha continua abrindo `/em-construcao/:placa` (como o
+   Efetivo abre `/em-construcao/:matricula`) — a página de detalhamento
+   por viatura de verdade é o próximo passo, ver entrada abaixo.
+
+2. **Redesenho visual das duas tabelas** (Efetivo e Viaturas), com base em
+   dois prints de sistemas reais da corporação que o usuário enviou (um
+   sistema de ocorrências com cabeçalho rosa/claro e linhas espaçadas; e
+   uma listagem de viaturas do próprio sistema de frotas, com cabeçalho
+   branco em negrito, zebra striping e badges de status coloridos).
+   Decisão: manter a paleta de cores já usada no app (`--primary`,
+   `--muted` etc., pra não destoar do tema/dark-mode existente) mas
+   incorporar o que as duas referências fazem bem — cabeçalho com fundo
+   destacado (`bg-muted/70` + `backdrop-blur-sm`, sticky) e texto em
+   negrito, borda inferior mais forte (`border-b-2 border-primary/25`),
+   zebra striping nas linhas (`even:bg-muted/25`), hover mais visível
+   (`hover:bg-primary/10`), e mais espaçamento nas células
+   (`px-3 py-2.5`, antes `p-2.5`). Aplicado nas duas tabelas.
+
+   Novo componente `src/components/ui/badge-situacao.jsx` — badge com as
+   cores exatas pedidas pelo usuário: Ativa `#90EEB1`, Manutenção
+   `#9A0100` (texto branco, por contraste), Processo de Desfazimento
+   `#FBBE7F`. Os demais status (Descarregada, Devolvida) caem num badge
+   neutro (`--muted`), já que o usuário só especificou essas três cores.
+   Nota: a fonte de frotas já tem sua própria paleta em
+   `vehicle_status_types.color` (`Ativa #86efac`, `Manutenção #ef4444`,
+   `Processo de Desfazimento #fdba74`, entre outras) — deliberadamente
+   **não** usei essas cores, porque o usuário pediu cores específicas pro
+   app do DW.
+
+3. **NOME muda de definição**: era `vehicle_types.name` (nome por
+   extenso, ex. "Auto Bomba Tanque"); usuário quer o mesmo identificador
+   mostrado no sistema de frotas (ex. "AP-32", "AT/1-80") — confirmado
+   como `vehicle_types.acronym + "-" + vehicles.order_number`. Nenhum dos
+   dois campos estava sincronizado pro Neon. Preparei (**não rodei**) uma
+   extensão de `etl/viaturas/windmill-viaturas.py`: adiciona
+   `vt.acronym`/`v.order_number` ao SELECT da fonte e duas colunas novas
+   na tabela `Viatura` do Neon (`tipoAcronym`, `numeroOrdem`). Mesmo
+   motivo de sempre pra não rodar eu mesmo: é um `TRUNCATE` + reinserção
+   numa tabela Neon compartilhada — fica pro usuário publicar/rodar no
+   Windmill. Até lá, `extract_viaturas.py` continua usando `tipo` (nome
+   por extenso) como "nome", deliberadamente, pra não quebrar antes da
+   sincronização existir — depois de rodado, preciso voltar em
+   `extract_viaturas.py` pra trocar a fonte do campo "nome" (mesmo padrão
+   de duas etapas já usado com sucesso pra ano/patrimônio).
+
+**Colunas finais da tabela de Viaturas** (ordem pedida pelo usuário):
+Nome, OME, Placa, Patrimônio, Modelo, Ano, Situação (badge).
+
+### 2026-08-18 — Levantamento do DDL de frotas para a página de detalhamento por viatura (não implementado — aguardando confirmação)
+
+Usuário enviou um print de uma página de detalhamento de viatura de um
+sistema real da corporação (viatura "AP-32") e pediu que, ao clicar numa
+viatura na tabela, abra uma página semelhante — mas foi explícito: antes
+de implementar, revisar o DDL da fonte de frotas "card a card", entender
+o que dá pra mapear, e tirar dúvidas antes de desenhar o Windmill novo.
+Segue exatamente o `DW_PROCESSO_INTEGRACAO.md`: entender antes de
+desenhar. **Nada disso foi implementado ainda** — só investigação.
+
+Conectei na base de frotas (`10.193.1.252`) e listei todas as tabelas do
+schema `public` (antes só conhecíamos `vehicles`, `vehicle_types`,
+`omes`, `transfers`, `vehicle_statuses`, `vehicle_status_types` — a lista
+completa é bem maior: `fuel_transactions`, `license_categories`,
+`vehicle_destination_types`, `vehicle_document_types`,
+`vehicle_documents`, `vehicle_fuel_types`, `vehicle_maintenance_types`,
+`vehicle_maintenances`, `vehicle_observation_types`,
+`vehicle_observations`, `vehicle_ownership_types`, `reports_vehicles`,
+entre outras de infraestrutura do Rails/Active Storage/good_job que não
+interessam ao DW).
+
+**Card "Resumo" do print — mapeamento direto, sem ambiguidade**: OME
+(`transfers`/`omes`, já sincronizado), Posse
+(`vehicle_ownership_types.name` via `vehicles.vehicle_ownership_type_id`),
+Tipo (`vehicle_types.acronym`), Nº de Ordem (`vehicles.order_number`),
+Tipo de Combustível (`vehicle_fuel_types.name` via
+`vehicles.vehicle_fuel_type_id`), Ano/Marca/Placa/Modelo (já
+sincronizados).
+
+**Card "Outros" do print — mapeamento direto, sem ambiguidade**: Nº do
+Patrimônio (já sincronizado), Renavam (`vehicles.renavam`, não
+sincronizado), Destinação (`vehicle_destination_types.name` via
+`vehicles.vehicle_destination_type_id`), Rastreado?
+(`vehicles.is_tracked`, boolean), Chassis (`vehicles.chassis`, não
+sincronizado), Caracterizado? (`vehicles.is_characterized`, boolean),
+Categoria de Habilitação (`license_categories.code` via
+`vehicles.license_category_id`).
+
+**Widgets do topo do print — mapeamento com hipótese, a confirmar**:
+- **Odômetro / Último Abastecimento**: `fuel_transactions` tem
+  `vehicle_id, time, total_value, mileage` — a leitura mais recente por
+  veículo bate exatamente com o print (testei com o `vehicle_id=1`, que é
+  a própria AP-32 do print: `mileage=16200.0`, `total_value=981.61`,
+  `time=2025-09-05` — os três valores batem exatamente com "Odômetro
+  16.200 Km" e "Último Abastecimento R$ 981,61 · 05/09/2025"). Forte
+  indício de que a hipótese está certa, mas não pedi confirmação ainda.
+- **Saldo do Cartão**: não encontrei nenhum campo de saldo/limite em
+  nenhuma tabela — nem em `fuel_transactions` nem no `raw_data` (jsonb)
+  de cada transação (que tem campos tipo `cartao`, `condutor`, `valor`,
+  mas nenhum "saldo"). Consistente com o próprio print, que mostra
+  "Content missing" nesse widget — parece que nem o sistema de origem tem
+  esse dado disponível de forma confiável (provavelmente uma consulta ao
+  vivo à operadora do cartão, tipo Maxifrota, que falhou nesse caso).
+- **Condutores** (o print mostra "6"): não existe tabela de
+  condutores/motoristas no schema. Mas o `raw_data` jsonb de
+  `fuel_transactions` tem uma chave `condutor` (nome da pessoa que
+  abasteceu, vindo da operadora externa "Maxifrota") — hipótese: é a
+  contagem de condutores distintos que já abasteceram aquela viatura. Não
+  cheguei a confirmar comparando com o número real do print. Se for isso,
+  é dado potencialmente PII (nome de pessoa) dentro de um campo JSON de
+  texto livre vindo de fonte externa — mostrar só a contagem (como o
+  print já faz) evita expor nome, mas extrair exigiria parsear JSON linha
+  a linha, não é uma coluna normal.
+
+**Abas do print** (Abastecimentos, Documentos, Manutenções, Observações,
+Histórico) mapeiam para tabelas que já existem: `fuel_transactions`,
+`vehicle_documents`, `vehicle_maintenances`, `vehicle_observations`
+respectivamente; "Histórico" não ficou claro se é o histórico de status
+(`vehicle_statuses`) ou de transferências (`transfers`) ou os dois
+juntos.
+
+**Não avancei para desenhar o Windmill nem a página** — ficam pendentes
+as perguntas registradas em "Perguntas em aberto" abaixo, conforme
+pedido explícito do usuário de tirar dúvidas antes de desenhar qualquer
+integração nova.
+
+### 2026-08-18 — Respostas do usuário às dúvidas de DDL; página de ficha da viatura implementada (prepara Windmill, não roda)
+
+Usuário respondeu às 4 perguntas levantadas na entrada anterior:
+
+1. **Saldo do Cartão**: fica de fora por agora — usuário vai enviar depois
+   os detalhes de uma API externa da operadora do cartão de combustível.
+   Não implementado, não hardcoded como "Content missing" nem nada — o
+   widget simplesmente não existe na página.
+2. **Condutores**: seguir com a hipótese (contar `condutor` distintos no
+   `raw_data` de `fuel_transactions`), **mas com ressalva explícita** —
+   usuário pediu pra deixar registrado que ainda não foi formalmente
+   confirmado. Ressalva presente em três lugares: docstring do
+   `windmill-viaturas.py`, comentário em `extract_viaturas.py`, e um
+   ícone de "info" com tooltip no campo "Condutores" da própria UI
+   (`ViaturaFicha.jsx`).
+3. **Tabelas de lookup** (Posse, Destinação, Combustível, Categoria de
+   Habilitação): sincronizar só o texto já traduzido, denormalizado
+   direto na tabela `Viatura` do Neon — mesmo padrão já usado pra
+   tipo/status. Confirmado, sem criar tabelas de dimensão à parte.
+4. **Escopo das abas**: só "Detalhes" (cards Resumo + Outros) por
+   enquanto — Abastecimentos/Documentos/Manutenções/Observações/
+   Histórico ficam pra depois.
+
+**Implementado com essas respostas**:
+- `etl/viaturas/windmill-viaturas.py` — estendido (preparado, **não
+  rodado**, mesmo motivo de sempre) com todos os campos confirmados:
+  `renavam`, `chassis`, `rastreado`, `caracterizado`, `posse`,
+  `destinacao`, `combustivel`, `categoriaHabilitacao`, `odometro`,
+  `ultimoAbastecimentoValor`, `ultimoAbastecimentoData`, `condutores`.
+- `etl/viaturas/extract_viaturas.py` — ganhou uma terceira saída,
+  `src/data/real/viaturas_detalhe.json` (um registro por placa). Como as
+  colunas novas ainda não existem no Neon, a consulta correspondente
+  **checa `information_schema.columns` antes** e só roda se todas
+  existirem — testado rodando o script agora: gerou `viaturas.json`/
+  `viaturas_lista.json` normalmente e avisou
+  "`viaturas_detalhe.json` NÃO gerado — colunas ainda pendentes", sem
+  quebrar nada. Isso significa que, quando o usuário rodar o Windmill
+  estendido, basta rodar este script de novo — não preciso editar código
+  de novo (dispensa o padrão de "duas edições" usado antes pra
+  ano/patrimônio).
+- `src/pages/ViaturaFicha.jsx` (rota `/viatura/:placa`) — nova página,
+  clique numa linha da tabela de Viaturas agora abre ela (antes ia pra
+  `/em-construcao/:placa`). Cabeçalho com nome + badge de situação,
+  widgets de Odômetro e Último Abastecimento (sem Saldo do Cartão),
+  cards "Resumo" e "Outros" com todos os campos mapeados no DDL. Mostra
+  um estado de "pendente de sincronização" (via `EmptyState`) quando a
+  placa ainda não tem ficha em `viaturas_detalhe.json` — que é o caso de
+  **todas** as placas agora, já que o Windmill ainda não rodou; criei
+  `src/data/real/viaturas_detalhe.json` com `por_placa: {}` como
+  placeholder pra o import não quebrar o build antes da primeira geração
+  real. Verificado no navegador: mostra corretamente o estado pendente,
+  sem erros de console.
+
+**Pendência final**: usuário publica/roda a versão estendida de
+`windmill-viaturas.py` no Windmill → rodar `extract_viaturas.py` de novo
+→ a ficha passa a mostrar dado real automaticamente, sem mais mudança de
+código necessária.
+
+### 2026-08-18 — Windmill rodado: ficha da viatura e NOME=acronym-numeroOrdem ao vivo
+
+Usuário confirmou ter publicado/rodado a versão estendida de
+`windmill-viaturas.py`. Rodei `extract_viaturas.py` de novo — como
+desenhado, não precisei tocar em código pra `viaturas_detalhe.json`
+começar a sair: gerou 806 fichas de primeira (depois 805, ver abaixo).
+
+Duas coisas a mais, descobertas e corrigidas nesta passada de
+verificação antes do commit:
+
+- **Placa vazia/com espaço**: 2 das 806 fichas tinham `placa` vazia ("")
+  ou com espaço em branco ao redor (dado real da fonte — ex. embarcação
+  sem placa cadastrada). Isso quebraria a navegação `/viatura/:placa`
+  pra esse caso (URL vazia não bate com a rota). Corrigido em duas
+  pontas: `extract_viaturas.py` agora normaliza (`.strip()`) e **pula**
+  fichas sem placa (não tem como ter uma "ficha" endereçável sem placa);
+  `ViaturaDetalhe.jsx` não navega mais se a linha clicada não tiver
+  placa. Resultado: 805 fichas geradas, sem regressão visível (a viatura
+  sem placa já aparecia como "—" na coluna Placa da tabela, só não abria
+  mais um link quebrado ao clicar).
+- **NOME na lista principal (`viaturas_lista.json`) ainda não tinha
+  virado `tipoAcronym-numeroOrdem`** — essa troca dependia do mesmo
+  Windmill que só rodou agora; reordenei `extract_viaturas.py` pra
+  checar o schema do Neon **antes** da consulta principal (não só antes
+  da consulta da ficha) e trocar a fonte do "nome" automaticamente,
+  com fallback pro `tipo` por extenso se as colunas não existirem —
+  mesmo mecanismo de auto-detecção já usado pra `viaturas_detalhe.json`.
+  Verificado no navegador: coluna Nome da tabela de Viaturas agora
+  mostra "ATP/1-086L", "ACO-001" etc., e a ficha de uma viatura
+  (`/viatura/PBZ2B99`, ACO-001 do GCG) mostra todos os campos populados
+  com dado real (Odômetro 4.905 Km, Último Abastecimento R$ 98,71 de
+  14/01/2026, Posse Próprio, Destinação Administrativo, Rastreado? Sim,
+  Condutores 40, etc.).
+
+Commit e push autorizados pelo usuário após essa verificação.
+
 ## Pendências práticas (não bloqueiam o planejamento, mas são pré-requisito de implementação)
 
 - **Workspace do Windmill**: ainda precisa ser criado pelo usuário
@@ -1190,6 +1437,20 @@ coisa:
   fontes** (core/marts + fontes originais simultaneamente): decisão de
   usar conexões diretas já feita, mas a configuração prática (quantas
   conexões, quais credenciais por fonte) fica pra fase de implementação.
+- **Página de detalhamento por viatura — pendências restantes** (as 4
+  dúvidas originais já foram respondidas pelo usuário e implementadas,
+  ver entrada de 2026-08-18 "Respostas do usuário às dúvidas de DDL"):
+  (1) usuário publica/roda a versão estendida de `windmill-viaturas.py`
+  no Windmill — depois disso, rodar `extract_viaturas.py` de novo já
+  basta pra ficha de cada viatura aparecer com dado real; (2) Condutores
+  continua com ressalva explícita — o número calculado (contagem de
+  `condutor` distintos no `raw_data` de `fuel_transactions`) ainda não
+  foi comparado/confirmado contra um caso real conhecido; (3) Saldo do
+  Cartão fica de fora até o usuário enviar os detalhes de uma API
+  externa da operadora do cartão de combustível; (4) as demais abas do
+  print de referência (Abastecimentos, Documentos, Manutenções,
+  Observações, Histórico) ficam fora de escopo por decisão do usuário —
+  só "Detalhes" (Resumo + Outros) foi implementado.
 
 ## Roadmap por fases
 

@@ -1,18 +1,15 @@
 import React from "react";
-import { createPortal } from "react-dom";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
-import { ChevronRight, Users, Filter, ShieldAlert, Download } from "lucide-react";
+import { ChevronRight, Users, ShieldAlert, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useCbmpe } from "@/lib/cbmpe-context";
 import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import { getCaminho, getSubordinados, fmtNumero } from "@/lib/cbmpe";
-import { Checkbox } from "@/components/ui/checkbox";
 import EmptyState from "@/components/ui/empty-state";
 import SectionCard from "@/components/ui/section-card";
+import { FiltroColuna, passaFiltro, valorFiltro } from "@/components/ui/filtro-coluna";
 import efetivoLista from "@/data/real/efetivo_lista.json";
 import lotacaoFuncao from "@/data/real/lotacao_funcao.json";
-
-const LARGURA_PAINEL_FILTRO = 256;
 
 const TAMANHOS_PAGINA = [10, 20, 50];
 
@@ -133,20 +130,6 @@ const COLUNAS_COMPLETAS = [
 // aplicado; só o funil daquela coluna some da vista).
 const TODAS_COLUNAS = [...COLUNAS_PRINCIPAIS, ...COLUNAS_COMPLETAS];
 
-function passaFiltro(valor, selecionado) {
-  if (!selecionado) return true;
-  return selecionado.has(valor);
-}
-
-// Valor de uma coluna pro filtro (checkboxes de valor único) — booleans
-// viram "Sim"/"Não" (mesma convenção de fmtCampoCompleto) em vez de
-// "true"/"false" cru, ausência vira "—".
-function valorFiltro(coluna, r) {
-  const b = coluna.bruto(r);
-  if (typeof b === "boolean") return b ? "Sim" : "Não";
-  return b === null || b === undefined || b === "" ? "—" : String(b);
-}
-
 // Formata uma data (ISO "aaaa-mm-dd" ou qualquer coisa que o Date entenda)
 // sempre em dd/mm/aaaa — lê o ISO por regex pra não sofrer de fuso horário
 // (new Date("aaaa-mm-dd") vira meia-noite UTC, que pode virar o dia
@@ -220,135 +203,11 @@ function calcularAgregados(registros, coluna, tipo) {
   return { contagem, distintos, soma, media, minimo, maximo };
 }
 
-// Dropdown de filtro de uma coluna — ícone de funil + painel com busca,
-// "Selecionar tudo"/"Limpar seleção" e lista de checkboxes. Posicionado
-// manualmente (via getBoundingClientRect do botão + portal), em vez de um
-// Popover/floating-ui automático — dentro desta tabela (cabeçalho sticky
-// + rolagem horizontal e vertical) o cálculo automático de posição
-// aparecia deslocado para a direita, às vezes fora da viewport; o cálculo
-// manual garante o balão sempre logo abaixo do funil, com clamp pra nunca
-// estourar a borda direita da tela.
-function FiltroColuna({ valoresDisponiveis, selecionado, onChange }) {
-  const [busca, setBusca] = React.useState("");
-  const [aberto, setAberto] = React.useState(false);
-  const [pos, setPos] = React.useState({ top: 0, left: 0 });
-  const botaoRef = React.useRef(null);
-  const painelRef = React.useRef(null);
-
-  function calcularPosicao() {
-    if (!botaoRef.current) return;
-    // `html { zoom: 1.25 }` (src/index.css) reescala a página inteira. Um
-    // elemento "position: fixed" dentro do <html> zoomado interpreta seu
-    // left/top NO ESPAÇO LOCAL (pré-zoom), mas getBoundingClientRect()/
-    // innerWidth sempre devolvem pixels reais (pós-zoom) — sem dividir
-    // pelo zoom aqui, o balão saía deslocado (o motivo original do bug
-    // relatado: aparecia bem mais à direita/embaixo do que devia).
-    const zoom = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
-    const r = botaoRef.current.getBoundingClientRect();
-    const larguraViewport = window.innerWidth / zoom;
-    const left = Math.min(
-      Math.max(8, r.left / zoom),
-      larguraViewport - LARGURA_PAINEL_FILTRO - 8
-    );
-    setPos({ top: r.bottom / zoom + 4, left });
-  }
-
-  function alternarAberto() {
-    if (!aberto) calcularPosicao();
-    setAberto((v) => !v);
-  }
-
-  React.useEffect(() => {
-    if (!aberto) return;
-    function aoClicarFora(e) {
-      if (painelRef.current?.contains(e.target) || botaoRef.current?.contains(e.target)) return;
-      setAberto(false);
-    }
-    function aoRolarOuRedimensionar() {
-      calcularPosicao();
-    }
-    document.addEventListener("mousedown", aoClicarFora);
-    window.addEventListener("scroll", aoRolarOuRedimensionar, true);
-    window.addEventListener("resize", aoRolarOuRedimensionar);
-    return () => {
-      document.removeEventListener("mousedown", aoClicarFora);
-      window.removeEventListener("scroll", aoRolarOuRedimensionar, true);
-      window.removeEventListener("resize", aoRolarOuRedimensionar);
-    };
-  }, [aberto]);
-
-  const visiveis = React.useMemo(() => {
-    const q = busca.trim().toLowerCase();
-    return q ? valoresDisponiveis.filter((v) => v.toLowerCase().includes(q)) : valoresDisponiveis;
-  }, [valoresDisponiveis, busca]);
-
-  function alternar(v) {
-    const base = selecionado ? new Set(selecionado) : new Set(valoresDisponiveis);
-    if (base.has(v)) base.delete(v); else base.add(v);
-    onChange(base);
-  }
-
-  const ativo = selecionado !== undefined;
-
-  return (
-    <>
-      <button
-        ref={botaoRef}
-        type="button"
-        onClick={(e) => { e.stopPropagation(); alternarAberto(); }}
-        aria-label="Filtrar coluna"
-        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded transition-colors ${
-          ativo ? "text-primary" : "text-muted-foreground/50 hover:text-foreground"
-        }`}
-      >
-        <Filter className="h-3 w-3" fill={ativo ? "currentColor" : "none"} />
-      </button>
-      {aberto && createPortal(
-        <div
-          ref={painelRef}
-          onClick={(e) => e.stopPropagation()}
-          style={{ position: "fixed", top: pos.top, left: pos.left, width: LARGURA_PAINEL_FILTRO }}
-          className="z-50 rounded-md border border-border bg-popover text-popover-foreground shadow-md normal-case tracking-normal"
-        >
-          <div className="border-b border-border p-2">
-            <input
-              autoFocus
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar valor"
-              className="h-7 w-full rounded-md border border-input bg-background px-2 text-[12px] outline-none focus:border-primary"
-            />
-          </div>
-          <div className="flex gap-3 border-b border-border p-2 text-[11px] font-medium text-primary">
-            <button type="button" onClick={() => onChange(undefined)}>Selecionar tudo</button>
-            <button type="button" onClick={() => onChange(new Set())}>Limpar seleção</button>
-          </div>
-          <div className="max-h-56 overflow-y-auto p-1">
-            {visiveis.map((v) => (
-              <label key={v} className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-[12px] hover:bg-muted/60">
-                <Checkbox
-                  checked={selecionado ? selecionado.has(v) : true}
-                  onCheckedChange={() => alternar(v)}
-                />
-                <span className="truncate">{v}</span>
-              </label>
-            ))}
-            {visiveis.length === 0 && (
-              <p className="px-2 py-3 text-center text-[11px] text-muted-foreground">Nenhum valor encontrado.</p>
-            )}
-          </div>
-        </div>,
-        document.body
-      )}
-    </>
-  );
-}
-
 // Cabeçalho de uma coluna: rótulo clicável (seleciona a coluna pros
 // agregadores), funil de filtro (só nas principais) e seletor de tipo.
 function CabecalhoColuna({ coluna, selecionada, onSelecionar, tipo, onTipo, filtro }) {
   return (
-    <th className={`p-2.5 text-left align-bottom ${selecionada ? "bg-primary/10" : ""}`}>
+    <th className={`px-3 py-2.5 text-left align-bottom ${selecionada ? "bg-primary/10" : ""}`}>
       <div className="flex items-center gap-1.5">
         <button
           type="button"
@@ -566,8 +425,8 @@ export default function EfetivoDetalhe() {
 
         <div className="max-h-[36rem] overflow-y-auto overflow-x-auto">
           <table className="w-full min-w-[760px] border-collapse text-left">
-            <thead className="sticky top-0 bg-card">
-              <tr className="border-b border-border text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <thead className="sticky top-0 z-10 bg-muted/70 backdrop-blur-sm">
+              <tr className="border-b-2 border-primary/25 text-[10.5px] font-bold uppercase tracking-wide text-foreground/70">
                 {colunasVisiveis.map((c) => (
                   <CabecalhoColuna
                     key={c.chave}
@@ -592,12 +451,12 @@ export default function EfetivoDetalhe() {
                 <tr
                   key={`${r.matricula}-${i}`}
                   onClick={() => abrirDetalhe(r)}
-                  className="cursor-pointer text-foreground/80 hover:bg-muted/40"
+                  className="cursor-pointer text-foreground/80 transition-colors even:bg-muted/25 hover:bg-primary/10"
                 >
                   {colunasVisiveis.map((c) => (
                     <td
                       key={c.chave}
-                      className={`p-2.5 ${c.quebrar ? "" : "whitespace-nowrap"} ${colunaSelecionada === c.chave ? "bg-primary/5" : ""}`}
+                      className={`px-3 py-2.5 ${c.quebrar ? "" : "whitespace-nowrap"} ${colunaSelecionada === c.chave ? "bg-primary/5" : ""}`}
                     >
                       {renderCelula(c, r, tiposColuna[c.chave] || c.tipoPadrao)}
                     </td>

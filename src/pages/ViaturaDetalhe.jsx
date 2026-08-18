@@ -1,0 +1,290 @@
+import React from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { ChevronRight, Car, ShieldAlert, Download } from "lucide-react";
+import * as XLSX from "xlsx";
+import { useCbmpe } from "@/lib/cbmpe-context";
+import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
+import { getCaminho, getSubordinados, fmtNumero } from "@/lib/cbmpe";
+import EmptyState from "@/components/ui/empty-state";
+import SectionCard from "@/components/ui/section-card";
+import BadgeSituacao from "@/components/ui/badge-situacao";
+import { FiltroColuna, passaFiltro, valorFiltro } from "@/components/ui/filtro-coluna";
+import viaturasLista from "@/data/real/viaturas_lista.json";
+
+const TAMANHOS_PAGINA = [10, 20, 50];
+
+// Ordem pedida pelo usuário (2026-08-18): Nome, OME, Placa, Patrimônio,
+// Modelo, Ano, Situação (com badge colorido).
+const COLUNAS = [
+  { chave: "nome", rotulo: "Nome", filtravel: true, bruto: (r) => r.nome || null },
+  { chave: "ome", rotulo: "OME", filtravel: true, bruto: (r) => r.ome || null },
+  { chave: "placa", rotulo: "Placa", filtravel: true, bruto: (r) => r.placa || null },
+  { chave: "patrimonio", rotulo: "Patrimônio", filtravel: true, bruto: (r) => r.patrimonio || null },
+  { chave: "modelo", rotulo: "Modelo", filtravel: true, quebrar: true, bruto: (r) => r.modelo || null },
+  { chave: "ano", rotulo: "Ano", filtravel: true, bruto: (r) => r.ano ?? null },
+  {
+    chave: "situacao", rotulo: "Situação", filtravel: true,
+    bruto: (r) => r.situacao || null,
+    especial: (r) => <BadgeSituacao situacao={r.situacao} />,
+  },
+];
+
+function renderCelula(coluna, registro) {
+  if (coluna.especial) return coluna.especial(registro);
+  const b = coluna.bruto(registro);
+  return b === null || b === undefined || b === "" ? "—" : String(b);
+}
+
+function valorExportacao(coluna, registro) {
+  const b = coluna.bruto(registro);
+  return b === null || b === undefined ? "" : b;
+}
+
+function sanitizarNomeArquivo(nome) {
+  return String(nome).replace(/[\\/:*?"<>|]/g, "-").trim();
+}
+
+export default function ViaturaDetalhe() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { indicadores, unidades, porId, loading } = useCbmpe();
+  const { permiteIndicador } = useAcessoUsuario();
+
+  const ind = indicadores.find((i) => i.id === id);
+  const unidade = ind ? porId[ind.unidade_id] : null;
+  const caminho = ind ? getCaminho(unidades, ind.unidade_id) : [];
+
+  const [filtros, setFiltros] = React.useState({});
+  const [pagina, setPagina] = React.useState(1);
+  const [tamanhoPagina, setTamanhoPagina] = React.useState(20);
+
+  // Unidade + toda a subárvore de subordinadas — mesmo princípio já usado
+  // no Efetivo (corrige unidades como COMANDO GERAL/SUBCOMANDO GERAL, que
+  // não têm viatura própria, só nas subordinadas).
+  const registrosBase = React.useMemo(() => {
+    if (!unidade) return [];
+    const siglas = [unidade.sigla, ...getSubordinados(unidades, unidade.id).map((u) => u.sigla)];
+    return siglas.flatMap((sigla) =>
+      (viaturasLista.por_unidade[sigla] || []).map((r) => ({ ...r, ome: sigla }))
+    );
+  }, [unidade, unidades]);
+
+  React.useEffect(() => {
+    setFiltros({});
+    setPagina(1);
+  }, [unidade?.id]);
+
+  const colunasFiltraveis = React.useMemo(() => COLUNAS.filter((c) => c.filtravel), []);
+
+  const valoresPorColuna = React.useMemo(() => {
+    const mapa = {};
+    colunasFiltraveis.forEach((alvo) => {
+      const outras = colunasFiltraveis.filter((c) => c.chave !== alvo.chave);
+      const base = registrosBase.filter((r) => outras.every((c) => passaFiltro(valorFiltro(c, r), filtros[c.chave])));
+      const unicos = [...new Set(base.map((r) => valorFiltro(alvo, r)))];
+      mapa[alvo.chave] = alvo.chave === "ano"
+        ? unicos.sort((a, b) => (a === "—" ? 1 : b === "—" ? -1 : Number(b) - Number(a)))
+        : unicos.sort((a, b) => a.localeCompare(b, "pt-BR"));
+    });
+    return mapa;
+  }, [registrosBase, filtros, colunasFiltraveis]);
+
+  const registrosFiltrados = React.useMemo(
+    () => registrosBase.filter((r) => colunasFiltraveis.every((c) => passaFiltro(valorFiltro(c, r), filtros[c.chave]))),
+    [registrosBase, filtros, colunasFiltraveis]
+  );
+
+  const filtroAtivo = Object.values(filtros).some((v) => v !== undefined);
+  const temSubordinadas = unidade ? getSubordinados(unidades, unidade.id).length > 0 : false;
+
+  React.useEffect(() => {
+    setPagina(1);
+  }, [filtros, tamanhoPagina]);
+
+  if (loading && !ind) return <div className="h-96 animate-pulse rounded-xl bg-muted/40" />;
+
+  if (!ind || ind.nome !== "Viaturas") {
+    return (
+      <EmptyState
+        icon={Car}
+        titulo="Indicador de Viaturas não encontrado"
+        acao={<Link to="/organograma" className="text-[13px] font-medium text-primary hover:underline">Voltar ao início</Link>}
+      />
+    );
+  }
+
+  if (!permiteIndicador(ind, unidade?.sigla)) {
+    return (
+      <EmptyState
+        icon={ShieldAlert}
+        titulo="Acesso restrito"
+        descricao="Seu usuário não tem permissão para ver os dados de viaturas desta unidade."
+        acao={<Link to="/organograma" className="text-[13px] font-medium text-primary hover:underline">Voltar ao organograma</Link>}
+      />
+    );
+  }
+
+  const totalPaginas = Math.max(1, Math.ceil(registrosFiltrados.length / tamanhoPagina));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const registrosPagina = registrosFiltrados.slice(
+    (paginaAtual - 1) * tamanhoPagina,
+    paginaAtual * tamanhoPagina
+  );
+
+  function abrirDetalhe(registro) {
+    const placa = (registro.placa || "").trim();
+    if (!placa) return; // sem placa cadastrada na fonte (ex. embarcação/reboque) — sem ficha pra abrir
+    navigate(`/viatura/${encodeURIComponent(placa)}`);
+  }
+
+  function exportarExcel() {
+    const linhas = registrosFiltrados.map((r) =>
+      Object.fromEntries(COLUNAS.map((c) => [c.rotulo, valorExportacao(c, r)]))
+    );
+    const planilha = XLSX.utils.json_to_sheet(linhas);
+    const livro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(livro, planilha, "Viaturas");
+    const nomeUnidade = sanitizarNomeArquivo(unidade?.sigla || unidade?.nome || "Unidade");
+    XLSX.writeFile(livro, `Viaturas - ${nomeUnidade}.xlsx`);
+  }
+
+  return (
+    <div className="space-y-3 animate-fade-in">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+        <Link to="/organograma" className="hover:text-foreground">Organograma</Link>
+        <ChevronRight className="h-3 w-3" />
+        {caminho.map((c) => (
+          <span key={c.id} className="inline-flex items-center gap-1.5">
+            <Link to={`/diretoria/${c.id}`} className="hover:text-foreground">{c.sigla || c.nome}</Link>
+            <ChevronRight className="h-3 w-3" />
+          </span>
+        ))}
+        <Link to={`/indicador/${ind.id}`} className="hover:text-foreground">Viaturas</Link>
+        <ChevronRight className="h-3 w-3" />
+        <span className="text-foreground">Detalhamento</span>
+      </div>
+
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/8 text-primary">
+            <Car className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">Viaturas da OME</h1>
+            <p className="mt-0.5 text-[13px] text-muted-foreground">
+              {unidade?.nome}{temSubordinadas ? " + unidades vinculadas" : ""}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={exportarExcel}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-[12px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          <Download className="h-3.5 w-3.5" /> Exportar Excel
+        </button>
+      </div>
+
+      <SectionCard semPadding>
+        <div className="flex items-baseline gap-2 border-b border-border px-4 py-3">
+          <span className="font-display text-xl font-semibold tracking-tight text-foreground tabular-nums">
+            Total: {fmtNumero(registrosBase.length)}
+          </span>
+          {filtroAtivo && (
+            <span className="font-display text-xl font-semibold tracking-tight text-foreground tabular-nums">
+              / Filtrados: {fmtNumero(registrosFiltrados.length)}
+            </span>
+          )}
+        </div>
+
+        <div className="max-h-[36rem] overflow-y-auto overflow-x-auto">
+          <table className="w-full min-w-[720px] border-collapse text-left">
+            <thead className="sticky top-0 z-10 bg-muted/70 backdrop-blur-sm">
+              <tr className="border-b-2 border-primary/25 text-[10.5px] font-bold uppercase tracking-wide text-foreground/70">
+                {COLUNAS.map((c) => (
+                  <th key={c.chave} className="px-3 py-2.5 text-left align-bottom">
+                    <div className="flex items-center gap-1.5">
+                      <span>{c.rotulo}</span>
+                      {c.filtravel && (
+                        <FiltroColuna
+                          valoresDisponiveis={valoresPorColuna[c.chave] || []}
+                          selecionado={filtros[c.chave]}
+                          onChange={(next) => setFiltros((prev) => ({ ...prev, [c.chave]: next }))}
+                        />
+                      )}
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {registrosPagina.map((r, i) => (
+                <tr
+                  key={`${r.placa}-${i}`}
+                  onClick={() => abrirDetalhe(r)}
+                  className="cursor-pointer text-foreground/80 transition-colors even:bg-muted/25 hover:bg-primary/10"
+                >
+                  {COLUNAS.map((c) => (
+                    <td key={c.chave} className={`px-3 py-2.5 ${c.quebrar ? "" : "whitespace-nowrap"}`}>
+                      {renderCelula(c, r)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+              {registrosPagina.length === 0 && (
+                <tr>
+                  <td colSpan={COLUNAS.length} className="p-4 text-center text-[12px] text-muted-foreground">
+                    Nenhuma viatura encontrada com esses filtros.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </SectionCard>
+
+      {/* Paginação — fora da tabela, centralizada embaixo. */}
+      <div className="flex flex-col items-center gap-2 pt-1 sm:flex-row sm:justify-center sm:gap-6">
+        <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+          <span>Exibir</span>
+          {TAMANHOS_PAGINA.map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setTamanhoPagina(n)}
+              className={`h-6 min-w-[1.75rem] rounded-md px-1.5 text-[12px] font-medium transition-colors ${
+                tamanhoPagina === n
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-input bg-background text-foreground hover:bg-muted"
+              }`}
+            >
+              {n}
+            </button>
+          ))}
+          <span>registros</span>
+        </div>
+        <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+          <button
+            type="button"
+            disabled={paginaAtual <= 1}
+            onClick={() => setPagina((p) => Math.max(1, p - 1))}
+            className="rounded-md border border-input px-2.5 py-1 disabled:opacity-40"
+          >
+            Anterior
+          </button>
+          <span>Página {paginaAtual} de {totalPaginas}</span>
+          <button
+            type="button"
+            disabled={paginaAtual >= totalPaginas}
+            onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+            className="rounded-md border border-input px-2.5 py-1 disabled:opacity-40"
+          >
+            Próxima
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
