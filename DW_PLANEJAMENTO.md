@@ -20,6 +20,47 @@
   trabalhamos toda vez que uma nova fonte de dados é integrada ao DW.
   **Leitura obrigatória antes de propor qualquer integração de fonte.**
 
+## Estado atual — onde retomar (atualizado 2026-08-19)
+
+Ponto de retomada rápido (o log de decisões completo fica mais abaixo). Todo
+o trabalho está commitado e no `origin/main` — último commit `24760ec`.
+
+**O que já está no ar (app estático na Vercel, lendo JSON de `src/data/real/`):**
+- **Efetivo** real por unidade (Neon, tabela `Militar`): KPIs, tabela
+  detalhada (`/efetivo/:id`) com filtros estilo planilha, colunas
+  redimensionáveis, ordenação por antiguidade, e ficha por militar
+  (`/militar/:matricula`) — **só campos não sensíveis** (Caminho A).
+- **Viaturas** real (Neon, sync da Frota): tabela (`/viaturas/:id`) e ficha
+  por placa (`/viatura/:placa`).
+- **Finanças** real por unidade (Neon).
+- **Materiais** e **Atividades Específicas**: "Em construção" (sem dado).
+- Organograma com protótipo de níveis de acesso (localStorage, sem auth
+  real) — ver `src/lib/accessControl.js`.
+
+**Próximos passos concretos (em aberto, ver [Perguntas em aberto](#perguntas-em-aberto)):**
+1. **Conexão ao SGP** (`ovrsgp`) — host/credenciais/rede a partir do
+   Windmill. É o bloqueador pra escrever/rodar o `windmill-sgp.py` e
+   engatilhar o **Caminho B** (ficha completa do militar atrás de auth real).
+2. **Remover dado sensível já público**: `racaCor`, `pcd` e telefones no
+   `efetivo_lista.json` (painel "Verificar dados completos") contradizem o
+   denylist do Caminho A — remover num próximo passo, confirmando com o
+   usuário.
+3. Fontes externas por domínio ainda a levantar (objetivo 1).
+
+**Para rodar/retomar noutra máquina:**
+- `npm install` && `npm run dev` (Vite, porta 5173).
+- **`.env.local` é gitignored** — recriar com `DATABASE_URL_EFETIVO`,
+  `DATABASE_URL_VIATURAS`, `DATABASE_URL_FINANCAS` (connection strings do
+  Neon) pra rodar os extratores em `etl/`. Sem isso o app ainda funciona
+  (lê os JSON já commitados); só a reextração precisa delas.
+- **`ddl-sgp.sql`** (schema do SGP) foi compartilhado pelo usuário e **não
+  está no repositório** (fica no Desktop da máquina original). As tabelas
+  relevantes estão resumidas em `DW_MODELO_DADOS.md`.
+- Os scripts `etl/**/windmill-*.py` **não são rodados pelo Claude** — o
+  usuário publica/roda no Windmill (fazem TRUNCATE+insert em tabelas Neon
+  compartilhadas). Os `extract_*.py` locais são seguros (só SELECT + geram
+  JSON).
+
 ## Contexto e objetivo
 
 O `dw-cbmpe` hoje é uma SPA React+Vite estática, sem backend, rodando sobre
