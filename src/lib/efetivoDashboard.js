@@ -61,6 +61,29 @@ export function omesDaCidade(nomeCidade) {
   return Object.entries(CIDADE_POR_OME).filter(([, cidade]) => cidade === nomeCidade).map(([ome]) => ome);
 }
 
+// De-para sigla curta (usada em militares.json/carreira_extra.json, ex.
+// "CG", "1ºGB", "DInter/1") -> sigla real de efetivo_lista.json/por_unidade
+// (ex. "COMANDO GERAL", "1º GB", "DINTER I") — os dois datasets nasceram de
+// extrações diferentes e não compartilham a mesma convenção de nome de OME.
+// Sem essa tradução, todo drill-down por OME (mapa, barras, fatias) que
+// aponta pra tabela real de Efetivo silenciosamente não encontrava ninguém
+// nas OMEs cuja grafia diverge — o caso mais visível era Comandante/
+// Subcomandante Geral (QCG, Recife), mas o problema valia pra quase todo GB
+// e CAT. Bug encontrado e corrigido em 2026-08-19 (ver DW_PLANEJAMENTO.md).
+const OME_SIGLA_REAL = {
+  CG: "COMANDO GERAL", SG: "SUBCOMANDO GERAL",
+  DIEsp: "DIESP", DPlaG: "DPLAG", DLog: "DLOG",
+  "DInter/1": "DINTER I", "DInter/2": "DINTER II",
+  "1ºGB": "1º GB", "2ºGB": "2º GB", "3ºGB": "3º GB", "4ºGB": "4º GB",
+  "5ºGB": "5º GB", "6ºGB": "6º GB", "7ºGB": "7º GB", "9ºGB": "9º GB",
+  AjG: "AJG", CInt: "CINT", CMan: "CMAN",
+  "CAT Zona da Mata": "CAT/ZM", "CAT Sertão": "CAT/SE", "CAT Agreste": "CAT/AG",
+};
+
+export function omeSiglaReal(sigla) {
+  return OME_SIGLA_REAL[sigla] || sigla;
+}
+
 export function groupCount(arr, keyFn) {
   const m = new Map();
   arr.forEach((r) => {
@@ -133,8 +156,9 @@ export function linkEfetivoTabela(indId, params) {
       if (valor.max !== undefined && valor.max !== null) sp.set(`${chave}Max`, String(valor.max));
       return;
     }
-    const lista = Array.isArray(valor) ? valor : [valor];
-    if (lista.length === 0) return;
+    const listaBruta = Array.isArray(valor) ? valor : [valor];
+    if (listaBruta.length === 0) return;
+    const lista = chave === "ome" ? listaBruta.map(omeSiglaReal) : listaBruta;
     sp.set(chave, lista.join(","));
   });
   const qs = sp.toString();

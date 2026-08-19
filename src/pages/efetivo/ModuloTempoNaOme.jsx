@@ -1,12 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown } from "lucide-react";
 import { fmtNumero } from "@/lib/cbmpe";
 import { linkEfetivoTabela } from "@/lib/efetivoDashboard";
 import SectionCard from "@/components/ui/section-card";
 import PanelGrafico from "@/components/charts/PanelGrafico";
 import MultiSelectFiltro from "@/components/ui/multi-select-filtro";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import efetivoLista from "@/data/real/efetivo_lista.json";
 
 // Painel 08 do handoff — 3 de 4 quadrantes prontos (carreira_extra.json,
@@ -52,52 +50,6 @@ const LINHAS_EFETIVO = (() => {
   return linhas;
 })();
 
-function RangeFiltro({ min, max, onApply, onClear }) {
-  const [minV, setMinV] = useState(min ?? "");
-  const [maxV, setMaxV] = useState(max ?? "");
-  const ativo = min !== null || max !== null;
-
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[12px] font-medium transition-colors ${
-            ativo ? "border-primary/40 bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
-          }`}
-        >
-          Anos na OME atual
-          {ativo && <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">{min ?? 0}–{max ?? "∞"}</span>}
-          <ChevronDown className="h-3.5 w-3.5" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-56 space-y-3" align="start">
-        <div className="flex items-center gap-2">
-          <input type="number" min="0" value={minV} onChange={(e) => setMinV(e.target.value)} placeholder="Mín."
-            className="h-8 w-full rounded-md border border-input bg-background px-2 text-[12px] outline-none focus:border-primary" />
-          <span className="text-muted-foreground">–</span>
-          <input type="number" min="0" value={maxV} onChange={(e) => setMaxV(e.target.value)} placeholder="Máx."
-            className="h-8 w-full rounded-md border border-input bg-background px-2 text-[12px] outline-none focus:border-primary" />
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => onApply(minV === "" ? null : Number(minV), maxV === "" ? null : Number(maxV))}
-            className="flex-1 rounded-md bg-primary px-2 py-1.5 text-[12px] font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            Aplicar
-          </button>
-          <button
-            onClick={() => { setMinV(""); setMaxV(""); onClear(); }}
-            className="flex-1 rounded-md border border-border px-2 py-1.5 text-[12px] font-medium text-muted-foreground hover:bg-muted"
-          >
-            Limpar
-          </button>
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
 function paramsAtuais({ postos, omes }) {
   const p = {};
   if (postos.size) p.postoGrad = [...postos];
@@ -109,35 +61,26 @@ export default function ModuloTempoNaOme({ indId, carreira }) {
   const navigate = useNavigate();
   const [postos, setPostos] = useState(new Set());
   const [omes, setOmes] = useState(new Set());
-  const [tempoMin, setTempoMin] = useState(null);
-  const [tempoMax, setTempoMax] = useState(null);
   const filtrosPostos = useMemo(() => [...new Set(carreira.map((r) => r.posto))].sort(), [carreira]);
   const filtrosOmes = useMemo(() => [...new Set(carreira.map((r) => r.ome))].sort(), [carreira]);
-
-  const dentroDoIntervalo = (t) =>
-    t !== null && t !== undefined &&
-    (tempoMin === null || t >= tempoMin) &&
-    (tempoMax === null || t <= tempoMax);
 
   const filtrados = useMemo(
     () => carreira.filter((r) =>
       (postos.size === 0 || postos.has(r.posto)) &&
-      (omes.size === 0 || omes.has(r.ome)) &&
-      dentroDoIntervalo(r.tempoOmeAnos)
+      (omes.size === 0 || omes.has(r.ome))
     ),
-    [carreira, postos, omes, tempoMin, tempoMax]
+    [carreira, postos, omes]
   );
 
   const linhasTabela = useMemo(
     () => LINHAS_EFETIVO.filter((r) =>
       (postos.size === 0 || postos.has(r.postoGrad)) &&
-      (omes.size === 0 || omes.has(r.ome)) &&
-      dentroDoIntervalo(r.tempoOmeAnos)
+      (omes.size === 0 || omes.has(r.ome))
     ),
-    [postos, omes, tempoMin, tempoMax]
+    [postos, omes]
   );
 
-  const filtroAtivo = postos.size > 0 || omes.size > 0 || tempoMin !== null || tempoMax !== null;
+  const filtroAtivo = postos.size > 0 || omes.size > 0;
   const base = paramsAtuais({ postos, omes });
 
   function irParaTabela(paramsExtra) {
@@ -169,10 +112,9 @@ export default function ModuloTempoNaOme({ indId, carreira }) {
       <div className="flex flex-wrap items-center gap-2">
         <MultiSelectFiltro label="Patente" valores={filtrosPostos} selecionado={postos} onChange={setPostos} />
         <MultiSelectFiltro label="OME" valores={filtrosOmes} selecionado={omes} onChange={setOmes} />
-        <RangeFiltro min={tempoMin} max={tempoMax} onApply={(mn, mx) => { setTempoMin(mn); setTempoMax(mx); }} onClear={() => { setTempoMin(null); setTempoMax(null); }} />
         {filtroAtivo && (
           <button
-            onClick={() => { setPostos(new Set()); setOmes(new Set()); setTempoMin(null); setTempoMax(null); }}
+            onClick={() => { setPostos(new Set()); setOmes(new Set()); }}
             className="text-[12px] font-medium text-muted-foreground hover:text-foreground"
           >
             Limpar filtros

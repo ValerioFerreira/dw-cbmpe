@@ -107,6 +107,7 @@ export default function EfetivoDashboard() {
           <Link
             key={m.key}
             to={`/efetivo/${ind.id}/dashboard/${m.key}`}
+            replace
             className={`rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors ${
               m.key === moduloInfo.key ? "border-primary/30 bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
             }`}
