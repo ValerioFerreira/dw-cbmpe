@@ -23,13 +23,24 @@
 ## Estado atual — onde retomar (atualizado 2026-08-19)
 
 Ponto de retomada rápido (o log de decisões completo fica mais abaixo). Todo
-o trabalho está commitado e no `origin/main` — último commit `24760ec`.
+o trabalho está commitado e no `origin/main` (ver `git log` pro hash mais
+recente — esta sessão trabalhou em mais de uma máquina, então não fixamos
+um hash aqui pra não ficar desatualizado).
 
 **O que já está no ar (app estático na Vercel, lendo JSON de `src/data/real/`):**
 - **Efetivo** real por unidade (Neon, tabela `Militar`): KPIs, tabela
   detalhada (`/efetivo/:id`) com filtros estilo planilha, colunas
   redimensionáveis, ordenação por antiguidade, e ficha por militar
   (`/militar/:matricula`) — **só campos não sensíveis** (Caminho A).
+- **Dashboard Pessoal de Efetivo** (`/efetivo/:id/dashboard/:modulo`, ver
+  `src/pages/efetivo/`), 6 de 9 módulos prontos: Efetivo Geral, Distribuição
+  Geográfica, Situações Funcionais, Militares Adidos (commit `a7fbb44`) +
+  **Acúmulo de Cargos e Militares PCD's (2026-08-19, ver log de decisões
+  abaixo)**. Módulos 07 (Movimentação e Carreira) e 08 (Tempo na OME)
+  parciais, dentro do protótipo `dashboards/01-efetivo-geral/` mas ainda não
+  portados pro app; módulo 09 (Intenção de Movimentação) não iniciado — os
+  três bloqueados por informação que só Igor tem, ver
+  [Perguntas em aberto](#perguntas-em-aberto).
 - **Viaturas** real (Neon, sync da Frota): tabela (`/viaturas/:id`) e ficha
   por placa (`/viatura/:placa`).
 - **Finanças** real por unidade (Neon).
@@ -38,14 +49,19 @@ o trabalho está commitado e no `origin/main` — último commit `24760ec`.
   real) — ver `src/lib/accessControl.js`.
 
 **Próximos passos concretos (em aberto, ver [Perguntas em aberto](#perguntas-em-aberto)):**
-1. **Conexão ao SGP** (`ovrsgp`) — host/credenciais/rede a partir do
+1. **Painéis 07/08/09 do Dashboard Pessoal** — aguardando respostas de Igor
+   (fonte de "Saída de militares", regra de "Previsão de saída", decisão de
+   PII na tabela do painel 08, export bruto + SQL de `cim_pedidos`/
+   `cim_atendidos` pro painel 09). Handoff completo em
+   `dashboards/01-efetivo-geral/HANDOFF-paineis-05-a-09.md`.
+2. **Conexão ao SGP** (`ovrsgp`) — host/credenciais/rede a partir do
    Windmill. É o bloqueador pra escrever/rodar o `windmill-sgp.py` e
    engatilhar o **Caminho B** (ficha completa do militar atrás de auth real).
-2. **Remover dado sensível já público**: `racaCor`, `pcd` e telefones no
+3. **Remover dado sensível já público**: `racaCor`, `pcd` e telefones no
    `efetivo_lista.json` (painel "Verificar dados completos") contradizem o
    denylist do Caminho A — remover num próximo passo, confirmando com o
    usuário.
-3. Fontes externas por domínio ainda a levantar (objetivo 1).
+4. Fontes externas por domínio ainda a levantar (objetivo 1).
 
 **Para rodar/retomar noutra máquina:**
 - `npm install` && `npm run dev` (Vite, porta 5173).
@@ -1593,6 +1609,81 @@ Verificado no navegador: `/militar/798007-8` renderiza "Cel ARARIPE" com só
 "Dados Funcionais" e "Situação Administrativa", sem nenhum campo sensível, e
 com o aviso de que o restante fica no acesso interno autenticado.
 
+### 2026-08-19 — Painéis 05 e 06 do "Dashboard Pessoal" inseridos; 07/08 parciais e 09 bloqueados (handoff do colaborador de BI)
+
+Um colaborador do projeto (Igor, apoiado por outra sessão do Code) está
+reproduzindo os painéis do Metabase num protótipo HTML/JS estático
+(`dashboards/01-efetivo-geral/`) antes da gente portar cada um pro app real
+— mesmo fluxo que já produziu os 4 primeiros módulos (Efetivo Geral,
+Distribuição Geográfica, Situações Funcionais, Militares Adidos, ver commit
+`a7fbb44`). Ele entregou um pacote (`handoff-paineis-05-a-09.zip`) com o
+handoff dos painéis 05-09, arquivado em
+`dashboards/01-efetivo-geral/HANDOFF-paineis-05-a-09.md` +
+`spec-05..08-*.json` + `carreira_extra.json` (dataset novo, 2.658 linhas
+sem PII, usado pelos painéis 07/08) + `template.html` atualizado.
+
+**Inseridos no app (prontos e validados 100% pelo protótipo, sem dado
+novo — os campos `pcd`/`acumuloCargos` já existiam em `militares.json`
+desde o painel 01):**
+- **Painel 05 — Acúmulo de Cargos** (`src/pages/efetivo/ModuloAcumuloCargos.jsx`,
+  chave `acumulo`): stat (24), donut por posto, barra por OME. Conferido
+  contra `efetivo_lista.json` (fonte independente) e bate exatamente com o
+  handoff em todos os números.
+- **Painel 06 — Militares PCD's** (`ModuloMilitaresPcd.jsx`, chave `pcd`):
+  stat (13), barra por OME (com TopN), donut por posto. Idem, bate exato.
+- Ambos seguem a mesma lógica/design dos 4 primeiros: filtros padrão
+  (Classe/Patente/OME/Sexo) via `useFiltrosEfetivo`, drill-down pra tabela
+  real de Efetivo via `linkEfetivoTabela` (verificado clicando: filtro
+  `postoGrad=Sd&pcd=Sim` → 7 linhas; `postoGrad=3ºSgt&acumuloCargos=<16
+  valores>` → 8 linhas — ambos batendo com o donut). Registrados em
+  `MODULOS_EFETIVO_DASHBOARD` (`src/lib/efetivoDashboard.js`) e no mapa
+  `COMPONENTES` de `EfetivoDashboard.jsx`.
+- Nota técnica: como `acumuloCargos` é texto livre (não booleano), o
+  drill-down desse painel passa a lista de todos os textos distintos como
+  filtro exato — funciona, mas gera uma URL longa. Aceitável pro volume
+  atual (16 valores distintos); se crescer muito, vale reconsiderar.
+
+**Bloqueados — dependem de resposta de Igor, não são um problema técnico
+nosso:**
+- **Painel 07 — Movimentação e Carreira**: 4 de 6 quadrantes prontos
+  (Movimentações por ano, Promoções por ano — com ressalva de que
+  `Militar.json` é snapshot vivo então anos recentes tendem a subir com o
+  tempo —, Ingresso de militares, Tempo de serviço). Faltam 2:
+  - **"Saída de militares"**: nenhuma fonte identificada (nem
+    `Militar.json` nem `peculio_metabase_v1` têm histórico de saída/
+    transferência por OME; o total do print, 1.218, é muito maior que os
+    45 inativos que existem hoje). **Preciso: SQL ou nome da tabela usada
+    no Metabase original para este card.**
+  - **"Previsão de saída"**: `reservaRequerimento`/`reservaCompulsoria` não
+    reproduzem os números do print isolados nem combinados. **Preciso: a
+    regra de negócio exata (campo + cálculo + corte temporal) usada no
+    Metabase.**
+- **Painel 08 — Tempo na OME**: 3 de 4 quadrantes prontos (Distribuição
+  geral, tempo médio Praças, tempo médio Oficiais — todos batendo exato
+  com `tempoObmAtualDias`). Falta 1:
+  - **Tabela nominal "Informações dos militares"** (Matrícula/Posto/Nome de
+    Guerra/OME/Tempo na OME): bloqueada por decisão de produto, não por
+    falta de dado — é PII. **Preciso decidir**: incluir matrícula/nome de
+    guerra (aceitando exposição) ou manter só Posto/OME/Tempo sem
+    identificação. Mesmo dilema já resolvido pra ficha do militar (ver
+    entrada de 2026-08-19 "Ficha do militar" acima — Caminho A/B); a
+    recomendação natural é aplicar o mesmo critério aqui: se a tabela for
+    pro app público sem login, seguir Caminho A (sem matrícula/nome).
+- **Painel 09 — Intenção de Movimentação**: não iniciado. Fonte é
+  genuinamente nova — duas tabelas Postgres (`cim_pedidos`,
+  `cim_atendidos`), sem sobreposição com `Militar`. **Preciso**: (1) export
+  bruto (linhas, não agregado) das duas tabelas; (2) reenvio das 8 consultas
+  SQL que Igor já passou uma vez (perdidas no resumo de contexto da outra
+  sessão — só os tópicos sobreviveram); (3) a fonte/SQL do card "Solicitações
+  por Posto e Graduação" (não tinha SQL correspondente entre as 8); (4)
+  confirmar se o campo "categoria" dessas tabelas equivale ao filtro
+  "Patente" usado nos outros painéis.
+
+Achado geral registrado (vale pra qualquer painel futuro com este
+protótipo): `tempoObmAtualDias` bate exato no painel 08 (população inteira)
+mas diverge no subconjunto de Adidos do painel 04 — ainda sem explicação,
+mesma pendência já registrada quando o painel 04 foi inserido.
+
 ## Pendências práticas (não bloqueiam o planejamento, mas são pré-requisito de implementação)
 
 - **Workspace do Windmill**: ainda precisa ser criado pelo usuário
@@ -1607,6 +1698,12 @@ com o aviso de que o restante fica no acesso interno autenticado.
 
 ## Perguntas em aberto
 
+- **Painéis 07/08/09 do Dashboard Pessoal (Efetivo)** — 3 pedidos formais a
+  Igor, ver entrada de decisão 2026-08-19 acima: (1) fonte/SQL de "Saída de
+  militares" e regra de "Previsão de saída" (painel 07); (2) decisão sobre
+  incluir matrícula/nome de guerra na tabela nominal do painel 08 (PII); (3)
+  export bruto de `cim_pedidos`/`cim_atendidos` + reenvio das 8 consultas
+  SQL + fonte do card "Solicitações por Posto e Graduação" (painel 09).
 - **Conexão ao SGP (`ovrsgp`)**: host, credenciais e alcance de rede a
   partir do Windmill — necessários pra escrever/rodar o `windmill-sgp.py`
   que engatilha o Caminho B da ficha do militar (histórico de promoção/

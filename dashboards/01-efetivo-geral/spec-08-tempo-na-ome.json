@@ -1,0 +1,72 @@
+{
+  "dashboardName": "Dashboard Pessoal",
+  "tabName": "Tempo na OME",
+  "status": "parcialmente_prototipado",
+  "note": "Mesmo index.html dos demais painéis (aba própria, com filtros de Posto/Graduação e Anos na OME atual). 3 de 4 quadrantes construídos e validados; 1 (tabela nominal) aguardando decisão de Igor sobre incluir dado pessoal identificável no protótipo.",
+  "audience": "DGP e gestores de efetivo",
+  "objective": "Mostrar há quanto tempo cada militar está na OME atual, de forma agregada e (opcionalmente) nominal.",
+  "mainQuestion": "Há quanto tempo os militares estão na unidade atual, em geral e por posto?",
+  "dataSources": [
+    {
+      "source": "Militar.json (upload de Igor, 2026-08-18/19)",
+      "role": "fonte_dos_3_quadrantes_construidos",
+      "description": "Campo tempoObmAtualDias (dias exatos desde a última movimentação) — validado como muito preciso para esta aba: bate exatamente com o print em TODOS os buckets do quadrante geral e nas médias por posto. Isso é diferente do que vimos no painel 04 (Militares Adidos), onde o mesmo campo divergiu bastante do print só para o subconjunto de adidos — ver achado no spec-04. Extraído sem PII para carreira_extra.json (mesmo arquivo do painel 07).",
+      "fieldsUsed": ["postoGrad", "ome", "tempoObmAtualDias"]
+    },
+    {
+      "source": "Militar.json — campos ainda não extraídos para o protótipo",
+      "role": "bloqueio_do_quadrante_tabela",
+      "description": "matricula e nomeGuerra existem no arquivo mas não foram usados — ver gap de PII abaixo.",
+      "fieldsUsed": ["matricula", "nomeGuerra"]
+    }
+  ],
+  "filters": [
+    { "id": "posto5", "field": "posto_grad", "type": "multiselect", "label": "Posto/Graduação" },
+    { "id": "tempo5", "field": "tempoOmeAnos", "type": "range", "label": "Anos na OME atual" }
+  ],
+  "cards": [
+    {
+      "id": "tabela_informacoes_militares",
+      "type": "table",
+      "title": "Informações dos militares",
+      "columns": ["Matrícula", "Posto/Graduação", "Nome de Guerra", "OME", "Tempo na OME atual"],
+      "status": "bloqueado_decisao_pendente",
+      "gap": "Matrícula e Nome de Guerra são dado pessoal identificável (PII). Desde o painel 01, este protótipo deliberadamente NÃO embute PII no HTML (o arquivo fica com os dados em texto puro, mais fácil de circular do que o Metabase autenticado). Preciso da decisão de Igor: incluir matrícula/nome de guerra mesmo assim (aceitando o risco), ou manter a tabela só com Posto/Graduação, OME e Tempo na OME atual (sem identificação individual)?"
+    },
+    {
+      "id": "bar_tempo_ome_dist",
+      "type": "bar",
+      "title": "Distribuição por tempo na OME atual",
+      "groupBy": "tempoOmeAnos (bucket: 0-1/2/3/4/5/6/7+ anos)",
+      "status": "construido",
+      "validatedAgainst": "Bate exatamente com o print em todos os 7 buckets (1.076/162/157/131/214/126/792 = 2.658). Nenhum registro sem dado (diferente do painel 04)."
+    },
+    {
+      "id": "bar_tempo_medio_pracas",
+      "type": "bar",
+      "title": "Tempo médio de permanência em OMEs - Praças",
+      "groupBy": "posto_grad (Subten/1ºSgt/2ºSgt/3ºSgt/Cb/Sd)",
+      "metric": "avg(tempoOmeAnos), truncado para inteiro",
+      "status": "construido",
+      "validatedAgainst": "Bate exatamente com o print (Subten 6, 1ºSgt 18, 2ºSgt 13, 3ºSgt 7, Cb 5, Sd 2)."
+    },
+    {
+      "id": "bar_tempo_medio_oficiais",
+      "type": "bar",
+      "title": "Tempo médio de permanência em OMEs - Oficiais",
+      "groupBy": "posto_grad (Cel/Ten Cel/Maj QOC/Maj QOA/Cap QOA/1ºTen QOC/1ºTen QOA/2ºTen QOC/2ºTen QOA)",
+      "metric": "avg(tempoOmeAnos), truncado para inteiro",
+      "status": "construido",
+      "validatedAgainst": "Bate exatamente com o print (Cel 3, Ten Cel 1, Maj QOC 2, Maj QOA 5, Cap QOA 2, 1ºTen QOC 2, 1ºTen QOA 2, 2ºTen QOC 1, 2ºTen QOA 2). Nota: Cap QOC tem 0 militares atualmente (mesmo déficit de 100% já registrado no painel 01) e Aspirante não aparece neste quadrante no print original — lista de postos replicada exatamente como observada, não pela regra genérica de categoria Oficiais/Praças do painel 01."
+    }
+  ],
+  "gaps": [
+    {
+      "id": "pii_tabela_nominal",
+      "description": "Tabela 'Informações dos militares' precisa de decisão explícita de Igor sobre incluir matrícula/nome de guerra.",
+      "impact": "Bloqueia 1 de 4 quadrantes desta aba.",
+      "ownedBy": "Igor — decisão de produto/segurança, não uma questão técnica"
+    }
+  ],
+  "validatedAgainst": "Print do Metabase enviado por Igor em 2026-08-19 + Militar.json. 3 de 4 quadrantes batem exatamente; 1 aguardando decisão sobre PII."
+}

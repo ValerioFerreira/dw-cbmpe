@@ -1,0 +1,24 @@
+{
+  "dashboardName": "Dashboard Pessoal",
+  "tabName": "Militares PCD's",
+  "status": "prototipado_validado",
+  "note": "Mesmo index.html dos demais painéis (aba própria, sem filtros — igual ao print de Igor).",
+  "audience": "DGP e gestores de efetivo",
+  "objective": "Mostrar quantos militares com deficiência (PCD) a corporação tem, de que posto e onde estão lotados.",
+  "mainQuestion": "Quantos militares PCD existem hoje, e como se distribuem por posto e por OME?",
+  "dataSources": [
+    {
+      "table": "peculio_metabase_v1",
+      "role": "fonte_do_prototipo",
+      "description": "Mesma base dos demais painéis (militares.json). Campo pcd (booleano) já extraído desde o painel 01 — nenhum dado novo foi necessário.",
+      "fieldsUsed": ["ome", "posto_grad", "pcd"]
+    }
+  ],
+  "cards": [
+    { "id": "stat_pcd", "type": "stat", "title": "PCD's", "metric": "count(pcd=true)", "status": "construido", "validatedAgainst": "13 — bate exatamente com o print." },
+    { "id": "bar_pcd_ome", "type": "bar", "title": "Distribuição de Militares PCD's", "groupBy": "ome", "sort": "value desc", "status": "construido", "validatedAgainst": "12 OMEs, todos os valores conferem 1:1 com o print (3ºGB 2, demais 1 cada = 13)." },
+    { "id": "donut_pcd_posto", "type": "donut", "title": "Militares PCD's por Posto/Graduação", "groupBy": "posto_grad", "status": "construido", "validatedAgainst": "Sd 7 (53,8%), Cb 4 (30,8%), 2ºTen QOC 2 (15,4%) — bate exatamente com os percentuais do print." }
+  ],
+  "gaps": [],
+  "validatedAgainst": "Print do Metabase enviado por Igor em 2026-08-19. Todos os 3 quadrantes batem exatamente — nenhum dado novo foi necessário."
+}

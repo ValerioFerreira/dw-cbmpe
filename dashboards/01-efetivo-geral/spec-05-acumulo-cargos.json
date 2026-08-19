@@ -1,0 +1,24 @@
+{
+  "dashboardName": "Dashboard Pessoal",
+  "tabName": "Militares com Acúmulo de Cargos",
+  "status": "prototipado_validado",
+  "note": "Mesmo index.html dos demais painéis (aba própria, sem filtros — igual ao print de Igor).",
+  "audience": "DGP e gestores de efetivo",
+  "objective": "Mostrar quantos militares acumulam outro cargo/função externa, quem são (posto) e onde estão lotados.",
+  "mainQuestion": "Quantos militares têm acúmulo de cargo registrado, e como se distribuem por posto e por OME?",
+  "dataSources": [
+    {
+      "table": "peculio_metabase_v1",
+      "role": "fonte_do_prototipo",
+      "description": "Mesma base dos demais painéis (militares.json). Campo acumuloCargos já extraído desde o painel 01 (texto livre com a função externa ou null) — nenhum dado novo foi necessário.",
+      "fieldsUsed": ["ome", "posto_grad", "acumulo_cargos"]
+    }
+  ],
+  "cards": [
+    { "id": "stat_acumulo", "type": "stat", "title": "Acúmulo de Cargos", "metric": "count(acumuloCargos is not null)", "status": "construido", "validatedAgainst": "24 — bate exatamente com o print." },
+    { "id": "donut_acumulo_posto", "type": "donut", "title": "Militares com Acúmulo de Cargos por Posto/Graduação", "groupBy": "posto_grad", "status": "construido", "validatedAgainst": "3ºSgt 8 (33,33%), Cb 7 (29,17%), Sd 5 (20,83%), 2ºSgt 3 (12,50%), 2ºTen QOC 1 (4,17%) — bate exatamente com os percentuais do print." },
+    { "id": "bar_acumulo_ome", "type": "bar", "title": "Distribuição de Militares com Acúmulo de Cargos", "groupBy": "ome", "sort": "value desc", "status": "construido", "validatedAgainst": "14 OMEs, todos os valores conferem 1:1 com o print (5ºGB 4, 4ºGB 3, CMan/GBS/7ºGB/1ºGB/GBMar 2 cada, demais 1 cada = 24)." }
+  ],
+  "gaps": [],
+  "validatedAgainst": "Print do Metabase enviado por Igor em 2026-08-19. Todos os 3 quadrantes batem exatamente — nenhum dado novo foi necessário, o campo já existia no protótipo desde o painel 01."
+}

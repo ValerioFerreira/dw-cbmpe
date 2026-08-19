@@ -202,11 +202,11 @@
     <div class="tab" data-tab="geo">Distribuição Geográfica</div>
     <div class="tab" data-tab="situacoes">Situações Funcionais</div>
     <div class="tab" data-tab="adidos">Militares Adidos</div>
-    <div class="tab disabled" title="Ainda não prototipado">Militares com Acúmulo de Cargos</div>
-    <div class="tab disabled" title="Ainda não prototipado">Militares PCD's</div>
-    <div class="tab disabled" title="Ainda não prototipado">Movimentação e Carreira</div>
-    <div class="tab disabled" title="Ainda não prototipado">Tempo na OME</div>
-    <div class="tab disabled" title="Ainda não prototipado">Intenção de Movimentação</div>
+    <div class="tab" data-tab="acumulo">Militares com Acúmulo de Cargos</div>
+    <div class="tab" data-tab="pcd">Militares PCD's</div>
+    <div class="tab" data-tab="carreira">Movimentação e Carreira</div>
+    <div class="tab" data-tab="tempoome">Tempo na OME</div>
+    <div class="tab disabled" title="Ainda não prototipado — aguardando fonte de dados (ver mensagem)">Intenção de Movimentação</div>
     <div class="tab disabled" title="Ainda não prototipado">Escolaridade do Efetivo</div>
   </div>
 
@@ -435,11 +435,121 @@
   </div>
   </div>
 
-  <div class="footer-note">
-    Protótipo de BI — CBMPE / DGP. Fonte: extrato de efetivo (<code>peculio_metabase_v1</code>) + quadro fixado (QOD agosto/2026).
-    Fórmulas de <b>Disponibilidade</b> e do agrupamento <b>OME → Região</b> replicam exatamente o SQL fornecido por Igor no Metabase.
-    A coluna <b>Efetivo previsto</b> da tabela de Posto/Graduação reflete o quadro fixado da corporação inteira — quando um filtro de OME
-    está ativo, previsto/déficit ficam indisponíveis (ainda não temos o quadro fixado por unidade extraído do QOD). Ver <code>spec.md</code> para detalhes e pendências.
+  <div class="tab-panel" id="panel-acumulo" data-panel="acumulo" style="display:none">
+  <div class="grid" id="grid5">
+    <div class="span-6" style="display:flex; flex-direction:column; gap:14px;">
+      <div class="card stat-card" style="min-height:96px;"><div class="accent"></div><div class="stat-body"><div class="stat-value" id="statAcumulo">–</div><div class="stat-label">Acúmulo de Cargos</div></div></div>
+      <div class="card" style="flex:1;">
+        <h3>Militares com Acúmulo de Cargos por Posto/Graduação</h3>
+        <div class="donut-wrap" id="donutAcumuloPosto"></div>
+      </div>
+    </div>
+    <div class="card span-6">
+      <h3>Distribuição de Militares com Acúmulo de Cargos</h3>
+      <div class="chart-scroll" id="chartAcumuloOme"></div>
+    </div>
+  </div>
+  </div>
+
+  <div class="tab-panel" id="panel-pcd" data-panel="pcd" style="display:none">
+  <div class="grid" id="grid6">
+    <div class="span-6" style="display:flex; flex-direction:column; gap:14px;">
+      <div class="card stat-card" style="min-height:96px;"><div class="accent"></div><div class="stat-body"><div class="stat-value" id="statPcd">–</div><div class="stat-label">PCD's</div></div></div>
+      <div class="card" style="flex:1;">
+        <h3>Distribuição de Militares PCD's</h3>
+        <div class="chart-scroll" id="chartPcdOme"></div>
+      </div>
+    </div>
+    <div class="card span-6">
+      <h3>Militares PCD's por Posto/Graduação</h3>
+      <div class="donut-wrap" id="donutPcdPosto"></div>
+    </div>
+  </div>
+  </div>
+
+  <div class="tab-panel" id="panel-carreira" data-panel="carreira" style="display:none">
+  <div class="grid" id="grid7">
+    <div class="card span-6">
+      <h3>Movimentações por ano</h3>
+      <div class="chart-scroll" id="chartMovimentacoesAno"></div>
+    </div>
+    <div class="card span-6">
+      <h3>Promoções por ano</h3>
+      <div class="chart-scroll" id="chartPromocoesAno"></div>
+    </div>
+    <div class="card span-6">
+      <h3>Ingresso de militares</h3>
+      <div class="chart-scroll" id="chartIngressoAno"></div>
+    </div>
+    <div class="card span-6">
+      <h3>Saída de militares</h3>
+      <div class="empty-state">Aguardando dado — não encontramos, na base atual (<code>Militar.json</code> ou <code>peculio_metabase_v1</code>), um campo ou tabela com histórico de saída/transferência por OME. O que temos é só o estado atual de cada militar (OME e data da movimentação mais recente), não um log histórico de saídas. Preciso entender qual fonte alimenta este quadrante no Metabase — SQL ou nome da tabela ajuda.</div>
+    </div>
+    <div class="card span-6">
+      <h3>Tempo de serviço em anos</h3>
+      <div class="chart-scroll" id="chartTempoServico"></div>
+    </div>
+    <div class="card span-6">
+      <h3>Previsão de saída</h3>
+      <div class="empty-state">Aguardando confirmação — <code>Militar.json</code> traz duas datas de reserva por militar (<code>reservaRequerimento</code> e <code>reservaCompulsoria</code>), mas nenhuma das duas bate com os anos/totais do print (nem isoladas nem combinadas). Preciso saber qual regra ou campo define "previsão de saída" neste quadrante.</div>
+    </div>
+  </div>
+  </div>
+
+  <div class="tab-panel" id="panel-tempoome" data-panel="tempoome" style="display:none">
+
+  <div class="filters">
+    <div class="filter-combo" id="posto5Combo">
+      <button class="filter-btn" id="posto5Btn" type="button">T Posto/Graduação <span class="count-badge" id="posto5Badge" style="display:none"></span> ▾</button>
+      <div class="filter-panel" id="posto5Panel">
+        <div class="filter-actions">
+          <button type="button" id="posto5SelectAll">Selecionar todas</button>
+          <button type="button" id="posto5Clear">Limpar</button>
+        </div>
+        <div id="posto5Options"></div>
+      </div>
+    </div>
+
+    <div class="filter-combo" id="tempo5Combo">
+      <button class="filter-btn" id="tempo5Btn" type="button">📅 Anos na OME atual <span class="count-badge" id="tempo5Badge" style="display:none"></span> ▾</button>
+      <div class="filter-panel" id="tempo5Panel" style="width:220px;">
+        <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-secondary);">
+          <label style="display:flex; flex-direction:column; gap:3px;">De
+            <input type="number" min="0" id="tempo5Min" class="filter-search" style="width:80px; margin-bottom:0;">
+          </label>
+          <label style="display:flex; flex-direction:column; gap:3px;">Até
+            <input type="number" min="0" id="tempo5Max" class="filter-search" style="width:80px; margin-bottom:0;">
+          </label>
+        </div>
+        <div class="filter-actions" style="margin-top:8px;">
+          <button type="button" id="tempo5Apply">Aplicar</button>
+          <button type="button" id="tempo5Clear">Limpar</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="clear-filters-btn" id="clearAllBtn5" type="button">Limpar todos os filtros</button>
+    <span class="active-note" id="activeNote5"></span>
+  </div>
+
+  <div class="grid" id="grid8">
+    <div class="card span-6">
+      <h3>Informações dos militares</h3>
+      <div class="empty-state">Preciso confirmar com você antes de montar esta tabela — no seu Metabase ela mostra Matrícula e Nome de Guerra por militar. O <code>Militar.json</code> tem esses campos, mas até agora este protótipo não inclui nenhum dado pessoal identificável (nome/matrícula), porque o HTML fica com os dados embutidos em texto puro e pode circular com mais facilidade do que o Metabase autenticado. Quer que eu inclua matrícula/nome de guerra mesmo assim, ou prefere a tabela sem identificação (Posto/Graduação, OME e Tempo na OME atual)?</div>
+    </div>
+    <div class="card span-6">
+      <h3>Distribuição por tempo na OME atual</h3>
+      <div class="chart-scroll" id="chartTempoOmeDist"></div>
+    </div>
+    <div class="card span-6">
+      <h3>Tempo médio de permanência em OMEs - Praças</h3>
+      <div class="chart-scroll" id="chartTempoOmePracas"></div>
+    </div>
+    <div class="card span-6">
+      <h3>Tempo médio de permanência em OMEs - Oficiais</h3>
+      <div class="chart-scroll" id="chartTempoOmeOficiais"></div>
+    </div>
+  </div>
   </div>
 </div>
 
@@ -448,6 +558,7 @@
 <script type="application/json" id="militares-data">##MILITARES_JSON##</script>
 <script type="application/json" id="previsto-data">##PREVISTO_JSON##</script>
 <script type="application/json" id="adidos-extra-data">##ADIDOS_EXTRA_JSON##</script>
+<script type="application/json" id="carreira-extra-data">##CARREIRA_EXTRA_JSON##</script>
 <script type="application/json" id="filtros-data">##FILTROS_JSON##</script>
 <script type="application/json" id="municipios-data">##MUNICIPIOS_JSON##</script>
 
@@ -455,12 +566,14 @@
 const MILITARES = JSON.parse(document.getElementById('militares-data').textContent);
 const PREVISTO = JSON.parse(document.getElementById('previsto-data').textContent);
 const ADIDOS_EXTRA = JSON.parse(document.getElementById('adidos-extra-data').textContent);
+const CARREIRA_EXTRA = JSON.parse(document.getElementById('carreira-extra-data').textContent);
 const FILTROS = JSON.parse(document.getElementById('filtros-data').textContent);
 const MUNICIPIOS = JSON.parse(document.getElementById('municipios-data').textContent);
 
 const state = { omes: new Set(), postos: new Set() };
 const state2 = { postos: new Set(), tempoMin: null, tempoMax: null };
 const state3 = { omes: new Set(), postos: new Set() };
+const state5 = { postos: new Set(), tempoMin: null, tempoMax: null };
 
 // ---------- tabs ----------
 document.querySelectorAll('.tab[data-tab]').forEach(tabEl => {
@@ -471,6 +584,10 @@ document.querySelectorAll('.tab[data-tab]').forEach(tabEl => {
     if (key === 'geo') refreshGeo();
     if (key === 'situacoes') refreshSituacoes();
     if (key === 'adidos') refreshAdidos();
+    if (key === 'acumulo') refreshAcumulo();
+    if (key === 'pcd') refreshPcd();
+    if (key === 'carreira') refreshCarreira();
+    if (key === 'tempoome') refreshTempoOme();
   });
 });
 
@@ -578,6 +695,44 @@ document.getElementById('clearAllBtn2').addEventListener('click', () => {
   state2.postos.clear(); state2.tempoMin=null; state2.tempoMax=null;
   document.getElementById('tempoMin').value=''; document.getElementById('tempoMax').value='';
   renderPosto2Options(); updateTempoBadge(); refreshGeo();
+});
+
+// ---------- tab 5 filters (Tempo na OME) ----------
+setupCombo('posto5Btn','posto5Panel','posto5Badge');
+setupCombo('tempo5Btn','tempo5Panel','tempo5Badge');
+
+function renderPosto5Options() {
+  buildOptions(document.getElementById('posto5Options'), FILTROS.postos, state5.postos, refreshTempoOme);
+}
+document.getElementById('posto5SelectAll').addEventListener('click', () => { FILTROS.postos.forEach(p=>state5.postos.add(p)); renderPosto5Options(); refreshTempoOme(); });
+document.getElementById('posto5Clear').addEventListener('click', () => { state5.postos.clear(); renderPosto5Options(); refreshTempoOme(); });
+
+function updateTempo5Badge() {
+  const badge = document.getElementById('tempo5Badge');
+  const active = state5.tempoMin!==null || state5.tempoMax!==null;
+  if (active) {
+    badge.style.display='inline-block';
+    badge.textContent = `${state5.tempoMin ?? 0}–${state5.tempoMax ?? '∞'}`;
+  } else badge.style.display='none';
+}
+document.getElementById('tempo5Apply').addEventListener('click', () => {
+  const minV = document.getElementById('tempo5Min').value;
+  const maxV = document.getElementById('tempo5Max').value;
+  state5.tempoMin = minV==='' ? null : Number(minV);
+  state5.tempoMax = maxV==='' ? null : Number(maxV);
+  updateTempo5Badge(); refreshTempoOme();
+  document.getElementById('tempo5Panel').classList.remove('open');
+});
+document.getElementById('tempo5Clear').addEventListener('click', () => {
+  document.getElementById('tempo5Min').value=''; document.getElementById('tempo5Max').value='';
+  state5.tempoMin=null; state5.tempoMax=null;
+  updateTempo5Badge(); refreshTempoOme();
+});
+
+document.getElementById('clearAllBtn5').addEventListener('click', () => {
+  state5.postos.clear(); state5.tempoMin=null; state5.tempoMax=null;
+  document.getElementById('tempo5Min').value=''; document.getElementById('tempo5Max').value='';
+  renderPosto5Options(); updateTempo5Badge(); refreshTempoOme();
 });
 
 // ---------- tab 3 filters (Situações Funcionais) ----------
@@ -733,6 +888,14 @@ function applyFilters3() {
   );
 }
 
+function applyFilters5() {
+  return CARREIRA_EXTRA.filter(r =>
+    (state5.postos.size===0 || state5.postos.has(r.posto)) &&
+    (state5.tempoMin===null || (r.tempoOmeAnos!==null && r.tempoOmeAnos>=state5.tempoMin)) &&
+    (state5.tempoMax===null || (r.tempoOmeAnos!==null && r.tempoOmeAnos<=state5.tempoMax))
+  );
+}
+
 const FAIXA_ORDER = ['18-22','23-27','28-32','33-37','38-42','43-47','48-52','53-57','58-59','60+'];
 const REGIOES = ['QCG','DIM','DINTER 1','DINTER 2'];
 
@@ -829,6 +992,111 @@ function drawGroupedBars(container, data, series) {
     axis.setAttribute('transform', `rotate(-35 ${gx+groupW/2-gapWithin/2} ${topPad+plotH+14})`);
     axis.textContent = d.label;
     svg.appendChild(axis);
+  });
+
+  container.appendChild(svg);
+}
+
+// ---------- line chart (evolução temporal) ----------
+function drawLine(container, data, opts) {
+  opts = opts || {};
+  container.innerHTML = '';
+  const n = data.length;
+  const step = opts.step || 44;
+  const leftPad = 44, rightPad = 24, topPad = 22, bottomPad = 40;
+  const chartW = Math.max(n>1 ? (n-1)*step + leftPad + rightPad : leftPad+rightPad+step, 260);
+  const maxV = Math.max(1, ...data.map(d=>d.value));
+  const chartH = opts.height || 210;
+  const plotH = chartH - topPad - bottomPad;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS,'svg');
+  svg.setAttribute('width', chartW); svg.setAttribute('height', chartH);
+  svg.setAttribute('class','bars-svg');
+
+  const base = document.createElementNS(svgNS,'line');
+  base.setAttribute('x1',leftPad); base.setAttribute('x2',chartW-rightPad);
+  base.setAttribute('y1', topPad+plotH); base.setAttribute('y2', topPad+plotH);
+  base.setAttribute('class','baseline');
+  svg.appendChild(base);
+
+  const pts = data.map((d,i) => ({
+    x: leftPad + i*step,
+    y: topPad + plotH - (maxV ? (d.value/maxV)*plotH : 0),
+    d
+  }));
+
+  const path = document.createElementNS(svgNS,'path');
+  path.setAttribute('d', pts.map((p,i)=>`${i===0?'M':'L'}${p.x},${p.y}`).join(' '));
+  path.setAttribute('fill','none'); path.setAttribute('stroke','var(--series-1)'); path.setAttribute('stroke-width','2');
+  path.setAttribute('stroke-linecap','round'); path.setAttribute('stroke-linejoin','round');
+  svg.appendChild(path);
+
+  pts.forEach((p,i) => {
+    const dot = document.createElementNS(svgNS,'circle');
+    dot.setAttribute('cx',p.x); dot.setAttribute('cy',p.y); dot.setAttribute('r',3);
+    dot.setAttribute('fill','var(--series-1)');
+    dot.addEventListener('mousemove',(e)=> showTooltip(e, `<b>${p.d.label}</b>: ${fmt(p.d.value)}`));
+    dot.addEventListener('mouseleave', hideTooltip);
+    svg.appendChild(dot);
+
+    if (opts.showLabels !== false) {
+      const label = document.createElementNS(svgNS,'text');
+      label.setAttribute('x', p.x); label.setAttribute('y', p.y-7); label.setAttribute('text-anchor','middle');
+      label.setAttribute('class','bar-label');
+      label.textContent = fmt(p.d.value);
+      svg.appendChild(label);
+    }
+
+    if (i % (opts.axisEvery||1) === 0) {
+      const axis = document.createElementNS(svgNS,'text');
+      axis.setAttribute('x', p.x); axis.setAttribute('y', topPad+plotH+16); axis.setAttribute('text-anchor','middle');
+      axis.setAttribute('class','axis-label');
+      axis.textContent = p.d.label;
+      svg.appendChild(axis);
+    }
+  });
+
+  container.appendChild(svg);
+}
+
+// ---------- horizontal bar chart ----------
+function drawHBars(container, data, opts) {
+  opts = opts || {};
+  container.innerHTML = '';
+  const n = data.length;
+  const barH = opts.barH || 18;
+  const gap = opts.gap || 8;
+  const leftPad = opts.leftPad || 56, rightPad = 44, topPad = 6, bottomPad = 6;
+  const chartH = n*(barH+gap) - gap + topPad + bottomPad;
+  const maxV = Math.max(1, ...data.map(d=>d.value));
+  const chartW = opts.width || 560;
+  const plotW = chartW - leftPad - rightPad;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS,'svg');
+  svg.setAttribute('width', chartW); svg.setAttribute('height', chartH);
+  svg.setAttribute('class','bars-svg');
+
+  data.forEach((d,i) => {
+    const y = topPad + i*(barH+gap);
+    const w = maxV ? (d.value/maxV)*plotW : 0;
+    const rect = document.createElementNS(svgNS,'rect');
+    rect.setAttribute('x',leftPad); rect.setAttribute('y',y); rect.setAttribute('width',Math.max(w,1)); rect.setAttribute('height',barH);
+    rect.setAttribute('rx',3); rect.setAttribute('class','bar');
+    rect.addEventListener('mousemove',(e)=> showTooltip(e, `<b>${d.label}</b>: ${fmt(d.value)}`));
+    rect.addEventListener('mouseleave', hideTooltip);
+    svg.appendChild(rect);
+
+    const axis = document.createElementNS(svgNS,'text');
+    axis.setAttribute('x', leftPad-8); axis.setAttribute('y', y+barH/2+3.5); axis.setAttribute('text-anchor','end');
+    axis.setAttribute('class','axis-label');
+    axis.textContent = d.label;
+    svg.appendChild(axis);
+
+    const label = document.createElementNS(svgNS,'text');
+    label.setAttribute('x', leftPad+w+6); label.setAttribute('y', y+barH/2+3.5); label.setAttribute('text-anchor','start');
+    label.setAttribute('class','bar-label');
+    label.textContent = fmt(d.value);
+    svg.appendChild(label);
   });
 
   container.appendChild(svg);
@@ -958,6 +1226,112 @@ function refreshAdidos() {
   drawBars(document.getElementById('chartAdidosOmeAnterior'), omeAnteriorData, {barW:22, gap:10, height:230});
 }
 
+function refreshAcumulo() {
+  const rows = MILITARES.filter(r => r.acumuloCargos);
+  document.getElementById('statAcumulo').textContent = fmt(rows.length);
+
+  const byPosto = groupCount(rows, r=>r.posto);
+  const postoColors = ['var(--series-1)','var(--series-2)'];
+  const postoSegs = Array.from(byPosto.entries())
+    .sort((a,b)=>b[1]-a[1])
+    .map(([label,value],i)=>({label,value,color:postoColors[i%postoColors.length]}));
+  drawDonut(document.getElementById('donutAcumuloPosto'), postoSegs, 'TOTAL');
+
+  const byOme = groupCount(rows, r=>r.ome);
+  const omeData = Array.from(byOme.entries()).map(([label,value])=>({label,value})).sort((a,b)=>b.value-a.value);
+  drawBars(document.getElementById('chartAcumuloOme'), omeData, {barW:26, gap:12, height:230});
+}
+
+function refreshPcd() {
+  const rows = MILITARES.filter(r => r.pcd);
+  document.getElementById('statPcd').textContent = fmt(rows.length);
+
+  const byOme = groupCount(rows, r=>r.ome);
+  const omeData = Array.from(byOme.entries()).map(([label,value])=>({label,value})).sort((a,b)=>b.value-a.value);
+  drawBars(document.getElementById('chartPcdOme'), omeData, {barW:26, gap:12, height:230});
+
+  const byPosto = groupCount(rows, r=>r.posto);
+  const postoColors = ['var(--series-1)','var(--series-2)'];
+  const postoSegs = Array.from(byPosto.entries())
+    .sort((a,b)=>b[1]-a[1])
+    .map(([label,value],i)=>({label,value,color:postoColors[i%postoColors.length]}));
+  drawDonut(document.getElementById('donutPcdPosto'), postoSegs, 'TOTAL');
+}
+
+const PRACAS_ORDER = ['Subten','1ºSgt','2ºSgt','3ºSgt','Cb','Sd'];
+const OFICIAIS_ORDER = ['Cel','Ten Cel','Maj QOC','Maj QOA','Cap QOA','1ºTen QOC','1ºTen QOA','2ºTen QOC','2ºTen QOA'];
+
+function refreshCarreira() {
+  const byMov = groupCount(CARREIRA_EXTRA.filter(r=>r.anoMovimentacao!==null), r=>r.anoMovimentacao);
+  const movYears = Array.from(byMov.keys()).sort((a,b)=>a-b);
+  const movData = movYears.map(y=>({label:String(y), value:byMov.get(y)}));
+  drawLine(document.getElementById('chartMovimentacoesAno'), movData, {step:40, height:220, axisEvery:2});
+
+  const byProm = groupCount(CARREIRA_EXTRA.filter(r=>r.anoPromocao!==null), r=>r.anoPromocao);
+  const promYears = Array.from(byProm.keys()).sort((a,b)=>a-b).filter(y=>y>=2018);
+  const promData = promYears.map(y=>({label:String(y), value:byProm.get(y)}));
+  drawBars(document.getElementById('chartPromocoesAno'), promData, {barW:36, gap:14, height:220});
+
+  const byIngresso = groupCount(CARREIRA_EXTRA.filter(r=>r.anoIngresso!==null), r=>r.anoIngresso);
+  const ingressoYears = Array.from(byIngresso.keys()).sort((a,b)=>a-b);
+  const ingressoData = ingressoYears.map(y=>({label:String(y), value:byIngresso.get(y)}));
+  drawHBars(document.getElementById('chartIngressoAno'), ingressoData, {barH:16, gap:6, width:600});
+
+  const SERVICO_BUCKETS = ['0-5','6-10','11-15','16-20','21-25','26-30','31-35'];
+  const servicoBuckets = new Map(SERVICO_BUCKETS.map(k=>[k,0]));
+  CARREIRA_EXTRA.forEach(r => {
+    const t = r.tempoServicoAnos;
+    if (t===null || t===undefined) return;
+    if (t<=5) servicoBuckets.set('0-5', servicoBuckets.get('0-5')+1);
+    else if (t<=10) servicoBuckets.set('6-10', servicoBuckets.get('6-10')+1);
+    else if (t<=15) servicoBuckets.set('11-15', servicoBuckets.get('11-15')+1);
+    else if (t<=20) servicoBuckets.set('16-20', servicoBuckets.get('16-20')+1);
+    else if (t<=25) servicoBuckets.set('21-25', servicoBuckets.get('21-25')+1);
+    else if (t<=30) servicoBuckets.set('26-30', servicoBuckets.get('26-30')+1);
+    else servicoBuckets.set('31-35', servicoBuckets.get('31-35')+1);
+  });
+  const servicoData = SERVICO_BUCKETS.map(label=>({label, value: servicoBuckets.get(label)}));
+  drawBars(document.getElementById('chartTempoServico'), servicoData, {barW:44, gap:18, height:220});
+}
+
+function refreshTempoOme() {
+  const filtered = applyFilters5();
+
+  const posto5Badge = document.getElementById('posto5Badge');
+  if (state5.postos.size>0) { posto5Badge.style.display='inline-block'; posto5Badge.textContent = state5.postos.size; } else posto5Badge.style.display='none';
+
+  const noteParts = [];
+  if (state5.postos.size>0) noteParts.push(state5.postos.size+' patente(s)');
+  if (state5.tempoMin!==null || state5.tempoMax!==null) noteParts.push('tempo na OME filtrado');
+  document.getElementById('activeNote5').textContent = noteParts.length ? ('Filtrando por '+noteParts.join(' e ')+' — '+fmt(filtered.length)+' de '+fmt(CARREIRA_EXTRA.length)+' militares') : '';
+
+  const TEMPO_OME_BUCKETS = ['0-1','2','3','4','5','6','7+'];
+  const buckets = new Map(TEMPO_OME_BUCKETS.map(k=>[k,0]));
+  filtered.forEach(r => {
+    const t = r.tempoOmeAnos;
+    if (t===null || t===undefined) return;
+    if (t<1) buckets.set('0-1', buckets.get('0-1')+1);
+    else if (t<2) buckets.set('2', buckets.get('2')+1);
+    else if (t<3) buckets.set('3', buckets.get('3')+1);
+    else if (t<4) buckets.set('4', buckets.get('4')+1);
+    else if (t<5) buckets.set('5', buckets.get('5')+1);
+    else if (t<6) buckets.set('6', buckets.get('6')+1);
+    else buckets.set('7+', buckets.get('7+')+1);
+  });
+  const distData = TEMPO_OME_BUCKETS.map(label=>({label: label+' anos', value: buckets.get(label)}));
+  drawBars(document.getElementById('chartTempoOmeDist'), distData, {barW:50, gap:20, height:220});
+
+  function avgByPosto(order) {
+    return order.map(posto => {
+      const vals = filtered.filter(r=>r.posto===posto && r.tempoOmeAnos!==null).map(r=>r.tempoOmeAnos);
+      const avg = vals.length ? Math.floor(vals.reduce((a,b)=>a+b,0)/vals.length) : 0;
+      return {label:posto, value:avg};
+    });
+  }
+  drawBars(document.getElementById('chartTempoOmePracas'), avgByPosto(PRACAS_ORDER), {barW:40, gap:18, height:210});
+  drawBars(document.getElementById('chartTempoOmeOficiais'), avgByPosto(OFICIAIS_ORDER), {barW:34, gap:12, height:210});
+}
+
 function refresh() {
   const filtered = applyFilters();
 
@@ -1053,6 +1427,7 @@ refreshGeo();
 renderOme3Options('');
 renderPosto3Options();
 refreshSituacoes();
+renderPosto5Options();
 
 // theme toggle
 const root = document.documentElement;

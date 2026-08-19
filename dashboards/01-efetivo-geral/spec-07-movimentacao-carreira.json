@@ -1,0 +1,81 @@
+{
+  "dashboardName": "Dashboard Pessoal",
+  "tabName": "Movimentação e Carreira",
+  "status": "parcialmente_prototipado",
+  "note": "Mesmo index.html dos demais painéis (aba própria, sem filtros). 4 de 6 quadrantes construídos e validados; 2 bloqueados aguardando esclarecimento de Igor sobre a fonte/regra usada no Metabase.",
+  "audience": "DGP e gestores de efetivo",
+  "objective": "Mostrar o ritmo de movimentações, promoções e ingressos ao longo do tempo, o perfil de tempo de serviço da corporação, e (quando destravado) saídas e previsão de saída por reserva.",
+  "mainQuestion": "Como a corporação está se movimentando (entradas, promoções, movimentações) ao longo do tempo, e qual o perfil de tempo de serviço do efetivo?",
+  "dataSources": [
+    {
+      "source": "Militar.json (upload de Igor, 2026-08-18/19)",
+      "role": "fonte_dos_4_quadrantes_construidos",
+      "description": "Export da tabela de produção Militar (2658 registros ativos). Usado para extrair, por registro, posto/categoria/ome + as datas dataMovimentacaoSp, dataUltimaPromocao, dataIngresso e o campo tempoServicoAnos — sem PII (sem matricula/nome), num arquivo auxiliar carreira_extra.json.",
+      "fieldsUsed": ["postoGrad", "ome", "dataMovimentacaoSp", "dataUltimaPromocao", "dataIngresso", "tempoServicoAnos"]
+    }
+  ],
+  "cards": [
+    {
+      "id": "linha_movimentacoes_ano",
+      "type": "line",
+      "title": "Movimentações por ano",
+      "groupBy": "ano(dataMovimentacaoSp)",
+      "status": "construido",
+      "validatedAgainst": "Série anual 1998-2026 confere com os pontos legíveis no print, incluindo o pico de 845 em 2026. 29 registros sem dataMovimentacaoSp ficam de fora da série (não achatam a linha)."
+    },
+    {
+      "id": "bar_promocoes_ano",
+      "type": "bar",
+      "title": "Promoções por ano",
+      "groupBy": "ano(dataUltimaPromocao)",
+      "status": "construido_com_ressalva",
+      "validatedAgainst": "2018-2021 batem exatamente com o print (29/39/67/273). 2022 em diante divergem para cima (ex.: 2022 mostra 415 no protótipo vs 227 no print) — Militar.json é um snapshot vivo de 18/08/2026, então promoções que aconteceram entre a data do print original e hoje empurraram a 'data da última promoção' de muitos militares para anos mais recentes. Não é erro — é o dado mais atual disponível."
+    },
+    {
+      "id": "hbar_ingresso_ano",
+      "type": "horizontal_bar",
+      "title": "Ingresso de militares",
+      "groupBy": "ano(dataIngresso)",
+      "status": "construido",
+      "validatedAgainst": "Bate exatamente com o print para 1991-2019 (dado estático, não muda com o tempo); o protótipo mostra os anos 2020-2026 individualmente (15/2/184/15/296/346) em vez de agrupá-los em 'Outros (6)' como no Metabase — soma exata (858) confirmada. Escolha deliberada: mostrar o detalhe é mais útil que agrupar."
+    },
+    {
+      "id": "bar_saida_militares",
+      "type": "bar",
+      "title": "Saída de militares",
+      "status": "bloqueado_falta_dado",
+      "gap": "Não identificamos, nem em Militar.json nem em peculio_metabase_v1, um campo ou tabela com histórico de saída/transferência por OME. O total do print (2015-2026) soma 1.218 eventos — muito mais que os 45 registros inativos que existem em Militar.json — então não é simplesmente 'militares que saíram da corporação'. Provavelmente é uma tabela de movimentação histórica separada (log de transferências), que não temos. Preciso da fonte/SQL usada no Metabase."
+    },
+    {
+      "id": "bar_tempo_servico",
+      "type": "bar",
+      "title": "Tempo de serviço em anos",
+      "groupBy": "tempoServicoAnos (bucket: 0-5/6-10/11-15/16-20/21-25/26-30/31-35)",
+      "status": "construido",
+      "validatedAgainst": "Bate exatamente com o print em todos os 7 buckets (845/259/359/759/108/249/79 = 2.658)."
+    },
+    {
+      "id": "grouped_bar_previsao_saida",
+      "type": "grouped_bar",
+      "title": "Previsão de saída",
+      "series": ["Oficiais", "Praças"],
+      "status": "bloqueado_ambiguo",
+      "gap": "Militar.json traz duas datas de reserva por militar (reservaRequerimento e reservaCompulsoria), mas nenhuma das duas, isolada ou combinada, reproduz os anos/totais do print (que só aparecem em 9 anos entre 2027-2040, somando ~1.161, enquanto as datas de reserva cobrem dezenas de anos até 2072 e somam ~2.657 cada). Preciso saber qual campo/regra define 'previsão de saída' neste quadrante."
+    }
+  ],
+  "gaps": [
+    {
+      "id": "saida_militares_sem_fonte",
+      "description": "Falta identificar a fonte de 'Saída de militares' (ver card bar_saida_militares).",
+      "impact": "Bloqueia 1 de 6 quadrantes desta aba.",
+      "ownedBy": "Igor — informar SQL ou nome da tabela usada no Metabase"
+    },
+    {
+      "id": "previsao_saida_regra_desconhecida",
+      "description": "Falta identificar a regra/campo de 'Previsão de saída' (ver card grouped_bar_previsao_saida).",
+      "impact": "Bloqueia 1 de 6 quadrantes desta aba.",
+      "ownedBy": "Igor — informar SQL ou regra de negócio usada no Metabase"
+    }
+  ],
+  "validatedAgainst": "Print do Metabase enviado por Igor em 2026-08-19 + Militar.json. 4 quadrantes construídos e validados (1 com ressalva documentada sobre snapshot vivo); 2 bloqueados aguardando esclarecimento."
+}

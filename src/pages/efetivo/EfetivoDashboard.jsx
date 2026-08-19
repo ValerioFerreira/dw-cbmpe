@@ -16,12 +16,16 @@ import ModuloEfetivoGeral from "./ModuloEfetivoGeral";
 import ModuloDistribuicaoGeografica from "./ModuloDistribuicaoGeografica";
 import ModuloSituacoesFuncionais from "./ModuloSituacoesFuncionais";
 import ModuloMilitaresAdidos from "./ModuloMilitaresAdidos";
+import ModuloAcumuloCargos from "./ModuloAcumuloCargos";
+import ModuloMilitaresPcd from "./ModuloMilitaresPcd";
 
 const COMPONENTES = {
   geral: ModuloEfetivoGeral,
   geografico: ModuloDistribuicaoGeografica,
   situacoes: ModuloSituacoesFuncionais,
   adidos: ModuloMilitaresAdidos,
+  acumulo: ModuloAcumuloCargos,
+  pcd: ModuloMilitaresPcd,
 };
 
 export default function EfetivoDashboard() {
