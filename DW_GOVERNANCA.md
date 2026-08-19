@@ -157,7 +157,8 @@ fora", ficou desatualizada e é substituída por esta):
   o usuário rodou o `windmill-neon.py` e `extract_efetivo.py` foi
   reexecutado; o painel mostra os 21 campos reais (ver
   `DW_PLANEJAMENTO.md`).
-- Viaturas: Placa + Modelo por unidade, sem mudança nesta rodada.
+- Viaturas: Placa + Modelo por unidade nesta rodada — **superado em
+  2026-08-18/2026-08-19, ver extensão abaixo**.
 
 **Se/quando a autenticação real for implementada, revisar se essa tabela —
 principalmente o painel "dados completos" — deve passar a exigir login**
@@ -177,6 +178,24 @@ nome completo + matrícula do efetivo inteiro sem gate nenhum desde
 2026-08-07 — a tabela nova do painel 08 não introduz uma categoria de
 exposição nova, só reduz pra Posto/OME/Tempo o que já está público em
 outro lugar do app.
+
+**Extensão de 2026-08-18/2026-08-19 — Viaturas, escopo de campos públicos
+ampliado bem além de "Placa + Modelo"**: a ficha por viatura
+(`/viatura/:placa`, 2026-08-18), a tabela real de Viaturas (`/viaturas/:id`,
+ampliada em 2026-08-19) e o novo Dashboard Pessoal de Viaturas (5 módulos,
+`/viaturas/:id/dashboard/:modulo`, 2026-08-19) publicam, sem autenticação
+real, por veículo: placa, patrimônio, chassis, renavam, marca/modelo/ano,
+combustível, posse (própria/alugada), destinação (operacional/
+administrativa/equipamento), situação, rastreamento (se tem GPS),
+quantidade de condutores vinculados, categoria de habilitação exigida,
+odômetro e último abastecimento (data + valor). Nenhum desses campos é PII
+de pessoa física — o risco aqui é de **segurança operacional** (capacidade
+e prontidão real da frota por quartel, publicamente consultável), não LGPD.
+Mesma decisão-base de 2026-08-07 (MVP sem autenticação, risco apresentado
+e aceito) — não foi reapresentada campo a campo nesta rodada porque o
+princípio (frota por quartel é sensível, exposta mesmo assim como MVP) já
+estava confirmado; **revisar se cabe reforço quando a autenticação real for
+implementada** (mesmo ponto em aberto já registrado acima para Efetivo).
 
 ## Ficha do militar (SGP) — Caminho A público × Caminho B interno (2026-08-19)
 

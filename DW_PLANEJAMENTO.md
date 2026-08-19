@@ -25,7 +25,9 @@
 Ponto de retomada rápido (o log de decisões completo fica mais abaixo). Todo
 o trabalho está commitado e no `origin/main` (ver `git log` pro hash mais
 recente — esta sessão trabalhou em mais de uma máquina, então não fixamos
-um hash aqui pra não ficar desatualizado).
+um hash aqui pra não ficar desatualizado). Últimos commits desta rodada:
+`89b949f` (navegação/OME/responsividade do Dashboard de Efetivo) e
+`5b1a9ea` (Dashboard Pessoal de Viaturas, 5 módulos).
 
 **O que já está no ar (app estático na Vercel, lendo JSON de `src/data/real/`):**
 - **Efetivo** real por unidade (Neon, tabela `Militar`): KPIs, tabela
@@ -36,12 +38,32 @@ um hash aqui pra não ficar desatualizado).
   `src/pages/efetivo/`) — **os 9 módulos completos**: Efetivo Geral,
   Distribuição Geográfica, Situações Funcionais, Militares Adidos (commit
   `a7fbb44`), Acúmulo de Cargos, Militares PCD's, Movimentação e Carreira,
-  Tempo na OME, Intenção de Movimentação (todos 2026-08-19, ver log de
-  decisões abaixo). Nova fonte Postgres além do Neon — "data warehouse"
-  compartilhado (`inativos_metabase`, `peculio_metabase_v1`, `cim_pedidos`,
-  `cim_atendidos`), env var `DATABASE_URL_DW`. Duas agregações do painel 09
-  são inferência nossa, a confirmar com Igor — ver
+  Tempo na OME, Intenção de Movimentação. Botão "Retornar" do navegador nas
+  abas de módulo usa `<Link replace>` — volta direto pro `/indicador`, não
+  pro módulo anterior (commit `89b949f`). Nova fonte Postgres além do Neon —
+  "data warehouse" compartilhado (`inativos_metabase`, `peculio_metabase_v1`,
+  `cim_pedidos`, `cim_atendidos`), env var `DATABASE_URL_DW`. Duas
+  agregações do painel 09 são inferência nossa, a confirmar com Igor — ver
   [Perguntas em aberto](#perguntas-em-aberto).
+- **Dashboard Pessoal de Viaturas** (`/viaturas/:id/dashboard/:modulo`, ver
+  `src/pages/viaturas/`, commit `5b1a9ea`) — **5 módulos**: Frota Geral,
+  Distribuição Geográfica, Idade e Renovação, Tipos e Capacidade
+  Operacional, Manutenção/Rastreamento/Uso — fonte `viaturas_detalhe.json`
+  (805 viaturas com placa; GTA excluída, mesma regra do KPI real; situação
+  "Descarregada" excluída/"Devolvida"→"Ativa", mesma regra de
+  `ViaturaDetalhe.jsx`). Todo clique leva à tabela real (`/viaturas/:id`)
+  filtrada, mesmo mecanismo do Efetivo.
+- **Tabela real de Efetivo e Viaturas** (`EfetivoDetalhe.jsx`/
+  `ViaturaDetalhe.jsx`) compartilham agora o mecanismo de filtro-por-URL
+  (drill-down) e os helpers genéricos de agregação/geografia, extraídos
+  para `src/lib/dashboardHelpers.js`, `src/lib/omeGeografia.js` e
+  `filtrosIniciaisDaUrl`/`numeroComparavel` em
+  `src/components/ui/filtro-coluna.jsx` — mudança nesse mecanismo agora
+  vale pros dois dashboards de uma vez, não precisa mexer em dois lugares.
+  `ViaturaDetalhe.jsx` ganhou 7 colunas novas (tipo, destinação, posse,
+  combustível, rastreado, categoria de habilitação, condutores),
+  enriquecidas por placa a partir de `viaturas_detalhe.json` (cobertura
+  parcial — só viaturas com placa cadastrada).
 - **Viaturas** real (Neon, sync da Frota): tabela (`/viaturas/:id`) e ficha
   por placa (`/viatura/:placa`).
 - **Finanças** real por unidade (Neon).
@@ -66,6 +88,10 @@ um hash aqui pra não ficar desatualizado).
    denylist do Caminho A — remover num próximo passo, confirmando com o
    usuário.
 5. Fontes externas por domínio ainda a levantar (objetivo 1).
+6. **13 viaturas com "ano: 23" em `viaturas_detalhe.json`** (erro de
+   digitação/truncamento na fonte, não 1923 nem 2023) — hoje só excluídas
+   dos gráficos de idade do Dashboard de Viaturas (`anoValido`), não
+   corrigidas na origem. Ver [Perguntas em aberto](#perguntas-em-aberto).
 
 **Para rodar/retomar noutra máquina:**
 - `npm install` && `npm run dev` (Vite, porta 5173).
@@ -1804,6 +1830,101 @@ diretas ao Postgres (não só com o handoff), zero erros de console em
 nenhum dos 3 novos painéis, e o drill-down testado end-to-end (filtro por
 ano em coluna de data, e filtro de bucket de dias).
 
+### 2026-08-19 — Navegação, filtro e bug sistêmico de OME corrigidos no Dashboard de Efetivo (commit `89b949f`)
+
+Quatro pedidos do usuário sobre o Dashboard Pessoal de Efetivo, todos
+implementados e verificados no navegador na mesma sessão:
+
+- **Botão "Retornar" do navegador**: as abas de módulo
+  (`EfetivoDashboard.jsx`) trocavam de módulo empilhando uma entrada nova no
+  histórico — apertar "Retornar" ia pro módulo anterior, não pro
+  `/indicador`. Trocado `<Link>` por `<Link replace>` nas abas; a primeira
+  navegação (Indicador → Dashboard) continua sendo `push` normal.
+- **Filtro "Anos na OME atual" removido** de `ModuloDistribuicaoGeografica.jsx`
+  e `ModuloTempoNaOme.jsx` (pedido do usuário, sem substituto).
+- **Bug sistêmico de sigla de OME no drill-down**: `militares.json`/
+  `carreira_extra.json` usam sigla curta ("CG", "1ºGB", "DInter/1"), mas a
+  tabela real de Efetivo (`efetivo_lista.json`) usa outra convenção
+  ("COMANDO GERAL", "1º GB", "DINTER I") — o caso relatado (Comandante/
+  Subcomandante Geral sumindo ao clicar em Recife) era só o sintoma mais
+  visível de um problema que valia pra quase toda OME. Corrigido uma vez só
+  em `linkEfetivoTabela` (`efetivoDashboard.js`), via novo de-para
+  `OME_SIGLA_REAL`/`omeSiglaReal` — conserta todo drill-down por OME do
+  dashboard de uma vez, não só o caso relatado.
+- **Responsividade do Topbar em telas de notebook (~1280-1440px)**: causa
+  raiz era a interação entre o zoom global `1.25` (`index.css`), os
+  breakpoints do Tailwind avaliando contra a largura física (não a
+  ajustada pelo zoom), e um `grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]`
+  com a coluna de busca em largura fixa — o bloco de ações (Tema/PDF/Sair)
+  ficava espremido e vazava por cima da busca. Reescrito pra 3 zonas
+  flexbox (`flex-1 min-w-0`), busca com largura responsiva
+  (`max-w-xs`/`2xl:max-w-sm`), e Tema/PDF/Sair compactos (só ícone) até
+  breakpoints mais largos. Verificado sem sobreposição em 1024–1920px e
+  mobile/tablet, em ~12 páginas diferentes do app.
+**Motivo**: os 4 itens vieram de um único pedido direto do usuário.
+
+### 2026-08-19 — Dashboard Pessoal de Viaturas: 5 módulos, drill-down para tabela real (commit `5b1a9ea`)
+
+Réplica do padrão do Dashboard de Efetivo pro domínio de Viaturas, a
+pedido do usuário ("monte todos, mantendo a coerência visual... como é
+feito em efetivo"). Proposta de estrutura (5 painéis) apresentada e
+aprovada antes de implementar.
+
+- **5 módulos** (`src/pages/viaturas/`, rota
+  `/viaturas/:id/dashboard/:modulo`): Frota Geral, Distribuição
+  Geográfica, Idade e Renovação, Tipos e Capacidade Operacional,
+  Manutenção/Rastreamento/Uso. Fonte: `viaturas_detalhe.json` (805
+  viaturas com placa, campos ricos por veículo — tipo, combustível,
+  posse, rastreamento, condutores, categoria de habilitação, último
+  abastecimento), não `viaturas_lista.json` (só ano/modelo/nome/
+  patrimônio/situação, usado pela tabela real).
+- **Duas regras de negócio replicadas do resto do app**, pro dashboard
+  nunca mostrar um total que a tabela de baixo não bate: GTA (unidade
+  fora do organograma, já excluída do KPI real — ver decisão de
+  2026-08-07) fica fora de qualquer contagem por OME; situação
+  "Descarregada" é excluída e "Devolvida" aparece como "Ativa" (mesma
+  transformação de `ViaturaDetalhe.jsx`).
+- **Mesmo bug de sigla de OME já corrigido no Efetivo, agora em
+  Viaturas**: `viaturas_detalhe.json` usa sigla curta (majoritariamente
+  igual à do Efetivo — "1ºGB", "DInter/1" — mas com 4 variantes próprias
+  pros CATs: "CAT AGRESTE"/"CAT MATA"/"CAT RMR"/"CAT SERTÃO"), a tabela
+  real usa outra ("1º GB", "CAT/AG"...). Novo de-para
+  `OME_SIGLA_REAL_VIATURAS`/`omeSiglaRealViatura` em
+  `viaturasDashboard.js`, mesmo princípio do Efetivo.
+- **Refactor pra evitar duplicar o mecanismo entre os dois dashboards**:
+  helpers genéricos de agregação (`groupCount`/`paraSerie`/`pctTexto`/
+  `passaMultiSelect`) e o de-para OME→cidade (`CIDADE_POR_OME`/
+  `omesDaCidade`) saíram de `efetivoDashboard.js` para
+  `src/lib/dashboardHelpers.js`/`src/lib/omeGeografia.js`;
+  `efetivoDashboard.js` re-exporta os dois pra não quebrar nenhum import
+  existente. O mecanismo de filtro-por-URL do drill-down
+  (`filtrosIniciaisDaUrl`/`numeroComparavel`), que só existia em
+  `EfetivoDetalhe.jsx`, foi extraído para `filtro-coluna.jsx` e agora
+  também alimenta `ViaturaDetalhe.jsx` (que não tinha esse mecanismo
+  antes — a tabela de Viaturas era só filtro manual, sem suportar
+  chegada por clique de um dashboard).
+- **`ViaturaDetalhe.jsx` ganhou 7 colunas** (Tipo, Destinação, Posse,
+  Combustível, Rastreado?, Categoria de Habilitação, Condutores),
+  enriquecidas por placa a partir de `viaturas_detalhe.json` — cobertura
+  parcial (só as ~805 viaturas com placa cadastrada; as demais mostram
+  "—" nessas colunas, mesmo padrão de junção parcial já usado em
+  `EfetivoDetalhe.jsx`/`lotacaoFuncao.json`).
+- **Achado de qualidade de dado corrigido em runtime**: o KPI "sem
+  abastecer há 90+ dias" deu 100% da frota na primeira versão, porque o
+  registro de abastecimento mais recente em toda a fonte é de janeiro/2026
+  — a sincronização Frota→Neon não é ao vivo. Trocada a referência de
+  "agora" de `Date.now()` para o abastecimento mais recente **da própria
+  frota**, com a data de referência exibida no card — o indicador volta a
+  discriminar (75,5%, não 100%).
+- **Achado de qualidade de dado registrado, não corrigido**: 13 viaturas
+  em `viaturas_detalhe.json` têm `ano: 23` (erro de digitação/truncamento,
+  não 1923 nem 2023) — excluídas dos gráficos de idade (`anoValido`), mas
+  a fonte não foi corrigida. Ver Perguntas em aberto.
+**Motivo**: pedido explícito do usuário, com proposta de estrutura
+apresentada e aprovada antes da implementação (`DW_PROCESSO_INTEGRACAO.md`
+não se aplica aqui — não é fonte de dado nova, é dashboard sobre fonte já
+integrada).
+
 ## Pendências práticas (não bloqueiam o planejamento, mas são pré-requisito de implementação)
 
 - **Workspace do Windmill**: ainda precisa ser criado pelo usuário
@@ -1832,6 +1953,21 @@ ano em coluna de data, e filtro de bucket de dias).
   bate exato com o print — só a tabela nominal nova é afetada. Vale
   investigar a origem do valor (provavelmente uma data nula/sentinela no
   Neon) antes de confiar nesse campo em outro contexto.
+- **Anomalia de dado (Viaturas)**: 13 viaturas em `viaturas_detalhe.json`
+  têm `ano: 23` (não 1923, não 2023 — parece truncamento de dígito na
+  fonte/sync Frota→Neon). O Dashboard de Viaturas trata qualquer ano < 1980
+  como desconhecido (`anoValido` em `viaturasDashboard.js`) e exclui essas
+  13 viaturas dos gráficos de idade — não afeta os demais módulos. Vale
+  confirmar o ano real dessas 13 (placa disponível em `viaturas_detalhe.json`)
+  direto na fonte, antes de decidir corrigir na origem ou só documentar.
+- **Sincronização Frota→Neon não é ao vivo**: o registro de
+  `ultimoAbastecimentoData` mais recente em toda a frota (`viaturas_detalhe.json`)
+  é de 19/01/2026, meses atrás da data corrente — qualquer métrica futura
+  que compare esse campo contra "hoje" (`Date.now()`) vai super-marcar a
+  frota inteira como "parada". O módulo "Manutenção, Rastreamento e Uso" já
+  usa a data mais recente da própria fonte como referência em vez de
+  `Date.now()` (ver decisão de 2026-08-19 acima) — replicar esse cuidado em
+  qualquer novo indicador que use datas de sincronização como "recência".
 - **Conexão ao SGP (`ovrsgp`)**: host, credenciais e alcance de rede a
   partir do Windmill — necessários pra escrever/rodar o `windmill-sgp.py`
   que engatilha o Caminho B da ficha do militar (histórico de promoção/
