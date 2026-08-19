@@ -10,6 +10,7 @@ import {
 } from "@/lib/cbmpe";
 import EmptyState from "@/components/ui/empty-state";
 import { MODULOS_EFETIVO_DASHBOARD } from "@/lib/efetivoDashboard";
+import { MODULOS_VIATURAS_DASHBOARD } from "@/lib/viaturasDashboard";
 
 const QTD_MODULOS_PLACEHOLDER = 4;
 
@@ -138,15 +139,16 @@ export default function Indicador() {
         )}
       </div>
 
-      {/* Módulos deste indicador — para Efetivo já ligam ao Dashboard Pessoal
-          real (ver src/pages/efetivo/); os demais indicadores ainda são
-          placeholders "em construção". */}
+      {/* Módulos deste indicador — Efetivo e Viaturas já ligam aos
+          respectivos Dashboards Pessoais reais (ver src/pages/efetivo/ e
+          src/pages/viaturas/); os demais indicadores ainda são placeholders
+          "em construção". */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {ind.nome === "Efetivo"
-          ? MODULOS_EFETIVO_DASHBOARD.map((m) => (
+        {ind.nome === "Efetivo" || ind.nome === "Viaturas"
+          ? (ind.nome === "Efetivo" ? MODULOS_EFETIVO_DASHBOARD : MODULOS_VIATURAS_DASHBOARD).map((m) => (
               <Link
                 key={m.key}
-                to={`/efetivo/${ind.id}/dashboard/${m.key}`}
+                to={`/${ind.nome === "Efetivo" ? "efetivo" : "viaturas"}/${ind.id}/dashboard/${m.key}`}
                 className="group flex flex-col items-center justify-center gap-2 rounded-xl border border-border bg-card p-4 text-center transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm"
               >
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary">

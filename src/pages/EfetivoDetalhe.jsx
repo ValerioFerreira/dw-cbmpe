@@ -8,7 +8,7 @@ import { getCaminho, getSubordinados, fmtNumero } from "@/lib/cbmpe";
 import EmptyState from "@/components/ui/empty-state";
 import SectionCard from "@/components/ui/section-card";
 import ScrollDuplo from "@/components/ui/scroll-duplo";
-import { FiltroColuna, passaFiltro, valorFiltro } from "@/components/ui/filtro-coluna";
+import { FiltroColuna, passaFiltro, valorFiltro, filtrosIniciaisDaUrl } from "@/components/ui/filtro-coluna";
 import { useLarguras, useLarguraContainer, ColGroup, AlcaResize, CELULA_TRUNCADA } from "@/components/ui/tabela-colunas";
 import efetivoLista from "@/data/real/efetivo_lista.json";
 import lotacaoFuncao from "@/data/real/lotacao_funcao.json";
@@ -166,49 +166,6 @@ function valorExportacao(coluna, registro) {
 
 function sanitizarNomeArquivo(nome) {
   return String(nome).replace(/[\\/:*?"<>|]/g, "-").trim();
-}
-
-// Número comparável pro filtro de intervalo (ver filtrosIniciaisDaUrl) — uma
-// coluna de data (ISO "aaaa-mm-dd") não é number(), então extrai só o ano;
-// os demais tipos (inteiro) já são number() diretamente.
-function numeroComparavel(bruto) {
-  if (typeof bruto === "string") {
-    const iso = bruto.match(/^(\d{4})-\d{2}-\d{2}/);
-    if (iso) return Number(iso[1]);
-  }
-  return Number(bruto);
-}
-
-// Drill-down: monta o estado inicial de `filtros` a partir da URL — usado
-// quando se chega aqui por um clique em barra/fatia/linha de algum módulo do
-// dashboard (ver linkEfetivoTabela em efetivoDashboard.js). Duas formas:
-//  - `?chave=valor1,valor2` — filtro exato (Set com esses valores).
-//  - `?chaveMin=N&chaveMax=N` — intervalo numérico, resolvido aqui contra os
-//    valores reais da coluna (ex.: idade, tempoObmAtualDias) porque a URL
-//    não enumera cada valor individualmente.
-function filtrosIniciaisDaUrl(searchParams, colunas, registros) {
-  const filtros = {};
-  colunas.forEach((c) => {
-    const exato = searchParams.get(c.chave);
-    if (exato !== null) {
-      filtros[c.chave] = new Set(exato.split(","));
-      return;
-    }
-    const minStr = searchParams.get(`${c.chave}Min`);
-    const maxStr = searchParams.get(`${c.chave}Max`);
-    if (minStr === null && maxStr === null) return;
-    const min = minStr !== null ? Number(minStr) : -Infinity;
-    const max = maxStr !== null ? Number(maxStr) : Infinity;
-    const valores = new Set();
-    registros.forEach((r) => {
-      const bruto = c.bruto(r);
-      if (bruto === null || bruto === undefined || bruto === "") return;
-      const n = numeroComparavel(bruto);
-      if (!Number.isNaN(n) && n >= min && n <= max) valores.add(valorFiltro(c, r));
-    });
-    filtros[c.chave] = valores;
-  });
-  return filtros;
 }
 
 // Cabeçalho de uma coluna: rótulo (truncado) + funil de filtro + alça de

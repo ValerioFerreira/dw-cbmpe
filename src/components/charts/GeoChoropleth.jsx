@@ -14,7 +14,10 @@ const TETO_ESCALA = 1000;
 // geometria fornecida por Igor a partir do IBGE). counts: Map<cidade, valor>.
 // Escala sequencial em raiz quadrada: realça cidades menores sem esconder
 // tudo atrás de Recife.
-export default function GeoChoropleth({ municipios, counts, altura = 340, aoClicarMunicipio }) {
+export default function GeoChoropleth({
+  municipios, counts, altura = 340, aoClicarMunicipio,
+  rotuloItem = "militar(es) lotado(s)", tituloRanking = "Municípios com maior efetivo",
+}) {
   const [hover, setHover] = useState(null);
   const clicavel = typeof aoClicarMunicipio === "function";
 
@@ -77,7 +80,7 @@ export default function GeoChoropleth({ municipios, counts, altura = 340, aoClic
             <b className="text-foreground">{hover.name}</b>
             <span className="text-muted-foreground">
               {": "}
-              {hover.v > 0 ? `${fmtNumero(hover.v)} militar(es) lotado(s)` : "sem OME do CBMPE"}
+              {hover.v > 0 ? `${fmtNumero(hover.v)} ${rotuloItem}` : "sem OME do CBMPE"}
             </span>
           </div>,
           document.body
@@ -92,7 +95,7 @@ export default function GeoChoropleth({ municipios, counts, altura = 340, aoClic
 
       <div className="w-full shrink-0 lg:w-56">
         <div className="mb-2 flex items-center gap-1.5">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Municípios com maior efetivo</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{tituloRanking}</p>
           <InfoBalao texto="Contagem de militares feita pelo município-sede da OME, não leva em consideração a distribuição em SBs." />
         </div>
         <div className="space-y-1">

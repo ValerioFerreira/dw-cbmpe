@@ -1,5 +1,5 @@
 import React from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { ChevronRight, Car, ShieldAlert, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useCbmpe } from "@/lib/cbmpe-context";
@@ -9,14 +9,24 @@ import EmptyState from "@/components/ui/empty-state";
 import SectionCard from "@/components/ui/section-card";
 import ScrollDuplo from "@/components/ui/scroll-duplo";
 import BadgeSituacao from "@/components/ui/badge-situacao";
-import { FiltroColuna, passaFiltro, valorFiltro } from "@/components/ui/filtro-coluna";
+import { FiltroColuna, passaFiltro, valorFiltro, filtrosIniciaisDaUrl } from "@/components/ui/filtro-coluna";
 import { useLarguras, useLarguraContainer, ColGroup, AlcaResize, CELULA_TRUNCADA } from "@/components/ui/tabela-colunas";
 import viaturasLista from "@/data/real/viaturas_lista.json";
+import viaturasDetalhe from "@/data/real/viaturas_detalhe.json";
 
 const TAMANHOS_PAGINA = [10, 20, 50];
 
+function fmtSimNao(v) {
+  if (v === null || v === undefined) return "—";
+  return v ? "Sim" : "Não";
+}
+
 // Ordem pedida pelo usuário (2026-08-18): Nome, OME, Placa, Patrimônio,
-// Modelo, Ano, Situação (com badge colorido).
+// Modelo, Ano, Situação (com badge colorido). As colunas a partir de "Tipo"
+// foram acrescentadas pra sustentar o drill-down do Dashboard de Viaturas
+// (ver linkViaturaTabela em viaturasDashboard.js) — vêm de
+// viaturas_detalhe.json (por placa), não de viaturas_lista.json, então só
+// existem pra viaturas com placa cadastrada (ver junção em registrosBase).
 const COLUNAS = [
   { chave: "nome", rotulo: "Nome", filtravel: true, largura: 160, bruto: (r) => r.nome || null },
   { chave: "ome", rotulo: "OME", filtravel: true, largura: 120, bruto: (r) => r.ome || null },
@@ -29,6 +39,17 @@ const COLUNAS = [
     bruto: (r) => r.situacao || null,
     especial: (r) => <BadgeSituacao situacao={r.situacao} />,
   },
+  { chave: "tipoAcronym", rotulo: "Tipo", filtravel: true, largura: 100, bruto: (r) => r.tipoAcronym || null },
+  { chave: "destinacao", rotulo: "Destinação", filtravel: true, largura: 130, bruto: (r) => r.destinacao || null },
+  { chave: "posse", rotulo: "Posse", filtravel: true, largura: 100, bruto: (r) => r.posse || null },
+  { chave: "combustivel", rotulo: "Combustível", filtravel: true, largura: 110, bruto: (r) => r.combustivel || null },
+  {
+    chave: "rastreado", rotulo: "Rastreado?", filtravel: true, largura: 100,
+    bruto: (r) => (r.rastreado ?? null),
+    especial: (r) => fmtSimNao(r.rastreado),
+  },
+  { chave: "categoriaHabilitacao", rotulo: "Categoria de Habilitação", filtravel: true, largura: 170, bruto: (r) => r.categoriaHabilitacao || null },
+  { chave: "condutores", rotulo: "Condutores", filtravel: true, largura: 100, bruto: (r) => r.condutores ?? null },
 ];
 
 function renderCelula(coluna, registro) {
@@ -39,6 +60,7 @@ function renderCelula(coluna, registro) {
 
 function valorExportacao(coluna, registro) {
   const b = coluna.bruto(registro);
+  if (typeof b === "boolean") return b ? "Sim" : "Não";
   return b === null || b === undefined ? "" : b;
 }
 
@@ -49,6 +71,7 @@ function sanitizarNomeArquivo(nome) {
 export default function ViaturaDetalhe() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { indicadores, unidades, porId, loading } = useCbmpe();
   const { permiteIndicador } = useAcessoUsuario();
 
@@ -69,25 +92,51 @@ export default function ViaturaDetalhe() {
   // Regras de situação (pedido do usuário, 2026-08-18): viaturas
   // "Descarregada" são omitidas da tabela; "Devolvida" é exibida como
   // "Ativa". A transformação é feita aqui na base pra valer também no
-  // filtro, no badge e na exportação.
+  // filtro, no badge e na exportação — mesma regra usada em
+  // viaturasDashboard.js (LINHAS_VIATURAS), pro dashboard nunca mostrar um
+  // total que esta tabela não bate.
+  //
+  // Enriquecimento por placa: viaturas_lista.json só tem os campos "de
+  // ficha" (ano/modelo/nome/patrimônio/situação); os campos usados pelos
+  // filtros de drill-down do dashboard (tipo, destinação, posse etc.) vêm
+  // de viaturas_detalhe.json (por placa) — cobertura parcial (só viaturas
+  // com placa cadastrada, 805 de 840), mesmo padrão de junção parcial já
+  // usado em EfetivoDetalhe.jsx (funcaoDoMilitar/lotacaoFuncao).
   const registrosBase = React.useMemo(() => {
     if (!unidade) return [];
     const siglas = [unidade.sigla, ...getSubordinados(unidades, unidade.id).map((u) => u.sigla)];
     return siglas.flatMap((sigla) =>
       (viaturasLista.por_unidade[sigla] || [])
         .filter((r) => r.situacao !== "Descarregada")
-        .map((r) => ({
-          ...r,
-          ome: sigla,
-          situacao: r.situacao === "Devolvida" ? "Ativa" : r.situacao,
-        }))
+        .map((r) => {
+          const placa = (r.placa || "").trim();
+          const det = placa ? viaturasDetalhe.por_placa[placa] : null;
+          return {
+            ...r,
+            ome: sigla,
+            situacao: r.situacao === "Devolvida" ? "Ativa" : r.situacao,
+            tipoAcronym: det?.tipoAcronym ?? null,
+            destinacao: det?.destinacao ?? null,
+            posse: det?.posse ?? null,
+            combustivel: det?.combustivel ?? null,
+            rastreado: det?.rastreado ?? null,
+            categoriaHabilitacao: det?.categoriaHabilitacao ?? null,
+            condutores: det?.condutores ?? null,
+          };
+        })
     );
   }, [unidade, unidades]);
 
+  // Semeia os filtros a partir da URL quando a navegação veio de um clique
+  // de drill-down num módulo do dashboard (ver linkViaturaTabela) — mesmo
+  // mecanismo do EfetivoDetalhe (filtrosIniciaisDaUrl, agora compartilhado
+  // em filtro-coluna.jsx).
+  const searchParamsStr = searchParams.toString();
   React.useEffect(() => {
-    setFiltros({});
+    setFiltros(filtrosIniciaisDaUrl(searchParams, COLUNAS, registrosBase));
     setPagina(1);
-  }, [unidade?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unidade?.id, searchParamsStr, registrosBase]);
 
   const colunasFiltraveis = React.useMemo(() => COLUNAS.filter((c) => c.filtravel), []);
 
@@ -97,7 +146,7 @@ export default function ViaturaDetalhe() {
       const outras = colunasFiltraveis.filter((c) => c.chave !== alvo.chave);
       const base = registrosBase.filter((r) => outras.every((c) => passaFiltro(valorFiltro(c, r), filtros[c.chave])));
       const unicos = [...new Set(base.map((r) => valorFiltro(alvo, r)))];
-      mapa[alvo.chave] = alvo.chave === "ano"
+      mapa[alvo.chave] = alvo.chave === "ano" || alvo.chave === "condutores"
         ? unicos.sort((a, b) => (a === "—" ? 1 : b === "—" ? -1 : Number(b) - Number(a)))
         : unicos.sort((a, b) => a.localeCompare(b, "pt-BR"));
     });

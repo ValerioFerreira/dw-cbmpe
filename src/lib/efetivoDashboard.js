@@ -1,4 +1,8 @@
 import { useMemo, useState } from "react";
+import { passaMultiSelect } from "@/lib/dashboardHelpers";
+
+export { groupCount, paraSerie, pctTexto, passaMultiSelect } from "@/lib/dashboardHelpers";
+export { CIDADE_POR_OME, omesDaCidade } from "@/lib/omeGeografia";
 
 // Helpers e constantes do "Dashboard Pessoal" (protótipo do colaborador,
 // pasta /dashboards na raiz do repo — spec.md / spec-02/03/04.md) portado
@@ -43,24 +47,6 @@ export const PRACAS_POSTOS = [
 ];
 export const POSTOS_POR_CLASSE = { Oficiais: OFICIAIS_POSTOS, Praças: PRACAS_POSTOS };
 
-// De-para OME -> cidade-sede (fornecido por Igor, ver
-// spec-02-distribuicao-geografica.json). Usado só pra desenhar o mapa e pra
-// traduzir um clique num município de volta numa lista de OMEs (drill-down).
-export const CIDADE_POR_OME = {
-  CG: "Recife", SG: "Recife", ADIDO: "Recife", DGO: "Recife", DIEsp: "Recife", DPlaG: "Recife", DAS: "Recife",
-  DEIP: "Recife", AECI: "Recife", DVP: "Recife", "DInter/2": "Petrolina", DGP: "Recife", "DInter/1": "Caruaru",
-  DLog: "Recife", DJD: "Recife", DTIC: "Recife", DF: "Recife", "6ºGB": "Garanhuns", "1ºGB": "Vitória de Santo Antão",
-  "3ºGB": "Serra Talhada", GBI: "Jaboatão dos Guararapes", AjG: "Recife", GBS: "Abreu e Lima", CInt: "Recife",
-  "4ºGB": "Petrolina", "CAT/RMR": "Recife", GBAPH: "Olinda", "2ºGB": "Caruaru", CEFD: "Recife", "7ºGB": "Carpina",
-  ABMG: "Jaboatão dos Guararapes", CI: "Recife", CEAO: "Recife", GBMar: "Recife", "CAT Zona da Mata": "Goiana",
-  "5ºGB": "Salgueiro", "CAT Sertão": "Petrolina", GCG: "Recife", "CAT Agreste": "Caruaru", "9ºGB": "Arcoverde",
-  CPPA: "Recife", CMan: "Recife", CCS: "Recife", DIM: "Recife", CPO: "Recife", GSG: "Recife",
-};
-
-export function omesDaCidade(nomeCidade) {
-  return Object.entries(CIDADE_POR_OME).filter(([, cidade]) => cidade === nomeCidade).map(([ome]) => ome);
-}
-
 // De-para sigla curta (usada em militares.json/carreira_extra.json, ex.
 // "CG", "1ºGB", "DInter/1") -> sigla real de efetivo_lista.json/por_unidade
 // (ex. "COMANDO GERAL", "1º GB", "DINTER I") — os dois datasets nasceram de
@@ -82,31 +68,6 @@ const OME_SIGLA_REAL = {
 
 export function omeSiglaReal(sigla) {
   return OME_SIGLA_REAL[sigla] || sigla;
-}
-
-export function groupCount(arr, keyFn) {
-  const m = new Map();
-  arr.forEach((r) => {
-    const k = keyFn(r);
-    m.set(k, (m.get(k) || 0) + 1);
-  });
-  return m;
-}
-
-export function paraSerie(map, { sort = true } = {}) {
-  const arr = Array.from(map.entries()).map(([label, valor]) => ({ label, valor }));
-  return sort ? arr.sort((a, b) => b.valor - a.valor) : arr;
-}
-
-export function pctTexto(v, base) {
-  if (!base) return "—";
-  return `${((v / base) * 100).toFixed(1).replace(".", ",")}% do total`;
-}
-
-// Set vazio = sem filtro (todos os valores passam) — mesma convenção do
-// protótipo original (state.omes.size === 0 significa "sem filtro").
-export function passaMultiSelect(valor, selecionado) {
-  return !selecionado || selecionado.size === 0 || selecionado.has(valor);
 }
 
 // Filtro padrão dos 4 módulos do dashboard (pedido do usuário, 2026-08-18):

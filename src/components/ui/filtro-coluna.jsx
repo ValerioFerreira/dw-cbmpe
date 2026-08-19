@@ -23,6 +23,50 @@ export function valorFiltro(coluna, r) {
   return b === null || b === undefined || b === "" ? "—" : String(b);
 }
 
+// Número comparável pro filtro de intervalo (ver filtrosIniciaisDaUrl) — uma
+// coluna de data (ISO "aaaa-mm-dd") não é number(), então extrai só o ano;
+// os demais tipos (inteiro) já são number() diretamente.
+export function numeroComparavel(bruto) {
+  if (typeof bruto === "string") {
+    const iso = bruto.match(/^(\d{4})-\d{2}-\d{2}/);
+    if (iso) return Number(iso[1]);
+  }
+  return Number(bruto);
+}
+
+// Drill-down: monta o estado inicial de `filtros` a partir da URL — usado
+// quando se chega a uma tabela de detalhamento (Efetivo, Viaturas) por um
+// clique em barra/fatia/linha de algum módulo de dashboard (ver
+// linkEfetivoTabela/linkViaturaTabela). Duas formas:
+//  - `?chave=valor1,valor2` — filtro exato (Set com esses valores).
+//  - `?chaveMin=N&chaveMax=N` — intervalo numérico, resolvido aqui contra os
+//    valores reais da coluna (ex.: idade, ano) porque a URL não enumera cada
+//    valor individualmente.
+export function filtrosIniciaisDaUrl(searchParams, colunas, registros) {
+  const filtros = {};
+  colunas.forEach((c) => {
+    const exato = searchParams.get(c.chave);
+    if (exato !== null) {
+      filtros[c.chave] = new Set(exato.split(","));
+      return;
+    }
+    const minStr = searchParams.get(`${c.chave}Min`);
+    const maxStr = searchParams.get(`${c.chave}Max`);
+    if (minStr === null && maxStr === null) return;
+    const min = minStr !== null ? Number(minStr) : -Infinity;
+    const max = maxStr !== null ? Number(maxStr) : Infinity;
+    const valores = new Set();
+    registros.forEach((r) => {
+      const bruto = c.bruto(r);
+      if (bruto === null || bruto === undefined || bruto === "") return;
+      const n = numeroComparavel(bruto);
+      if (!Number.isNaN(n) && n >= min && n <= max) valores.add(valorFiltro(c, r));
+    });
+    filtros[c.chave] = valores;
+  });
+  return filtros;
+}
+
 export function FiltroColuna({ valoresDisponiveis, selecionado, onChange }) {
   const [busca, setBusca] = React.useState("");
   const [aberto, setAberto] = React.useState(false);
