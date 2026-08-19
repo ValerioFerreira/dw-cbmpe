@@ -13,6 +13,7 @@ import Diretoria from '@/pages/Diretoria';
 import DashboardDetalhe from '@/pages/DashboardDetalhe';
 import Indicador from '@/pages/Indicador';
 import EfetivoDetalhe from '@/pages/EfetivoDetalhe';
+import EfetivoDashboard from '@/pages/efetivo/EfetivoDashboard';
 import ViaturaDetalhe from '@/pages/ViaturaDetalhe';
 import ViaturaFicha from '@/pages/ViaturaFicha';
 import MilitarFicha from '@/pages/MilitarFicha';
@@ -53,6 +54,7 @@ const AuthenticatedApp = () => {
           <Route path="/dashboard/:id" element={<DashboardDetalhe />} />
           <Route path="/indicador/:id" element={<Indicador />} />
           <Route path="/efetivo/:id" element={<EfetivoDetalhe />} />
+          <Route path="/efetivo/:id/dashboard/:modulo" element={<EfetivoDashboard />} />
           <Route path="/viaturas/:id" element={<ViaturaDetalhe />} />
           <Route path="/viatura/:placa" element={<ViaturaFicha />} />
           <Route path="/militar/:matricula" element={<MilitarFicha />} />

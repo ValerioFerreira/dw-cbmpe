@@ -9,7 +9,7 @@ import EmptyState from "@/components/ui/empty-state";
 import SectionCard from "@/components/ui/section-card";
 import ScrollDuplo from "@/components/ui/scroll-duplo";
 import { FiltroColuna, passaFiltro, valorFiltro } from "@/components/ui/filtro-coluna";
-import { useLarguras, ColGroup, AlcaResize, CELULA_TRUNCADA } from "@/components/ui/tabela-colunas";
+import { useLarguras, useLarguraContainer, ColGroup, AlcaResize, CELULA_TRUNCADA } from "@/components/ui/tabela-colunas";
 import efetivoLista from "@/data/real/efetivo_lista.json";
 import lotacaoFuncao from "@/data/real/lotacao_funcao.json";
 
@@ -168,6 +168,38 @@ function sanitizarNomeArquivo(nome) {
   return String(nome).replace(/[\\/:*?"<>|]/g, "-").trim();
 }
 
+// Drill-down: monta o estado inicial de `filtros` a partir da URL — usado
+// quando se chega aqui por um clique em barra/fatia/linha de algum módulo do
+// dashboard (ver linkEfetivoTabela em efetivoDashboard.js). Duas formas:
+//  - `?chave=valor1,valor2` — filtro exato (Set com esses valores).
+//  - `?chaveMin=N&chaveMax=N` — intervalo numérico, resolvido aqui contra os
+//    valores reais da coluna (ex.: idade, tempoObmAtualDias) porque a URL
+//    não enumera cada valor individualmente.
+function filtrosIniciaisDaUrl(searchParams, colunas, registros) {
+  const filtros = {};
+  colunas.forEach((c) => {
+    const exato = searchParams.get(c.chave);
+    if (exato !== null) {
+      filtros[c.chave] = new Set(exato.split(","));
+      return;
+    }
+    const minStr = searchParams.get(`${c.chave}Min`);
+    const maxStr = searchParams.get(`${c.chave}Max`);
+    if (minStr === null && maxStr === null) return;
+    const min = minStr !== null ? Number(minStr) : -Infinity;
+    const max = maxStr !== null ? Number(maxStr) : Infinity;
+    const valores = new Set();
+    registros.forEach((r) => {
+      const bruto = c.bruto(r);
+      if (bruto === null || bruto === undefined || bruto === "") return;
+      const n = Number(bruto);
+      if (!Number.isNaN(n) && n >= min && n <= max) valores.add(valorFiltro(c, r));
+    });
+    filtros[c.chave] = valores;
+  });
+  return filtros;
+}
+
 // Cabeçalho de uma coluna: rótulo (truncado) + funil de filtro + alça de
 // redimensionamento na borda direita (sem seletor de tipo, sem agregadores).
 function CabecalhoColuna({ coluna, filtro, onResize }) {
@@ -198,6 +230,7 @@ export default function EfetivoDetalhe() {
   const [pagina, setPagina] = React.useState(1);
   const [tamanhoPagina, setTamanhoPagina] = React.useState(20);
   const { larguras, iniciarResize, larguraTotal } = useLarguras(TODAS_COLUNAS);
+  const [containerRef, larguraDisponivel] = useLarguraContainer();
 
   const registrosBase = React.useMemo(() => {
     if (!unidade) return [];
@@ -229,11 +262,15 @@ export default function EfetivoDetalhe() {
   }, [unidade, unidades, setor]);
 
   // Reseta filtros/seleção ao trocar de unidade ou de setor (navegação pelo
-  // breadcrumb ou por "Setores Vinculados").
+  // breadcrumb ou por "Setores Vinculados") — e semeia a partir da URL
+  // quando a navegação veio de um clique de drill-down num módulo do
+  // dashboard (ver filtrosIniciaisDaUrl acima).
+  const searchParamsStr = searchParams.toString();
   React.useEffect(() => {
-    setFiltros({});
+    setFiltros(filtrosIniciaisDaUrl(searchParams, TODAS_COLUNAS, registrosBase));
     setPagina(1);
-  }, [unidade?.id, setor]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unidade?.id, setor, searchParamsStr, registrosBase]);
 
   const colunasFiltraveis = React.useMemo(() => TODAS_COLUNAS.filter((c) => c.filtravel), []);
 
@@ -376,8 +413,9 @@ export default function EfetivoDetalhe() {
           )}
         </div>
 
+        <div ref={containerRef}>
         <ScrollDuplo maxHeight="36rem">
-          <table className="table-fixed border-collapse text-left" style={{ width: larguraTotal }}>
+          <table className="table-fixed border-collapse text-left" style={{ width: Math.max(larguraTotal, larguraDisponivel) }}>
             <ColGroup colunas={colunasVisiveis} larguras={larguras} />
             <thead className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
               <tr className="border-b-2 border-primary/25 text-[10.5px] font-bold uppercase tracking-wide text-foreground/70">
@@ -425,6 +463,7 @@ export default function EfetivoDetalhe() {
             </tbody>
           </table>
         </ScrollDuplo>
+        </div>
       </SectionCard>
 
       {/* Paginação — fora da tabela, centralizada embaixo. */}

@@ -1,0 +1,150 @@
+{
+  "dashboardName": "Dashboard Pessoal",
+  "tabName": "Efetivo Geral",
+  "status": "prototipado_validado",
+  "standardAlignmentStatus": "parcial — nomes de campo mapeados para a tabela de produção \"Militar\" (ver fieldMapping), mas 3 pontos ainda dependem de decisão/implementação do Valério ou do time do DW (ver gaps: disponibilidade_fonte_producao, regra_adido_agregado_nao_ratificada, alinhamento_regional)",
+  "audience": "DGP e gestores de efetivo",
+  "objective": "Visão consolidada do efetivo geral: quantos militares, onde estão lotados, e o déficit por posto em relação ao quadro fixado em lei.",
+  "mainQuestion": "Quantos militares temos, onde estão lotados, e quanto estamos abaixo do efetivo previsto por posto?",
+  "dataSources": [
+    {
+      "table": "peculio_metabase_v1",
+      "role": "fonte_do_prototipo",
+      "description": "Extrato de efetivo ativo usado para construir e validar este protótipo (1 linha = 1 militar). É a base que Igor já tinha carregada no Metabase — não é a tabela de produção do DW.",
+      "fieldsUsed": ["posto_grad", "ome", "afastamentos_sup_90_dias", "le", "ltip", "idade", "sexo", "matricula"]
+    },
+    {
+      "table": "\"Militar\" (Postgres/Neon)",
+      "role": "fonte_canonica_producao",
+      "description": "Tabela real que hoje alimenta a aplicação (etl/efetivo/extract_efetivo.py). Abastecida pelo Windmill a partir de uma cópia em Google Sheets do MESMO extrato de Pecúlio — ou seja, é a mesma origem de dado, só que já dentro do pipeline oficial do DW. Colunas em camelCase.",
+      "fieldsConfirmados": ["ome", "postoGrad", "matricula", "nome", "nomeGuerra", "sexo", "dataNascimento", "ordemHierarquica"],
+      "observacao": "Campos de disponibilidade (afastamentos, LE, LTIP) NÃO aparecem na query nominal básica do script — só existem numa query 'completos' com 21 campos adicionais, que depende de uma atualização do script Windmill ainda pendente. Ver gap 'disponibilidade_fonte_producao'."
+    },
+    {
+      "table": "QOD_agosto_2026.EFETIVO",
+      "role": "fonte_do_prototipo_e_producao",
+      "description": "Quadro fixado em lei, corporação inteira, por posto/graduação. Não há tabela equivalente no Postgres ainda — fonte é a planilha QOD diretamente, tanto no protótipo quanto nos scripts de ETL existentes.",
+      "fieldsUsed": ["posto_grad", "efetivo_previsto"]
+    }
+  ],
+  "fieldMapping": {
+    "description": "De-para entre os nomes de campo usados no protótipo (peculio_metabase_v1) e os nomes reais na tabela de produção \"Militar\". Specs futuros devem referenciar a coluna canônica quando ela já for confirmada.",
+    "map": [
+      { "prototipo": "posto_grad", "canonico": "\"postoGrad\"", "status": "confirmado" },
+      { "prototipo": "ome", "canonico": "ome", "status": "confirmado — mas precisa do de-para mapeamento_unidades.json para virar sigla oficial de unidade" },
+      { "prototipo": "matricula", "canonico": "matricula", "status": "confirmado" },
+      { "prototipo": "sexo", "canonico": "sexo", "status": "confirmado" },
+      { "prototipo": "idade", "canonico": "dataNascimento (idade precisa ser calculada)", "status": "confirmado, com ressalva — o campo bruto é data de nascimento, não idade; o padrão do projeto (LGPD) é expor só idade calculada, nunca a data de nascimento (ver efetivo_lista.json)" },
+      { "prototipo": "afastamentos_sup_90_dias / le / ltip", "canonico": "desconhecido", "status": "NÃO CONFIRMADO — não aparecem na query nominal básica de extract_efetivo.py; dependem da query 'completos' (pendente). Ver gap." }
+    ]
+  },
+  "canonicalOrgMapping": {
+    "source": "etl/efetivo/mapeamento_unidades.json + árvore ARVORE em etl/efetivo/extract_previsto_divisoes.py",
+    "note": "Este é o de-para oficial de unidade->sigla usado pelos scripts de ETL. O agrupamento regional QCG/DIM/DINTER1/DINTER2 usado neste painel (ver dePara.regiaoPorOme abaixo) é uma convenção do Igor/Metabase, ainda não conciliada com essa árvore. Divergências conhecidas: (1) CAT/RMR e os demais CATs ficam canonicamente dentro de DIM, não em QCG; (2) ADIDO não é uma unidade própria — mapeia para null e é dobrada dentro de 'COMANDO GERAL', não é um balde separado. Ver gap 'alinhamento_regional'."
+  },
+  "filters": [
+    { "id": "ome", "field": "ome", "type": "multiselect", "label": "OME" },
+    { "id": "posto", "field": "posto_grad", "type": "multiselect", "label": "Patente" }
+  ],
+  "derivedDimensions": [
+    {
+      "name": "categoria",
+      "field": "posto_grad",
+      "rule": "posto_grad em [Cel, Cel Promo. Req., Ten Cel, Ten Cel Promo. Req., Maj QOC, Maj QOA, Maj QOA Promo. Req., Cap QOC, Cap QOA, 1ºTen QOC, 1ºTen QOA, 2ºTen QOC, 2ºTen QOA, 2ºTen QOA Promo. Req., Aspirante] => 'Oficiais'; posto_grad em [Subten, Subten Promo. Req., 1ºSgt, 1ºSgt Promo. Req./Invalidez, 2ºSgt, 2ºSgt Promo. Req./Invalidez, 3ºSgt, Cb, Sd] => 'Praças'"
+    },
+    {
+      "name": "disponibilidade",
+      "field": "derived",
+      "rule": "afastamentos_sup_90_dias IN ('LM','LTS') OR ome='ADIDO' OR ltip=true OR le=true => 'Indisponível'; senão 'Disponível'"
+    },
+    {
+      "name": "regiao",
+      "field": "ome",
+      "rule": "de-para fixo ome->regiao (ver dePara.regiaoPorOme)"
+    },
+    {
+      "name": "faixaEtaria",
+      "field": "idade",
+      "rule": "bins fixos: 18-22,23-27,28-32,33-37,38-42,43-47,48-52,53-57,58-59,60+"
+    }
+  ],
+  "dePara": {
+    "regiaoPorOme": {
+      "QCG": ["ABMG","ADIDO","AECI","AjG","CAT/RMR","CCS","CEAO","CEFD","CG","CI","CInt","CMan","CPO","CPPA","DAS","DEIP","DF","DGO","DGP","DIEsp","DJD","DLog","DPlaG","DTIC","DVP","GCG","GSG","SG"],
+      "DIM": ["GBI","GBAPH","GBMar","GBS","DIM"],
+      "DINTER 1": ["1ºGB","2ºGB","6ºGB","7ºGB","CAT Agreste","CAT Zona da Mata","DInter/1"],
+      "DINTER 2": ["3ºGB","4ºGB","5ºGB","9ºGB","CAT Sertão","DInter/2"]
+    },
+    "efetivoPrevistoPorPosto": [
+      ["Cel", 17], ["Cel Promo. Req.", 0], ["Ten Cel", 42], ["Ten Cel Promo. Req.", 0],
+      ["Maj QOC", 91], ["Maj QOA", 15], ["Maj QOA Promo. Req.", 0],
+      ["Cap QOC", 97], ["Cap QOA", 38],
+      ["1ºTen QOC", 80], ["1ºTen QOA", 51],
+      ["2ºTen QOC", 206], ["2ºTen QOA", 70], ["2ºTen QOA Promo. Req.", 0],
+      ["Aspirante", 0],
+      ["Subten", 86], ["Subten Promo. Req.", 0],
+      ["1ºSgt", 225], ["1ºSgt Promo. Req./Invalidez", 0],
+      ["2ºSgt", 303], ["2ºSgt Promo. Req./Invalidez", 0],
+      ["3ºSgt", 631],
+      ["Cb", 617],
+      ["Sd", 2680]
+    ]
+  },
+  "cards": [
+    { "id": "stat_total", "type": "stat", "title": "Efetivo Total", "metric": "count(*)" },
+    { "id": "stat_disponivel", "type": "stat", "title": "Efetivo Disponível", "metric": "count(disponibilidade='Disponível')" },
+    { "id": "stat_indisponivel", "type": "stat", "title": "Efetivo Indisponível", "metric": "count(disponibilidade='Indisponível')" },
+    { "id": "stat_qcg", "type": "stat", "title": "QCG", "metric": "count(regiao='QCG')" },
+    { "id": "stat_dim", "type": "stat", "title": "DIM", "metric": "count(regiao='DIM')" },
+    { "id": "stat_dinter1", "type": "stat", "title": "DINTER 1", "metric": "count(regiao='DINTER 1')" },
+    { "id": "stat_dinter2", "type": "stat", "title": "DINTER 2", "metric": "count(regiao='DINTER 2')" },
+    { "id": "donut_categoria", "type": "donut", "title": "Distribuição de Oficiais x Praças", "groupBy": "categoria" },
+    { "id": "donut_sexo", "type": "donut", "title": "Distribuição por sexo", "groupBy": "sexo" },
+    {
+      "id": "table_deficit",
+      "type": "table",
+      "title": "Distribuição por Posto/Graduação",
+      "rows": "dePara.efetivoPrevistoPorPosto",
+      "columns": ["posto_grad", "efetivo_previsto", "efetivo_existente(count group by posto_grad)", "deficit(previsto-existente)", "deficit_pct(deficit/previsto)"],
+      "knownGap": "efetivo_previsto não existe quebrado por OME, só total da corporação — coluna fica indisponível quando o filtro de OME está ativo"
+    },
+    { "id": "bar_faixa_etaria", "type": "bar", "title": "Faixa Etária", "groupBy": "faixaEtaria", "sort": "bin order" },
+    { "id": "bar_qcg", "type": "bar", "title": "Distribuição - QCG", "groupBy": "ome", "filter": "regiao='QCG'", "sort": "value desc" },
+    { "id": "bar_dim", "type": "bar", "title": "Distribuição - DIM", "groupBy": "ome", "filter": "regiao='DIM'", "sort": "value desc" },
+    { "id": "bar_dinter1", "type": "bar", "title": "Distribuição - DINTER 1", "groupBy": "ome", "filter": "regiao='DINTER 1'", "sort": "value desc" },
+    { "id": "bar_dinter2", "type": "bar", "title": "Distribuição - DINTER 2", "groupBy": "ome", "filter": "regiao='DINTER 2'", "sort": "value desc" }
+  ],
+  "gaps": [
+    {
+      "id": "previsto_por_ome",
+      "description": "Quadro fixado (efetivo previsto) por OME/unidade ainda não extraído — hoje só existe o total da corporação por posto (aba EFETIVO do QOD).",
+      "impact": "Tabela de déficit não pode ser filtrada por OME até essa extração ser feita.",
+      "ownedBy": "Valério (ETL/DW)"
+    },
+    {
+      "id": "previsto_por_posto_sem_script",
+      "description": "O breakdown de efetivo previsto por posto/graduação (usado na tabela de déficit deste painel) não tem script de extração equivalente no repositório — hoje só existem extract_previsto.py (previsto por unidade) e extract_previsto_divisoes.py (previsto por divisão dentro da unidade). O card foi montado lendo a aba EFETIVO do QOD manualmente.",
+      "impact": "Se este breakdown por posto virar um card oficial do sistema (não só um protótipo), precisa de um script novo equivalente aos já existentes.",
+      "ownedBy": "Valério (ETL/DW)"
+    },
+    {
+      "id": "disponibilidade_fonte_producao",
+      "description": "A regra de Disponibilidade/Indisponibilidade usa afastamentos_sup_90_dias, LE e LTIP, campos que existem na planilha de Pecúlio mas NÃO foram confirmados na tabela de produção \"Militar\" — a query nominal básica de extract_efetivo.py não os traz; eles só apareceriam numa query 'completos' que depende de uma atualização do script Windmill ainda pendente.",
+      "impact": "Quando a integração real (Valério) acontecer, os cards de Disponível/Indisponível podem não ter dado disponível de imediato, até essa atualização do Windmill ser concluída.",
+      "ownedBy": "Valério (ETL/DW)"
+    },
+    {
+      "id": "regra_adido_agregado_nao_ratificada",
+      "description": "A contagem de militares Adidos/Agregados no efetivo (hoje tratada como 'Indisponível' sempre que ome='ADIDO') é uma decisão de governança do DW ainda EM ABERTO — não foi ratificada pelo time do projeto ('usuário pediu mais tempo pra pensar', conforme DW_MODELO_DADOS.md).",
+      "impact": "A fórmula de Disponibilidade usada neste protótipo é a convenção de trabalho do Igor, não a regra oficial do sistema. Pode mudar quando a decisão for tomada.",
+      "ownedBy": "Time do DW (decisão de governança) — acompanhar com Valério"
+    },
+    {
+      "id": "alinhamento_regional",
+      "description": "O agrupamento QCG/DIM/DINTER1/DINTER2 usado nos cards e gráficos regionais deste painel é uma convenção informal do Igor, com pelo menos duas divergências conhecidas em relação à árvore organizacional canônica do DW (mapeamento_unidades.json / ARVORE): CAT/RMR (e demais CATs) ficam canonicamente dentro de DIM, não em QCG; e ADIDO não é uma unidade própria, é dobrada em 'COMANDO GERAL'.",
+      "impact": "Se este agrupamento regional virar padrão oficial de BI no sistema, precisa ser conciliado/validado com Valério antes — hoje são duas visões diferentes da mesma organização.",
+      "ownedBy": "Igor + Valério (decisão conjunta)"
+    }
+  ],
+  "validatedAgainst": "Screenshot do Metabase enviado por Igor em 2026-08 — todos os 9 quadrantes conferidos numericamente (100% de correspondência)."
+}

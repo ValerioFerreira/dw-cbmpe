@@ -1,0 +1,97 @@
+{
+  "dashboardName": "Dashboard Pessoal",
+  "tabName": "Distribuição Geográfica",
+  "status": "prototipado_validado",
+  "note": "Este tab vive no MESMO index.html do painel 01 (Efetivo Geral) — decidimos consolidar o protótipo como uma única aplicação com abas reais, em vez de um arquivo HTML por aba, para ficar mais fiel à experiência do Metabase original. A pasta 01-efetivo-geral agora hospeda o protótipo completo do 'Dashboard Pessoal', não só a primeira aba.",
+  "audience": "DGP e gestores de efetivo",
+  "objective": "Mostrar onde o efetivo está fisicamente lotado (por município-sede da OME) e a composição Oficiais x Praças por unidade.",
+  "mainQuestion": "Onde a corporação está territorialmente concentrada, e como Oficiais e Praças se distribuem entre as OMEs?",
+  "dataSources": [
+    {
+      "table": "peculio_metabase_v1",
+      "role": "fonte_do_prototipo",
+      "description": "Mesma base do painel 01. Campos adicionais usados aqui: ome (via de-para para cidade) e tempo_obm_atual.",
+      "fieldsUsed": ["posto_grad", "ome", "matricula"]
+    },
+    {
+      "source": "SQL fornecido por Igor (CASE ome->cidade)",
+      "role": "de_para_geografico",
+      "description": "De-para OME -> município-sede, fornecido explicitamente por Igor via SQL do Metabase. Hardcoded no protótipo (47 unidades, todas cobertas). NÃO existe hoje como tabela no DW — é conhecimento de negócio do Igor, ainda não registrado em nenhum artefato do repositório dw-cbmpe.",
+      "fieldsUsed": ["ome -> cidade"]
+    },
+    {
+      "source": "geojs26mun.json (upload de Igor)",
+      "role": "geometria_do_mapa",
+      "description": "GeoJSON com os 185 municípios de Pernambuco (IBGE). Fernando de Noronha foi excluído do desenho (nenhuma OME do CBMPE está lá, e incluir a ilha distorcia a projeção do mapa continental). Coordenadas pré-processadas em Python (projeção equirretangular simples, sem correção de latitude — distorção desprezível na escala de PE) e embutidas no HTML como paths SVG estáticos."
+    }
+  ],
+  "derivedDimensions": [
+    {
+      "name": "cidade",
+      "field": "ome",
+      "rule": "de-para fixo ome->cidade fornecido por Igor (47 unidades, ver dePara.cidadePorOme)"
+    },
+    {
+      "name": "tempoObmAnos",
+      "field": "Tempo na OBM atual (texto 'XanosYmesesZdias' na planilha de Pecúlio)",
+      "rule": "parse do texto via regex + soma aproximada (anos*365 + meses*30 + dias) // 365. É uma APROXIMAÇÃO — não temos a fórmula exata usada pelo Windmill/peculio_metabase_v1 para o campo tempo_obm_atual (dias). 108 de 2.658 registros (4,1%) têm erro #NUM! na fonte e ficam sem esse dado (null) — excluídos quando o filtro 'Anos na OME atual' está ativo.",
+      "gap": true
+    }
+  ],
+  "dePara": {
+    "cidadePorOme": {
+      "CG":"Recife","SG":"Recife","ADIDO":"Recife","DGO":"Recife","DIEsp":"Recife","DPlaG":"Recife","DAS":"Recife",
+      "DEIP":"Recife","AECI":"Recife","DVP":"Recife","DInter/2":"Petrolina","DGP":"Recife","DInter/1":"Caruaru",
+      "DLog":"Recife","DJD":"Recife","DTIC":"Recife","DF":"Recife","6ºGB":"Garanhuns","1ºGB":"Vitória de Santo Antão",
+      "3ºGB":"Serra Talhada","GBI":"Jaboatão dos Guararapes","AjG":"Recife","GBS":"Abreu e Lima","CInt":"Recife",
+      "4ºGB":"Petrolina","CAT/RMR":"Recife","GBAPH":"Olinda","2ºGB":"Caruaru","CEFD":"Recife","7ºGB":"Carpina",
+      "ABMG":"Jaboatão dos Guararapes","CI":"Recife","CEAO":"Recife","GBMar":"Recife","CAT Zona da Mata":"Goiana",
+      "5ºGB":"Salgueiro","CAT Sertão":"Petrolina","GCG":"Recife","CAT Agreste":"Caruaru","9ºGB":"Arcoverde",
+      "CPPA":"Recife","CMan":"Recife","CCS":"Recife","DIM":"Recife","CPO":"Recife","GSG":"Recife"
+    }
+  },
+  "filters": [
+    { "id": "posto2", "field": "posto_grad", "type": "multiselect", "label": "Posto/Graduação" },
+    { "id": "tempo", "field": "tempoObmAnos", "type": "range", "label": "Anos na OME atual" }
+  ],
+  "cards": [
+    {
+      "id": "geo_map",
+      "type": "choropleth",
+      "title": "Distribuição Geográfica - Lotação",
+      "groupBy": "cidade",
+      "colorScale": "sequencial, hue único (--series-1), escala em raiz quadrada para não esconder cidades menores atrás da maior (Recife)",
+      "validatedAgainst": "Números batem exatamente com os 5 grupos da legenda do print do Metabase (32-97 / 121-152 / 189-225 / 343 / 881+) para os 13 municípios com OME do CBMPE."
+    },
+    {
+      "id": "bar_ome_categoria",
+      "type": "grouped_bar",
+      "title": "Distribuição de Oficiais e Praças por OME",
+      "groupBy": "ome",
+      "series": ["Praças", "Oficiais"],
+      "sort": "total desc",
+      "validatedAgainst": "Conferido 1:1 contra os valores do print para GBI (279/17), ADIDO (128/59), 3ºGB (135/11), 1ºGB (116/10) — mesma lógica de categoria já validada no painel 01."
+    }
+  ],
+  "gaps": [
+    {
+      "id": "cidade_nao_esta_no_dw",
+      "description": "O de-para OME->cidade não existe em nenhum artefato do repositório dw-cbmpe (nem mapeamento_unidades.json, nem DW_MODELO_DADOS.md) — é conhecimento que só existia na cabeça do Igor/no SQL do Metabase até agora.",
+      "impact": "Se este mapeamento for usado em produção, precisa ser formalizado como uma tabela/de-para versionado no DW (hoje está hardcoded no protótipo), para não depender de um SQL avulso.",
+      "ownedBy": "Igor (validar a lista) + Valério (formalizar no DW)"
+    },
+    {
+      "id": "tempo_obm_aproximado",
+      "description": "tempoObmAnos é uma aproximação (anos*365 + meses*30 + dias) do texto da planilha, não o cálculo exato de dias corridos que o Windmill usa para popular peculio_metabase_v1.tempo_obm_atual.",
+      "impact": "Pequenas divergências de arredondamento são possíveis perto das transições de ano. Baixo risco para o filtro (granularidade em anos), mas não deve ser tratado como fonte de verdade para cálculos financeiros/jurídicos.",
+      "ownedBy": "Valério (se quiser expor o campo formalmente no DW)"
+    },
+    {
+      "id": "geojson_sem_fonte_dw",
+      "description": "O arquivo de geometria dos municípios (geojs26mun.json) foi fornecido avulso por Igor, não vem do repositório do DW.",
+      "impact": "Nenhum impacto funcional (é geometria estática, não muda), mas o arquivo precisa ser versionado em algum lugar (repo do DW ou do próprio front) quando isso for para produção.",
+      "ownedBy": "Valério"
+    }
+  ],
+  "validatedAgainst": "Print do Metabase enviado por Igor em 2026-08 + SQL completo da consulta (CASE ome->cidade, Categoria, Disponibilidade, Faixa Etária, Tempo Obm Atual em Anos). Contagens por cidade conferem exatamente com os 5 buckets da legenda do mapa original."
+}

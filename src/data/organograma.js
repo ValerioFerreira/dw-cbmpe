@@ -16,7 +16,7 @@ import efetivoReal from "./real/efetivo.json";
 import efetivoPrevistoReal from "./real/efetivo_previsto.json";
 import efetivoPrevistoDivisoesReal from "./real/efetivo_previsto_divisoes.json";
 import lotacaoFuncaoReal from "./real/lotacao_funcao.json";
-import viaturasReal from "./real/viaturas.json";
+import viaturasListaReal from "./real/viaturas_lista.json";
 import financasReal from "./real/financas.json";
 
 const DIACRITICOS_REGEX = new RegExp("[\\u0300-\\u036f]", "g");
@@ -179,8 +179,14 @@ Object.keys(METRICAS).forEach((sigla) => {
 // registrada (sem OME conhecida) e a viatura da GTA (unidade fora do
 // organograma, confirmado com o usuário) ficam de fora de qualquer
 // unidade específica — decisão registrada em DW_PLANEJAMENTO.md.
+// A contagem é derivada de viaturas_lista.json (por veículo) em vez do
+// agregado bruto de viaturas.json (COUNT(*) sem filtro de situação no SQL
+// do extrator) — sem isso o card mostrava um total maior do que a tabela
+// de detalhe, que já exclui viaturas em situação "Descarregada" (mesma
+// regra de ViaturaDetalhe.jsx). Bug reportado pelo usuário, 2026-08-19.
 Object.keys(METRICAS).forEach((sigla) => {
-  METRICAS[sigla] = { ...METRICAS[sigla], viaturas: viaturasReal.por_unidade[sigla] ?? 0 };
+  const veiculos = viaturasListaReal.por_unidade[sigla] || [];
+  METRICAS[sigla] = { ...METRICAS[sigla], viaturas: veiculos.filter((v) => v.situacao !== "Descarregada").length };
 });
 
 // ----- Overlay de Finanças real (fonte: planilha de Finanças → Postgres

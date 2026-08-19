@@ -1,0 +1,80 @@
+{
+  "dashboardName": "Dashboard Pessoal",
+  "tabName": "Militares Adidos",
+  "status": "prototipado_validado",
+  "note": "Mesmo index.html dos painéis 01/02/03 (aba própria). Todos os 5 quadrantes do print original foram construídos e validados. Os 2 últimos (Unidade Externa e OME anterior) foram destravados a partir de Militar.json (export da tabela de produção `Militar`, enviado por Igor em 2026-08-18) — não usados para reconstruir a base inteira do protótipo, apenas para extrair os 187 registros de ADIDO com os 2 campos que faltavam.",
+  "audience": "DGP e gestores de efetivo",
+  "objective": "Mostrar quantos militares estão adidos (cedidos a órgãos externos), de que posto/graduação são, há quanto tempo estão na condição atual, para onde foram cedidos e de qual OME vieram.",
+  "mainQuestion": "Quantos militares estão adidos hoje, quem são (posto), para onde foram e de onde vieram?",
+  "dataSources": [
+    {
+      "table": "peculio_metabase_v1",
+      "role": "fonte_do_prototipo_base",
+      "description": "Mesma base dos painéis 01/02/03 (militares.json). 'Adido' é identificado pelo valor 'ADIDO' no campo ome (mesma unidade já usada nos painéis 01/02 para o agrupamento QCG/DIM/DINTER).",
+      "fieldsUsed": ["ome", "posto_grad", "tempo_obm_atual"]
+    },
+    {
+      "source": "Militar.json (upload de Igor, 2026-08-18)",
+      "role": "fonte_dos_2_quadrantes_novos",
+      "description": "Export da tabela de produção `Militar` (Postgres/Neon) — 2703 registros totais, dos quais 2658 com ativo=true (bate exatamente com o total de militares.json). Usado apenas para extrair, dos 187 registros com ome='ADIDO', os campos orgao e omeAnteriorSp — que não existiam em militares.json — e gerar um arquivo auxiliar pequeno (adidos_extra.json, 187 linhas, sem PII: sem matricula/nome/telefone).",
+      "fieldsUsed": ["ome", "postoGrad", "orgao", "omeAnteriorSp", "ativo"]
+    }
+  ],
+  "cards": [
+    {
+      "id": "stat_adidos",
+      "type": "stat",
+      "title": "Adidos",
+      "metric": "count(ome='ADIDO')",
+      "status": "construido",
+      "validatedAgainst": "187 — bate exatamente com o print, com o valor de ADIDO já usado no painel 01 ('Distribuição - QCG') e com a contagem de ADIDO em Militar.json."
+    },
+    {
+      "id": "bar_adidos_posto",
+      "type": "bar",
+      "title": "Adidos por Posto/Graduação",
+      "groupBy": "posto_grad",
+      "filter": "ome='ADIDO'",
+      "sort": "value desc",
+      "status": "construido",
+      "validatedAgainst": "Distribuição por posto confere 1:1 com o print (36/34/24/18/15/15/9/8/7/6/4/4/3/2/2 = 187) e é idêntica em militares.json e em Militar.json — cruzamento entre as duas fontes bate 100%."
+    },
+    {
+      "id": "bar_adidos_tempo",
+      "type": "bar",
+      "title": "Tempo na Unidade atual",
+      "groupBy": "tempoObmAnos (bucket: 0-5 / 6-10 / 11-15 / 15+)",
+      "filter": "ome='ADIDO'",
+      "sort": "ordem fixa dos buckets",
+      "status": "construido_com_ressalva",
+      "validatedAgainst": "Print mostra 117/36/23/11. Protótipo mostra 116/36/23/11 (usando a aproximação já existente em militares.json) — divergência de 1 registro é esperada: 1 dos 187 adidos está entre os 108 registros da base geral (4,1%) com erro #NUM! na coluna 'Tempo na OBM atual' da planilha original (mesmo gap do painel 02)."
+    },
+    {
+      "id": "bar_unidade_externa",
+      "type": "bar",
+      "title": "Distribuição por Unidade Externa",
+      "groupBy": "orgao",
+      "filter": "ome='ADIDO'",
+      "status": "construido",
+      "validatedAgainst": "Extraído de Militar.json.orgao. Bate muito bem com o print: SDS/SEPDEC 41, SDS 41, CAMIL 26, SDS/GTA 18, SDS/CORREG 14, TJPE 11, CPM 8, SENASP/MJ 4, FORÇA NACIONAL 3, PREF. RECIFE 3 — todos os valores de topo conferem exatamente. Único ponto de atenção: a fonte tem 'CMH' e 'CMH/DASIS' como dois valores distintos (2 cada) — no print pareciam estar somados numa única categoria 'CMH/DASIS'=2. Mantido como a fonte traz (sem fundir categorias sem confirmação de Igor)."
+    },
+    {
+      "id": "bar_ome_anterior",
+      "type": "bar",
+      "title": "OME anterior",
+      "groupBy": "omeAnteriorSp",
+      "filter": "ome='ADIDO'",
+      "status": "construido",
+      "validatedAgainst": "Extraído de Militar.json.omeAnteriorSp. Bate com o print: ADIDO 125, DGO 8, DLog 8, GBI 7, DGP 6, ABMG 4, GBAPH 3, 5ºGB 3 — topo confere; as ~13 unidades restantes aparecem todas com 1 registro cada, somando 187 no total."
+    }
+  ],
+  "gaps": [],
+  "achado_para_registrar": {
+    "id": "tempo_obm_dias_diverge_da_aproximacao",
+    "description": "Militar.json traz tempoObmAtualDias (dias exatos, sem nenhum #NUM!/null) — em teoria a fonte definitiva para 'Tempo na OBM atual'. Mas ao rebucketizar os 187 adidos com esse campo exato, o resultado (104/44/19/20) diverge bastante do print original (117/36/23/11) e da aproximação já usada em militares.json (116/36/23/11), que está bem mais próxima do print.",
+    "hipotese": "Militar.json parece ser um snapshot vivo (createdAt/updatedAt de 2026-08-18) — tempoObmAtualDias provavelmente é calculado a partir de dataMovimentacaoSp até HOJE, então reflete movimentações mais recentes do que a planilha de Pecúlio usada para gerar o print original do Metabase (snapshot mais antigo). Não é um erro de nenhum dos dois lados — são datas de referência diferentes.",
+    "decisao": "Por ora, mantido tempoObmAnos (aproximação da planilha de Pecúlio) neste quadrante, por já bater melhor com o print validado por Igor. tempoObmAtualDias de Militar.json fica registrado como candidato a substituir a aproximação quando o protótipo for atualizado para refletir a data mais recente — mas troca-se o painel inteiro, não só este quadrante, para não misturar datas de referência diferentes na mesma tela.",
+    "perguntar_a_igor": "Confirmar se o print de 'Tempo na Unidade atual' é de uma data anterior a 18/08/2026, o que explicaria a divergência."
+  },
+  "validatedAgainst": "Print do Metabase enviado por Igor em 2026-08 + Militar.json (export da tabela de produção, 2026-08-18). Todos os 5 quadrantes construídos; 4 batem muito bem com o print, 1 (Tempo na Unidade atual) tem divergência de 1 registro já esperada e documentada."
+}

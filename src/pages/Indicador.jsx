@@ -9,6 +9,7 @@ import {
   CATEGORIAS, getCaminho, fmtNumero, fmtMoeda
 } from "@/lib/cbmpe";
 import EmptyState from "@/components/ui/empty-state";
+import { MODULOS_EFETIVO_DASHBOARD } from "@/lib/efetivoDashboard";
 
 const QTD_MODULOS_PLACEHOLDER = 4;
 
@@ -137,20 +138,35 @@ export default function Indicador() {
         )}
       </div>
 
-      {/* Módulos futuros deste indicador (placeholders — ainda sem dado/dashboard real) */}
+      {/* Módulos deste indicador — para Efetivo já ligam ao Dashboard Pessoal
+          real (ver src/pages/efetivo/); os demais indicadores ainda são
+          placeholders "em construção". */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {Array.from({ length: QTD_MODULOS_PLACEHOLDER }, (_, i) => i + 1).map((n) => (
-          <Link
-            key={n}
-            to={`/em-construcao/${ind.id}-modulo-${n}`}
-            className="group flex flex-col items-center justify-center gap-2 rounded-xl border border-border bg-card p-4 text-center transition-all hover:-translate-y-0.5 hover:border-input hover:shadow-sm"
-          >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary">
-              <BarChart3 className="h-4 w-4" />
-            </div>
-            <p className="text-[13px] font-semibold text-foreground">{ind.nome} Módulo {n}</p>
-          </Link>
-        ))}
+        {ind.nome === "Efetivo"
+          ? MODULOS_EFETIVO_DASHBOARD.map((m) => (
+              <Link
+                key={m.key}
+                to={`/efetivo/${ind.id}/dashboard/${m.key}`}
+                className="group flex flex-col items-center justify-center gap-2 rounded-xl border border-border bg-card p-4 text-center transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm"
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary">
+                  <BarChart3 className="h-4 w-4" />
+                </div>
+                <p className="text-[13px] font-semibold text-foreground">{m.nome}</p>
+              </Link>
+            ))
+          : Array.from({ length: QTD_MODULOS_PLACEHOLDER }, (_, i) => i + 1).map((n) => (
+              <Link
+                key={n}
+                to={`/em-construcao/${ind.id}-modulo-${n}`}
+                className="group flex flex-col items-center justify-center gap-2 rounded-xl border border-border bg-card p-4 text-center transition-all hover:-translate-y-0.5 hover:border-input hover:shadow-sm"
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary">
+                  <BarChart3 className="h-4 w-4" />
+                </div>
+                <p className="text-[13px] font-semibold text-foreground">{ind.nome} Módulo {n}</p>
+              </Link>
+            ))}
       </div>
     </div>
   );

@@ -55,6 +55,35 @@ export function useLarguras(colunas) {
   return { larguras, iniciarResize, larguraTotal };
 }
 
+// Largura real (em px) disponível pro elemento referenciado — medida via
+// ResizeObserver, não CSS percentual. Necessário porque `width: 100%` numa
+// <table> dentro do ScrollDuplo resolve de forma inconsistente sob o
+// `html { zoom: 1.25 }` global (index.css): o valor calculado escapava para
+// a largura da viewport em vez da largura real do card. Com a largura
+// medida em JS, a tabela recebe um `width` explícito em px — sem depender
+// de resolução de percentual nenhuma.
+export function useLarguraContainer() {
+  const [largura, setLargura] = React.useState(0);
+  const observerRef = React.useRef(null);
+  // Ref-callback em vez de useRef+useLayoutEffect: nas páginas de tabela o
+  // elemento só existe na árvore depois de passar por retornos condicionais
+  // (loading/permissão) — um efeito de dependência [] preso ao mount não via
+  // esse nó tardio. O ref-callback dispara exatamente quando o nó real monta
+  // ou desmonta, não importa em qual render isso acontece.
+  const ref = React.useCallback((el) => {
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+      observerRef.current = null;
+    }
+    if (!el) return;
+    setLargura(el.clientWidth);
+    const ro = new ResizeObserver(() => setLargura(el.clientWidth));
+    ro.observe(el);
+    observerRef.current = ro;
+  }, []);
+  return [ref, largura];
+}
+
 export function ColGroup({ colunas, larguras }) {
   return (
     <colgroup>

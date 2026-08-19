@@ -1,13 +1,23 @@
 import React, { useMemo } from "react";
 import {
   ResponsiveContainer, BarChart, Bar, LineChart, Line, AreaChart, Area,
-  XAxis, YAxis, CartesianGrid, Tooltip, Cell
+  XAxis, YAxis, CartesianGrid, Tooltip, Cell, LabelList, Legend
 } from "recharts";
 
 const COR_PRIMARIA = "hsl(var(--primary))";
+const COR_CINZA = "hsl(var(--muted-foreground))";
 const COR_ACENTO = "hsl(var(--accent))";
 const COR_GRID = "hsl(var(--border))";
 const COR_TEXTO = "hsl(var(--muted-foreground))";
+
+// Paleta padrão: vermelho (marca) + cinza como par de 2 cores — laranja
+// (--accent) só entra como 3ª cor em diante, nunca como a 2ª (pedido do
+// usuário: evitar laranja em distinções de apenas 2 categorias).
+const PALETA_PADRAO = [COR_PRIMARIA, COR_CINZA, COR_ACENTO, "hsl(var(--chart-3))", "hsl(var(--chart-4))"];
+
+function fmtRotulo(v) {
+  return typeof v === "number" ? v.toLocaleString("pt-BR") : v;
+}
 
 function TooltipCustom({ active, payload, label, unidade }) {
   if (!active || !payload?.length) return null;
@@ -25,31 +35,58 @@ function TooltipCustom({ active, payload, label, unidade }) {
   );
 }
 
-export default function PanelGrafico({ tipo = "bar", data, xKey = "label", yKeys = ["valor"], altura = 240, unidade, cores, stacked = false }) {
-  const palette = useMemo(() => cores || [COR_PRIMARIA, COR_ACENTO, "hsl(var(--chart-3))", "hsl(var(--chart-4))"], [cores]);
+export default function PanelGrafico({
+  tipo = "bar", data, xKey = "label", yKeys = ["valor"], altura = 240, unidade, cores, stacked = false,
+  aoClicarBarra, legenda = false,
+}) {
+  const palette = useMemo(() => cores || PALETA_PADRAO, [cores]);
+  const clicavel = typeof aoClicarBarra === "function";
 
-  const propsComuns = {
-    data, margin: { top: 8, right: 8, bottom: 0, left: -16 },
-  };
+  const margemBase = { top: 8, right: legenda ? 96 : 8, bottom: 0, left: -16 };
+  const propsComuns = { data, margin: margemBase };
+
+  const eixoX = (
+    <XAxis
+      dataKey={xKey}
+      tick={{ fontSize: 11, fill: COR_TEXTO }}
+      tickLine={false}
+      axisLine={{ stroke: COR_GRID }}
+      interval={0}
+      angle={-35}
+      textAnchor="end"
+      height={64}
+    />
+  );
 
   return (
     <ResponsiveContainer width="100%" height={altura}>
       {tipo === "bar" ? (
-        <BarChart {...propsComuns}>
+        <BarChart {...propsComuns} margin={{ ...margemBase, top: 24, bottom: 40 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={COR_GRID} vertical={false} />
-          <XAxis dataKey={xKey} tick={{ fontSize: 11, fill: COR_TEXTO }} tickLine={false} axisLine={{ stroke: COR_GRID }} />
+          {eixoX}
           <YAxis tick={{ fontSize: 11, fill: COR_TEXTO }} tickLine={false} axisLine={false} />
           <Tooltip content={<TooltipCustom unidade={unidade} />} cursor={{ fill: "hsl(var(--muted))" }} />
+          {legenda && <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: 12 }} />}
           {yKeys.map((k, i) => (
-            <Bar key={k} dataKey={k} stackId={stacked ? "a" : undefined} radius={[3, 3, 0, 0]} maxBarSize={42}>
+            <Bar
+              key={k}
+              dataKey={k}
+              stackId={stacked ? "a" : undefined}
+              radius={[3, 3, 0, 0]}
+              maxBarSize={42}
+              isAnimationActive={false}
+              cursor={clicavel ? "pointer" : undefined}
+              onClick={clicavel ? (pontoDado) => aoClicarBarra(pontoDado?.payload || pontoDado, k) : undefined}
+            >
               {data.map((_, idx) => <Cell key={idx} fill={palette[i % palette.length]} />)}
+              <LabelList dataKey={k} position="top" formatter={fmtRotulo} style={{ fontSize: 10, fill: "hsl(var(--foreground))" }} />
             </Bar>
           ))}
         </BarChart>
       ) : tipo === "line" ? (
         <LineChart {...propsComuns}>
           <CartesianGrid strokeDasharray="3 3" stroke={COR_GRID} vertical={false} />
-          <XAxis dataKey={xKey} tick={{ fontSize: 11, fill: COR_TEXTO }} tickLine={false} axisLine={{ stroke: COR_GRID }} />
+          {eixoX}
           <YAxis tick={{ fontSize: 11, fill: COR_TEXTO }} tickLine={false} axisLine={false} />
           <Tooltip content={<TooltipCustom unidade={unidade} />} />
           {yKeys.map((k, i) => (
@@ -67,7 +104,7 @@ export default function PanelGrafico({ tipo = "bar", data, xKey = "label", yKeys
             ))}
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke={COR_GRID} vertical={false} />
-          <XAxis dataKey={xKey} tick={{ fontSize: 11, fill: COR_TEXTO }} tickLine={false} axisLine={{ stroke: COR_GRID }} />
+          {eixoX}
           <YAxis tick={{ fontSize: 11, fill: COR_TEXTO }} tickLine={false} axisLine={false} />
           <Tooltip content={<TooltipCustom unidade={unidade} />} />
           {yKeys.map((k, i) => (

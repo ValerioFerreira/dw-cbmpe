@@ -1,0 +1,48 @@
+{
+  "dashboardName": "Dashboard Pessoal",
+  "tabName": "Situações Funcionais",
+  "status": "prototipado_validado",
+  "note": "Mesmo index.html dos painéis 01 e 02 (aba própria, com filtros de OME e Patente independentes das outras abas).",
+  "audience": "DGP e gestores de efetivo",
+  "objective": "Mostrar quantos militares estão em situações funcionais especiais (afastamentos, LTIP, LE, horário especial, readaptação) e onde/quem são.",
+  "mainQuestion": "Quantos militares estão hoje em cada situação funcional especial, e como isso se distribui por OME e por posto?",
+  "dataSources": [
+    {
+      "table": "peculio_metabase_v1",
+      "role": "fonte_do_prototipo",
+      "description": "Mesma base dos painéis 01/02. Nenhum campo novo pedido a Igor — todos os campos usados nesta aba já existiam na planilha de Pecúlio original e foram validados 1:1 contra o print antes de perguntar por SQL.",
+      "fieldsUsed": ["posto_grad", "ome", "le", "ltip", "horario_especial", "readaptado", "afastamentos_sup_90_dias"]
+    }
+  ],
+  "derivedDimensions": [
+    {
+      "name": "le / ltip / horarioEspecial / readaptado",
+      "field": "booleanos diretos da planilha (colunas LE, LTIP, Horário Especial, Readaptados)",
+      "rule": "sem transformação — uso direto do valor booleano da fonte"
+    },
+    {
+      "name": "afastamento",
+      "field": "AFASTAMENTOS SUP. A 90 DIAS ININTERRUPTOS, PUBLICADOS EM SP",
+      "rule": "mantém apenas os valores 'LTS' e 'LM' (outros valores textuais na coluna — nomes de OME, 'LE', texto livre — são ruído/erro de preenchimento na fonte e ficam fora; já eram ignorados pela fórmula de Disponibilidade do painel 01)"
+    }
+  ],
+  "filters": [
+    { "id": "ome3", "field": "ome", "type": "multiselect", "label": "OME" },
+    { "id": "posto3", "field": "posto_grad", "type": "multiselect", "label": "Patente" }
+  ],
+  "cards": [
+    { "id": "stat_ltip", "type": "stat", "title": "LTIP", "metric": "count(ltip=true)" },
+    { "id": "stat_lm", "type": "stat", "title": "LM - Superior a 90 dias", "metric": "count(afastamento='LM')" },
+    { "id": "stat_he", "type": "stat", "title": "Horário Especial", "metric": "count(horarioEspecial=true)" },
+    { "id": "stat_le", "type": "stat", "title": "LE", "metric": "count(le=true)" },
+    { "id": "stat_lts", "type": "stat", "title": "LTS - Superior a 90 dias", "metric": "count(afastamento='LTS')" },
+    { "id": "stat_readapt", "type": "stat", "title": "Readaptados", "metric": "count(readaptado=true)" },
+    { "id": "bar_readapt_posto", "type": "bar", "title": "Militares Readaptados por Posto/Graduação", "groupBy": "posto_grad", "filter": "readaptado=true", "sort": "value desc" },
+    { "id": "donut_le", "type": "donut", "title": "Distribuição de Militares em LE", "groupBy": "ome", "filter": "le=true" },
+    { "id": "bar_he_ome", "type": "bar", "title": "Distribuição de Militares com Horário Especial", "groupBy": "ome", "filter": "horarioEspecial=true", "sort": "value desc" },
+    { "id": "donut_ltip", "type": "donut", "title": "Distribuição de Militares em LTIP", "groupBy": "ome", "filter": "ltip=true" },
+    { "id": "bar_afast_ome", "type": "grouped_bar", "title": "Distribuição de Militares com Afastamento superior a 90 dias", "groupBy": "ome", "series": ["LTS", "LM"], "sort": "total desc" }
+  ],
+  "gaps": [],
+  "validatedAgainst": "Todos os 6 cartões numéricos e os 4 gráficos conferem exatamente com o print do Metabase enviado por Igor — validado ANTES de pedir SQL, já que todos os campos necessários já estavam disponíveis e corretos na planilha de Pecúlio original."
+}

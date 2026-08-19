@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Pessoal — Efetivo Geral (protótipo)</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --surface-2:      #ffffff;
+    --page-plane:     #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --series-1:       #c0392b; /* vermelho - primária */
+    --series-2:       #e8899c; /* rosa - secundária */
+    --series-1-rgb:    192,57,43;
+    --good:           #0ca30c;
+    --warning:        #fab219;
+    --serious:        #ec835a;
+    --critical:       #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --surface-2:      #222221;
+      --page-plane:     #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --gridline:       #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --series-1:       #e2574a;
+      --series-2:       #ad3a7a;
+      --series-1-rgb:    226,87,74;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --surface-2:      #222221;
+    --page-plane:     #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --gridline:       #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --series-1:       #e2574a;
+    --series-2:       #ad3a7a;
+    --series-1-rgb:    226,87,74;
+  }
+
+  * { box-sizing: border-box; }
+  html,body { margin:0; padding:0; }
+  body {
+    background: var(--page-plane);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--text-primary);
+  }
+  .viz-root { padding: 20px 28px 60px; max-width: 1400px; margin: 0 auto; }
+
+  .topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .crumbs { color: var(--text-muted); font-size:13px; display:flex; align-items:center; gap:6px; }
+  .theme-toggle {
+    border:1px solid var(--border); background:var(--surface-2); color:var(--text-secondary);
+    border-radius:8px; padding:6px 10px; font-size:12px; cursor:pointer;
+  }
+  h1 { font-size:26px; margin: 4px 0 2px; }
+  .subtitle { color: var(--text-secondary); font-size:13px; margin: 0 0 18px; }
+  .subtitle b { color: var(--text-primary); }
+
+  .tabs { display:flex; gap: 4px; border-bottom: 1px solid var(--gridline); margin-bottom:18px; overflow-x:auto; }
+  .tab { padding: 10px 14px; font-size: 14px; color: var(--text-muted); white-space:nowrap; border-bottom:2px solid transparent; cursor:pointer; }
+  .tab:not(.disabled):hover { color: var(--text-primary); }
+  .tab.active { color: var(--series-1); border-bottom-color: var(--series-1); font-weight:600; }
+  .tab.disabled { cursor:not-allowed; opacity:.55; }
+
+  .geo-map-wrap { display:flex; align-items:flex-start; gap:18px; }
+  .geo-map-wrap svg { display:block; width:100%; height:auto; }
+  .geo-map-wrap .chart-scroll { flex:1; min-width:0; }
+  .muni { stroke: var(--surface-1); stroke-width:0.6; cursor:pointer; transition: opacity .12s; }
+  .muni:hover { opacity:.75; stroke: var(--text-primary); stroke-width:1; }
+  .geo-legend { flex:none; width:150px; font-size:12px; color:var(--text-secondary); padding-top:8px; }
+  .geo-legend .ramp { height:10px; border-radius:5px; margin-bottom:6px; background: linear-gradient(to right, var(--gridline), var(--series-1)); }
+  .geo-legend .ramp-labels { display:flex; justify-content:space-between; font-variant-numeric:tabular-nums; color:var(--text-muted); }
+  .geo-legend .geo-top { margin-top:14px; }
+  .geo-legend .geo-top-row { display:flex; justify-content:space-between; gap:6px; padding:3px 0; border-bottom:1px dashed var(--gridline); }
+  .geo-legend .geo-top-row span:last-child { font-variant-numeric:tabular-nums; font-weight:600; color:var(--text-primary); }
+
+  .filters { display:flex; align-items:center; gap:10px; margin-bottom: 20px; flex-wrap:wrap; }
+  .filter-combo { position:relative; }
+  .filter-btn {
+    display:flex; align-items:center; gap:8px; border:1px solid var(--border); background:var(--surface-2);
+    color: var(--text-primary); border-radius:8px; padding:8px 12px; font-size:13px; cursor:pointer;
+  }
+  .filter-btn .count-badge {
+    background: var(--series-1); color:#fff; border-radius:999px; font-size:11px; padding:1px 7px; font-weight:600;
+  }
+  .filter-panel {
+    position:absolute; top:calc(100% + 6px); left:0; width:280px; max-height:340px; overflow:auto;
+    background: var(--surface-2); border:1px solid var(--border); border-radius:10px; box-shadow: 0 8px 24px rgba(0,0,0,.14);
+    padding:10px; z-index:20; display:none;
+  }
+  .filter-panel.open { display:block; }
+  .filter-search { width:100%; padding:7px 9px; border-radius:7px; border:1px solid var(--border); margin-bottom:8px; font-size:13px; background:var(--surface-1); color:var(--text-primary); }
+  .filter-actions { display:flex; justify-content:space-between; margin-bottom:6px; }
+  .filter-actions button { background:none; border:none; color: var(--series-1); font-size:12px; cursor:pointer; padding:2px 4px; }
+  .filter-option { display:flex; align-items:center; gap:8px; padding:5px 4px; font-size:13px; border-radius:6px; cursor:pointer; }
+  .filter-option:hover { background: var(--page-plane); }
+  .filter-option input { accent-color: var(--series-1); }
+  .clear-filters-btn {
+    border:1px solid var(--border); background:transparent; color:var(--text-secondary); border-radius:8px;
+    padding:8px 12px; font-size:13px; cursor:pointer;
+  }
+  .clear-filters-btn:hover { color: var(--series-1); border-color: var(--series-1); }
+  .active-note { font-size:12px; color: var(--text-muted); }
+
+  .grid { display:grid; grid-template-columns: repeat(12, 1fr); gap:14px; align-items:stretch; }
+  .card {
+    background: var(--surface-1); border:1px solid var(--border); border-radius:12px; padding:14px 16px;
+    display:flex; flex-direction:column;
+  }
+  .card h3 { margin:0 0 10px; font-size:13px; font-weight:600; color:var(--text-primary); }
+
+  .stat-card {
+    grid-column: span 3; min-height:0; padding:0; overflow:hidden;
+    flex-direction:row; align-items:stretch;
+  }
+  .stat-card .accent { width:4px; flex:none; background: var(--stat-accent, var(--series-1)); }
+  .stat-card .stat-body { flex:1; padding:14px 16px; display:flex; flex-direction:column; justify-content:center; min-width:0; }
+  .stat-value { font-size:32px; font-weight:700; font-variant-numeric: tabular-nums; line-height:1.05; color: var(--text-primary); letter-spacing:-0.5px; }
+  .stat-label { color: var(--text-secondary); font-size:12.5px; margin-top:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .stat-sub { color: var(--text-muted); font-size:11px; margin-top:2px; font-variant-numeric: tabular-nums; }
+
+  .span-4 { grid-column: span 4; }
+  .span-6 { grid-column: span 6; }
+  .span-8 { grid-column: span 8; }
+  .span-12 { grid-column: span 12; }
+
+  .donut-wrap { display:flex; align-items:center; justify-content:center; gap:22px; flex:1; padding-left:22px; }
+  .donut-legend { display:flex; flex-direction:column; gap:9px; font-size:13px; min-width:132px; }
+  .legend-row { display:flex; align-items:center; justify-content:space-between; gap:14px; }
+  .legend-key { display:flex; align-items:center; gap:8px; min-width:0; }
+  .legend-key span:last-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .legend-dot { width:10px; height:10px; border-radius:50%; flex:none; }
+  .legend-val { color:var(--text-primary); font-weight:600; font-variant-numeric: tabular-nums; text-align:right; flex:none; }
+
+  .empty-state { color: var(--text-muted); font-size:13px; line-height:1.5; padding:18px 4px; }
+  .empty-state b { color: var(--text-secondary); }
+
+  table.deficit { width:100%; border-collapse:collapse; font-size:13px; }
+  table.deficit th { text-align:left; color:var(--text-secondary); font-weight:600; padding:6px 8px; border-bottom:1px solid var(--gridline); position:sticky; top:0; background:var(--surface-1); }
+  table.deficit td { padding:6px 8px; border-bottom:1px solid var(--gridline); font-variant-numeric: tabular-nums; color:var(--text-primary); }
+  table.deficit tbody tr:hover { outline: 1px solid var(--border); }
+  .deficit-scroll { max-height: 420px; overflow:auto; }
+  .muted-cell { color: var(--text-muted); }
+  .table-note { font-size:12px; color:var(--text-muted); margin-top:8px; }
+
+  .bars-svg .bar { fill: var(--series-1); }
+  .bars-svg .bar:hover { fill: var(--series-2); }
+  .bars-svg text.bar-label { font-size:10px; fill: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  .bars-svg text.axis-label { font-size:10px; fill: var(--text-muted); }
+  .bars-svg line.grid { stroke: var(--gridline); stroke-width:1; }
+  .bars-svg line.baseline { stroke: var(--baseline); stroke-width:1; }
+
+  .tooltip {
+    position: fixed; pointer-events:none; background: var(--text-primary); color: var(--surface-1);
+    font-size:12px; padding:6px 9px; border-radius:6px; z-index:50; display:none; white-space:nowrap;
+    box-shadow: 0 4px 14px rgba(0,0,0,.25);
+  }
+
+  .chart-scroll { overflow-x:auto; }
+
+  .footer-note { margin-top:28px; font-size:12px; color:var(--text-muted); line-height:1.6; border-top:1px solid var(--gridline); padding-top:14px; }
+  .footer-note code { background: var(--page-plane); border-radius:4px; padding:1px 5px; }
+
+  @media (max-width: 980px) {
+    .stat-card { grid-column: span 6; }
+    .span-4, .span-6, .span-8 { grid-column: span 12; }
+  }
+</style>
+</head>
+<body>
+<div class="viz-root" data-palette="#c0392b,#e8899c">
+
+  <div class="topbar">
+    <div class="crumbs">📁 DGP&nbsp;/&nbsp;Dashboards</div>
+    <button class="theme-toggle" id="themeToggle" type="button">🌙 Modo escuro</button>
+  </div>
+  <h1>Dashboard Pessoal</h1>
+  <p class="subtitle">Protótipo interativo — dados reais do extrato de efetivo (<b id="snapshotDate">agosto/2026</b>). Filtros funcionais, cálculos ao vivo a partir dos <b id="totalRecordsLabel">2.658</b> registros.</p>
+
+  <div class="tabs" id="tabs">
+    <div class="tab active" data-tab="efetivo">Efetivo Geral</div>
+    <div class="tab" data-tab="geo">Distribuição Geográfica</div>
+    <div class="tab" data-tab="situacoes">Situações Funcionais</div>
+    <div class="tab" data-tab="adidos">Militares Adidos</div>
+    <div class="tab disabled" title="Ainda não prototipado">Militares com Acúmulo de Cargos</div>
+    <div class="tab disabled" title="Ainda não prototipado">Militares PCD's</div>
+    <div class="tab disabled" title="Ainda não prototipado">Movimentação e Carreira</div>
+    <div class="tab disabled" title="Ainda não prototipado">Tempo na OME</div>
+    <div class="tab disabled" title="Ainda não prototipado">Intenção de Movimentação</div>
+    <div class="tab disabled" title="Ainda não prototipado">Escolaridade do Efetivo</div>
+  </div>
+
+  <div class="tab-panel" id="panel-efetivo" data-panel="efetivo">
+
+  <div class="filters">
+    <div class="filter-combo" id="omeCombo">
+      <button class="filter-btn" id="omeBtn" type="button">T OME <span class="count-badge" id="omeBadge" style="display:none"></span> ▾</button>
+      <div class="filter-panel" id="omePanel">
+        <input class="filter-search" id="omeSearch" placeholder="Buscar OME…">
+        <div class="filter-actions">
+          <button type="button" id="omeSelectAll">Selecionar todas</button>
+          <button type="button" id="omeClear">Limpar</button>
+        </div>
+        <div id="omeOptions"></div>
+      </div>
+    </div>
+
+    <div class="filter-combo" id="postoCombo">
+      <button class="filter-btn" id="postoBtn" type="button">T Patente <span class="count-badge" id="postoBadge" style="display:none"></span> ▾</button>
+      <div class="filter-panel" id="postoPanel">
+        <div class="filter-actions">
+          <button type="button" id="postoSelectAll">Selecionar todas</button>
+          <button type="button" id="postoClear">Limpar</button>
+        </div>
+        <div id="postoOptions"></div>
+      </div>
+    </div>
+
+    <button class="clear-filters-btn" id="clearAllBtn" type="button">Limpar todos os filtros</button>
+    <span class="active-note" id="activeNote"></span>
+  </div>
+
+  <div class="grid" id="grid">
+
+    <div class="card stat-card" style="grid-column:span 4;"><div class="accent" style="--stat-accent:var(--series-1)"></div><div class="stat-body"><div class="stat-value" id="statTotal">–</div><div class="stat-label">Efetivo Total</div></div></div>
+    <div class="card stat-card" style="grid-column:span 4;"><div class="accent" style="--stat-accent:var(--series-1)"></div><div class="stat-body"><div class="stat-value" id="statDisp">–</div><div class="stat-label">Efetivo Disponível</div><div class="stat-sub" id="statDispPct"></div></div></div>
+    <div class="card stat-card" style="grid-column:span 4;"><div class="accent" style="--stat-accent:var(--series-1)"></div><div class="stat-body"><div class="stat-value" id="statIndisp">–</div><div class="stat-label">Efetivo Indisponível</div><div class="stat-sub" id="statIndispPct"></div></div></div>
+
+    <div class="card stat-card"><div class="accent" style="--stat-accent:var(--series-2)"></div><div class="stat-body"><div class="stat-value" id="statQCG">–</div><div class="stat-label">QCG</div><div class="stat-sub" id="statQCGPct"></div></div></div>
+    <div class="card stat-card"><div class="accent" style="--stat-accent:var(--series-2)"></div><div class="stat-body"><div class="stat-value" id="statDIM">–</div><div class="stat-label">DIM</div><div class="stat-sub" id="statDIMPct"></div></div></div>
+    <div class="card stat-card"><div class="accent" style="--stat-accent:var(--series-2)"></div><div class="stat-body"><div class="stat-value" id="statD1">–</div><div class="stat-label">DINTER 1</div><div class="stat-sub" id="statD1Pct"></div></div></div>
+    <div class="card stat-card"><div class="accent" style="--stat-accent:var(--series-2)"></div><div class="stat-body"><div class="stat-value" id="statD2">–</div><div class="stat-label">DINTER 2</div><div class="stat-sub" id="statD2Pct"></div></div></div>
+
+    <div class="span-4" style="grid-column: span 4; display:flex; flex-direction:column; gap:14px;">
+      <div class="card">
+        <h3>Distribuição de Oficiais x Praças</h3>
+        <div class="donut-wrap" id="donutCategoria"></div>
+      </div>
+      <div class="card">
+        <h3>Distribuição por sexo</h3>
+        <div class="donut-wrap" id="donutSexo"></div>
+      </div>
+    </div>
+    <div class="card span-8">
+      <h3>Distribuição por Posto/Graduação</h3>
+      <div class="deficit-scroll"><table class="deficit" id="deficitTable"></table></div>
+      <div class="table-note" id="deficitNote"></div>
+    </div>
+
+    <div class="card span-6">
+      <h3>Faixa Etária</h3>
+      <div class="chart-scroll" id="chartFaixa"></div>
+    </div>
+    <div class="card span-6">
+      <h3>Distribuição - QCG</h3>
+      <div class="chart-scroll" id="chartQCG"></div>
+    </div>
+
+    <div class="card span-4">
+      <h3>Distribuição - DIM</h3>
+      <div class="chart-scroll" id="chartDIM"></div>
+    </div>
+    <div class="card span-4">
+      <h3>Distribuição - DINTER 1</h3>
+      <div class="chart-scroll" id="chartD1"></div>
+    </div>
+    <div class="card span-4">
+      <h3>Distribuição - DINTER 2</h3>
+      <div class="chart-scroll" id="chartD2"></div>
+    </div>
+
+  </div>
+  </div>
+
+  <div class="tab-panel" id="panel-geo" data-panel="geo" style="display:none">
+
+  <div class="filters">
+    <div class="filter-combo" id="posto2Combo">
+      <button class="filter-btn" id="posto2Btn" type="button">T Posto/Graduação <span class="count-badge" id="posto2Badge" style="display:none"></span> ▾</button>
+      <div class="filter-panel" id="posto2Panel">
+        <div class="filter-actions">
+          <button type="button" id="posto2SelectAll">Selecionar todas</button>
+          <button type="button" id="posto2Clear">Limpar</button>
+        </div>
+        <div id="posto2Options"></div>
+      </div>
+    </div>
+
+    <div class="filter-combo" id="tempoCombo">
+      <button class="filter-btn" id="tempoBtn" type="button">📅 Anos na OME atual <span class="count-badge" id="tempoBadge" style="display:none"></span> ▾</button>
+      <div class="filter-panel" id="tempoPanel" style="width:220px;">
+        <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-secondary);">
+          <label style="display:flex; flex-direction:column; gap:3px;">De
+            <input type="number" min="0" id="tempoMin" class="filter-search" style="width:80px; margin-bottom:0;">
+          </label>
+          <label style="display:flex; flex-direction:column; gap:3px;">Até
+            <input type="number" min="0" id="tempoMax" class="filter-search" style="width:80px; margin-bottom:0;">
+          </label>
+        </div>
+        <div class="filter-actions" style="margin-top:8px;">
+          <button type="button" id="tempoApply">Aplicar</button>
+          <button type="button" id="tempoClear">Limpar</button>
+        </div>
+        <div class="table-note" style="margin-top:4px;">108 militares (4,1%) sem esse dado na fonte (erro <code>#NUM!</code> na planilha) — ficam fora do filtro quando ativo.</div>
+      </div>
+    </div>
+
+    <button class="clear-filters-btn" id="clearAllBtn2" type="button">Limpar todos os filtros</button>
+    <span class="active-note" id="activeNote2"></span>
+  </div>
+
+  <div class="grid" id="grid2">
+    <div class="card span-12">
+      <h3>Distribuição Geográfica - Lotação</h3>
+      <div class="geo-map-wrap">
+        <div class="chart-scroll" id="geoMap"></div>
+        <div class="geo-legend" id="geoLegend"></div>
+      </div>
+    </div>
+    <div class="card span-12">
+      <h3>Distribuição de Oficiais e Praças por OME</h3>
+      <div class="legend-row" style="justify-content:flex-start; gap:16px; margin-bottom:8px;">
+        <span class="legend-key"><span class="legend-dot" style="background:var(--series-1)"></span><span>Praças</span></span>
+        <span class="legend-key"><span class="legend-dot" style="background:var(--series-2)"></span><span>Oficiais</span></span>
+      </div>
+      <div class="chart-scroll" id="chartOmeCategoria"></div>
+    </div>
+  </div>
+  </div>
+
+  <div class="tab-panel" id="panel-situacoes" data-panel="situacoes" style="display:none">
+
+  <div class="filters">
+    <div class="filter-combo" id="ome3Combo">
+      <button class="filter-btn" id="ome3Btn" type="button">T OME <span class="count-badge" id="ome3Badge" style="display:none"></span> ▾</button>
+      <div class="filter-panel" id="ome3Panel">
+        <input class="filter-search" id="ome3Search" placeholder="Buscar OME…">
+        <div class="filter-actions">
+          <button type="button" id="ome3SelectAll">Selecionar todas</button>
+          <button type="button" id="ome3Clear">Limpar</button>
+        </div>
+        <div id="ome3Options"></div>
+      </div>
+    </div>
+    <div class="filter-combo" id="posto3Combo">
+      <button class="filter-btn" id="posto3Btn" type="button">T Patente <span class="count-badge" id="posto3Badge" style="display:none"></span> ▾</button>
+      <div class="filter-panel" id="posto3Panel">
+        <div class="filter-actions">
+          <button type="button" id="posto3SelectAll">Selecionar todas</button>
+          <button type="button" id="posto3Clear">Limpar</button>
+        </div>
+        <div id="posto3Options"></div>
+      </div>
+    </div>
+    <button class="clear-filters-btn" id="clearAllBtn3" type="button">Limpar todos os filtros</button>
+    <span class="active-note" id="activeNote3"></span>
+  </div>
+
+  <div class="grid" id="grid3">
+    <div class="span-6" style="display:grid; grid-template-columns:1fr 1fr 1fr; grid-template-rows:1fr 1fr; gap:10px;">
+      <div class="card stat-card" style="grid-column:span 1;"><div class="accent" style="--stat-accent:var(--series-1)"></div><div class="stat-body"><div class="stat-value" id="statLtip">–</div><div class="stat-label">LTIP</div></div></div>
+      <div class="card stat-card" style="grid-column:span 1;"><div class="accent" style="--stat-accent:var(--series-1)"></div><div class="stat-body"><div class="stat-value" id="statLm">–</div><div class="stat-label">LM - Superior a 90 dias</div></div></div>
+      <div class="card stat-card" style="grid-column:span 1;"><div class="accent" style="--stat-accent:var(--series-1)"></div><div class="stat-body"><div class="stat-value" id="statHe">–</div><div class="stat-label">Horário Especial</div></div></div>
+      <div class="card stat-card" style="grid-column:span 1;"><div class="accent" style="--stat-accent:var(--series-2)"></div><div class="stat-body"><div class="stat-value" id="statLe">–</div><div class="stat-label">LE</div></div></div>
+      <div class="card stat-card" style="grid-column:span 1;"><div class="accent" style="--stat-accent:var(--series-2)"></div><div class="stat-body"><div class="stat-value" id="statLts">–</div><div class="stat-label">LTS - Superior a 90 dias</div></div></div>
+      <div class="card stat-card" style="grid-column:span 1;"><div class="accent" style="--stat-accent:var(--series-2)"></div><div class="stat-body"><div class="stat-value" id="statReadapt">–</div><div class="stat-label">Readaptados</div></div></div>
+    </div>
+    <div class="card span-6">
+      <h3>Militares Readaptados por Posto/Graduação</h3>
+      <div class="chart-scroll" id="chartReadaptPosto"></div>
+    </div>
+
+    <div class="card span-6">
+      <h3>Distribuição de Militares em LE</h3>
+      <div class="donut-wrap" id="donutLe"></div>
+    </div>
+    <div class="card span-6">
+      <h3>Distribuição de Militares com Horário Especial</h3>
+      <div class="chart-scroll" id="chartHeOme"></div>
+    </div>
+
+    <div class="card span-6">
+      <h3>Distribuição de Militares em LTIP</h3>
+      <div class="donut-wrap" id="donutLtip"></div>
+    </div>
+    <div class="card span-6">
+      <h3>Distribuição de Militares com Afastamento superior a 90 dias</h3>
+      <div class="legend-row" style="justify-content:flex-start; gap:16px; margin-bottom:8px;">
+        <span class="legend-key"><span class="legend-dot" style="background:var(--series-1)"></span><span>LTS</span></span>
+        <span class="legend-key"><span class="legend-dot" style="background:var(--series-2)"></span><span>LM</span></span>
+      </div>
+      <div class="chart-scroll" id="chartAfastOme"></div>
+    </div>
+  </div>
+  </div>
+
+  <div class="tab-panel" id="panel-adidos" data-panel="adidos" style="display:none">
+
+  <div class="grid" id="grid4">
+    <div class="span-6" style="display:flex; flex-direction:column; gap:14px;">
+      <div class="card stat-card" style="min-height:96px;"><div class="accent"></div><div class="stat-body"><div class="stat-value" id="statAdidos">–</div><div class="stat-label">Adidos</div></div></div>
+      <div class="card"><h3>Adidos por Posto/Graduação</h3><div class="chart-scroll" id="chartAdidosPosto"></div></div>
+      <div class="card"><h3>Tempo na Unidade atual</h3><div class="chart-scroll" id="chartAdidosTempo"></div></div>
+    </div>
+    <div class="span-6" style="display:flex; flex-direction:column; gap:14px;">
+      <div class="card" style="flex:1;">
+        <h3>Distribuição por Unidade Externa</h3>
+        <div class="chart-scroll" id="chartAdidosOrgao"></div>
+      </div>
+      <div class="card" style="flex:1;">
+        <h3>OME anterior</h3>
+        <div class="chart-scroll" id="chartAdidosOmeAnterior"></div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <div class="footer-note">
+    Protótipo de BI — CBMPE / DGP. Fonte: extrato de efetivo (<code>peculio_metabase_v1</code>) + quadro fixado (QOD agosto/2026).
+    Fórmulas de <b>Disponibilidade</b> e do agrupamento <b>OME → Região</b> replicam exatamente o SQL fornecido por Igor no Metabase.
+    A coluna <b>Efetivo previsto</b> da tabela de Posto/Graduação reflete o quadro fixado da corporação inteira — quando um filtro de OME
+    está ativo, previsto/déficit ficam indisponíveis (ainda não temos o quadro fixado por unidade extraído do QOD). Ver <code>spec.md</code> para detalhes e pendências.
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script type="application/json" id="militares-data">##MILITARES_JSON##</script>
+<script type="application/json" id="previsto-data">##PREVISTO_JSON##</script>
+<script type="application/json" id="adidos-extra-data">##ADIDOS_EXTRA_JSON##</script>
+<script type="application/json" id="filtros-data">##FILTROS_JSON##</script>
+<script type="application/json" id="municipios-data">##MUNICIPIOS_JSON##</script>
+
+<script>
+const MILITARES = JSON.parse(document.getElementById('militares-data').textContent);
+const PREVISTO = JSON.parse(document.getElementById('previsto-data').textContent);
+const ADIDOS_EXTRA = JSON.parse(document.getElementById('adidos-extra-data').textContent);
+const FILTROS = JSON.parse(document.getElementById('filtros-data').textContent);
+const MUNICIPIOS = JSON.parse(document.getElementById('municipios-data').textContent);
+
+const state = { omes: new Set(), postos: new Set() };
+const state2 = { postos: new Set(), tempoMin: null, tempoMax: null };
+const state3 = { omes: new Set(), postos: new Set() };
+
+// ---------- tabs ----------
+document.querySelectorAll('.tab[data-tab]').forEach(tabEl => {
+  tabEl.addEventListener('click', () => {
+    const key = tabEl.dataset.tab;
+    document.querySelectorAll('.tab[data-tab]').forEach(t => t.classList.toggle('active', t===tabEl));
+    document.querySelectorAll('.tab-panel').forEach(p => { p.style.display = (p.dataset.panel===key) ? '' : 'none'; });
+    if (key === 'geo') refreshGeo();
+    if (key === 'situacoes') refreshSituacoes();
+    if (key === 'adidos') refreshAdidos();
+  });
+});
+
+const tooltip = document.getElementById('tooltip');
+function showTooltip(evt, html) {
+  tooltip.innerHTML = html;
+  tooltip.style.display = 'block';
+  tooltip.style.left = (evt.clientX + 14) + 'px';
+  tooltip.style.top = (evt.clientY + 14) + 'px';
+}
+function hideTooltip() { tooltip.style.display = 'none'; }
+
+function fmt(n) { return n.toLocaleString('pt-BR'); }
+
+// ---------- filter dropdowns ----------
+function buildOptions(container, items, selectedSet, onChange) {
+  container.innerHTML = '';
+  items.forEach(v => {
+    const row = document.createElement('label');
+    row.className = 'filter-option';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = selectedSet.has(v);
+    cb.addEventListener('change', () => {
+      if (cb.checked) selectedSet.add(v); else selectedSet.delete(v);
+      onChange();
+    });
+    const span = document.createElement('span');
+    span.textContent = v;
+    row.appendChild(cb); row.appendChild(span);
+    container.appendChild(row);
+  });
+}
+
+function setupCombo(btnId, panelId, badgeId) {
+  const btn = document.getElementById(btnId);
+  const panel = document.getElementById(panelId);
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.querySelectorAll('.filter-panel').forEach(p => { if (p !== panel) p.classList.remove('open'); });
+    panel.classList.toggle('open');
+  });
+}
+document.addEventListener('click', (e) => {
+  document.querySelectorAll('.filter-panel').forEach(p => {
+    if (!p.contains(e.target) && !p.previousElementSibling.contains(e.target)) p.classList.remove('open');
+  });
+});
+
+setupCombo('omeBtn','omePanel','omeBadge');
+setupCombo('postoBtn','postoPanel','postoBadge');
+
+function renderOmeOptions(filterText) {
+  const items = FILTROS.omes.filter(o => o.toLowerCase().includes((filterText||'').toLowerCase()));
+  buildOptions(document.getElementById('omeOptions'), items, state.omes, refresh);
+}
+document.getElementById('omeSearch').addEventListener('input', (e) => renderOmeOptions(e.target.value));
+document.getElementById('omeSelectAll').addEventListener('click', () => { FILTROS.omes.forEach(o=>state.omes.add(o)); renderOmeOptions(document.getElementById('omeSearch').value); refresh(); });
+document.getElementById('omeClear').addEventListener('click', () => { state.omes.clear(); renderOmeOptions(document.getElementById('omeSearch').value); refresh(); });
+
+function renderPostoOptions() {
+  buildOptions(document.getElementById('postoOptions'), FILTROS.postos, state.postos, refresh);
+}
+document.getElementById('postoSelectAll').addEventListener('click', () => { FILTROS.postos.forEach(p=>state.postos.add(p)); renderPostoOptions(); refresh(); });
+document.getElementById('postoClear').addEventListener('click', () => { state.postos.clear(); renderPostoOptions(); refresh(); });
+
+document.getElementById('clearAllBtn').addEventListener('click', () => {
+  state.omes.clear(); state.postos.clear();
+  renderOmeOptions(''); renderPostoOptions(); refresh();
+});
+
+// ---------- tab 2 filters (Distribuição Geográfica) ----------
+setupCombo('posto2Btn','posto2Panel','posto2Badge');
+setupCombo('tempoBtn','tempoPanel','tempoBadge');
+
+function renderPosto2Options() {
+  buildOptions(document.getElementById('posto2Options'), FILTROS.postos, state2.postos, refreshGeo);
+}
+document.getElementById('posto2SelectAll').addEventListener('click', () => { FILTROS.postos.forEach(p=>state2.postos.add(p)); renderPosto2Options(); refreshGeo(); });
+document.getElementById('posto2Clear').addEventListener('click', () => { state2.postos.clear(); renderPosto2Options(); refreshGeo(); });
+
+function updateTempoBadge() {
+  const badge = document.getElementById('tempoBadge');
+  const active = state2.tempoMin!==null || state2.tempoMax!==null;
+  if (active) {
+    badge.style.display='inline-block';
+    badge.textContent = `${state2.tempoMin ?? 0}–${state2.tempoMax ?? '∞'}`;
+  } else badge.style.display='none';
+}
+document.getElementById('tempoApply').addEventListener('click', () => {
+  const minV = document.getElementById('tempoMin').value;
+  const maxV = document.getElementById('tempoMax').value;
+  state2.tempoMin = minV==='' ? null : Number(minV);
+  state2.tempoMax = maxV==='' ? null : Number(maxV);
+  updateTempoBadge(); refreshGeo();
+  document.getElementById('tempoPanel').classList.remove('open');
+});
+document.getElementById('tempoClear').addEventListener('click', () => {
+  document.getElementById('tempoMin').value=''; document.getElementById('tempoMax').value='';
+  state2.tempoMin=null; state2.tempoMax=null;
+  updateTempoBadge(); refreshGeo();
+});
+
+document.getElementById('clearAllBtn2').addEventListener('click', () => {
+  state2.postos.clear(); state2.tempoMin=null; state2.tempoMax=null;
+  document.getElementById('tempoMin').value=''; document.getElementById('tempoMax').value='';
+  renderPosto2Options(); updateTempoBadge(); refreshGeo();
+});
+
+// ---------- tab 3 filters (Situações Funcionais) ----------
+setupCombo('ome3Btn','ome3Panel','ome3Badge');
+setupCombo('posto3Btn','posto3Panel','posto3Badge');
+
+function renderOme3Options(filterText) {
+  const items = FILTROS.omes.filter(o => o.toLowerCase().includes((filterText||'').toLowerCase()));
+  buildOptions(document.getElementById('ome3Options'), items, state3.omes, refreshSituacoes);
+}
+document.getElementById('ome3Search').addEventListener('input', (e) => renderOme3Options(e.target.value));
+document.getElementById('ome3SelectAll').addEventListener('click', () => { FILTROS.omes.forEach(o=>state3.omes.add(o)); renderOme3Options(document.getElementById('ome3Search').value); refreshSituacoes(); });
+document.getElementById('ome3Clear').addEventListener('click', () => { state3.omes.clear(); renderOme3Options(document.getElementById('ome3Search').value); refreshSituacoes(); });
+
+function renderPosto3Options() {
+  buildOptions(document.getElementById('posto3Options'), FILTROS.postos, state3.postos, refreshSituacoes);
+}
+document.getElementById('posto3SelectAll').addEventListener('click', () => { FILTROS.postos.forEach(p=>state3.postos.add(p)); renderPosto3Options(); refreshSituacoes(); });
+document.getElementById('posto3Clear').addEventListener('click', () => { state3.postos.clear(); renderPosto3Options(); refreshSituacoes(); });
+
+document.getElementById('clearAllBtn3').addEventListener('click', () => {
+  state3.omes.clear(); state3.postos.clear();
+  renderOme3Options(''); renderPosto3Options(); refreshSituacoes();
+});
+
+// ---------- donut ----------
+function drawDonut(container, segments, totalLabel) {
+  container.innerHTML = '';
+  const total = segments.reduce((a,s)=>a+s.value,0);
+  const size = 168, r = 64, cx = size/2, cy = size/2, sw = 24;
+  const circumference = 2*Math.PI*r;
+  let offset = 0;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS,'svg');
+  svg.setAttribute('width', size); svg.setAttribute('height', size);
+  const bg = document.createElementNS(svgNS,'circle');
+  bg.setAttribute('cx',cx); bg.setAttribute('cy',cy); bg.setAttribute('r',r);
+  bg.setAttribute('fill','none'); bg.setAttribute('stroke','var(--gridline)'); bg.setAttribute('stroke-width',sw);
+  svg.appendChild(bg);
+  segments.forEach(s => {
+    const frac = total ? s.value/total : 0;
+    const len = frac*circumference;
+    const circle = document.createElementNS(svgNS,'circle');
+    circle.setAttribute('cx',cx); circle.setAttribute('cy',cy); circle.setAttribute('r',r);
+    circle.setAttribute('fill','none'); circle.setAttribute('stroke', s.color); circle.setAttribute('stroke-width', sw);
+    circle.setAttribute('stroke-dasharray', `${Math.max(len-2,0)} ${circumference-len+2}`);
+    circle.setAttribute('stroke-dashoffset', -offset);
+    circle.setAttribute('transform', `rotate(-90 ${cx} ${cy})`);
+    circle.style.cursor='pointer';
+    circle.addEventListener('mousemove', (e)=> showTooltip(e, `<b>${s.label}</b>: ${fmt(s.value)} (${total? (frac*100).toFixed(1):0}%)`));
+    circle.addEventListener('mouseleave', hideTooltip);
+    svg.appendChild(circle);
+    offset += len;
+  });
+  const textTotal = document.createElementNS(svgNS,'text');
+  textTotal.setAttribute('x',cx); textTotal.setAttribute('y',cy-3); textTotal.setAttribute('text-anchor','middle');
+  textTotal.setAttribute('font-size','22'); textTotal.setAttribute('font-weight','700'); textTotal.setAttribute('fill','var(--text-primary)');
+  textTotal.textContent = fmt(total);
+  svg.appendChild(textTotal);
+  const textLabel = document.createElementNS(svgNS,'text');
+  textLabel.setAttribute('x',cx); textLabel.setAttribute('y',cy+17); textLabel.setAttribute('text-anchor','middle');
+  textLabel.setAttribute('font-size','10'); textLabel.setAttribute('fill','var(--text-muted)');
+  textLabel.textContent = totalLabel;
+  svg.appendChild(textLabel);
+
+  container.appendChild(svg);
+  const legend = document.createElement('div'); legend.className='donut-legend';
+  segments.forEach(s => {
+    const row = document.createElement('div'); row.className='legend-row';
+    row.innerHTML = `<span class="legend-key"><span class="legend-dot" style="background:${s.color}"></span><span>${s.label}</span></span><span class="legend-val">${fmt(s.value)}</span>`;
+    legend.appendChild(row);
+  });
+  container.appendChild(legend);
+}
+
+// ---------- bar chart ----------
+function drawBars(container, data, opts) {
+  opts = opts || {};
+  container.innerHTML = '';
+  const n = data.length;
+  const barW = opts.barW || 26;
+  const gap = opts.gap || 10;
+  const leftPad = 40, rightPad = 40, topPad = 22, bottomPad = 54;
+  const chartW = Math.max(n*(barW+gap) - gap + leftPad + rightPad, 260);
+  const maxV = Math.max(1, ...data.map(d=>d.value));
+  const chartH = opts.height || 210;
+  const plotH = chartH - topPad - bottomPad;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS,'svg');
+  svg.setAttribute('width', chartW); svg.setAttribute('height', chartH);
+  svg.setAttribute('class','bars-svg');
+
+  const base = document.createElementNS(svgNS,'line');
+  base.setAttribute('x1',leftPad); base.setAttribute('x2',chartW-rightPad);
+  base.setAttribute('y1', topPad+plotH); base.setAttribute('y2', topPad+plotH);
+  base.setAttribute('class','baseline');
+  svg.appendChild(base);
+
+  data.forEach((d,i) => {
+    const x = leftPad + i*(barW+gap);
+    const h = maxV ? (d.value/maxV)*plotH : 0;
+    const y = topPad + plotH - h;
+    const rect = document.createElementNS(svgNS,'rect');
+    rect.setAttribute('x',x); rect.setAttribute('y',y); rect.setAttribute('width',barW); rect.setAttribute('height',Math.max(h,1));
+    rect.setAttribute('rx',3); rect.setAttribute('class','bar');
+    rect.addEventListener('mousemove',(e)=> showTooltip(e, `<b>${d.label}</b>: ${fmt(d.value)}`));
+    rect.addEventListener('mouseleave', hideTooltip);
+    svg.appendChild(rect);
+
+    const label = document.createElementNS(svgNS,'text');
+    label.setAttribute('x', x+barW/2); label.setAttribute('y', y-4); label.setAttribute('text-anchor','middle');
+    label.setAttribute('class','bar-label');
+    label.textContent = fmt(d.value);
+    svg.appendChild(label);
+
+    const axis = document.createElementNS(svgNS,'text');
+    axis.setAttribute('x', x+barW/2); axis.setAttribute('y', topPad+plotH+14); axis.setAttribute('text-anchor','end');
+    axis.setAttribute('class','axis-label');
+    axis.setAttribute('transform', `rotate(-35 ${x+barW/2} ${topPad+plotH+14})`);
+    axis.textContent = d.label;
+    svg.appendChild(axis);
+  });
+
+  container.appendChild(svg);
+}
+
+// ---------- aggregation helpers ----------
+function groupCount(arr, keyFn) {
+  const m = new Map();
+  arr.forEach(r => { const k = keyFn(r); m.set(k, (m.get(k)||0)+1); });
+  return m;
+}
+
+function applyFilters() {
+  return MILITARES.filter(r =>
+    (state.omes.size===0 || state.omes.has(r.ome)) &&
+    (state.postos.size===0 || state.postos.has(r.posto))
+  );
+}
+
+function applyFilters2() {
+  return MILITARES.filter(r =>
+    (state2.postos.size===0 || state2.postos.has(r.posto)) &&
+    (state2.tempoMin===null || (r.tempoObmAnos!==null && r.tempoObmAnos>=state2.tempoMin)) &&
+    (state2.tempoMax===null || (r.tempoObmAnos!==null && r.tempoObmAnos<=state2.tempoMax))
+  );
+}
+
+function applyFilters3() {
+  return MILITARES.filter(r =>
+    (state3.omes.size===0 || state3.omes.has(r.ome)) &&
+    (state3.postos.size===0 || state3.postos.has(r.posto))
+  );
+}
+
+const FAIXA_ORDER = ['18-22','23-27','28-32','33-37','38-42','43-47','48-52','53-57','58-59','60+'];
+const REGIOES = ['QCG','DIM','DINTER 1','DINTER 2'];
+
+// ---------- choropleth ----------
+function drawChoropleth(container, legendContainer, counts) {
+  container.innerHTML = ''; legendContainer.innerHTML = '';
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS,'svg');
+  svg.setAttribute('viewBox', `0 0 ${MUNICIPIOS.width} ${MUNICIPIOS.height}`);
+  svg.setAttribute('width', MUNICIPIOS.width);
+  svg.setAttribute('height', MUNICIPIOS.height);
+
+  const values = Object.values(counts).filter(v=>v>0);
+  const maxV = Math.max(1, ...values);
+
+  MUNICIPIOS.features.forEach(f => {
+    const v = counts[f.name] || 0;
+    const path = document.createElementNS(svgNS,'path');
+    path.setAttribute('d', f.d);
+    path.setAttribute('class','muni');
+    path.setAttribute('fill-rule','evenodd');
+    if (v > 0) {
+      const t = Math.sqrt(v/maxV); // sqrt scale: realça cidades menores sem estourar a maior
+      const alpha = (0.16 + t*0.84).toFixed(2);
+      path.setAttribute('fill', `rgba(var(--series-1-rgb), ${alpha})`);
+    } else {
+      path.setAttribute('fill', 'var(--gridline)');
+    }
+    path.addEventListener('mousemove', (e) => showTooltip(e, v>0 ? `<b>${f.name}</b>: ${fmt(v)} militar(es) lotado(s)` : `<b>${f.name}</b>: sem OME do CBMPE`));
+    path.addEventListener('mouseleave', hideTooltip);
+    svg.appendChild(path);
+  });
+  container.appendChild(svg);
+
+  legendContainer.innerHTML = `
+    <div class="ramp"></div>
+    <div class="ramp-labels"><span>0</span><span>${fmt(maxV)}</span></div>
+    <div class="geo-top">
+      ${Object.entries(counts).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,8)
+        .map(([name,v]) => `<div class="geo-top-row"><span>${name}</span><span>${fmt(v)}</span></div>`).join('')}
+    </div>`;
+}
+
+// ---------- grouped bar chart (Praças x Oficiais por OME) ----------
+function drawGroupedBars(container, data, series) {
+  series = series || [{key:'pracas', color:'var(--series-1)', label:'Praças'}, {key:'oficiais', color:'var(--series-2)', label:'Oficiais'}];
+  container.innerHTML = '';
+  const n = data.length;
+  const nSeries = series.length;
+  const barW = 16, gapWithin = 2, gapBetween = 10;
+  const groupW = nSeries*barW + (nSeries-1)*gapWithin;
+  const leftPad = 40, rightPad = 20, topPad = 22, bottomPad = 58;
+  const chartW = Math.max(n*(groupW+gapBetween) - gapBetween + leftPad + rightPad, 260);
+  const maxV = Math.max(1, ...data.map(d=>Math.max(...series.map(s=>d[s.key]||0))));
+  const chartH = 240;
+  const plotH = chartH - topPad - bottomPad;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS,'svg');
+  svg.setAttribute('width', chartW); svg.setAttribute('height', chartH);
+  svg.setAttribute('class','bars-svg');
+
+  const base = document.createElementNS(svgNS,'line');
+  base.setAttribute('x1',leftPad); base.setAttribute('x2',chartW-rightPad);
+  base.setAttribute('y1', topPad+plotH); base.setAttribute('y2', topPad+plotH);
+  base.setAttribute('class','baseline');
+  svg.appendChild(base);
+
+  data.forEach((d,i) => {
+    const gx = leftPad + i*(groupW+gapBetween);
+    series.forEach((s, j) => {
+      const val = d[s.key] || 0;
+      const x = gx + j*(barW+gapWithin);
+      const h = maxV ? (val/maxV)*plotH : 0;
+      const y = topPad + plotH - h;
+      const rect = document.createElementNS(svgNS,'rect');
+      rect.setAttribute('x',x); rect.setAttribute('y',y); rect.setAttribute('width',barW); rect.setAttribute('height',Math.max(h,1));
+      rect.setAttribute('rx',2); rect.setAttribute('fill', s.color);
+      rect.addEventListener('mousemove',(e)=> showTooltip(e, `<b>${d.label}</b> — ${s.label}: ${fmt(val)}`));
+      rect.addEventListener('mouseleave', hideTooltip);
+      svg.appendChild(rect);
+
+      if (val > 0) {
+        const label = document.createElementNS(svgNS,'text');
+        label.setAttribute('x', x+barW/2); label.setAttribute('y', y-3); label.setAttribute('text-anchor','middle');
+        label.setAttribute('class','bar-label');
+        label.textContent = fmt(val);
+        svg.appendChild(label);
+      }
+    });
+
+    const axis = document.createElementNS(svgNS,'text');
+    axis.setAttribute('x', gx+groupW/2-gapWithin/2); axis.setAttribute('y', topPad+plotH+14); axis.setAttribute('text-anchor','end');
+    axis.setAttribute('class','axis-label');
+    axis.setAttribute('transform', `rotate(-35 ${gx+groupW/2-gapWithin/2} ${topPad+plotH+14})`);
+    axis.textContent = d.label;
+    svg.appendChild(axis);
+  });
+
+  container.appendChild(svg);
+}
+
+function refreshGeo() {
+  const filtered = applyFilters2();
+
+  const posto2Badge = document.getElementById('posto2Badge');
+  if (state2.postos.size>0) { posto2Badge.style.display='inline-block'; posto2Badge.textContent = state2.postos.size; } else posto2Badge.style.display='none';
+
+  const noteParts = [];
+  if (state2.postos.size>0) noteParts.push(state2.postos.size+' patente(s)');
+  if (state2.tempoMin!==null || state2.tempoMax!==null) noteParts.push('tempo na OME entre '+(state2.tempoMin??0)+' e '+(state2.tempoMax??'∞')+' anos');
+  document.getElementById('activeNote2').textContent = noteParts.length ? ('Filtrando por '+noteParts.join(' e ')+' — '+fmt(filtered.length)+' de '+fmt(MILITARES.length)+' militares') : '';
+
+  const byCidade = groupCount(filtered, r=>r.cidade);
+  const counts = {};
+  byCidade.forEach((v,k) => { counts[k]=v; });
+  drawChoropleth(document.getElementById('geoMap'), document.getElementById('geoLegend'), counts);
+
+  const byOmeCat = new Map();
+  filtered.forEach(r => {
+    if (!byOmeCat.has(r.ome)) byOmeCat.set(r.ome, {pracas:0, oficiais:0});
+    const o = byOmeCat.get(r.ome);
+    if (r.categoria==='Praças') o.pracas++; else if (r.categoria==='Oficiais') o.oficiais++;
+  });
+  const omeData = Array.from(byOmeCat.entries())
+    .map(([label,v]) => ({label, pracas:v.pracas, oficiais:v.oficiais, total:v.pracas+v.oficiais}))
+    .filter(d=>d.total>0)
+    .sort((a,b)=>b.total-a.total);
+  drawGroupedBars(document.getElementById('chartOmeCategoria'), omeData);
+}
+
+function refreshSituacoes() {
+  const filtered = applyFilters3();
+
+  const ome3Badge = document.getElementById('ome3Badge');
+  if (state3.omes.size>0) { ome3Badge.style.display='inline-block'; ome3Badge.textContent = state3.omes.size; } else ome3Badge.style.display='none';
+  const posto3Badge = document.getElementById('posto3Badge');
+  if (state3.postos.size>0) { posto3Badge.style.display='inline-block'; posto3Badge.textContent = state3.postos.size; } else posto3Badge.style.display='none';
+
+  const noteParts = [];
+  if (state3.omes.size>0) noteParts.push(state3.omes.size+' OME(s)');
+  if (state3.postos.size>0) noteParts.push(state3.postos.size+' patente(s)');
+  document.getElementById('activeNote3').textContent = noteParts.length ? ('Filtrando por '+noteParts.join(' e ')+' — '+fmt(filtered.length)+' de '+fmt(MILITARES.length)+' militares') : '';
+
+  // stat cards
+  document.getElementById('statLtip').textContent = fmt(filtered.filter(r=>r.ltip).length);
+  document.getElementById('statLm').textContent = fmt(filtered.filter(r=>r.afastamento==='LM').length);
+  document.getElementById('statHe').textContent = fmt(filtered.filter(r=>r.horarioEspecial).length);
+  document.getElementById('statLe').textContent = fmt(filtered.filter(r=>r.le).length);
+  document.getElementById('statLts').textContent = fmt(filtered.filter(r=>r.afastamento==='LTS').length);
+  document.getElementById('statReadapt').textContent = fmt(filtered.filter(r=>r.readaptado).length);
+
+  // readaptados por posto
+  const readaptRows = filtered.filter(r=>r.readaptado);
+  const byPostoReadapt = groupCount(readaptRows, r=>r.posto);
+  const readaptData = Array.from(byPostoReadapt.entries()).map(([label,value])=>({label,value})).sort((a,b)=>b.value-a.value);
+  drawBars(document.getElementById('chartReadaptPosto'), readaptData, {barW:34, gap:16, height:220});
+
+  // LE por OME (geralmente 0 ou 1 registro)
+  const leRows = filtered.filter(r=>r.le);
+  const byOmeLe = groupCount(leRows, r=>r.ome);
+  const leColors = ['var(--series-1)','var(--series-2)'];
+  const leSegs = Array.from(byOmeLe.entries()).map(([label,value],i)=>({label,value,color:leColors[i%leColors.length]}));
+  drawDonut(document.getElementById('donutLe'), leSegs.length ? leSegs : [{label:'Sem registros',value:0,color:'var(--gridline)'}], 'TOTAL');
+
+  // horário especial por OME
+  const heRows = filtered.filter(r=>r.horarioEspecial);
+  const byOmeHe = groupCount(heRows, r=>r.ome);
+  const heData = Array.from(byOmeHe.entries()).map(([label,value])=>({label,value})).sort((a,b)=>b.value-a.value);
+  drawBars(document.getElementById('chartHeOme'), heData, {barW:20, gap:10, height:220});
+
+  // LTIP por OME
+  const ltipRows = filtered.filter(r=>r.ltip);
+  const byOmeLtip = groupCount(ltipRows, r=>r.ome);
+  const ltipSegs = Array.from(byOmeLtip.entries()).map(([label,value],i)=>({label,value,color:leColors[i%leColors.length]}));
+  drawDonut(document.getElementById('donutLtip'), ltipSegs.length ? ltipSegs : [{label:'Sem registros',value:0,color:'var(--gridline)'}], 'TOTAL');
+
+  // LTS/LM por OME
+  const afastRows = filtered.filter(r=>r.afastamento==='LTS'||r.afastamento==='LM');
+  const byOmeAfast = new Map();
+  afastRows.forEach(r => {
+    if (!byOmeAfast.has(r.ome)) byOmeAfast.set(r.ome, {lts:0, lm:0});
+    const o = byOmeAfast.get(r.ome);
+    if (r.afastamento==='LTS') o.lts++; else o.lm++;
+  });
+  const afastData = Array.from(byOmeAfast.entries())
+    .map(([label,v]) => ({label, lts:v.lts, lm:v.lm, total:v.lts+v.lm}))
+    .sort((a,b)=>b.total-a.total);
+  drawGroupedBars(document.getElementById('chartAfastOme'), afastData, [
+    {key:'lts', color:'var(--series-1)', label:'LTS'},
+    {key:'lm', color:'var(--series-2)', label:'LM'},
+  ]);
+}
+
+const TEMPO_BUCKET_ORDER = ['0-5','6-10','11-15','15+'];
+function refreshAdidos() {
+  const adidos = MILITARES.filter(r => r.ome === 'ADIDO');
+
+  document.getElementById('statAdidos').textContent = fmt(adidos.length);
+
+  const byPosto = groupCount(adidos, r=>r.posto);
+  const postoData = Array.from(byPosto.entries()).map(([label,value])=>({label,value})).sort((a,b)=>b.value-a.value);
+  drawBars(document.getElementById('chartAdidosPosto'), postoData, {barW:28, gap:12, height:220});
+
+  const tempoBuckets = new Map(TEMPO_BUCKET_ORDER.map(k=>[k,0]));
+  let semDado = 0;
+  adidos.forEach(r => {
+    const t = r.tempoObmAnos;
+    if (t === null || t === undefined) { semDado++; return; }
+    if (t<=5) tempoBuckets.set('0-5', tempoBuckets.get('0-5')+1);
+    else if (t<=10) tempoBuckets.set('6-10', tempoBuckets.get('6-10')+1);
+    else if (t<=15) tempoBuckets.set('11-15', tempoBuckets.get('11-15')+1);
+    else tempoBuckets.set('15+', tempoBuckets.get('15+')+1);
+  });
+  const tempoData = TEMPO_BUCKET_ORDER.map(label=>({label, value: tempoBuckets.get(label)}));
+  drawBars(document.getElementById('chartAdidosTempo'), tempoData, {barW:60, gap:24, height:200});
+
+  const byOrgao = groupCount(ADIDOS_EXTRA, r=>r.orgao);
+  const orgaoData = Array.from(byOrgao.entries()).map(([label,value])=>({label,value})).sort((a,b)=>b.value-a.value);
+  drawBars(document.getElementById('chartAdidosOrgao'), orgaoData, {barW:22, gap:10, height:230});
+
+  const byOmeAnterior = groupCount(ADIDOS_EXTRA, r=>r.omeAnterior);
+  const omeAnteriorData = Array.from(byOmeAnterior.entries()).map(([label,value])=>({label,value})).sort((a,b)=>b.value-a.value);
+  drawBars(document.getElementById('chartAdidosOmeAnterior'), omeAnteriorData, {barW:22, gap:10, height:230});
+}
+
+function refresh() {
+  const filtered = applyFilters();
+
+  // badges
+  const omeBadge = document.getElementById('omeBadge');
+  if (state.omes.size>0) { omeBadge.style.display='inline-block'; omeBadge.textContent = state.omes.size; } else omeBadge.style.display='none';
+  const postoBadge = document.getElementById('postoBadge');
+  if (state.postos.size>0) { postoBadge.style.display='inline-block'; postoBadge.textContent = state.postos.size; } else postoBadge.style.display='none';
+  const noteParts = [];
+  if (state.omes.size>0) noteParts.push(state.omes.size+' OME(s)');
+  if (state.postos.size>0) noteParts.push(state.postos.size+' patente(s)');
+  document.getElementById('activeNote').textContent = noteParts.length ? ('Filtrando por '+noteParts.join(' e ')+' — '+fmt(filtered.length)+' de '+fmt(MILITARES.length)+' militares') : '';
+
+  // stat cards
+  const pct = (v,base) => base ? ((v/base)*100).toFixed(1).replace('.',',')+'% do total' : '—';
+  document.getElementById('statTotal').textContent = fmt(filtered.length);
+  const disp = filtered.filter(r=>r.disponibilidade==='Disponível').length;
+  document.getElementById('statDisp').textContent = fmt(disp);
+  document.getElementById('statDispPct').textContent = pct(disp, filtered.length);
+  document.getElementById('statIndisp').textContent = fmt(filtered.length-disp);
+  document.getElementById('statIndispPct').textContent = pct(filtered.length-disp, filtered.length);
+
+  const byRegiao = groupCount(filtered, r=>r.regiao);
+  document.getElementById('statQCG').textContent = fmt(byRegiao.get('QCG')||0);
+  document.getElementById('statQCGPct').textContent = pct(byRegiao.get('QCG')||0, filtered.length);
+  document.getElementById('statDIM').textContent = fmt(byRegiao.get('DIM')||0);
+  document.getElementById('statDIMPct').textContent = pct(byRegiao.get('DIM')||0, filtered.length);
+  document.getElementById('statD1').textContent = fmt(byRegiao.get('DINTER 1')||0);
+  document.getElementById('statD1Pct').textContent = pct(byRegiao.get('DINTER 1')||0, filtered.length);
+  document.getElementById('statD2').textContent = fmt(byRegiao.get('DINTER 2')||0);
+  document.getElementById('statD2Pct').textContent = pct(byRegiao.get('DINTER 2')||0, filtered.length);
+
+  // donuts
+  const byCategoria = groupCount(filtered, r=>r.categoria);
+  drawDonut(document.getElementById('donutCategoria'), [
+    {label:'Praças', value: byCategoria.get('Praças')||0, color:'var(--series-1)'},
+    {label:'Oficiais', value: byCategoria.get('Oficiais')||0, color:'var(--series-2)'},
+  ], 'TOTAL');
+
+  const bySexo = groupCount(filtered, r=>r.sexo);
+  drawDonut(document.getElementById('donutSexo'), [
+    {label:'Masculino', value: bySexo.get('M')||0, color:'var(--series-1)'},
+    {label:'Feminino', value: bySexo.get('F')||0, color:'var(--series-2)'},
+  ], 'TOTAL');
+
+  // faixa etária
+  const byFaixa = groupCount(filtered.filter(r=>r.faixa), r=>r.faixa);
+  drawBars(document.getElementById('chartFaixa'), FAIXA_ORDER.map(f=>({label:f, value: byFaixa.get(f)||0})), {barW:34,gap:14,height:200});
+
+  // regional charts
+  REGIOES.forEach((reg, idx) => {
+    const targetId = ['chartQCG','chartDIM','chartD1','chartD2'][idx];
+    const rows = filtered.filter(r=>r.regiao===reg);
+    const byOme = groupCount(rows, r=>r.ome);
+    const data = Array.from(byOme.entries()).map(([label,value])=>({label,value})).sort((a,b)=>b.value-a.value);
+    drawBars(document.getElementById(targetId), data, {barW: reg==='QCG'?20:26, gap: reg==='QCG'?8:12, height:210});
+  });
+
+  // deficit table
+  const omeFilterActive = state.omes.size>0;
+  const byPosto = groupCount(filtered, r=>r.posto);
+  const maxDeficitPct = 100;
+  let rowsHtml = '<thead><tr><th>Posto/Graduação</th><th>Efetivo previsto</th><th>Efetivo existente</th><th>Déficit</th><th>Déficit percentual</th></tr></thead><tbody>';
+  let rowCount = 0;
+  PREVISTO.forEach(([posto, previsto]) => {
+    if (state.postos.size>0 && !state.postos.has(posto)) return;
+    rowCount++;
+    const existente = byPosto.get(posto)||0;
+    if (omeFilterActive) {
+      rowsHtml += `<tr><td>${posto}</td><td class="muted-cell">—</td><td>${fmt(existente)}</td><td class="muted-cell">—</td><td class="muted-cell">—</td></tr>`;
+    } else {
+      const deficit = Math.max(previsto-existente,0);
+      const pct = previsto ? (deficit/previsto*100) : 0;
+      const alpha = Math.min(pct/maxDeficitPct, 1) * 0.5;
+      const style = pct>0 ? `style="background:rgba(var(--series-1-rgb),${alpha.toFixed(2)})"` : '';
+      rowsHtml += `<tr><td>${posto}</td><td>${fmt(previsto)}</td><td>${fmt(existente)}</td><td>${fmt(deficit)}</td><td ${style}>${pct.toFixed(1)}%</td></tr>`;
+    }
+  });
+  rowsHtml += '</tbody>';
+  document.getElementById('deficitTable').innerHTML = rowsHtml;
+  const rowsNote = rowCount + (rowCount===1 ? ' linha' : ' linhas');
+  document.getElementById('deficitNote').textContent = omeFilterActive
+    ? (rowsNote + ' · Previsto/Déficit ficam ocultos com filtro de OME ativo — ainda não temos o quadro fixado (QOD) quebrado por unidade, só o total da corporação. Ver spec.md.')
+    : rowsNote;
+}
+
+// init filter option lists
+renderOmeOptions('');
+renderPostoOptions();
+refresh();
+renderPosto2Options();
+refreshGeo();
+renderOme3Options('');
+renderPosto3Options();
+refreshSituacoes();
+
+// theme toggle
+const root = document.documentElement;
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const isDark = root.getAttribute('data-theme') === 'dark';
+  root.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('themeToggle').textContent = isDark ? '🌙 Modo escuro' : '☀️ Modo claro';
+});
+</script>
+</body>
+</html>

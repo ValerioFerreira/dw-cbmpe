@@ -10,7 +10,7 @@ import SectionCard from "@/components/ui/section-card";
 import ScrollDuplo from "@/components/ui/scroll-duplo";
 import BadgeSituacao from "@/components/ui/badge-situacao";
 import { FiltroColuna, passaFiltro, valorFiltro } from "@/components/ui/filtro-coluna";
-import { useLarguras, ColGroup, AlcaResize, CELULA_TRUNCADA } from "@/components/ui/tabela-colunas";
+import { useLarguras, useLarguraContainer, ColGroup, AlcaResize, CELULA_TRUNCADA } from "@/components/ui/tabela-colunas";
 import viaturasLista from "@/data/real/viaturas_lista.json";
 
 const TAMANHOS_PAGINA = [10, 20, 50];
@@ -60,6 +60,7 @@ export default function ViaturaDetalhe() {
   const [pagina, setPagina] = React.useState(1);
   const [tamanhoPagina, setTamanhoPagina] = React.useState(20);
   const { larguras, iniciarResize, larguraTotal } = useLarguras(COLUNAS);
+  const [containerRef, larguraDisponivel] = useLarguraContainer();
 
   // Unidade + toda a subárvore de subordinadas — mesmo princípio já usado
   // no Efetivo (corrige unidades como COMANDO GERAL/SUBCOMANDO GERAL, que
@@ -213,8 +214,9 @@ export default function ViaturaDetalhe() {
           )}
         </div>
 
+        <div ref={containerRef}>
         <ScrollDuplo maxHeight="36rem">
-          <table className="table-fixed border-collapse text-left" style={{ width: larguraTotal }}>
+          <table className="table-fixed border-collapse text-left" style={{ width: Math.max(larguraTotal, larguraDisponivel) }}>
             <ColGroup colunas={COLUNAS} larguras={larguras} />
             <thead className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
               <tr className="border-b-2 border-primary/25 text-[10.5px] font-bold uppercase tracking-wide text-foreground/70">
@@ -265,6 +267,7 @@ export default function ViaturaDetalhe() {
             </tbody>
           </table>
         </ScrollDuplo>
+        </div>
       </SectionCard>
 
       {/* Paginação — fora da tabela, centralizada embaixo. */}

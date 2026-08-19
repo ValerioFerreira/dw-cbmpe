@@ -51,7 +51,7 @@ export default function ScrollDuplo({ children, maxHeight = "36rem" }) {
         style={{ maxHeight }}
         className="overflow-auto scrollbar-escuro"
       >
-        <div ref={conteudoRef} className="w-max min-w-full">
+        <div ref={conteudoRef}>
           {children}
         </div>
       </div>
