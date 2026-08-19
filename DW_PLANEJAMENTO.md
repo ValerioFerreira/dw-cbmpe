@@ -33,13 +33,14 @@ um hash aqui pra não ficar desatualizado).
   redimensionáveis, ordenação por antiguidade, e ficha por militar
   (`/militar/:matricula`) — **só campos não sensíveis** (Caminho A).
 - **Dashboard Pessoal de Efetivo** (`/efetivo/:id/dashboard/:modulo`, ver
-  `src/pages/efetivo/`), 6 de 9 módulos prontos: Efetivo Geral, Distribuição
-  Geográfica, Situações Funcionais, Militares Adidos (commit `a7fbb44`) +
-  **Acúmulo de Cargos e Militares PCD's (2026-08-19, ver log de decisões
-  abaixo)**. Módulos 07 (Movimentação e Carreira) e 08 (Tempo na OME)
-  parciais, dentro do protótipo `dashboards/01-efetivo-geral/` mas ainda não
-  portados pro app; módulo 09 (Intenção de Movimentação) não iniciado — os
-  três bloqueados por informação que só Igor tem, ver
+  `src/pages/efetivo/`) — **os 9 módulos completos**: Efetivo Geral,
+  Distribuição Geográfica, Situações Funcionais, Militares Adidos (commit
+  `a7fbb44`), Acúmulo de Cargos, Militares PCD's, Movimentação e Carreira,
+  Tempo na OME, Intenção de Movimentação (todos 2026-08-19, ver log de
+  decisões abaixo). Nova fonte Postgres além do Neon — "data warehouse"
+  compartilhado (`inativos_metabase`, `peculio_metabase_v1`, `cim_pedidos`,
+  `cim_atendidos`), env var `DATABASE_URL_DW`. Duas agregações do painel 09
+  são inferência nossa, a confirmar com Igor — ver
   [Perguntas em aberto](#perguntas-em-aberto).
 - **Viaturas** real (Neon, sync da Frota): tabela (`/viaturas/:id`) e ficha
   por placa (`/viatura/:placa`).
@@ -49,26 +50,31 @@ um hash aqui pra não ficar desatualizado).
   real) — ver `src/lib/accessControl.js`.
 
 **Próximos passos concretos (em aberto, ver [Perguntas em aberto](#perguntas-em-aberto)):**
-1. **Painéis 07/08/09 do Dashboard Pessoal** — aguardando respostas de Igor
-   (fonte de "Saída de militares", regra de "Previsão de saída", decisão de
-   PII na tabela do painel 08, export bruto + SQL de `cim_pedidos`/
-   `cim_atendidos` pro painel 09). Handoff completo em
-   `dashboards/01-efetivo-geral/HANDOFF-paineis-05-a-09.md`.
-2. **Conexão ao SGP** (`ovrsgp`) — host/credenciais/rede a partir do
+1. **Rotacionar a credencial do Postgres do data warehouse**
+   (`10.193.1.252:54301`, usuário `datawarehouse-user`) — passou em texto
+   puro pelo chat (dentro de um script de carga que o usuário colou) antes
+   de virar variável de ambiente local. Mesma recomendação pendente já
+   registrada antes para a senha do banco da Frota.
+2. **2 agregações do painel 09 a confirmar com Igor** ("Distribuição das
+   solicitações" por motivo, "Origem das solicitações" por OME) — o SQL
+   original se perdeu num resumo de contexto antes de chegar até nós.
+3. **Conexão ao SGP** (`ovrsgp`) — host/credenciais/rede a partir do
    Windmill. É o bloqueador pra escrever/rodar o `windmill-sgp.py` e
    engatilhar o **Caminho B** (ficha completa do militar atrás de auth real).
-3. **Remover dado sensível já público**: `racaCor`, `pcd` e telefones no
+4. **Remover dado sensível já público**: `racaCor`, `pcd` e telefones no
    `efetivo_lista.json` (painel "Verificar dados completos") contradizem o
    denylist do Caminho A — remover num próximo passo, confirmando com o
    usuário.
-4. Fontes externas por domínio ainda a levantar (objetivo 1).
+5. Fontes externas por domínio ainda a levantar (objetivo 1).
 
 **Para rodar/retomar noutra máquina:**
 - `npm install` && `npm run dev` (Vite, porta 5173).
 - **`.env.local` é gitignored** — recriar com `DATABASE_URL_EFETIVO`,
-  `DATABASE_URL_VIATURAS`, `DATABASE_URL_FINANCAS` (connection strings do
-  Neon) pra rodar os extratores em `etl/`. Sem isso o app ainda funciona
-  (lê os JSON já commitados); só a reextração precisa delas.
+  `DATABASE_URL_VIATURAS`, `DATABASE_URL_FINANCAS` e **`DATABASE_URL_DW`**
+  (Postgres do data warehouse compartilhado, usado pelos extratores de
+  Movimentação/Carreira e Intenção de Movimentação) pra rodar os
+  extratores em `etl/`. Sem elas o app ainda funciona (lê os JSON já
+  commitados); só a reextração precisa delas.
 - **`ddl-sgp.sql`** (schema do SGP) foi compartilhado pelo usuário e **não
   está no repositório** (fica no Desktop da máquina original). As tabelas
   relevantes estão resumidas em `DW_MODELO_DADOS.md`.
@@ -1684,6 +1690,120 @@ protótipo): `tempoObmAtualDias` bate exato no painel 08 (população inteira)
 mas diverge no subconjunto de Adidos do painel 04 — ainda sem explicação,
 mesma pendência já registrada quando o painel 04 foi inserido.
 
+### 2026-08-19 — Painéis 07, 08 e 09 concluídos: nova fonte Postgres do data warehouse, gap de filtro por ano corrigido, decisão de PII confirmada
+
+Continuação da entrada anterior. O usuário conseguiu, do próprio Igor, as
+duas consultas SQL que faltavam pro painel 07 ("Saída de militares" e
+"Previsão de saída"), confirmou que a tabela nominal do painel 08 pode
+mostrar matrícula/nome de guerra, e anexou o script de carga de
+`cim_pedidos`/`cim_atendidos` (painel 09) — revelando, sem querer, uma
+credencial de banco em texto puro no meio do script (ver alerta de
+segurança abaixo).
+
+**Fonte nova descoberta: Postgres do "data warehouse" compartilhado**
+(`10.193.1.252:54301`, dbname `postgres`) — **diferente do Neon** usado
+pelos outros extratores de Efetivo/Viaturas/Finanças. Contém tabelas
+carregadas por scripts Python de terceiros (não nossos) a partir de
+planilhas Google Sheets públicas ("publicar na web"), TRUNCATE+COPY:
+- `inativos_metabase` (1.976 linhas) — militares inativados, grão = 1
+  evento. Só agregamos por ano (`>= 2015`), nunca linha individual.
+- `peculio_metabase_v1` (2.658 linhas) — mesma população do Neon `Militar`
+  (confirmado pelo total idêntico), mantida à parte especificamente pras
+  consultas do Metabase.
+- `cim_pedidos` (203 linhas) / `cim_atendidos` (388 linhas) — solicitações
+  e transferências atendidas da "Intenção de Movimentação", grão = 1
+  solicitação/atendimento. Nunca extraímos matrícula/nome, só contagens.
+- `escolaridade_militares` — carregada pelo mesmo script que popula
+  `inativos_metabase`, mas **não usada em nenhum painel ainda** — fica
+  registrada aqui como fonte disponível pra uma feature futura de
+  escolaridade, se pedida.
+
+Alcance de rede confirmado (reachable via TCP a partir desta máquina —
+mesma classe de IP do Postgres da Frota, `10.193.1.252:54329`, sugerindo
+mesmo host físico/rede interna, portas diferentes). Credencial guardada
+como `DATABASE_URL_DW` em `.env.local` (gitignored), seguindo a mesma
+convenção de `DATABASE_URL_EFETIVO`/`VIATURAS`/`FINANCAS`.
+
+**⚠️ Alerta de segurança**: o script de carga de `cim_pedidos`/`cim_atendidos`
+que o usuário colou no chat continha a connection string completa em texto
+puro (host, porta, usuário `datawarehouse-user`, senha). Não commitei essa
+credencial em nenhum arquivo — só como variável de ambiente local. Mesma
+recomendação já registrada antes para a senha do banco da Frota:
+**a senha deveria ser rotacionada**, já que passou em texto puro pelo chat.
+
+**Painel 07 — Movimentação e Carreira, agora completo (6/6)**:
+- **"Saída de militares"**: `inativos_metabase` agrupado por ano (SQL do
+  Metabase, `ano >= 2015`) — total 1.218, bate exato com o handoff.
+- **"Previsão de saída"**: reprodução literal do SQL do Metabase contra
+  `peculio_metabase_v1` (LEAST entre projeção por tempo de serviço —
+  25/30/35 anos conforme sexo/data de praça — e projeção por idade-limite —
+  67 oficiais/65 praças) — total 1.161 em 9 anos (2027-2040), bate exato.
+  Novo script `etl/efetivo/extract_saida_previsao.py`.
+- Os 4 quadrantes já prontos (`ModuloMovimentacaoCarreira.jsx`) ganharam
+  filtro (Patente/OME — sem Sexo, campo ausente em `carreira_extra.json`) e
+  drill-down pra tabela real de Efetivo. "Saída"/"Previsão" não respondem
+  ao filtro nem são clicáveis (população diferente — inativos/projeção, não
+  efetivo ativo).
+- Corrigido um gap real em `EfetivoDetalhe.jsx`: o filtro de intervalo por
+  URL (`filtrosIniciaisDaUrl`) fazia `Number(bruto)` direto, o que sempre
+  dava `NaN` para colunas de data (ISO "aaaa-mm-dd" não é um número) —
+  intervalo min/max em `dataMovimentacaoSp`/`dataUltimaPromocao`/
+  `dataIngresso` silenciosamente não filtrava nada. Nova função
+  `numeroComparavel` extrai o ano de strings ISO antes de comparar.
+  Verificado: clique em "Promoções 2021" → 273 linhas na tabela (bate).
+- Novo tipo de gráfico `hbar` (barra horizontal) em `PanelGrafico.jsx`,
+  pro card "Ingresso de militares" (~30 categorias de ano, mais legível
+  como ranking horizontal que como barra vertical rotacionada).
+
+**Painel 08 — Tempo na OME, agora completo (4/4)**:
+- 3 quadrantes agregados (`ModuloTempoNaOme.jsx`, `carreira_extra.json`,
+  campo `tempoOmeAnos`) — todos batendo exato: distribuição 1.076/162/157/
+  131/214/126/792 (buckets "0-1/2/3/4/5/6/7+" — nota: o rótulo "N" na
+  verdade representa `floor(tempoOmeAnos) == N-1`, replicando fielmente a
+  classificação do protótipo, não um erro nosso), tempo médio Praças
+  (Subten 6/1ºSgt 18/2ºSgt 13/3ºSgt 7/Cb 5/Sd 2) e Oficiais (Cel 3/Ten Cel
+  1/Maj QOC 2/Maj QOA 5/Cap QOA 2/1ºTen QOC 2/1ºTen QOA 2/2ºTen QOC 1/2ºTen
+  QOA 2).
+- **Tabela nominal "Informações dos militares" liberada**: o usuário
+  confirmou "pode mostrar matrícula e nome de guerra, o app tem login".
+  Nota registrada no componente e aqui: o login atual
+  (`src/lib/authClient.js`) é um protótipo em localStorage, não uma
+  barreira de servidor real — mas isso não muda o risco líquido, porque a
+  tabela de Efetivo já mostra nome completo + matrícula de todo o efetivo
+  hoje, sem gate nenhum (exceção já registrada em 2026-08-07/2026-08-11
+  acima). A tabela nova não cria uma categoria de exposição nova, só
+  reduz pra Posto/OME/Tempo o que já está público em outro lugar do app.
+  Fonte: `efetivo_lista.json` (não `carreira_extra.json`, que foi
+  deliberadamente extraído sem PII) — mesma população.
+- Achado de qualidade de dado registrado em Perguntas em aberto: alguns
+  registros mostram "126,6 anos" de tempo na OME (claramente um valor de
+  sentinela na fonte) — não afeta os 3 cards agregados, que usam outro
+  campo.
+
+**Painel 09 — Intenção de Movimentação, implementado do zero (9/9 cards)**:
+- Novo script `etl/efetivo/extract_intencao_movimentacao.py`, contra
+  `cim_pedidos`/`cim_atendidos` — só contagens agregadas (nunca matrícula/
+  nome). Resolveu também a pergunta em aberto sobre o card sem SQL
+  ("Solicitações por Posto e Graduação" = simplesmente `GROUP BY
+  posto_grad` em `cim_pedidos` — óbvio uma vez visto o schema real) e a
+  dúvida sobre "categoria" (= Oficiais/Praças, corresponde a "Classe", não
+  a "Patente", confirmado pelo próprio script de carga).
+- `ModuloIntencaoMovimentacao.jsx`: sem filtros (só extraímos contagens já
+  agrupadas, não há linha a linha pra filtrar) e sem drill-down (siglas de
+  OME aqui vêm sem espaço — "1ºGB" — divergindo do organograma — "1º GB" —
+  e a população inclui militares na reserva, "RR", fora da tabela de
+  efetivo ativo).
+- 2 das 8 agregações ("Distribuição das solicitações" por `motivo`,
+  "Origem das solicitações" por `ome`) são inferência nossa — o SQL
+  original se perdeu num resumo de contexto antes de chegar até nós. Ver
+  Perguntas em aberto.
+
+Todos os 9 módulos do Dashboard Pessoal de Efetivo estão completos e no ar.
+Verificado no navegador: todo número validado bate exato com as consultas
+diretas ao Postgres (não só com o handoff), zero erros de console em
+nenhum dos 3 novos painéis, e o drill-down testado end-to-end (filtro por
+ano em coluna de data, e filtro de bucket de dias).
+
 ## Pendências práticas (não bloqueiam o planejamento, mas são pré-requisito de implementação)
 
 - **Workspace do Windmill**: ainda precisa ser criado pelo usuário
@@ -1698,12 +1818,20 @@ mesma pendência já registrada quando o painel 04 foi inserido.
 
 ## Perguntas em aberto
 
-- **Painéis 07/08/09 do Dashboard Pessoal (Efetivo)** — 3 pedidos formais a
-  Igor, ver entrada de decisão 2026-08-19 acima: (1) fonte/SQL de "Saída de
-  militares" e regra de "Previsão de saída" (painel 07); (2) decisão sobre
-  incluir matrícula/nome de guerra na tabela nominal do painel 08 (PII); (3)
-  export bruto de `cim_pedidos`/`cim_atendidos` + reenvio das 8 consultas
-  SQL + fonte do card "Solicitações por Posto e Graduação" (painel 09).
+- **Painéis 07/09 — 2 agregações inferidas, a confirmar com Igor**: "Distribuição
+  das solicitações" (painel 09, hoje agrupada por `motivo`) e "Origem das
+  solicitações" (hoje agrupada por `ome`) foram implementadas por inferência
+  nossa — o SQL original desses 2 cards se perdeu num resumo de contexto de
+  outra sessão antes de chegar até nós (ver entrada de decisão 2026-08-19
+  abaixo). Pedir a Igor pra confirmar ou corrigir.
+- **Anomalia de dado**: alguns militares aparecem com "126,6 anos" de tempo
+  na OME atual na tabela nominal do painel 08 (`efetivo_lista.json`,
+  `completo.tempoObmAtualDias`) — claramente um valor de sentinela/erro na
+  fonte, não um tempo real. Os 3 cards agregados do painel 08 usam outro
+  campo (`carreira_extra.json`, `tempoOmeAnos`) que não tem esse problema e
+  bate exato com o print — só a tabela nominal nova é afetada. Vale
+  investigar a origem do valor (provavelmente uma data nula/sentinela no
+  Neon) antes de confiar nesse campo em outro contexto.
 - **Conexão ao SGP (`ovrsgp`)**: host, credenciais e alcance de rede a
   partir do Windmill — necessários pra escrever/rodar o `windmill-sgp.py`
   que engatilha o Caminho B da ficha do militar (histórico de promoção/

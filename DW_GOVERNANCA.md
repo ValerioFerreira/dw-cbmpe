@@ -163,6 +163,21 @@ fora", ficou desatualizada e é substituída por esta):
 principalmente o painel "dados completos" — deve passar a exigir login**
 — está registrado aqui como ponto em aberto, não uma decisão permanente.
 
+**Extensão de 2026-08-19**: o painel "Tempo na OME" do Dashboard Pessoal de
+Efetivo (`/efetivo/:id/dashboard/tempoome`) ganhou uma tabela nominal
+("Informações dos militares" — Matrícula, Posto/Graduação, Nome de Guerra,
+OME, Tempo na OME atual). O usuário autorizou explicitamente ("pode mostrar
+matrícula e nome de guerra, o app tem login"). Nota registrada: o "login"
+atual é `src/lib/authClient.js`, um protótipo client-side em localStorage —
+qualquer um com acesso ao dev tools pode setar uma sessão sem senha (feito
+várias vezes nesta mesma sessão pra testar o protótipo de níveis de
+acesso), então não é uma barreira de servidor real. Isso não muda o risco
+líquido da decisão, porque a exceção acima (tabela de Efetivo) já expõe
+nome completo + matrícula do efetivo inteiro sem gate nenhum desde
+2026-08-07 — a tabela nova do painel 08 não introduz uma categoria de
+exposição nova, só reduz pra Posto/OME/Tempo o que já está público em
+outro lugar do app.
+
 ## Ficha do militar (SGP) — Caminho A público × Caminho B interno (2026-08-19)
 
 Ao clicar num militar na tabela de Efetivo abre-se `/militar/:matricula`

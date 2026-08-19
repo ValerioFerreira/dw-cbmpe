@@ -1,0 +1,95 @@
+{
+  "fonte": "Postgres do data warehouse (DATABASE_URL_DW): inativos_metabase (saida_por_ano) e peculio_metabase_v1 (previsao_saida, SQL literal de Igor)",
+  "gerado_em": "2026-08-19T16:41:36.814646+00:00",
+  "previsao_saida": [
+    {
+      "ano": 2027,
+      "categoria": "oficial",
+      "total": 15
+    },
+    {
+      "ano": 2028,
+      "categoria": "oficial",
+      "total": 60
+    },
+    {
+      "ano": 2028,
+      "categoria": "praca",
+      "total": 165
+    },
+    {
+      "ano": 2029,
+      "categoria": "oficial",
+      "total": 12
+    },
+    {
+      "ano": 2029,
+      "categoria": "praca",
+      "total": 9
+    },
+    {
+      "ano": 2032,
+      "categoria": "oficial",
+      "total": 9
+    },
+    {
+      "ano": 2032,
+      "categoria": "praca",
+      "total": 46
+    },
+    {
+      "ano": 2034,
+      "categoria": "oficial",
+      "total": 29
+    },
+    {
+      "ano": 2034,
+      "categoria": "praca",
+      "total": 61
+    },
+    {
+      "ano": 2035,
+      "categoria": "praca",
+      "total": 68
+    },
+    {
+      "ano": 2036,
+      "categoria": "praca",
+      "total": 50
+    },
+    {
+      "ano": 2037,
+      "categoria": "oficial",
+      "total": 90
+    },
+    {
+      "ano": 2037,
+      "categoria": "praca",
+      "total": 244
+    },
+    {
+      "ano": 2040,
+      "categoria": "oficial",
+      "total": 3
+    },
+    {
+      "ano": 2040,
+      "categoria": "praca",
+      "total": 300
+    }
+  ],
+  "saida_por_ano": {
+    "2015": 60,
+    "2016": 52,
+    "2017": 78,
+    "2018": 63,
+    "2019": 103,
+    "2020": 105,
+    "2021": 172,
+    "2022": 115,
+    "2023": 78,
+    "2024": 187,
+    "2025": 119,
+    "2026": 86
+  }
+}

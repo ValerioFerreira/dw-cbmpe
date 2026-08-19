@@ -11,6 +11,7 @@ import adidosExtra from "@/data/real/efetivo_dashboard/adidos_extra.json";
 import municipios from "@/data/real/efetivo_dashboard/municipios_pe.json";
 import previsto from "@/data/real/efetivo_dashboard/previsto.json";
 import filtros from "@/data/real/efetivo_dashboard/filtros.json";
+import carreira from "@/data/real/efetivo_dashboard/carreira_extra.json";
 
 import ModuloEfetivoGeral from "./ModuloEfetivoGeral";
 import ModuloDistribuicaoGeografica from "./ModuloDistribuicaoGeografica";
@@ -18,6 +19,9 @@ import ModuloSituacoesFuncionais from "./ModuloSituacoesFuncionais";
 import ModuloMilitaresAdidos from "./ModuloMilitaresAdidos";
 import ModuloAcumuloCargos from "./ModuloAcumuloCargos";
 import ModuloMilitaresPcd from "./ModuloMilitaresPcd";
+import ModuloMovimentacaoCarreira from "./ModuloMovimentacaoCarreira";
+import ModuloTempoNaOme from "./ModuloTempoNaOme";
+import ModuloIntencaoMovimentacao from "./ModuloIntencaoMovimentacao";
 
 const COMPONENTES = {
   geral: ModuloEfetivoGeral,
@@ -26,6 +30,9 @@ const COMPONENTES = {
   adidos: ModuloMilitaresAdidos,
   acumulo: ModuloAcumuloCargos,
   pcd: ModuloMilitaresPcd,
+  carreira: ModuloMovimentacaoCarreira,
+  tempoome: ModuloTempoNaOme,
+  intencao: ModuloIntencaoMovimentacao,
 };
 
 export default function EfetivoDashboard() {
@@ -109,7 +116,7 @@ export default function EfetivoDashboard() {
         ))}
       </div>
 
-      <Conteudo indId={ind.id} militares={militares} adidosExtra={adidosExtra} municipios={municipios} previsto={previsto} filtros={filtros} />
+      <Conteudo indId={ind.id} militares={militares} adidosExtra={adidosExtra} municipios={municipios} previsto={previsto} filtros={filtros} carreira={carreira} />
     </div>
   );
 }

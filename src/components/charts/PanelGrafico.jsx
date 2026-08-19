@@ -83,6 +83,30 @@ export default function PanelGrafico({
             </Bar>
           ))}
         </BarChart>
+      ) : tipo === "hbar" ? (
+        // Barras horizontais rankeadas — categoria no eixo Y, valor no eixo X
+        // (ex. "Ingresso de militares" por ano, painel 07). Altura precisa
+        // escalar com o nº de categorias pra cada barra não ficar espremida.
+        <BarChart {...propsComuns} layout="vertical" margin={{ top: 8, right: 24, bottom: 8, left: 8 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={COR_GRID} horizontal={false} />
+          <XAxis type="number" tick={{ fontSize: 11, fill: COR_TEXTO }} tickLine={false} axisLine={{ stroke: COR_GRID }} />
+          <YAxis type="category" dataKey={xKey} tick={{ fontSize: 11, fill: COR_TEXTO }} tickLine={false} axisLine={false} width={56} />
+          <Tooltip content={<TooltipCustom unidade={unidade} />} cursor={{ fill: "hsl(var(--muted))" }} />
+          {yKeys.map((k, i) => (
+            <Bar
+              key={k}
+              dataKey={k}
+              radius={[0, 3, 3, 0]}
+              maxBarSize={18}
+              isAnimationActive={false}
+              cursor={clicavel ? "pointer" : undefined}
+              onClick={clicavel ? (pontoDado) => aoClicarBarra(pontoDado?.payload || pontoDado, k) : undefined}
+            >
+              {data.map((_, idx) => <Cell key={idx} fill={palette[i % palette.length]} />)}
+              <LabelList dataKey={k} position="right" formatter={fmtRotulo} style={{ fontSize: 10, fill: "hsl(var(--foreground))" }} />
+            </Bar>
+          ))}
+        </BarChart>
       ) : tipo === "line" ? (
         <LineChart {...propsComuns}>
           <CartesianGrid strokeDasharray="3 3" stroke={COR_GRID} vertical={false} />

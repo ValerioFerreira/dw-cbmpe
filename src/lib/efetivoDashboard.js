@@ -18,6 +18,9 @@ export const MODULOS_EFETIVO_DASHBOARD = [
   { n: 4, key: "adidos", nome: "Militares Adidos" },
   { n: 5, key: "acumulo", nome: "Acúmulo de Cargos" },
   { n: 6, key: "pcd", nome: "Militares PCD's" },
+  { n: 7, key: "carreira", nome: "Movimentação e Carreira" },
+  { n: 8, key: "tempoome", nome: "Tempo na OME" },
+  { n: 9, key: "intencao", nome: "Intenção de Movimentação" },
 ];
 
 // Mesma classificação posto_grad -> categoria do spec.json (derivedDimensions

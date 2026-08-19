@@ -168,6 +168,17 @@ function sanitizarNomeArquivo(nome) {
   return String(nome).replace(/[\\/:*?"<>|]/g, "-").trim();
 }
 
+// Número comparável pro filtro de intervalo (ver filtrosIniciaisDaUrl) — uma
+// coluna de data (ISO "aaaa-mm-dd") não é number(), então extrai só o ano;
+// os demais tipos (inteiro) já são number() diretamente.
+function numeroComparavel(bruto) {
+  if (typeof bruto === "string") {
+    const iso = bruto.match(/^(\d{4})-\d{2}-\d{2}/);
+    if (iso) return Number(iso[1]);
+  }
+  return Number(bruto);
+}
+
 // Drill-down: monta o estado inicial de `filtros` a partir da URL — usado
 // quando se chega aqui por um clique em barra/fatia/linha de algum módulo do
 // dashboard (ver linkEfetivoTabela em efetivoDashboard.js). Duas formas:
@@ -192,7 +203,7 @@ function filtrosIniciaisDaUrl(searchParams, colunas, registros) {
     registros.forEach((r) => {
       const bruto = c.bruto(r);
       if (bruto === null || bruto === undefined || bruto === "") return;
-      const n = Number(bruto);
+      const n = numeroComparavel(bruto);
       if (!Number.isNaN(n) && n >= min && n <= max) valores.add(valorFiltro(c, r));
     });
     filtros[c.chave] = valores;
