@@ -26,8 +26,13 @@ Ponto de retomada rápido (o log de decisões completo fica mais abaixo). Todo
 o trabalho está commitado e no `origin/main` (ver `git log` pro hash mais
 recente — esta sessão trabalhou em mais de uma máquina, então não fixamos
 um hash aqui pra não ficar desatualizado). Últimos commits desta rodada:
-`89b949f` (navegação/OME/responsividade do Dashboard de Efetivo) e
-`5b1a9ea` (Dashboard Pessoal de Viaturas, 5 módulos).
+`89b949f` (navegação/OME/responsividade do Dashboard de Efetivo), `5b1a9ea`
+(Dashboard Pessoal de Viaturas, 5 módulos) e, numa sessão seguinte no mesmo
+dia, a correção de escopo por unidade nos dois Dashboards Pessoais +
+reconciliação da contagem de Viaturas (ver entrada "2026-08-19 (nova
+sessão, outra máquina)" no log de decisões e `DW_GOVERNANCA.md`) — **os
+Dashboards Pessoais (Efetivo e Viaturas) agora só mostram dado da unidade
+sendo visualizada + subordinadas, igual às tabelas reais já faziam**.
 
 **O que já está no ar (app estático na Vercel, lendo JSON de `src/data/real/`):**
 - **Efetivo** real por unidade (Neon, tabela `Militar`): KPIs, tabela
@@ -1924,6 +1929,67 @@ aprovada antes de implementar.
 apresentada e aprovada antes da implementação (`DW_PROCESSO_INTEGRACAO.md`
 não se aplica aqui — não é fonte de dado nova, é dashboard sobre fonte já
 integrada).
+
+### 2026-08-19 (nova sessão, outra máquina) — Escopo por unidade nos Dashboards Pessoais + reconciliação de contagem de Viaturas
+
+**Decisão**: dois bugs reportados pelo usuário, investigados e corrigidos
+na mesma sessão.
+
+**1. Dashboards Pessoais não filtravam por unidade.** Acessando como
+nível "4GB" e abrindo os Dashboards Pessoais de Efetivo/Viaturas, os
+números mostrados eram os da corporação inteira, não só do 4º GB — e o
+mesmo valia pra qualquer unidade, não só nível restrito (um admin abrindo
+o dashboard do 4º GB também via a corporação inteira). Causa:
+`EfetivoDashboard.jsx`/`ViaturasDashboard.jsx` passavam o dataset bruto
+(`militares.json`, `LINHAS_VIATURAS` etc.) pros módulos sem restringir à
+unidade sendo visualizada. A guarda de rota (`useAcessoUsuario`/
+`permiteIndicador`, ver `DW_GOVERNANCA.md`) só decide **se a página
+abre**, não filtra o que aparece dentro dela — diferente das tabelas reais
+(`EfetivoDetalhe.jsx`/`ViaturaDetalhe.jsx`), que já restringiam por
+unidade+subordinadas desde a criação.
+- Corrigido com `siglasPermitidas()` (novo, `src/lib/dashboardHelpers.js`)
+  + `filtrarPorEscopo`/`filtrarPorEscopoViaturas`, aplicados em
+  `EfetivoDashboard.jsx`/`ViaturasDashboard.jsx` antes de repassar dado
+  pros módulos.
+- **Dois casos especiais descobertos no processo**: "ADIDO" (militares
+  cedidos) e "CPPA" (unidade sem nó no organograma, soma dentro de DGP —
+  decisão já registrada em 2026-08-07) não são siglas reais do
+  organograma, então precisaram virar pseudo-siglas em
+  `siglasPermitidas()` (adiciona "ADIDO" quando "COMANDO GERAL" está no
+  escopo, e "CPPA" quando "DGP" está) — sem isso, o Comando Geral ficava
+  sem os adidos e o DGP sem a CPPA no dashboard.
+- **Dois quadrantes/painéis não têm como ser restringidos por unidade**,
+  porque a fonte é agregada só no nível da corporação (sem OME por
+  registro): "Saída de militares"/"Previsão de saída" (painel
+  Movimentação e Carreira) e o painel inteiro de Intenção de
+  Movimentação. Ficam ocultos (com aviso na tela) fora da visão total
+  (Comando Geral).
+- Filtro de OME dentro dos módulos passou a listar só as OMEs da unidade
+  em escopo, em vez da lista fixa da corporação inteira.
+
+**2. Dashboard de Viaturas mostrava 736 (Comando Geral), card/tabela real
+mostravam 771.** Investigação (comparação completa placa a placa entre
+`viaturas_lista.json` e `viaturas_detalhe.json`): `viaturas_detalhe.json`
+(fonte do dashboard, 805 veículos) só existe "por placa" — 35 veículos
+sem placa cadastrada na fonte (majoritariamente embarcações/motos
+aquáticas, ex. "SEADOO GTI 170 S", "DB-300", que não têm placa de
+veículo) ficam estruturalmente de fora dele. Fora esses 35, os dois
+datasets têm exatamente o mesmo conjunto de 736 veículos — **não é bug de
+sincronização, é limitação estrutural de uma fonte "por placa"**.
+Corrigido incluindo os 35 como registros sintéticos em `LINHAS_VIATURAS`
+(`viaturasDashboard.js`): campos "de ficha" (ano/modelo/nome/patrimônio/
+situação) vêm de `viaturas_lista.json`; campos que só existem na fonte
+rica (posse/combustível/rastreamento/condutores etc.) ficam `null` — os
+módulos que dependem deles já tratam `null` como "não informado". Total
+do Dashboard de Viaturas (Comando Geral) agora bate exato com o card/
+tabela real: **771**.
+
+**Motivo**: os dois eram bugs de exposição/integridade de dado — o
+primeiro é o mesmo tipo de brecha já fechada em 2026-08-17 (guarda de
+rota), agora reaberta pelos dashboards novos; o segundo era uma
+divergência real entre o que o card promete e o que o dashboard mostra.
+Ver `DW_GOVERNANCA.md` (atualização de 2026-08-19) pro detalhe de
+controle de acesso.
 
 ## Pendências práticas (não bloqueiam o planejamento, mas são pré-requisito de implementação)
 

@@ -4,6 +4,8 @@ import SectionCard from "@/components/ui/section-card";
 import KpiCard from "@/components/ui/kpi-card";
 import PanelGrafico from "@/components/charts/PanelGrafico";
 import DonutChart from "@/components/charts/DonutChart";
+import EmptyState from "@/components/ui/empty-state";
+import { ShieldAlert } from "lucide-react";
 import intencao from "@/data/real/efetivo_dashboard/intencao_movimentacao.json";
 
 // Painel 09 do handoff — não iniciado até 2026-08-19; o usuário forneceu o
@@ -27,7 +29,7 @@ function objParaSerie(obj) {
   return Object.entries(obj).map(([label, valor]) => ({ label, valor })).sort((a, b) => b.valor - a.valor);
 }
 
-export default function ModuloIntencaoMovimentacao() {
+export default function ModuloIntencaoMovimentacao({ escopoTotal }) {
   const opcao1Data = useMemo(() => objParaSerie(intencao.pedidos_por_opcao1), []);
   const top5Data = useMemo(() => objParaSerie(intencao.top5_todas_opcoes), []);
   const motivoData = useMemo(() => objParaSerie(intencao.pedidos_por_motivo), []);
@@ -35,6 +37,21 @@ export default function ModuloIntencaoMovimentacao() {
   const postoPedidosData = useMemo(() => objParaSerie(intencao.pedidos_por_posto), []);
   const omeAtendidosData = useMemo(() => objParaSerie(intencao.atendidos_por_ome_atual), []);
   const postoAtendidosData = useMemo(() => objParaSerie(intencao.atendidos_por_posto), []);
+
+  // Fonte inteiramente agregada no nível da corporação (cim_pedidos/
+  // cim_atendidos, sem OME/posto por registro que dê pra restringir à
+  // unidade sendo visualizada) — só faz sentido mostrar na visão total
+  // (Comando Geral); pra qualquer outra unidade seria dado fora da
+  // competência dela.
+  if (!escopoTotal) {
+    return (
+      <EmptyState
+        icon={ShieldAlert}
+        titulo="Disponível apenas para o Comando Geral"
+        descricao="Este painel usa uma fonte agregada no nível da corporação inteira, sem quebra por unidade — não é possível restringi-lo à unidade sendo visualizada."
+      />
+    );
+  }
 
   return (
     <div className="space-y-5">

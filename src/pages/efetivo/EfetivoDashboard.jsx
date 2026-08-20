@@ -1,17 +1,17 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ChevronRight, BarChart3, ArrowLeft, ShieldAlert } from "lucide-react";
 import { useCbmpe } from "@/lib/cbmpe-context";
 import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import { getCaminho } from "@/lib/cbmpe";
-import { MODULOS_EFETIVO_DASHBOARD } from "@/lib/efetivoDashboard";
+import { MODULOS_EFETIVO_DASHBOARD, siglasPermitidas, filtrarPorEscopo } from "@/lib/efetivoDashboard";
 import EmptyState from "@/components/ui/empty-state";
-import militares from "@/data/real/efetivo_dashboard/militares.json";
-import adidosExtra from "@/data/real/efetivo_dashboard/adidos_extra.json";
+import militaresTodos from "@/data/real/efetivo_dashboard/militares.json";
+import adidosExtraTodos from "@/data/real/efetivo_dashboard/adidos_extra.json";
 import municipios from "@/data/real/efetivo_dashboard/municipios_pe.json";
 import previsto from "@/data/real/efetivo_dashboard/previsto.json";
-import filtros from "@/data/real/efetivo_dashboard/filtros.json";
-import carreira from "@/data/real/efetivo_dashboard/carreira_extra.json";
+import filtrosTodos from "@/data/real/efetivo_dashboard/filtros.json";
+import carreiraTodos from "@/data/real/efetivo_dashboard/carreira_extra.json";
 
 import ModuloEfetivoGeral from "./ModuloEfetivoGeral";
 import ModuloDistribuicaoGeografica from "./ModuloDistribuicaoGeografica";
@@ -44,6 +44,18 @@ export default function EfetivoDashboard() {
   const unidade = ind ? porId[ind.unidade_id] : null;
   const caminho = ind ? getCaminho(unidades, ind.unidade_id) : [];
   const moduloInfo = MODULOS_EFETIVO_DASHBOARD.find((m) => m.key === modulo);
+
+  // Escopo por unidade: os módulos só podem mostrar militares da unidade
+  // sendo visualizada (+ subordinadas) — mesma regra já aplicada na tabela
+  // real (EfetivoDetalhe.jsx). Sem isso, o dashboard de qualquer unidade
+  // (ex. 4º GB) mostrava o efetivo da corporação inteira. Os hooks rodam
+  // incondicionalmente (antes dos retornos abaixo) por regra do React.
+  const permitidas = useMemo(() => siglasPermitidas(unidade, unidades), [unidade, unidades]);
+  const militares = useMemo(() => filtrarPorEscopo(militaresTodos, permitidas), [permitidas]);
+  const carreira = useMemo(() => filtrarPorEscopo(carreiraTodos, permitidas), [permitidas]);
+  const adidosExtra = permitidas.has("ADIDO") ? adidosExtraTodos : [];
+  const filtros = useMemo(() => ({ ...filtrosTodos, omes: [...new Set(militares.map((r) => r.ome))].sort() }), [militares]);
+  const escopoTotal = unidade?.sigla === "COMANDO GERAL";
 
   if (!ind || ind.nome !== "Efetivo" || !moduloInfo) {
     return (
@@ -117,7 +129,11 @@ export default function EfetivoDashboard() {
         ))}
       </div>
 
-      <Conteudo indId={ind.id} militares={militares} adidosExtra={adidosExtra} municipios={municipios} previsto={previsto} filtros={filtros} carreira={carreira} />
+      <Conteudo
+        indId={ind.id} militares={militares} adidosExtra={adidosExtra} municipios={municipios}
+        previsto={previsto} filtros={filtros} carreira={carreira}
+        permitidas={permitidas} escopoTotal={escopoTotal}
+      />
     </div>
   );
 }

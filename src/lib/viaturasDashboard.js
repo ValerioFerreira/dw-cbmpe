@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
-import { passaMultiSelect } from "@/lib/dashboardHelpers";
+import { passaMultiSelect, siglasPermitidas } from "@/lib/dashboardHelpers";
 import { CIDADE_POR_OME } from "@/lib/omeGeografia";
 import viaturasDetalhe from "@/data/real/viaturas_detalhe.json";
+import viaturasLista from "@/data/real/viaturas_lista.json";
 
-export { groupCount, paraSerie, pctTexto } from "@/lib/dashboardHelpers";
+export { groupCount, paraSerie, pctTexto, siglasPermitidas } from "@/lib/dashboardHelpers";
 export { omesDaCidade } from "@/lib/omeGeografia";
 
 // Helpers e constantes do "Dashboard Pessoal de Viaturas" — mesmo padrão de
@@ -46,6 +47,24 @@ export function omeSiglaRealViatura(sigla) {
   return OME_SIGLA_REAL_VIATURAS[sigla] || sigla;
 }
 
+// Inverso de OME_SIGLA_REAL_VIATURAS (real -> curta) — usado só pra
+// escrever a sigla curta nos registros sintéticos abaixo (viaturas sem
+// placa), já que viaturas_lista.json usa a grafia real (chave de
+// por_unidade), mas LINHAS_VIATURAS precisa da grafia curta pra ficar
+// consistente com o resto do dataset (CIDADE_POR_OME, filtros, drill-down).
+const SIGLA_CURTA_VIATURAS = Object.fromEntries(
+  Object.entries(OME_SIGLA_REAL_VIATURAS).map(([curta, real]) => [real, curta])
+);
+function omeSiglaCurtaViatura(siglaReal) {
+  return SIGLA_CURTA_VIATURAS[siglaReal] || siglaReal;
+}
+
+// Restringe um array de LINHAS_VIATURAS às siglas reais permitidas (ver
+// siglasPermitidas em dashboardHelpers.js).
+export function filtrarPorEscopoViaturas(registros, permitidas) {
+  return registros.filter((r) => permitidas.has(omeSiglaRealViatura(r.ome)));
+}
+
 // Linhas de trabalho do dashboard — achatadas de viaturas_detalhe.por_placa,
 // com duas regras de negócio já aplicadas, pra bater com o resto do app:
 //  - GTA é unidade fora do organograma (ver comentário em organograma.js,
@@ -56,7 +75,7 @@ export function omeSiglaRealViatura(sigla) {
 //    dashboard nunca mostrar um total que a tabela de baixo não bate.
 // `cidade` é derivado aqui via CIDADE_POR_OME (não vem pronto na fonte, ao
 // contrário de militares.json).
-export const LINHAS_VIATURAS = Object.entries(viaturasDetalhe.por_placa)
+const LINHAS_COM_PLACA = Object.entries(viaturasDetalhe.por_placa)
   .map(([placa, r]) => ({ ...r, placa }))
   .filter((r) => r.ome !== "GTA" && r.situacao !== "Descarregada")
   .map((r) => ({
@@ -64,6 +83,52 @@ export const LINHAS_VIATURAS = Object.entries(viaturasDetalhe.por_placa)
     situacao: r.situacao === "Devolvida" ? "Ativa" : r.situacao,
     cidade: CIDADE_POR_OME[r.ome] || null,
   }));
+
+// viaturas_detalhe.json (por placa) não consegue representar veículos sem
+// placa cadastrada na fonte (embarcações/reboques/motos aquáticas, ex.
+// "SEADOO GTI 170 S", "DB-300") — 35 no total, 771-736 na base de hoje.
+// Achados comparando viaturas_lista.json x viaturas_detalhe.json
+// (2026-08-19): fora essas 35, os dois datasets têm exatamente o mesmo
+// conjunto de veículos (mesmas 736 placas) — não é bug de sincronização,
+// é limitação estrutural de uma fonte que só existe "por placa". Sem
+// incluir esses 35, o Dashboard de Viaturas mostrava um total (736) menor
+// que o card/tabela real (771), que contam pelo registro do bem, com ou
+// sem placa. Entram aqui como registros sintéticos — mesmos campos
+// "de ficha" (ano/modelo/nome/patrimônio/situação, de viaturas_lista.json)
+// que a tabela real já usa; os campos que só existem em viaturas_detalhe
+// (posse/combustível/rastreamento/condutores etc.) ficam null, porque a
+// fonte rica não tem esse veículo — os módulos que dependem deles (Idade,
+// Tipos, Manutenção/Uso) já tratam null como "não informado".
+const PLACAS_COM_DETALHE = new Set(Object.keys(viaturasDetalhe.por_placa).map((p) => p.trim().toUpperCase()));
+const LINHAS_SEM_PLACA = [];
+Object.entries(viaturasLista.por_unidade).forEach(([siglaReal, veiculos]) => {
+  veiculos.forEach((v) => {
+    if (v.situacao === "Descarregada") return;
+    const placa = (v.placa || "").trim();
+    if (placa && PLACAS_COM_DETALHE.has(placa.toUpperCase())) return; // já coberto por LINHAS_COM_PLACA
+    const ome = omeSiglaCurtaViatura(siglaReal);
+    if (ome === "GTA") return;
+    LINHAS_SEM_PLACA.push({
+      placa: placa || null,
+      ome,
+      ano: v.ano ?? null,
+      modelo: v.modelo ?? null,
+      nome: v.nome ?? null,
+      patrimonio: v.patrimonio ?? null,
+      situacao: v.situacao === "Devolvida" ? "Ativa" : v.situacao,
+      tipoAcronym: v.nome ? v.nome.split("-")[0] : null,
+      numeroOrdem: v.nome ? v.nome.split("-")[1] || null : null,
+      marca: null, chassis: null, combustivel: null, condutores: null,
+      destinacao: null, posse: null, rastreado: null, renavam: null,
+      categoriaHabilitacao: null, caracterizado: null,
+      ultimoAbastecimentoData: null, ultimoAbastecimentoValor: null,
+      odometro: null,
+      cidade: CIDADE_POR_OME[ome] || null,
+    });
+  });
+});
+
+export const LINHAS_VIATURAS = [...LINHAS_COM_PLACA, ...LINHAS_SEM_PLACA];
 
 // Filtro padrão dos 5 módulos do dashboard: OME, Situação, Tipo e
 // Destinação em todas as abas — mesmo princípio do useFiltrosEfetivo.

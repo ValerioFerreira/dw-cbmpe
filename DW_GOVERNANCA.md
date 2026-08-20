@@ -121,6 +121,28 @@ o bundle/rede consegue ler o dado de qualquer unidade mesmo estando
 no backend (API filtrando por permissão antes de responder) — a mesma
 dependência já registrada acima, não resolvida por este protótipo.
 
+**Atualização de 2026-08-19 — guarda de rota não bastava: o CONTEÚDO dos
+Dashboards Pessoais não era filtrado por unidade**: o usuário reportou que,
+acessando como nível "4GB" e abrindo os Dashboards Pessoais de Efetivo/
+Viaturas (`/efetivo/:id/dashboard/:modulo`, `/viaturas/:id/dashboard/:modulo`
+— criados em 2026-08-19), os números mostrados eram os da corporação
+inteira, não só do 4º GB. Causa: `useAcessoUsuario`/`permiteIndicador`
+(guarda de rota, ver acima) só decide **se a página abre**; uma vez aberta,
+os módulos recebiam o dataset bruto do dashboard (`militares.json`,
+`LINHAS_VIATURAS` etc.) sem filtrar por unidade — diferente das tabelas
+reais (`EfetivoDetalhe.jsx`/`ViaturaDetalhe.jsx`), que já restringiam por
+unidade+subordinadas desde a criação. Corrigido com `siglasPermitidas()`
+(`src/lib/dashboardHelpers.js`), aplicado em `EfetivoDashboard.jsx` e
+`ViaturasDashboard.jsx` antes de repassar dado pros módulos — vale pra
+qualquer unidade sendo visualizada, não só nível restrito (um admin abrindo
+o dashboard do 4º GB também só deve ver o 4º GB). Dois painéis (Movimentação
+e Carreira → quadrantes "Saída"/"Previsão de saída"; Intenção de
+Movimentação inteiro) usam fonte agregada só no nível da corporação, sem
+quebra por unidade — ficam ocultos (com aviso) fora da visão do Comando
+Geral, porque não há como restringi-los sem mudar a extração. Mesma
+ressalva client-side do parágrafo acima continua valendo (dado ainda
+trafega inteiro no bundle/rede).
+
 ## Exceção confirmada: tabela nominal de Efetivo/Viaturas no app (MVP, sem autenticação)
 
 Decisão registrada em 2026-08-07 (ver `DW_PLANEJAMENTO.md`): ao contrário

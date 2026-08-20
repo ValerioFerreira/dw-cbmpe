@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { passaMultiSelect } from "@/lib/dashboardHelpers";
 
-export { groupCount, paraSerie, pctTexto, passaMultiSelect } from "@/lib/dashboardHelpers";
+export { groupCount, paraSerie, pctTexto, passaMultiSelect, siglasPermitidas } from "@/lib/dashboardHelpers";
 export { CIDADE_POR_OME, omesDaCidade } from "@/lib/omeGeografia";
 
 // Helpers e constantes do "Dashboard Pessoal" (protótipo do colaborador,
@@ -68,6 +68,14 @@ const OME_SIGLA_REAL = {
 
 export function omeSiglaReal(sigla) {
   return OME_SIGLA_REAL[sigla] || sigla;
+}
+
+// Restringe um array de registros (ome no formato curto de militares.json/
+// carreira_extra.json) às siglas reais permitidas (ver siglasPermitidas em
+// dashboardHelpers.js) — traduz cada `ome` pro formato real antes de
+// comparar, mesma tradução usada no drill-down (linkEfetivoTabela).
+export function filtrarPorEscopo(registros, permitidas) {
+  return registros.filter((r) => permitidas.has(omeSiglaReal(r.ome)));
 }
 
 // Filtro padrão dos 4 módulos do dashboard (pedido do usuário, 2026-08-18):

@@ -1,10 +1,10 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ChevronRight, BarChart3, ArrowLeft, ShieldAlert } from "lucide-react";
 import { useCbmpe } from "@/lib/cbmpe-context";
 import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import { getCaminho } from "@/lib/cbmpe";
-import { MODULOS_VIATURAS_DASHBOARD, LINHAS_VIATURAS } from "@/lib/viaturasDashboard";
+import { MODULOS_VIATURAS_DASHBOARD, LINHAS_VIATURAS, siglasPermitidas, filtrarPorEscopoViaturas } from "@/lib/viaturasDashboard";
 import EmptyState from "@/components/ui/empty-state";
 
 import ModuloFrotaGeral from "./ModuloFrotaGeral";
@@ -30,6 +30,12 @@ export default function ViaturasDashboard() {
   const unidade = ind ? porId[ind.unidade_id] : null;
   const caminho = ind ? getCaminho(unidades, ind.unidade_id) : [];
   const moduloInfo = MODULOS_VIATURAS_DASHBOARD.find((m) => m.key === modulo);
+
+  // Escopo por unidade — mesma regra do Dashboard de Efetivo (ver
+  // EfetivoDashboard.jsx): só mostra a frota da unidade sendo visualizada
+  // (+ subordinadas), igual a tabela real (ViaturaDetalhe.jsx) já faz.
+  const permitidas = useMemo(() => siglasPermitidas(unidade, unidades), [unidade, unidades]);
+  const viaturas = useMemo(() => filtrarPorEscopoViaturas(LINHAS_VIATURAS, permitidas), [permitidas]);
 
   if (!ind || ind.nome !== "Viaturas" || !moduloInfo) {
     return (
@@ -105,7 +111,7 @@ export default function ViaturasDashboard() {
         ))}
       </div>
 
-      <Conteudo indId={ind.id} viaturas={LINHAS_VIATURAS} />
+      <Conteudo indId={ind.id} viaturas={viaturas} />
     </div>
   );
 }

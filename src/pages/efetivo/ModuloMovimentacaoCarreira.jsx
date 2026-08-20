@@ -38,7 +38,7 @@ function paramsAtuais({ postos, omes }) {
   return p;
 }
 
-export default function ModuloMovimentacaoCarreira({ indId, carreira }) {
+export default function ModuloMovimentacaoCarreira({ indId, carreira, escopoTotal }) {
   const navigate = useNavigate();
   const [postos, setPostos] = useState(new Set());
   const [omes, setOmes] = useState(new Set());
@@ -148,19 +148,34 @@ export default function ModuloMovimentacaoCarreira({ indId, carreira }) {
         />
       </SectionCard>
 
-      <SectionCard
-        titulo="Saída de militares"
-        subtitulo='Fonte diferente (inativos_metabase, desbloqueada em 2026-08-19) — não responde aos filtros acima e não abre a tabela de Efetivo (população de inativos, não de efetivo ativo).'
-      >
-        <PanelGrafico tipo="bar" data={saidaData} xKey="label" yKeys={["valor"]} altura={240} />
-      </SectionCard>
+      {/* Saída/Previsão vêm de uma fonte agregada só no nível da
+          corporação inteira (sem OME/posto por registro) — não dá pra
+          restringir à unidade sendo visualizada, então só aparecem na
+          visão total (Comando Geral). Mostrar aqui pra uma unidade
+          específica exibiria dado de militares fora da competência dela. */}
+      {escopoTotal ? (
+        <>
+          <SectionCard
+            titulo="Saída de militares"
+            subtitulo='Fonte diferente (inativos_metabase, desbloqueada em 2026-08-19) — não responde aos filtros acima e não abre a tabela de Efetivo (população de inativos, não de efetivo ativo).'
+          >
+            <PanelGrafico tipo="bar" data={saidaData} xKey="label" yKeys={["valor"]} altura={240} />
+          </SectionCard>
 
-      <SectionCard
-        titulo="Previsão de saída"
-        subtitulo="Projeção por reserva (tempo de serviço ou idade-limite, o que vier primeiro) contra peculio_metabase_v1 — mesma ressalva de fonte do card acima."
-      >
-        <PanelGrafico tipo="bar" data={previsaoData} xKey="label" yKeys={["Oficiais", "Praças"]} altura={260} legenda />
-      </SectionCard>
+          <SectionCard
+            titulo="Previsão de saída"
+            subtitulo="Projeção por reserva (tempo de serviço ou idade-limite, o que vier primeiro) contra peculio_metabase_v1 — mesma ressalva de fonte do card acima."
+          >
+            <PanelGrafico tipo="bar" data={previsaoData} xKey="label" yKeys={["Oficiais", "Praças"]} altura={260} legenda />
+          </SectionCard>
+        </>
+      ) : (
+        <SectionCard titulo="Saída de militares e Previsão de saída">
+          <p className="text-[12px] text-muted-foreground">
+            Disponível apenas na visão geral da corporação (Comando Geral) — a fonte não é quebrada por unidade.
+          </p>
+        </SectionCard>
+      )}
     </div>
   );
 }

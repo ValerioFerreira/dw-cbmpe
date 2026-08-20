@@ -1,6 +1,43 @@
 // Helpers genéricos de agregação/filtro compartilhados pelos "Dashboard
 // Pessoal" (Efetivo e Viaturas) — extraídos de efetivoDashboard.js quando o
 // mesmo padrão de módulos-em-abas passou a valer para um segundo domínio.
+import { getSubordinados } from "@/lib/cbmpe";
+
+// Escopo de dado por unidade — usado pelos dois Dashboards Pessoais
+// (Efetivo e Viaturas) pra restringir o que é mostrado à unidade sendo
+// visualizada (+ subordinadas), igual já acontece nas tabelas reais
+// (EfetivoDetalhe.jsx/ViaturaDetalhe.jsx). Sem isso, o dashboard de
+// qualquer unidade (ex. 4ºGB) mostrava o efetivo/frota da corporação
+// inteira, porque os módulos recebiam o dataset bruto (militares.json /
+// LINHAS_VIATURAS) sem filtrar por unidade — bug encontrado e corrigido em
+// 2026-08-19 (ver DW_PLANEJAMENTO.md). Isso vale pra qualquer contexto de
+// unidade, não só pra usuários de nível restrito: o controle de acesso por
+// nível (accessControl.js) já impede navegar pra uma unidade fora do
+// escopo — aqui garantimos que, uma vez na página de uma unidade, os
+// números ali dentro são só daquela unidade.
+//
+// "ADIDO" e "CPPA" são tratados como pseudo-siglas reais — nenhum dos dois
+// é um nó do organograma, mas ambos aparecem como `ome` nos datasets dos
+// dashboards:
+//  - ADIDO: militares cedidos, contam organizacionalmente no Comando Geral
+//    (mesma convenção de efetivo_lista.json, onde adidos ficam no balde
+//    "COMANDO GERAL" com omeExibicao="ADIDO").
+//  - CPPA: unidade real (Centro de Pagamento de Pessoal Ativo) com aba
+//    própria no QOD, mas sem nó próprio no organograma — soma dentro de
+//    DGP por decisão já registrada (ver DW_PLANEJAMENTO.md,
+//    "CPPA soma dentro de DGP", mesma regra aplicada em Efetivo e
+//    Viaturas). Sem este caso, o dashboard de Viaturas do Comando Geral
+//    ficava faltando 1 viatura (encontrado em 2026-08-19 comparando o
+//    total do card com o do Dashboard Pessoal de Viaturas).
+// Sem esses dois casos especiais, "ADIDO"/"CPPA" nunca apareceriam
+// permitidos pra ninguém, nem pro Comando Geral/DGP.
+export function siglasPermitidas(unidade, unidades) {
+  if (!unidade) return new Set();
+  const set = new Set([unidade.sigla, ...getSubordinados(unidades, unidade.id).map((u) => u.sigla)]);
+  if (set.has("COMANDO GERAL")) set.add("ADIDO");
+  if (set.has("DGP")) set.add("CPPA");
+  return set;
+}
 
 export function groupCount(arr, keyFn) {
   const m = new Map();

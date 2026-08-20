@@ -20,7 +20,7 @@ function paramsAtuais({ postos, omes, sexos }) {
   return p;
 }
 
-export default function ModuloEfetivoGeral({ indId, militares, previsto, filtros }) {
+export default function ModuloEfetivoGeral({ indId, militares, previsto, filtros, escopoTotal }) {
   const navigate = useNavigate();
   const { classes, setClasses, postos, setPostos, omes, setOmes, sexos, setSexos, filtrados, filtroAtivo, limparTudo } = useFiltrosEfetivo(militares);
   const [topNQcg, setTopNQcg] = useState(null);
@@ -35,7 +35,11 @@ export default function ModuloEfetivoGeral({ indId, militares, previsto, filtros
   const byPosto = useMemo(() => groupCount(filtrados, (r) => r.posto), [filtrados]);
 
   const faixaData = FAIXA_ORDER.map((f) => ({ label: f, valor: byFaixa.get(f) || 0 }));
-  const omeFilterActive = omes.size > 0;
+  // Previsto/Déficit só fazem sentido pro total da corporação — o quadro
+  // fixado (QOD) não é quebrado por unidade — então ficam ocultos tanto com
+  // filtro de OME ativo quanto ao visualizar o dashboard de uma unidade
+  // específica (não Comando Geral).
+  const omeFilterActive = omes.size > 0 || !escopoTotal;
   const base = paramsAtuais({ postos, omes, sexos });
 
   function irParaTabela(paramsExtra) {

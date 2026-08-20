@@ -57,7 +57,7 @@ function paramsAtuais({ postos, omes }) {
   return p;
 }
 
-export default function ModuloTempoNaOme({ indId, carreira }) {
+export default function ModuloTempoNaOme({ indId, carreira, permitidas }) {
   const navigate = useNavigate();
   const [postos, setPostos] = useState(new Set());
   const [omes, setOmes] = useState(new Set());
@@ -72,12 +72,16 @@ export default function ModuloTempoNaOme({ indId, carreira }) {
     [carreira, postos, omes]
   );
 
+  // LINHAS_EFETIVO vem direto de efetivo_lista.json (não do prop `carreira`,
+  // já escopado em EfetivoDashboard.jsx) — precisa do próprio filtro de
+  // escopo aqui (mesma sigla real de `ome`/`omeExibicao`, sem tradução).
   const linhasTabela = useMemo(
     () => LINHAS_EFETIVO.filter((r) =>
       (postos.size === 0 || postos.has(r.postoGrad)) &&
-      (omes.size === 0 || omes.has(r.ome))
+      (omes.size === 0 || omes.has(r.ome)) &&
+      (!permitidas || permitidas.has(r.ome))
     ),
-    [postos, omes]
+    [postos, omes, permitidas]
   );
 
   const filtroAtivo = postos.size > 0 || omes.size > 0;
