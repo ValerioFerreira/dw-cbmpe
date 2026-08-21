@@ -1,8 +1,13 @@
 {
   "fonte": "Neon (tabela Militar, campo ome, ativo=true)",
-  "gerado_em": "2026-08-18T18:21:23.380316+00:00",
+  "gerado_em": "2026-08-21T12:51:57.162818+00:00",
   "nao_lotados": {
     "ADIDO": 187
+  },
+  "por_setor_vinculado": {
+    "DGP": {
+      "CPPA": 11
+    }
   },
   "por_unidade": {
     "1º GB": 126,

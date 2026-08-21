@@ -36,6 +36,20 @@ MAPEAMENTO_PATH = Path(__file__).resolve().parent / "mapeamento_unidades.json"
 OUTPUT_PATH = ROOT / "src" / "data" / "real" / "efetivo.json"
 OUTPUT_LISTA_PATH = ROOT / "src" / "data" / "real" / "efetivo_lista.json"
 
+# OMEs que existem na fonte mas não são unidade própria do organograma: são
+# setores vinculados a uma unidade-mãe. O militar conta no efetivo da mãe
+# (uma vez só, sem duplicidade), mas mantém a OME de origem na coluna OME,
+# para poder ser filtrado pelo setor vinculado na tabela de efetivo.
+#
+# Sem isso, a OME era sobrescrita pela sigla da mãe e o setor vinculado
+# ficava sem nenhum militar — era o caso da CPPA dentro da DGP.
+#
+# Só entram aqui casos em que a chave do mapeamento é uma unidade
+# semanticamente distinta da mãe — variações de grafia da mesma unidade
+# (ex. "1ºGB" -> "1º GB", "AjG" -> "AJG") NÃO entram: ali a sigla de destino
+# é a forma correta da mesma OME, e mostrá-la é o comportamento certo.
+OME_SETOR_VINCULADO = {"CPPA": "DGP"}
+
 
 def main():
     database_url = os.environ["DATABASE_URL_EFETIVO"]
@@ -112,12 +126,20 @@ def main():
 
     por_unidade = {}
     nao_lotados = {}
+    # Contagem própria dos setores vinculados (ex. CPPA), por unidade-mãe.
+    # É um recorte de por_unidade[mãe], não um acréscimo: quem está aqui já
+    # está contado na mãe. Serve pra tabela de setores vinculados mostrar o
+    # efetivo atual do setor sem depender da Repercussão Financeira (que só
+    # cobre parte do efetivo).
+    por_setor_vinculado = {}
     for ome, contagem in contagem_por_ome.items():
         sigla = mapeamento[ome]
         if sigla is None:
             nao_lotados[ome] = contagem
         else:
             por_unidade[sigla] = por_unidade.get(sigla, 0) + contagem
+            if ome in OME_SETOR_VINCULADO:
+                por_setor_vinculado.setdefault(sigla, {})[ome] = contagem
 
     total_ativo = sum(contagem_por_ome.values())
 
@@ -126,6 +148,7 @@ def main():
         "gerado_em": datetime.now(timezone.utc).isoformat(),
         "total_ativo": total_ativo,
         "por_unidade": por_unidade,
+        "por_setor_vinculado": por_setor_vinculado,
         "nao_lotados": nao_lotados,
     }
 
@@ -166,6 +189,11 @@ def main():
             # que deve mostrar "COMANDO GERAL" é o próprio comandante geral
             # (ome de origem = "CG", que mapeia direto). Ver
             # DW_PLANEJAMENTO.md (2026-08-18).
+            ome_exibicao = ome
+        elif ome in OME_SETOR_VINCULADO:
+            # Setor vinculado (ex. CPPA): conta no efetivo da mãe (sigla),
+            # mas a coluna OME mostra a origem real, e é por ela que o
+            # filtro de setor vinculado encontra esses militares.
             ome_exibicao = ome
         lista_por_unidade.setdefault(sigla, []).append({
             "postoGrad": posto_grad,

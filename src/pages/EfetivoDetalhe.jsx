@@ -215,8 +215,18 @@ export default function EfetivoDetalhe() {
     const porAntiguidade = (a, b) =>
       (a.ordem ?? Number.POSITIVE_INFINITY) - (b.ordem ?? Number.POSITIVE_INFINITY);
     if (setor) {
+      const daUnidade = efetivoLista.por_unidade[unidade.sigla] || [];
+      // Setor vinculado que é OME própria na fonte (ex. CPPA dentro da
+      // DGP): os militares contam no efetivo da mãe mas guardam a OME de
+      // origem em omeExibicao — filtra por ela, e não pela função lançada
+      // na Repercussão Financeira (que cobre só parte do efetivo e não tem
+      // esses setores como "divisão"). Ver extract_efetivo.py.
+      const porOme = daUnidade.filter((r) => r.omeExibicao === setor);
+      if (porOme.length) {
+        return porOme.map((r) => ({ ...r, ome: r.omeExibicao })).sort(porAntiguidade);
+      }
       const matriculasDoSetor = new Set(lotacaoFuncao.por_unidade_divisao[unidade.sigla]?.[setor] || []);
-      return (efetivoLista.por_unidade[unidade.sigla] || [])
+      return daUnidade
         .filter((r) => matriculasDoSetor.has(r.matricula))
         .map((r) => ({ ...r, ome: r.omeExibicao || unidade.sigla }))
         .sort(porAntiguidade);

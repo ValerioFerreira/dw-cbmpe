@@ -436,10 +436,17 @@ export function metricasDivisoesProprias(sigla) {
   const atualPorNome = new Map(
     Object.entries(lotacaoFuncaoReal.por_unidade_divisao[sigla] || {}).map(([nome, matriculas]) => [nome, matriculas.length])
   );
+  // Setor vinculado que é OME própria na fonte (ex. CPPA dentro da DGP):
+  // o efetivo atual vem da contagem direta por OME, não da Repercussão
+  // Financeira — é dado completo, não amostra parcial. Ver
+  // etl/efetivo/extract_efetivo.py (OME_SETOR_VINCULADO).
+  const vinculadoPorNome = efetivoReal.por_setor_vinculado?.[sigla] || {};
   return divisoes.map((nome) => ({
     nome,
     efetivoPrevisto: previstoPorNome.get(nome) ?? 0,
-    efetivoAtual: atualPorNome.has(nome) ? atualPorNome.get(nome) : null,
+    efetivoAtual: nome in vinculadoPorNome
+      ? vinculadoPorNome[nome]
+      : (atualPorNome.has(nome) ? atualPorNome.get(nome) : null),
   }));
 }
 
