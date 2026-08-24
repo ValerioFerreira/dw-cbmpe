@@ -88,7 +88,7 @@ export default function Organograma() {
   };
   const acessoKpiDe = (nome) => {
     if (!restrito || acesso.total) return null;
-    return acesso.kpisTopo.has(nome) ? "ok" : "no";
+    return acesso.indicadores.has(nome) ? "ok" : "no";
   };
 
   // Banner "CBMPE - Geral" (topo) fica apagado quando o usuário de nível não
@@ -97,7 +97,7 @@ export default function Organograma() {
   const cbmpeBloqueado =
     restrito && !acesso.total &&
     !acesso.siglas.has("COMANDO GERAL") &&
-    acesso.kpisTopo.size === 0;
+    acesso.indicadores.size === 0;
 
   const goto = (sigla) => {
     const u = bySigla[sigla];

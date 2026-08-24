@@ -28,7 +28,7 @@
 // Firebase, API própria etc.) quando houver um; mantenha a mesma
 // assinatura de funções para não precisar tocar nas telas que a consomem.
 
-import { NIVEIS_ACESSO, senhaEsperada } from "./accessControl";
+import { perfilDoUsuario, senhaEsperada } from "./accessControl";
 
 const STORAGE_KEY = "cbmpe_auth_user_v2";
 const ADMIN_USUARIO = (import.meta.env.VITE_ADMIN_USUARIO || "adm").trim().toLowerCase();
@@ -67,9 +67,13 @@ export const auth = {
     }
 
     const chave = usuario.trim().toUpperCase();
-    const nivel = NIVEIS_ACESSO[chave];
-    if (nivel && senha === senhaEsperada(chave)) {
-      writeUser({ id: chave, email: chave, full_name: nivel.nome, role: "nivel", nivelAcesso: chave });
+    const perfil = perfilDoUsuario(chave);
+    if (perfil && senha === senhaEsperada(chave)) {
+      writeUser({
+        id: chave, email: chave,
+        full_name: perfil.unidade ? `${perfil.nome} — ${perfil.unidade}` : perfil.nome,
+        role: "nivel", nivelAcesso: chave,
+      });
       return;
     }
 

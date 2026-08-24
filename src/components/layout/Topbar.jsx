@@ -1,11 +1,13 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, ChevronRight, Home, FileDown, Menu, Network, LogOut, UserRound } from "lucide-react";
+import { Search, ChevronRight, Home, FileDown, Menu, Network, LogOut, UserRound, ShieldCheck } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "@/lib/AuthContext";
+import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 
 export default function Topbar({ caminho = [], onOpenSearch, onOpenMobileNav, titulo }) {
   const { user, logout } = useAuth();
+  const { ehAdministrador } = useAcessoUsuario();
   const navigate = useNavigate();
 
   const handleSair = () => {
@@ -92,6 +94,17 @@ export default function Topbar({ caminho = [], onOpenSearch, onOpenMobileNav, ti
               <span className="hidden 2xl:inline">Gerar PDF desta página</span>
             </span>
           </button>
+          {ehAdministrador && (
+            <Link
+              to="/adm"
+              aria-label="Administração"
+              title="Administração"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border bg-card text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground xl:w-auto xl:px-3.5"
+            >
+              <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+              <span className="hidden whitespace-nowrap xl:inline">Administração</span>
+            </Link>
+          )}
           <button
             onClick={handleSair}
             aria-label="Sair"
@@ -147,6 +160,17 @@ export default function Topbar({ caminho = [], onOpenSearch, onOpenMobileNav, ti
             </span>
           )}
 
+          {ehAdministrador && (
+            <Link
+              to="/adm"
+              aria-label="Administração"
+              title="Administração"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border bg-card text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground xl:w-auto xl:px-3.5"
+            >
+              <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+              <span className="hidden whitespace-nowrap xl:inline">Administração</span>
+            </Link>
+          )}
           <button
             onClick={handleSair}
             aria-label="Sair"

@@ -30,17 +30,28 @@ export function useAcessoUsuario() {
     return acesso.siglas.has(sigla);
   }
 
-  // Indicador (Efetivo/Viaturas/Materiais/Finanças) de uma unidade: permitido
-  // se a unidade em si está liberada, OU se é um dos atalhos de KPI do topo
-  // do organograma (hoje só COMANDO GERAL) liberados especificamente —
-  // mesma regra usada em Organograma.jsx pros cards de atalho.
+  // Indicador (Efetivo/Viaturas/Materiais/Finanças) de uma unidade: liberado
+  // se a unidade em si está liberada, OU se o indicador é um dos temáticos do
+  // perfil — e aí vale em QUALQUER unidade, não só no card principal. É o que
+  // distingue um diretor temático (a DGP vê o Efetivo de todo mundo) de um
+  // titular (vê tudo da sua unidade e de nenhuma outra). Decisão de
+  // 2026-08-24, ver @/lib/accessControl.
   function permiteIndicador(ind, unidadeSigla) {
     if (!restrito) return true;
     if (!ind) return false;
-    if (permiteSigla(unidadeSigla)) return true;
     if (acesso.total) return true;
-    return unidadeSigla === "COMANDO GERAL" && acesso.kpisTopo.has(ind.nome);
+    if (permiteSigla(unidadeSigla)) return true;
+    return acesso.indicadores.has(ind.nome);
   }
 
-  return { restrito, acesso, permiteSigla, permiteIndicador };
+  // Atalho de KPI do topo do organograma (card "CBMPE - Geral").
+  function permiteKpiTopo(nome) {
+    if (!restrito) return true;
+    if (acesso.total) return true;
+    return acesso.indicadores.has(nome);
+  }
+
+  const ehAdministrador = !restrito || !!acesso?.admin;
+
+  return { restrito, acesso, permiteSigla, permiteIndicador, permiteKpiTopo, ehAdministrador };
 }
