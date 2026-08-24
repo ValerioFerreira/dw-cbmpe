@@ -20,7 +20,29 @@
   trabalhamos toda vez que uma nova fonte de dados é integrada ao DW.
   **Leitura obrigatória antes de propor qualquer integração de fonte.**
 
-## Estado atual — onde retomar (atualizado 2026-08-19)
+## Estado atual — onde retomar (atualizado 2026-08-24)
+
+> **2026-08-24 — o projeto voltou o foco para o DW em si.** Até aqui o
+> esforço era demonstrar potencial aos gestores via app. A partir de agora o
+> trabalho é o data warehouse real, no banco interno do CBMPE (não no Neon).
+> Leia, nesta ordem: a entrada **2026-08-24** no log de decisões abaixo, o
+> **"Mapa de conexões"** em [`DW_CATALOGO_FONTES.md`](DW_CATALOGO_FONTES.md),
+> e as **"Dimensões conformadas"** em
+> [`DW_MODELO_DADOS.md`](DW_MODELO_DADOS.md). O que segue nesta seção é o
+> estado do **app**, que continua no ar e válido.
+>
+> **Ordem de trabalho acordada para o DW:**
+> 1. Rotacionar as cinco credenciais expostas e criar roles separadas
+>    (`etl_writer`, `bi_reader`, `app_reader`) — antes de qualquer carga.
+> 2. Criar o database `dw` com a camada `raw`, carregando **Frota** primeiro
+>    (fonte melhor dominada, SQL pronto, não depende de acesso novo).
+> 3. **Mapa de força** em seguida — traz seis anos de histórico prontos.
+> 4. `ovrsgp` → `raw`, incremental por `dt_atlz`.
+>
+> **Bloqueado aguardando o usuário:** rodar `--aplicar` no
+> `etl/sgp/casar_coordenadas_ome.py` ("só quando tudo for dirimido"), e a
+> correção dos adidos no app (criar a OME fantasma ADIDOS com quebra por
+> órgão — o total do Comando Geral **não** muda, é aditivo).
 
 Ponto de retomada rápido (o log de decisões completo fica mais abaixo). Todo
 o trabalho está commitado e no `origin/main` (ver `git log` pro hash mais
@@ -1990,6 +2012,129 @@ rota), agora reaberta pelos dashboards novos; o segundo era uma
 divergência real entre o que o card promete e o que o dashboard mostra.
 Ver `DW_GOVERNANCA.md` (atualização de 2026-08-19) pro detalhe de
 controle de acesso.
+
+### 2026-08-24 — Retomada do DW: mapa das fontes internas, regras de efetivo e primeira lista de dimensões
+
+Sessão longa, de retomada do planejamento do DW propriamente dito, depois de
+várias rodadas focadas em app/apresentação. Também corrigiu um bug de dado no
+app (CPPA, commit `824b425`).
+
+**Correção da CPPA (commit `824b425`)**. Militares com `ome = CPPA` no Neon
+tinham a OME sobrescrita por `DGP` na extração — o de-para
+`mapeamento_unidades.json` mapeia `CPPA → DGP`, e o `extract_efetivo.py`
+descartava a origem. Resultado: o setor vinculado CPPA aparecia vazio, porque
+o filtro procurava CPPA como divisão na Repercussão Financeira, onde ela não
+existe. Generalizado o mecanismo que já existia para adidos (`omeExibicao`):
+`OME_SETOR_VINCULADO = {"CPPA": "DGP"}`, novo bloco `por_setor_vinculado` em
+`efetivo.json`, e o filtro de setor casa primeiro por OME de origem. DGP segue
+com 39 (sem duplicidade), CPPA mostra 11/17, e o drill-down `?ome=CPPA` do
+dashboard — que também estava quebrado — passou a funcionar. Variações de
+grafia (`1ºGB` → `1º GB`) deliberadamente **não** entram nessa regra.
+
+**Repositório passou a privado.** Foi verificado que
+`raw.githubusercontent.com/.../efetivo_lista.json` respondia HTTP 200 sem
+autenticação, com 2,7 MB contendo nome completo, matrícula, telefones,
+raça/cor e PCD de 2.658 militares. A `DW_GOVERNANCA.md` já registrava o risco,
+mas raciocinando sobre o site na Vercel (que ao menos tem login) — o GitHub
+não tinha. O histórico do git guarda as versões anteriores, então tornar
+privado não desfaz o que já foi exposto. Com o repo privado, os DDLs e scripts
+do Windmill puderam ser versionados (commit `f7b4a43`), sanitizados.
+
+**Cinco credenciais para rotacionar**, todas expostas em texto puro (chat ou
+arquivo): `datawarehouse-user` no Postgres interno (superusuário), os dois
+`neondb_owner` (efetivo e finanças), a do banco da Frota, e a do SGP/`ctic`.
+Some-se a isso que a planilha do Pecúlio é lida por **URL de "publicar na web"
+do Google Sheets** (`etl/efetivo/windmill-peculio-neon.py`), que não pede
+autenticação — duas URLs, com o efetivo nominal inteiro.
+
+**Levantamento das fontes internas.** Detalhe completo em
+`DW_CATALOGO_FONTES.md`. O essencial:
+
+- Praticamente todo o dado do DW está em **dois servidores**, com duas
+  credenciais: `10.193.0.16` (todos os sistemas OVR como schemas do
+  `db_portal_sistemas_prod`) e `10.193.0.20` (aplicações Rails).
+- `dw_dim` e o schema `dw_cbmpe` são tentativas antigas de DW, **em desuso**.
+  O `public` do `10.193.1.252` alimenta o Metabase e **não deve ser tocado**.
+- `ovrsgo` e `ovrroe` estão **fora de uso** (confirmado pelo usuário).
+- O **mapa de força é o `mapa_forca_api_development`** — produção, apesar do
+  nome; o `map_force_production` ao lado está vazio.
+- **O mapa de força e o `ovresc` são um sistema só, partido em dois bancos**:
+  as FKs do mapa de força apontam para o `ovresc` sem constraint declarada,
+  com 100% de casamento em quatro dimensões. O `ovresc` não pode ser
+  descartado — é o cadastro-mestre.
+
+**O mapa de força muda a prioridade do roadmap.** Traz 342.018 lançamentos e
+1.026.255 militares lançados, cobrindo **2019-11 até hoje**. Isso contradiz
+uma afirmação minha anterior: eu havia dito que o DW só teria série temporal a
+partir do dia em que ligássemos a carga — falso para o domínio operacional,
+onde já existem quase seis anos prontos, com trilha de auditoria por cima
+(`action_logs`, 1,2 milhão de linhas com motivo textual). Passa a ser a
+segunda carga, não a última.
+
+**Chaves testadas** (medições em `DW_CATALOGO_FONTES.md`): OME entre mapa de
+força e SGP é **FK real** (31/31); matrícula casa **94,1%** normalizando para
+"sem hífen, com dígito verificador"; viatura **não** casa entre Frota e mapa
+de força pelos catálogos, mas casa **98,6%** pelo número de ordem ignorando
+zeros à esquerda e o sufixo `L`.
+
+**Decisão — Frota × mapa de força: cruzar, não somar.** São grãos diferentes
+(o que a corporação possui × o que foi empregado); somar produz número sem
+significado. Caminho em duas etapas: `stg.de_para_viatura` agora, correção na
+origem depois, com a tabela de reconciliação servindo de carga inicial. Ver
+`DW_MODELO_DADOS.md`.
+
+**Regras de efetivo confirmadas pelo usuário**, e uma proposta minha
+descartada:
+
+- Efetivo é **todo militar da ativa**. Afastado (LE, LTIP, licença médica,
+  férias) continua contando na sua OME. **Descartada** a minha proposta de
+  separar "efetivo administrativo" × "efetivo disponível" — não é assim que a
+  corporação enxerga.
+- Inativo é de outra diretoria, fora de escopo por ora.
+- **Adido conta quatro vezes, sem duplicidade**: para o órgão externo, para
+  uma OME fantasma `ADIDOS`, para o rollup do Comando Geral e para o total.
+  A OME fantasma entra na `dim_organizacao`. Adido **pode** ser escalado.
+- Órgão do adido vem do `Militar.orgao` do Pecúlio; rever quando o SGP virar
+  a fonte.
+- **Agregado segue em aberto.**
+
+**A regra de inatividade do SGP não é aplicável hoje.** A regra correta é
+"sem registro em `tb_inatv` = ativo", mas a `tb_inatv` tem **26 registros** e
+classificaria 4.571 dos 4.597 como ativos. A marcação de fato usada é a
+movimentação para a pseudo-OME `INATIVOS` (1.430 pessoas), e os dois
+mecanismos quase não se cruzam. Evidência: dos 73 militares escalados nos
+últimos 12 meses fora do efetivo ativo do Pecúlio, 67 estão "orgânicos e
+ativos" no SGP, a maioria lotada em `INATIVOS`, vários com 100+ lançamentos —
+são inativos tirando serviço extra. Só 4 eram adidos, contra a minha hipótese.
+**Consequência**: o Pecúlio segue como fonte do efetivo ativo, e quando o SGP
+for regularizado a inativação precisa passar a ser lançada em `tb_inatv`.
+
+**Coordenadas das OMEs**: nenhuma OME tem coordenada real no SGP (as 75
+não-nulas estão como `0,0`). `etl/sgp/casar_coordenadas_ome.py` fecha o
+casamento com **63 de 82 recebendo coordenada e zero divergências**
+(commit `fb08c95`). Regras e ressalvas em `DW_CATALOGO_FONTES.md`. **Nada foi
+gravado no SGP** — a gravação exige `--aplicar`, e o usuário condicionou a
+"só quando tudo for dirimido".
+
+**Ajuste na decisão de 2026-08-07 sobre `core` normalizado**: as dimensões
+conformadas passam a ser **tabelas materializadas no `core`**, não views em
+`marts`. Motivo: a dimensão carrega a reconciliação (de-para de cinco
+sistemas, chave substituta, SCD2) — dado novo, produzido por nós, que não
+existe em nenhuma origem e não cabe numa view. Primeira lista de 13 dimensões
+propostas em `DW_MODELO_DADOS.md`, cada uma com fonte identificada e chave
+testada.
+
+**Dado sensível novo**: o mapa de força trouxe **CPF**
+(`launch_militaries.military_cpf`, `action_logs.user_cpf`), que não existia
+em nenhuma fonte nossa. A matrícula já serve de chave — o CPF deve ser
+descartado na transição `raw` → `stg`.
+
+**Motivo geral**: o foco até aqui tinha sido demonstrar potencial para os
+gestores, com integrações pontuais. Esta sessão retomou o DW em si, e o
+levantamento mostrou que o terreno é bem melhor do que parecia — duas
+credenciais alcançam quase tudo, o mapa de força já tem seis anos de
+histórico, e a ligação com o SGP é FK de verdade em vez de casamento por
+nome.
 
 ## Pendências práticas (não bloqueiam o planejamento, mas são pré-requisito de implementação)
 
