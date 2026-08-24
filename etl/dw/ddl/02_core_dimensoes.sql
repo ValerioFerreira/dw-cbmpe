@@ -209,3 +209,17 @@ CREATE TABLE IF NOT EXISTS core.dim_tipo_recurso (
     nome            text,
     origem          text NOT NULL
 );
+
+-- Origem da hierarquia (2026-08-24): o ORGANOGRAMA e a autoridade sobre quem
+-- pende de quem; a tb_ome do SGP continua sendo o registro do que existe.
+-- As duas divergem em pontos reais -- o SGP pendura DAS e CEFD na DGP, o
+-- organograma as coloca sob DGA e DEIP -- e a decisao do usuario e seguir o
+-- organograma. Para as OMEs que so existem no SGP, a hierarquia dele e
+-- mantida, e estas colunas dizem qual dos dois mandou em cada linha.
+ALTER TABLE core.dim_ome ADD COLUMN IF NOT EXISTS no_organograma boolean NOT NULL DEFAULT false;
+ALTER TABLE core.dim_ome ADD COLUMN IF NOT EXISTS origem_hierarquia text;
+
+COMMENT ON COLUMN core.dim_ome.no_organograma IS
+  'True quando a unidade consta do organograma oficial (46 unidades).';
+COMMENT ON COLUMN core.dim_ome.origem_hierarquia IS
+  'organograma | sgp | regra -- de onde veio o sk_ome_pai desta linha.';

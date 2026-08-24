@@ -29,6 +29,7 @@ Uso:
 import importlib.util
 import json
 import os
+import re
 import unicodedata
 from pathlib import Path
 
@@ -82,6 +83,66 @@ def normalizar_numero(numero):
 def url_do_dw():
     base, _, _ = os.environ["DATABASE_URL_DW"].rpartition("/")
     return f"{base}/dw"
+
+
+# De-para entre a sigla do organograma e a do SGP, onde a normalizacao
+# automatica nao resolve. Sao seis, todas variacao de escrita da mesma
+# unidade -- nenhuma e unidade diferente.
+ORGANOGRAMA_PARA_SGP = {
+    "COMANDO GERAL": "CG",
+    "SUBCOMANDO GERAL": "SCG",
+    "DINTER I": "DINTER/1",
+    "DINTER II": "DINTER/2",
+    "CAT/AG": "CAT / AGRESTE",
+    "CAT/SE": "CAT / SERTÃO",
+}
+
+# OMEs que so existem no SGP e cuja hierarquia de la esta obsoleta. Regras
+# derivadas de decisoes ja tomadas com o usuario:
+# - GBFN deixou de ser Grupamento e virou Secao (SBFN) vinculada ao GBI. No
+#   SGP ela ainda pende do COM, que esta inativo.
+# - As CAT numeradas foram absorvidas pela de numero 1 (mesma decisao que
+#   valeu para as coordenadas), entao acompanham o pai da sua CAT base. No
+#   SGP todas pendem do COESP, tambem inativo.
+PAI_POR_REGRA = {
+    "GBFN": "GBI",
+    "CAT / SERTÃO 2": "CAT / SERTÃO", "CAT / SERTÃO 3": "CAT / SERTÃO",
+    "CAT / SERTÃO 4": "CAT / SERTÃO", "CAT / SERTÃO 5": "CAT / SERTÃO",
+    "CAT / SERTÃO 6": "CAT / SERTÃO",
+    "CAT / ZM 2": "CAT / ZM",
+    "CAT / AGRESTE 2": "CAT / AGRESTE", "CAT / AGRESTE 3": "CAT / AGRESTE",
+}
+
+
+def arvore_do_organograma():
+    """Le a ARVORE de src/data/organograma.js.
+
+    O organograma e a autoridade sobre QUEM PENDE DE QUEM (decisao do usuario,
+    2026-08-24); a tb_ome do SGP continua sendo o registro do QUE EXISTE. As
+    duas divergem em pontos reais: o SGP pendura DAS e CEFD na DGP, o
+    organograma as coloca sob DGA e DEIP.
+
+    Le direto do JS em vez de manter uma copia, para nao existirem duas
+    versoes da mesma verdade. Falha alto se o parse nao render nada, que e o
+    unico modo de falha silenciosa que essa abordagem tem.
+    """
+    caminho = RAIZ / "src" / "data" / "organograma.js"
+    texto = caminho.read_text(encoding="utf-8")
+    bloco = re.search(r"const ARVORE\s*=\s*\{(.*?)\n\};", texto, re.S)
+    if not bloco:
+        raise SystemExit("Nao achei a ARVORE em organograma.js -- o formato mudou?")
+
+    arvore = {}
+    for pai, filhos in re.findall(r"'([^']+)'\s*:\s*\[(.*?)\]", bloco.group(1), re.S):
+        arvore[pai] = re.findall(r"'([^']+)'", filhos)
+    if len(arvore) < 5:
+        raise SystemExit(f"ARVORE com so {len(arvore)} nos -- parse provavelmente quebrou.")
+
+    pai_de_filho = {}
+    for pai, filhos in arvore.items():
+        for filho in filhos:
+            pai_de_filho[filho] = pai
+    return arvore, pai_de_filho
 
 
 def coordenadas_das_omes():
@@ -192,6 +253,57 @@ def carregar_dim_ome(cur):
         "organograma",
     ))
 
+    # ---- o organograma passa a mandar na hierarquia -------------------------
+    # Ate aqui o sk_ome_pai veio do SGP. Agora, para toda unidade que consta
+    # do organograma, ele e substituido pelo pai de la. Isso corrige, entre
+    # outros, DAS (que o SGP pendura na DGP e o organograma poe sob a DGA) e
+    # CEFD (SGP: DGP; organograma: DEIP).
+    _arvore, pai_organograma = arvore_do_organograma()
+    por_sigla_norm = {normalizar(l[2]): l[0] for l in linhas}
+    por_sigla_norm[normalizar("DGA")] = SK_DGA
+
+    def sk_da_sigla_organograma(sigla):
+        alvo = ORGANOGRAMA_PARA_SGP.get(sigla, sigla)
+        return por_sigla_norm.get(normalizar(alvo))
+
+    no_organograma = {normalizar(ORGANOGRAMA_PARA_SGP.get(s, s))
+                      for s in set(pai_organograma) | set(_arvore)}
+
+    ajustadas = []
+    for i, l in enumerate(linhas):
+        sigla = l[2]
+        sk = l[0]
+        esta_no_organograma = normalizar(sigla) in no_organograma
+        novo_pai, origem_hier = l[7], "sgp"
+
+        sigla_org = next((s for s in pai_organograma
+                          if normalizar(ORGANOGRAMA_PARA_SGP.get(s, s)) == normalizar(sigla)),
+                         None)
+        if sigla_org is not None:
+            candidato = sk_da_sigla_organograma(pai_organograma[sigla_org])
+            if candidato is not None and candidato != sk:
+                if candidato != l[7]:
+                    ajustadas.append((sigla, l[7], candidato))
+                novo_pai, origem_hier = candidato, "organograma"
+        elif sigla in PAI_POR_REGRA:
+            candidato = por_sigla_norm.get(normalizar(PAI_POR_REGRA[sigla]))
+            if candidato is not None and candidato != sk:
+                if candidato != l[7]:
+                    ajustadas.append((sigla, l[7], candidato))
+                novo_pai, origem_hier = candidato, "regra"
+
+        # ADIDOS mantem o override proprio: pende do Comando Geral.
+        if sk == SK_ADIDO:
+            novo_pai, origem_hier = SK_CG, "regra"
+
+        linhas[i] = l[:7] + (novo_pai,) + l[8:] + (esta_no_organograma, origem_hier)
+
+    sigla_por_sk = {l[0]: l[2] for l in linhas}
+    if ajustadas:
+        print("    hierarquia reescrita pelo organograma:")
+        for sigla, antes, depois in ajustadas:
+            print(f"      {sigla:<18} {sigla_por_sk.get(antes, antes)} -> {sigla_por_sk.get(depois, depois)}")
+
     cur.execute("DELETE FROM core.dim_ome_ancestral")
     cur.execute("DELETE FROM core.dim_ome")
 
@@ -200,7 +312,7 @@ def carregar_dim_ome(cur):
         INSERT INTO core.dim_ome
             (sk_ome, id_ome, sigla, nome, tipo, nivel, hierarquia, sk_ome_pai,
              municipio, latitude, longitude, status, tipo_registro,
-             conta_efetivo, origem)
+             conta_efetivo, origem, no_organograma, origem_hierarquia)
         VALUES %s
     """, [l[:7] + (None,) + l[8:] for l in linhas])
 

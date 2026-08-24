@@ -78,25 +78,23 @@ def main():
         """),
         0)
 
-    # A hierarquia do SGP nao e a mesma do organograma que o app usa. Isso nao
-    # e erro de carga: o DW reflete fielmente a fonte declarada como
-    # autoridade. Mas e uma decisao pendente, entao fica visivel aqui em vez
-    # de virar surpresa num numero de dashboard.
-    print("\n  Divergencia SGP x organograma do app (nao e falha, e decisao pendente):")
+    falhas += not checar(
+        "DGP por rollup (organograma manda na hierarquia)",
+        valor(cur, "SELECT efetivo_total FROM marts.efetivo_por_ome WHERE sigla = 'DGP'"),
+        ESPERADO_DGP)
+
+    # O organograma e a autoridade sobre quem pende de quem (decisao de
+    # 2026-08-24). Este bloco mostra de onde veio o pai de cada linha, para
+    # que ficar dependendo do SGP seja uma escolha visivel e nao um descuido.
+    print("\n  Origem da hierarquia de cada OME:")
     cur.execute("""
-        SELECT o.sigla, e.efetivo_proprio
-        FROM core.dim_ome_ancestral a
-        JOIN core.dim_ome o ON o.sk_ome = a.sk_ome_descendente
-        JOIN marts.efetivo_por_ome e ON e.sk_ome = o.sk_ome
-        WHERE a.sk_ome_ancestral = 25 AND a.distancia > 0 AND e.efetivo_proprio > 0
-        ORDER BY e.efetivo_proprio DESC
+        SELECT coalesce(origem_hierarquia, '(raiz)'), count(*)
+        FROM core.dim_ome GROUP BY 1 ORDER BY 2 DESC
     """)
-    filhas = cur.fetchall()
-    total_dgp = valor(cur, "SELECT efetivo_total FROM marts.efetivo_por_ome WHERE sigla = 'DGP'")
-    print(f"    no SGP a DGP tem {total_dgp} por rollup; no app sao {ESPERADO_DGP}.")
-    print("    a diferenca sao unidades que o SGP pendura na DGP e o organograma nao:")
-    for sigla, n in filhas:
-        print(f"      {sigla:<12} {n:>4}")
+    for origem, n in cur.fetchall():
+        print(f"    {origem:<14} {n:>4}")
+    print("    (as que seguem 'sgp' sao OMEs que o organograma nao lista --")
+    print("     todas com efetivo zero hoje, exceto o GBFN, que virou SBFN/GBI)")
 
     print("\n  soma do efetivo proprio de todas as OMEs (tem que dar o total,")
     print("  senao alguem esta contado duas vezes ou de menos):")
