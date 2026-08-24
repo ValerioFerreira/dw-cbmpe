@@ -269,13 +269,14 @@ etl/dw/validar.py         bateria de perguntas de negocio com resposta conhecida
 | `raw_sgp` | `tb_ome` (82), `tb_secao` (1.100) |
 | `raw_escala` | `tb_posto`, `tb_turn_servi`, `tb_tipo_servi`, `tb_func_oper`, `tb_natur_servi` |
 | `raw_mapa_forca` | 1.845.200 linhas — lançamentos, militares, viaturas, recursos e cadastros |
-| `raw_peculio` | `Militar` (2.703) |
-| `raw_frota` | `Viatura` (841) |
-| `core` | 11 dimensões + 5 fatos, 1.379.128 linhas |
-| `stg` | `de_para_ome` (121), `de_para_viatura` (1.626), controle de carga |
+| `raw_peculio` | planilha do Pecúlio + telefones (7.720) |
+| `raw_financas` | planilha de Finanças, uma tabela por aba (2.839) |
+| `raw_frota` | 11 tabelas de `frotas_production` (59.318) |
+| `core` | 12 dimensões + 5 fatos, 1.379.067 linhas |
+| `stg` | `de_para_ome` (122), `de_para_viatura` (1.626), controle de carga |
 | `marts` | 8 views de consumo |
 
-Fatos: `fato_efetivo_diario` (2.658), `fato_frota_diaria` (805),
+Fatos: `fato_efetivo_diario` (2.658), `fato_frota_diaria` (813),
 `fato_lancamento_militar` (902.164), `fato_lancamento_viatura` (204.443),
 `fato_lancamento_recurso` (259.998).
 
@@ -300,27 +301,74 @@ negócio com resposta esperada conhecida. Resultado atual, tudo passando:
 A última é a que prova que não há dupla contagem nem perda: cada militar tem
 exatamente uma linha de fato, e a hierarquia distribui.
 
-## Divergência encontrada: a hierarquia do SGP não é a do organograma
+## Divergência de hierarquia: resolvida — o organograma é a autoridade
 
-**Não é erro de carga** — o DW reflete fielmente a fonte declarada como
-autoridade. É uma decisão pendente.
+Ao carregar, o DW encontrou 27 unidades cuja hierarquia no SGP não bate com a
+do organograma oficial. O caso mais visível: a DGP fechava **77** militares
+por rollup no SGP e **39** no organograma, porque o SGP pendura DAS (30) e
+CEFD (8) na DGP, enquanto o organograma as trata como unidades irmãs.
 
-No SGP, a DGP tem **77** militares por rollup; no organograma que o app usa,
-são **39**. A diferença são unidades que o SGP pendura na DGP e o organograma
-não:
+**Resolvido pelo usuário em 2026-08-24: "Organograma é a verdade."**
 
-| Unidade | Efetivo próprio |
+O DW foi reconstruído sobre essa base. Hoje a DGP fecha **39** — 28 próprios
+mais os 11 da CPPA — e DAS (30) e CEFD (8) respondem por si.
+
+A divergência não foi apagada, foi tornada visível. `core.dim_ome` carrega:
+
+| Coluna | Serve para |
 |---|---|
-| DAS | 30 |
-| CEFD | 8 |
-| CPPA | 11 (esta é comum aos dois) |
+| `origem_hierarquia` | `organograma` (45), `sgp` (26), `regra` (11) — de onde veio o pai desta unidade |
+| `no_organograma` | 46 unidades verdadeiras — a OME é reconhecida pelo organograma oficial |
 
-No organograma oficial, DAS e CEFD são unidades irmãs sob a DGA; no SGP,
-pendem da DGP. A hipótese mais provável é que o SGP esteja desatualizado —
-a DGA ainda não existe operacionalmente, então DAS e CEFD ficaram sob a DGP
-por herança. **A decidir com o usuário**, e enquanto não for decidido a
-`marts.efetivo_por_ome` expõe as duas leituras: `efetivo_proprio` (só a
-própria unidade) e `efetivo_total` (com rollup).
+Uma unidade com `origem_hierarquia = 'sgp'` não é erro: é uma OME que o
+organograma simplesmente não lista (situações funcionais, unidades inativas,
+extintas). O que a coluna garante é que ninguém confunda "o organograma diz"
+com "o SGP diz" ao ler um número de rollup.
+
+### Onde o organograma mora
+
+Na constante `ARVORE` de `src/data/organograma.js` — arquivo de front-end,
+não tabela. O `carga_core.py` faz o parse direto dele e **falha alto** se o
+resultado tiver menos de 5 nós, para que uma refatoração no app não degrade a
+hierarquia do DW em silêncio.
+
+É dívida técnica consciente: a autoridade da hierarquia da corporação está
+num arquivo `.js`. Quando ela virar tabela (ou vier do SGP corrigido), só o
+leitor muda.
+
+### Regras de estado das unidades (2026-08-24)
+
+| Situação | Como o DW trata |
+|---|---|
+| **DGA** — ainda não criada | `tipo_registro = 'planejada'`, `conta_efetivo = false`, sem filhos. As 9 diretorias que penderiam dela pendem direto do **Subcomando Geral**, que fica com 17 filhos diretos. Ativar a DGA é mudar um status |
+| **AJ** | Subordinada ao **GCG** |
+| **GBFN → SBFN** | Seção sob o **GBI**; o histórico de lançamentos fica atrelado a ela |
+| **CAC, CPA, CPTO, CTA, CEMET II, DFEA** | `status = 'extinta'` — o SGP ainda as marca como ativas |
+| **GTA** | Não é OME. Entra como adido, órgão externo `GTA` |
+
+### Por que isso não pediu SCD tipo 2
+
+Vale registrar porque a pergunta é legítima e a resposta não é óbvia.
+
+SCD tipo 2 significa guardar **uma linha por período de validade**: quando o
+GBFN vira SBFN sob o GBI, a linha antiga é fechada (`valido_ate = data`) e
+uma nova é aberta. O fato aponta para a versão que valia **na data do
+evento** — então um lançamento de 2021 continuaria mostrando "GBFN,
+independente", e um de 2026 mostraria "SBFN, sob o GBI".
+
+O usuário quer o contrário: os lançamentos históricos do GBFN devem aparecer
+sob a estrutura de hoje. Isso é exatamente o que uma dimensão **sem**
+versionamento faz — há uma linha só por OME, e todo fato, de qualquer época,
+enxerga a hierarquia atual.
+
+SCD2 na `dim_ome` só passa a ser necessário no dia em que alguém precisar
+responder *"como era a estrutura em 2021?"*. Fica registrado como opção, não
+como pendência.
+
+**Onde SCD2 continua sendo necessário: `dim_viatura`** — ali o problema é
+outro. Números de ordem são reciclados (413 pares ambíguos): o mesmo número
+designa veículos diferentes em épocas diferentes, e sem versão por período
+não há como dizer a qual deles um lançamento antigo se refere.
 
 ## O que já dá para responder e antes não dava
 
@@ -400,29 +448,40 @@ usadas por um único fato não precisam desse tratamento.
 
 ### 1. `dim_ome` — a espinha dorsal
 
-Grão: 1 OME. SCD tipo 2. **Autoridade: `ovrsgp.tb_ome`.**
+Grão: 1 OME. **82 linhas, carregada.** Autoridade dividida, e a divisão é
+deliberada: o **cadastro** (quais OMEs existem, sigla, nome, tipo,
+coordenada) vem de `ovrsgp.tb_ome`; a **hierarquia** (de quem cada uma
+depende) vem do organograma oficial. Ver a seção de divergência acima.
 
 É a dimensão mais importante do modelo, porque quase todo fato aponta para
 ela e porque é onde as regras de negócio da corporação ficam resolvidas de
 forma estrutural, em vez de virarem exceção espalhada pelo código.
 
-Atributos: `sk_organizacao`, `id_ome` (natural, do SGP), `sigla`, `nome`,
-`tipo` (AD/OP), `nivel`, **`sk_organizacao_pai`**, `municipio`, `latitude`,
-`longitude`, `status`, `tipo_registro`, `data_inicio_validade`,
-`data_fim_validade`.
+Atributos: `sk_ome`, `id_ome` (natural, do SGP), `sigla`, `nome`, `tipo`
+(AD/OP), `nivel`, **`sk_ome_pai`**, `municipio`, `latitude`, `longitude`,
+`status`, `tipo_registro`, `conta_efetivo`, `no_organograma`,
+`origem_hierarquia`.
 
-`tipo_registro` assume quatro valores, e é ele que resolve os casos
-especiais:
+**Não é SCD tipo 2 hoje** — há uma linha por OME, e todo fato de qualquer
+época enxerga a hierarquia atual. É o comportamento que o usuário pediu
+(ver "Por que isso não pediu SCD tipo 2", acima).
 
-| Valor | Exemplo | Por quê |
-|---|---|---|
-| `ome` | as 82 linhas da `tb_ome` | unidade normal |
-| `setor_vinculado` | **CPPA**, filha da DGP | conta no filtro próprio e no rollup da mãe |
-| `fantasma` | **ADIDOS**, filha do COMANDO GERAL | não é unidade física, mas precisa ser um recorte |
-| `planejada` | **DGA** | existe no organograma, sem dado real até ser criada |
+`tipo_registro` assume cinco valores, e é ele que resolve os casos
+especiais — distribuição real da carga:
 
-**Com `sk_organizacao_pai` preenchido, toda contagem vira rollup pela
-hierarquia — e as regras confirmadas pelo usuário caem sozinhas:**
+| Valor | Qtd | Exemplo | Por quê |
+|---|---|---|---|
+| `ome` | 75 | unidades da `tb_ome` | unidade normal |
+| `setor_vinculado` | 1 | **CPPA**, filha da DGP | conta no filtro próprio e no rollup da mãe |
+| `fantasma` | 1 | **ADIDOS**, filha do COMANDO GERAL | não é unidade física, mas precisa ser um recorte |
+| `planejada` | 1 | **DGA** | existe no organograma, sem dado real até ser criada |
+| `situacao` | 4 | **INATIVOS**, `LIC / DGP`, `OUT SIT / DGP`, `CFHP 2017` | situação funcional que o SGP modelou como se fosse OME |
+
+`conta_efetivo` (57 verdadeiras, 25 falsas) é o que impede que uma situação
+funcional, uma unidade extinta ou a DGA entrem num total de efetivo.
+
+**Com `sk_ome_pai` preenchido, toda contagem vira rollup pela hierarquia — e
+as regras confirmadas pelo usuário caem sozinhas:**
 
 - Militar da CPPA tem `sk_organizacao = CPPA`. Aparece no filtro da CPPA
   **e** no rollup da DGP, sem duplicidade e sem regra especial.
@@ -434,11 +493,29 @@ hierarquia — e as regras confirmadas pelo usuário caem sozinhas:**
 > existiu porque o app trabalha com sigla achatada, sem hierarquia. Neste
 > modelo ele não teria acontecido.
 
-O de-para vive em `stg.de_para_ome`, com as colunas
-`(sistema, valor_origem, sk_organizacao, tipo)`, onde `tipo` distingue
+### `core.dim_ome_ancestral` — a tabela de fechamento
+
+344 linhas, uma para cada par (ancestral, descendente) da árvore, com a
+distância entre eles. É o que transforma rollup hierárquico em `JOIN`
+simples, em vez de recursão a cada consulta:
+
+```sql
+-- efetivo total de uma OME, incluindo tudo o que pende dela
+SELECT count(*)
+FROM core.fato_efetivo_diario f
+JOIN core.dim_ome_ancestral a ON a.sk_descendente = f.sk_ome
+WHERE a.sk_ancestral = :sk_ome;
+```
+
+É essa tabela que faz a CPPA aparecer no rollup da DGP e os ADIDOS no do
+Comando Geral **sem uma linha de código especial em lugar nenhum** — a regra
+está na forma da árvore, não em `IF`s espalhados pelas consultas.
+
+O de-para vive em `stg.de_para_ome` (122 linhas), com as colunas
+`(sistema, valor_origem, sk_ome, tipo)`, onde `tipo` distingue
 `grafia` (`1ºGB` → `1º GB`) de `setor_vinculado` (CPPA → DGP) — a ausência
 dessa distinção foi exatamente a causa do bug acima. As duas DGP (ids 8 e
-25) entram aqui apontando para o mesmo `sk_organizacao`.
+25) entram aqui apontando para o mesmo `sk_ome`.
 
 ### 2. `dim_militar`
 

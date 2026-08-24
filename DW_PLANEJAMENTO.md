@@ -2136,6 +2136,123 @@ credenciais alcançam quase tudo, o mapa de força já tem seis anos de
 histórico, e a ligação com o SGP é FK de verdade em vez de casamento por
 nome.
 
+### 2026-08-24 (segunda metade da sessão) — O DW existe: banco criado e carregado, organograma como autoridade, Windmill separado, perfis de acesso
+
+A sessão passou de planejar o DW para **construí-lo**. Commits `bc3a984`,
+`ff18a6a`, `7f49353`, `dbf0c12`, `1bdd1bc`, `6b8b7f1`.
+
+**O banco `dw` está de pé e carregado**, no Postgres interno
+(`10.193.1.252:54301`), com 1,9 milhão de linhas em `raw_*` e 1.379.067 no
+`core`. Quatro passos idempotentes em `etl/dw/`: `criar_banco.py`,
+`aplicar_ddl.py`, `carga_raw.py`, `carga_core.py`, mais `validar.py`. O DDL
+da camada `raw` é derivado do **catálogo da própria fonte**
+(`pg_attribute` + `format_type`), então os tipos batem sem mapeamento manual
+— e tabela nova na origem não exige DDL escrito à mão.
+
+**Organograma é a verdade** (decisão do usuário, textual). Ao carregar, a
+hierarquia do SGP divergiu do organograma em 27 unidades — a DGP fechava 77
+por rollup no SGP contra 39 no organograma, porque o SGP pendura DAS e CEFD
+nela. O DW foi reconstruído sobre o organograma. A divergência não foi
+apagada: `core.dim_ome` ganhou `origem_hierarquia` (`organograma` 45, `sgp`
+26, `regra` 11) e `no_organograma` (46), para que ninguém confunda as duas
+leituras. Detalhe em `DW_MODELO_DADOS.md`.
+
+**Dívida técnica assumida conscientemente**: o organograma mora na constante
+`ARVORE` de `src/data/organograma.js` — um arquivo de front-end é hoje a
+autoridade da hierarquia da corporação. O `carga_core.py` faz o parse direto
+e **falha alto** se render menos de 5 nós, para que uma refatoração no app
+não degrade o DW em silêncio.
+
+**Estado das unidades, resolvido com o usuário:**
+
+- **DGA**: ainda não existe. Fica `planejada`, `conta_efetivo = false`, sem
+  filhos — e as 9 diretorias que penderiam dela pendem **direto do
+  Subcomando Geral**, que passa a ter 17 filhos diretos. Ativar a DGA é
+  mudar um status, e a hierarquia do organograma volta a valer sozinha.
+- **AJ**: existe hoje, sob o **GCG**. **GBFN**: virou **SBFN**, seção sob o
+  **GBI**.
+- **CAC, CPA, CPTO, CTA, CEMET II, DFEA**: extintas. Marcadas no DW; a
+  correção na origem fica a critério do usuário.
+- **GTA**: não é OME — entra como adido, órgão externo `GTA`. Com isso não
+  sobrou nenhuma viatura sem OME.
+
+**SCD tipo 2 explicado, e onde ele de fato se aplica.** O usuário pediu para
+eu explicar melhor. SCD2 é guardar uma linha por período de validade, com o
+fato apontando para a versão que valia na data do evento. Para o GBFN **não**
+se aplica: o usuário quer o histórico lido sob a estrutura atual, que é o que
+uma dimensão sem versionamento já faz. SCD2 na `dim_ome` só serviria ao
+oposto — ver 2021 com a estrutura de 2021 — e fica registrado como opção.
+Onde **é** necessário é na `dim_viatura`: números de ordem são reciclados
+(413 pares ambíguos), então sem versão por período não há como saber a qual
+veículo um lançamento antigo se refere.
+
+**O DW deixou de ler o Neon.** Os bancos Neon são cache de aplicação
+(`TRUNCATE` a cada rodada, recorte de colunas, regra de negócio já
+aplicada). O DW passou a ler as origens: `frotas_production` para Viaturas e
+as planilhas do Google Sheets para Efetivo e Finanças. Efeito medido:
+`dim_militar` caiu de 2.703 para **2.658** (resíduo de `ativo=false` que o
+Neon guardava) e `dim_viatura` subiu de 805 para **813** (o recorte do Neon
+descartava viatura sem placa). As tabelas Neon continuam sendo alimentadas —
+o app publicado depende delas.
+
+**Scripts do Windmill separados em duas pastas**, a pedido do usuário, com
+verificação um a um:
+
+- `etl/windmill/apps/` — o que mantém funcionando o que já funciona
+  (Metabase, app na Vercel): `peculio_para_metabase_e_neon.py`,
+  `financas_planilha_para_postgres.py`, `financas_postgres_para_neon.py`,
+  `frota_para_neon.py`. Sanitizados, credenciais por `os.environ`.
+- `etl/windmill/dw/` — ETL do DW: `raw_planilhas.py`, que lê as planilhas
+  originais e grava **toda coluna como texto, sem descartar linha**.
+
+A duplicidade de URLs entre as duas pastas é proposital: mexer no ETL do DW
+não pode quebrar o Metabase. Racional completo em `etl/windmill/README.md`.
+`diagnostico_frotas.py` saiu do ETL (é ferramenta de investigação, não
+carga).
+
+**Perfis de acesso — 8 perfis, `/adm` e o Assessor.** Detalhe em
+`DW_GOVERNANCA.md`. O que importa registrar aqui:
+
+- Comandante Geral e Subcomandante Geral ficaram **separados** (mesmo
+  acesso, perfis distintos).
+- Perfis temáticos (DGP/DLog/DF) veem o seu indicador em **qualquer**
+  unidade, além da própria unidade — é o que os distingue de um titular.
+- **Assessor**: sempre vinculado a um titular, válido só enquanto aquele
+  titular permanecer titular **da OME em que concedeu o acesso**. A OME
+  concedida fica gravada na atribuição do assessor — é comparando-a com a
+  OME atual do titular que a transferência é detectada. Sem isso, o assessor
+  passaria a enxergar a unidade nova do titular, que não foi o que ele
+  autorizou. O acesso caduca sozinho, e a tela `/adm` mostra o motivo em vez
+  de simplesmente apagar o vínculo.
+- **A unidade deixou de ser escolha do administrador**: vem da OME do
+  usuário, resolvida pelo CPF (as credenciais internas do CBMPE são CPF +
+  senha). `resolverOmePorCpf()` é o seam — hoje devolve `null` e a tela
+  marca a unidade como provisória; quando o backend existir, só essa função
+  muda.
+- Botão de Administração saiu da topbar e ficou no menu lateral, abaixo do
+  Organograma, visível só para o administrador.
+
+**Consequência sobre o CPF, que reverte parcialmente uma decisão minha.** Eu
+havia decidido descartar CPF na entrada do DW. Isso **continua valendo** para
+a cópia do mapa de força (`launch_militaries.military_cpf`,
+`action_logs.user_cpf`), onde a matrícula já serve de chave. Mas o CPF do SGP
+(`tb_pess.nr_cpf_pess`) passou a ter uso concreto: é a chave de autenticação
+e de resolução usuário → OME. **Recomendação registrada**: essa consulta deve
+acontecer no servidor, a cada login, sem materializar CPF no DW nem em
+nenhum JSON servido ao navegador. CPF de 4.597 militares num arquivo estático
+seria ordem de grandeza pior que os telefones já expostos.
+
+**Deploys na Vercel bloqueados** (constatado ao fim da sessão). Desde que o
+repositório passou a privado, a Vercel recusa os deploys: *"the commit author
+did not have contributing access"*. Não é erro de build — é a regra do plano
+Hobby, que não suporta colaboração em repositório privado e exige que o autor
+do commit seja o dono da conta. Os commits estavam autorados como
+`aggd.cbmpe@gmail.com`, que a Vercel não reconhece; a outra máquina já usava
+o e-mail `noreply` do GitHub. **Resolução**: padronizar o autor no e-mail
+`noreply` do GitHub, que é a identidade canônica da conta dona do repositório
+e vale nas duas máquinas. Tornar o repositório público de novo **não** é
+alternativa aceitável — o histórico guarda credenciais e efetivo nominal.
+
 ## Pendências práticas (não bloqueiam o planejamento, mas são pré-requisito de implementação)
 
 - **Workspace do Windmill**: ainda precisa ser criado pelo usuário
@@ -2148,7 +2265,51 @@ nome.
 - ~~Rodar o `windmill-neon.py` atualizado (2026-08-11)~~ — **feito em
   2026-08-12**, ver log de decisões abaixo.
 
+### Pendências do DW carregado (2026-08-24)
+
+Em ordem de urgência:
+
+1. **Chaves substitutas estáveis** — `dim_militar` e `dim_viatura` ainda usam
+   `row_number()`, então a chave de um militar muda entre cargas. Por isso o
+   `limpar()` do `carga_core.py` só apaga o dia corrente e **falha alto** se
+   encontrar snapshot de dia anterior. *É pré-requisito para agendar a carga
+   diária no Windmill*: enquanto não for resolvido, a série temporal de
+   efetivo não começa a acumular — e é exatamente esse histórico que o DW
+   existe para comprar.
+2. **`dim_viatura` como SCD tipo 2** — fecha a cobertura de viatura de 80,4%
+   para ~98,6% e desambigua os 413 números de ordem reciclados.
+3. **Rotacionar as cinco credenciais expostas** e criar papéis separados
+   (`etl_writer`, `bi_reader`, `app_reader`) — hoje tudo roda com
+   superusuário.
+4. **`casar_coordenadas_ome.py --aplicar`** — 63 de 82 OMEs prontas, zero
+   divergências, nada gravado. Bloqueado pelo usuário ("só quando tudo for
+   dirimido").
+
 ## Perguntas em aberto
+
+### Sobre os perfis de acesso (2026-08-24)
+
+- **Quem valida a senha?** Se as credenciais são as internas do CBMPE, o mais
+  provável é LDAP/AD ou o mesmo mecanismo do portal de sistemas. A definir
+  antes de escrever o backend de autenticação.
+- **Assessor de perfil temático**: hoje o assessor só se vincula a um
+  Titular. Um diretor da DGP pode ter assessor? Se sim, ele herdaria
+  "Efetivo de todas as unidades" — bem mais amplo que assessorar uma unidade.
+- **Titular sem unidade** ainda pode ser salvo em `/adm`, e fica sem acesso a
+  nada. Quando o CPF resolver a OME isso deixa de acontecer; até lá, bloquear
+  o salvamento ou deixar?
+- **Um militar pode ser assessor de mais de um titular?** O modelo hoje
+  aceita um vínculo só por usuário.
+
+### Sobre os dados (abertas desde 2026-08-24)
+
+- **Agregado**: regra ainda não definida pelo usuário.
+- **Vacinação**: 4.138 militares na base contra 2.658 ativos — a chave é
+  matrícula? O excedente é inativo, dependente, ou outra coisa?
+- **Datas impossíveis no `ovresc`** (ano 22, 4202, 62025): a camada `raw`
+  engole como texto; o `stg` precisa de uma regra de descarte ou correção.
+- **Onde as ocorrências vivem hoje**, agora que `ovrsgo` e `ovrroe` estão
+  fora de uso.
 
 - **Painéis 07/09 — 2 agregações inferidas, a confirmar com Igor**: "Distribuição
   das solicitações" (painel 09, hoje agrupada por `motivo`) e "Origem das

@@ -61,6 +61,42 @@ Servidor de aplicações Rails. 32 bancos; só três interessam por ora.
 > `map_force_production` vazio ao lado. Se alguém "corrigir" isso algum dia,
 > a carga quebra em silêncio.
 
+### `10.193.1.252:54329` — banco `frotas_production` (var. `DATABASE_URL_FROTA`)
+
+Terceiro servidor, com credencial própria. Sistema de gestão de frotas
+(Rails). É a origem real do domínio Viaturas.
+
+| Tabela | Papel |
+|---|---|
+| `vehicles` | Cadastro da viatura (841 linhas) |
+| `transfers` | Histórico de OME — a OME atual é a transferência mais recente |
+| `vehicle_statuses` | Histórico de situação — mesma lógica |
+| `omes` | Catálogo próprio de OMEs da Frota |
+| `fuel_transactions` | Abastecimentos |
+| `vehicle_*_types`, `license_categories` | Domínios |
+
+### O DW não lê o Neon (decidido em 2026-08-24)
+
+Enquanto o app foi apresentação, o Neon foi a fonte prática de Efetivo,
+Viaturas e Finanças. **Para o DW, não é.** Os bancos Neon são *cache de
+aplicação*: alimentados por script Windmill com `TRUNCATE` a cada rodada,
+com recorte de colunas e regra de negócio já aplicada.
+
+| Domínio | O DW lê de | Não lê de |
+|---|---|---|
+| Efetivo | Planilha do Pecúlio (Google Sheets), via `etl/windmill/dw/raw_planilhas.py` | Neon `Militar` |
+| Viaturas | `frotas_production`, via `DATABASE_URL_FROTA` | Neon `Viatura` |
+| Finanças | Planilha de Finanças (Google Sheets) | Neon `FinancaLancamento` |
+
+O efeito foi medível: lendo a planilha em vez do Neon, `dim_militar` caiu de
+2.703 para **2.658** (o Neon guardava resíduo de `ativo=false` que o
+`TRUNCATE` não limpava) e `dim_viatura` subiu de 805 para **813** (o recorte
+de colunas do Neon descartava viatura sem placa).
+
+As tabelas Neon continuam existindo e continuam sendo alimentadas — o app
+publicado depende delas. Ver `etl/windmill/README.md` para a separação entre
+os scripts que sustentam as aplicações e os que carregam o DW.
+
 ### O mapa de força e o `ovresc` são um sistema só, partido em dois bancos
 
 Verificado em 2026-08-24, com 100% de casamento de ids em todos os casos: as
@@ -121,8 +157,51 @@ lista de unidade da corporação passa a ser reconciliada contra ela.
 
 | Sistema/Fonte | Tipo | Formato de acesso | Responsável | Frequência | Sensibilidade | Status |
 |---|---|---|---|---|---|---|
-| `ovrsgp.tb_ome` | Sistema interno | `DATABASE_URL_SGP` | DGP / DTIC | Baixa (muda em reestruturação) | Não sensível | **Confirmado como autoridade.** 82 linhas, hierarquia própria (`id_ome_fk`, `nr_nivel_ome`), tipo AD/OP, status A/I |
+| `ovrsgp.tb_ome` | Sistema interno | `DATABASE_URL_SGP` | DGP / DTIC | Baixa (muda em reestruturação) | Não sensível | **Autoridade do cadastro** (quais OMEs existem, sigla, nome, tipo AD/OP, status A/I, coordenada): 82 linhas. **Não é autoridade da hierarquia** — ver abaixo |
 | `ovrsgp.tb_secao` | Sistema interno | idem | idem | idem | Não sensível | Seções internas de cada OME — a levantar |
+
+### Cadastro vem do SGP, hierarquia vem do organograma (2026-08-24)
+
+Decisão do usuário, textual: **"Organograma é a verdade."**
+
+A distinção importa porque as duas coisas são independentes. O SGP diz
+*quais* OMEs existem; o organograma diz *de quem cada uma depende*. Ao
+carregar o DW as duas leituras divergiram em 27 unidades — a DGP, por
+exemplo, fechava 77 militares por rollup no SGP e 39 no organograma.
+
+`core.dim_ome` carrega a coluna `origem_hierarquia` justamente para não
+esconder isso:
+
+| `origem_hierarquia` | Unidades | Significado |
+|---|---|---|
+| `organograma` | 45 | O pai veio do organograma oficial (`src/data/organograma.js`) |
+| `sgp` | 26 | Não consta do organograma; mantém o pai do SGP |
+| `regra` | 11 | Pai definido por regra explícita nossa (ver `carga_core.py`) |
+
+A coluna `no_organograma` (46 unidades verdadeiras) responde diretamente
+"esta OME é reconhecida pelo organograma oficial?".
+
+**O organograma vive em `src/data/organograma.js`**, não numa tabela. O
+`carga_core.py` lê a constante `ARVORE` desse arquivo e falha alto se o
+parse render menos de 5 nós — assim uma refatoração no front não degrada a
+hierarquia do DW em silêncio. Se o organograma virar tabela algum dia, é
+esse leitor que muda, e mais nada.
+
+### Estado das unidades resolvido com o usuário (2026-08-24)
+
+| Situação | Resolução |
+|---|---|
+| **DGA** | Ainda não existe. Fica `planejada`, `conta_efetivo = false`, sem filhos — e as 9 diretorias que penderiam dela pendem **direto do Subcomando Geral**, que passa a ter 17 filhos diretos. Quando a DGA for criada, basta mudar o status |
+| **AJ** | Existe hoje, subordinada ao **GCG** |
+| **GBFN** | Tornou-se **SBFN**, seção subordinada ao **GBI**. Os lançamentos históricos ficam atrelados a ela |
+| **CAC, CPA, CPTO, CTA, CEMET II, DFEA** | **Extintas.** Marcadas como tal no DW; a correção na origem fica a critério do usuário |
+| **CATs numeradas** | Herdam do sufixo 1 da sua região (ver Coordenadas, abaixo) |
+| **GTA** | Não é OME: entra como **adido**, com órgão externo `GTA` |
+
+O GBFN **não** exigiu SCD tipo 2: o usuário quer o histórico lido sob a
+estrutura atual, que é exatamente o que uma dimensão sem versionamento faz.
+SCD2 na `dim_ome` só seria necessário para o oposto — ver 2021 com a
+estrutura de 2021. Fica registrado como opção, não como pendência.
 
 ### Quantas unidades cada sistema conhece
 
