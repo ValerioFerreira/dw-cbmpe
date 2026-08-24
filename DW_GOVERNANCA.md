@@ -266,3 +266,68 @@ contradiz este denylist. Registrado como pendência em `DW_PLANEJAMENTO.md`
   não replicar PII em toda view "por via das dúvidas".
 - Rastreabilidade: quem acessou dado PII e quando (auditoria) é um item a
   detalhar quando a API/autenticação real forem desenhadas.
+
+## Perfis de acesso (2026-08-24)
+
+Modelo revisado: **perfil** (o que um papel vê), **atribuição** (qual perfil
+cada usuário tem) e **unidade** (que vem da OME do usuário, não de escolha do
+administrador) passam a ser três coisas separadas. Ver
+`src/lib/accessControl.js` e a tela `/adm`.
+
+| Perfil | Acesso |
+|---|---|
+| Administrador | Todas as funcionalidades e dados, mais a própria `/adm` |
+| Comandante Geral | Ilimitado a todos os dados |
+| Subcomandante Geral | Ilimitado a todos os dados |
+| DGP | Sua unidade + **Efetivo de todas as unidades** |
+| DLog | Sua unidade + **Viaturas e Materiais de todas** |
+| DF | Sua unidade + **Finanças de todas** |
+| Titular | Sua unidade e as subordinadas |
+| Assessor | O mesmo do titular a quem está vinculado, enquanto o vínculo valer |
+
+Comandante e Subcomandante são perfis distintos apesar do acesso idêntico:
+separar dá trilha de auditoria, e é barato agora e caro depois.
+
+### Indicador temático vale em qualquer unidade
+
+Mudança de comportamento em relação ao modelo anterior: o indicador do perfil
+(Efetivo para a DGP, Viaturas/Materiais para a DLog, Finanças para a DF) passa
+a valer em **qualquer** unidade, não só no card principal do organograma. É o
+que distingue um diretor temático de um titular.
+
+### Assessor: o vínculo caduca sozinho
+
+Fluxo definido pela corporação: o administrador dá o perfil de Titular a um
+militar; esse titular pede um ou mais assessores e informa quem são; o
+administrador cria cada um vinculado a ele.
+
+O acesso do assessor vale **enquanto aquele titular continuar titular da OME
+em que concedeu o acesso**. Por isso a OME concedida fica gravada na
+atribuição do assessor: comparando com a OME atual do titular, a transferência
+é detectada sozinha. Se o titular for transferido, perder o perfil ou for
+removido, o assessor perde o acesso na hora — sem depender de alguém lembrar
+de revogar. A tela `/adm` mostra o motivo da suspensão em vez de só apagar o
+acesso.
+
+### Autenticação: CPF
+
+As credenciais internas do CBMPE são **CPF e senha**. O modelo já registra o
+CPF de cada usuário, e é por ele que a OME será resolvida junto à base do
+CBMPE quando a integração existir (`resolverOmePorCpf`, hoje um seam que
+devolve `null`). Enquanto isso, a unidade pode ser preenchida à mão e a tela a
+marca como provisória, em vez de fingir que sabe.
+
+**Consequência para o DW**: a decisão de descartar o CPF na entrada continua
+valendo para a cópia do mapa de força (`launch_militaries.military_cpf`), que
+é redundante. Mas o CPF do SGP (`tb_pess.nr_cpf_pess`) passa a ter uso
+concreto — a resolução usuário → OME — e a recomendação é que essa consulta
+aconteça **no servidor, a cada login**, sem materializar CPF no DW nem em
+nenhum JSON servido ao navegador.
+
+### O limite continua o mesmo
+
+Isto é protótipo de **visualização**. A verificação roda no navegador e o dado
+que alimenta o app é servido junto com ele — quem abrir o DevTools lê tudo,
+independente do perfil. Organiza a interface, não protege o dado. Autorização
+real exige o backend, e é pré-requisito para o app sair da Vercel com dado
+nominal. A própria tela `/adm` diz isso.

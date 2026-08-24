@@ -61,6 +61,11 @@ PECULIO_PARA_SGP = {
     "CG": "CG",
     "ADIDO": "ADIDOS",
     "CAT MATA": "CAT / ZM",
+    # O GTA nao e OME do CBMPE: quem serve la e adido, com orgao externo GTA
+    # (confirmado pelo usuario em 2026-08-24). Ele aparece como unidade no
+    # cadastro da Frota, e e por isso que as viaturas de la caem na OME
+    # fantasma ADIDOS em vez de ficarem sem unidade.
+    "GTA": "ADIDOS",
 }
 
 
@@ -106,12 +111,20 @@ ORGANOGRAMA_PARA_SGP = {
 #   SGP todas pendem do COESP, tambem inativo.
 PAI_POR_REGRA = {
     "GBFN": "GBI",
+    "AJ": "GCG",            # confirmado pelo usuario em 2026-08-24
     "CAT / SERTÃO 2": "CAT / SERTÃO", "CAT / SERTÃO 3": "CAT / SERTÃO",
     "CAT / SERTÃO 4": "CAT / SERTÃO", "CAT / SERTÃO 5": "CAT / SERTÃO",
     "CAT / SERTÃO 6": "CAT / SERTÃO",
     "CAT / ZM 2": "CAT / ZM",
     "CAT / AGRESTE 2": "CAT / AGRESTE", "CAT / AGRESTE 3": "CAT / AGRESTE",
 }
+
+# Unidades que o SGP ainda marca como ativas mas que nao existem mais --
+# confirmado pelo usuario em 2026-08-24, ao revisar as 8 OMEs ativas no SGP
+# fora do organograma. Sobreviveram so a AJ (hoje sob o GCG) e o GBFN, que
+# virou Secao (SBFN) sob o GBI. Como as demais, elas nao sao inativadas na
+# fonte -- so entram aqui como extintas.
+EXTINTAS_CONFIRMADAS = {"CAC", "CPA", "CPTO", "CTA", "CEMET II", "DFEA"}
 
 
 def arvore_do_organograma():
@@ -231,7 +244,7 @@ def carregar_dim_ome(cur):
         else:
             tipo_registro, conta = "ome", True
 
-        if id_ome in EXTINTAS:
+        if id_ome in EXTINTAS or sigla in EXTINTAS_CONFIRMADAS:
             status, conta = "extinta", False
         elif stat == "I":
             status, conta = "inativa", False
@@ -280,7 +293,16 @@ def carregar_dim_ome(cur):
                           if normalizar(ORGANOGRAMA_PARA_SGP.get(s, s)) == normalizar(sigla)),
                          None)
         if sigla_org is not None:
-            candidato = sk_da_sigla_organograma(pai_organograma[sigla_org])
+            pai_no_organograma = pai_organograma[sigla_org]
+            # A DGA existe no organograma mas ainda nao foi criada de fato.
+            # Enquanto for planejada, quem penderia dela pende direto do
+            # Subcomando Geral -- senao o rollup atravessaria uma unidade que
+            # nao existe, e o Subcomando so somaria por acidente. Decisao do
+            # usuario em 2026-08-24. Quando a DGA for ativada, basta trocar o
+            # status e a hierarquia do organograma volta a valer sozinha.
+            if pai_no_organograma == "DGA":
+                pai_no_organograma = "SUBCOMANDO GERAL"
+            candidato = sk_da_sigla_organograma(pai_no_organograma)
             if candidato is not None and candidato != sk:
                 if candidato != l[7]:
                     ajustadas.append((sigla, l[7], candidato))

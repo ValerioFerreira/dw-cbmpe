@@ -2,9 +2,10 @@ import React, { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   Network, Clock, ChevronRight, ChevronDown, ChevronLeft,
-  Bell, X
+  Bell, X, ShieldCheck
 } from "lucide-react";
 import { useCbmpe } from "@/lib/cbmpe-context";
+import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 
 function NoArvore({ unidade, porId, nivel = 0, onNavigate }) {
   const [aberto, setAberto] = useState(nivel < 1);
@@ -45,6 +46,7 @@ function NoArvore({ unidade, porId, nivel = 0, onNavigate }) {
 
 export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen = false, onCloseMobile }) {
   const { raizes, porId, recentes } = useCbmpe();
+  const { ehAdministrador } = useAcessoUsuario();
   const navigate = useNavigate();
   const recUnidades = recentes.map((id) => porId[id]).filter(Boolean);
 
@@ -131,6 +133,11 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen = fals
           {/* Main nav */}
           <nav className="space-y-0.5">
             <NavItem to="/organograma" icon={Network} label="Organograma" collapsed={recolhido} />
+            {/* Administração aparece logo abaixo do Organograma, e só para
+                quem tem o perfil de Administrador — pedido de 2026-08-24. */}
+            {ehAdministrador && (
+              <NavItem to="/adm" icon={ShieldCheck} label="Administração" collapsed={recolhido} />
+            )}
           </nav>
 
           {!recolhido && (
