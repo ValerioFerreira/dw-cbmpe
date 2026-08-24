@@ -269,14 +269,17 @@ etl/dw/validar.py         bateria de perguntas de negocio com resposta conhecida
 | `raw_sgp` | `tb_ome` (82), `tb_secao` (1.100) |
 | `raw_escala` | `tb_posto`, `tb_turn_servi`, `tb_tipo_servi`, `tb_func_oper`, `tb_natur_servi` |
 | `raw_mapa_forca` | 1.845.200 linhas — lançamentos, militares, viaturas, recursos e cadastros |
-| `raw_peculio` | planilha do Pecúlio + telefones (7.720) |
+| `raw_peculio` | planilha do Pecúlio + telefones (5.017) |
+| `raw_reserva` | sistema de reserva remunerada (3.293) |
 | `raw_financas` | planilha de Finanças, uma tabela por aba (2.839) |
 | `raw_frota` | 11 tabelas de `frotas_production` (59.318) |
-| `core` | 12 dimensões + 5 fatos, 1.379.067 linhas |
+| `core` | 12 dimensões + 8 fatos |
 | `stg` | `de_para_ome` (122), `de_para_viatura` (1.626), controle de carga |
-| `marts` | 8 views de consumo |
+| `marts` | 9 views de consumo |
 
-Fatos: `fato_efetivo_diario` (2.658), `fato_frota_diaria` (813),
+Fatos: `fato_averbacao` (560), `fato_afastamento_reserva` (8),
+`fato_previsao_reserva` (2.658), `fato_efetivo_diario` (2.658),
+`fato_frota_diaria` (813),
 `fato_lancamento_militar` (902.164), `fato_lancamento_viatura` (204.443),
 `fato_lancamento_recurso` (259.998).
 
@@ -788,6 +791,42 @@ serve de chave — **o CPF deve ser descartado na transição `raw` → `stg`**,
 não subir para o `core`. Ver `DW_GOVERNANCA.md`.
 
 ---
+
+## Reserva remunerada — o único domínio em que o Neon é a origem
+
+Modelado e carregado em 2026-08-24. Três tabelas no `core`:
+
+| Tabela | Grão | Estratégia |
+|---|---|---|
+| `fato_averbacao` | 1 averbação (560) | Transacional — a origem guarda histórico com id estável |
+| `fato_afastamento_reserva` | 1 afastamento (8) | Transacional |
+| `fato_previsao_reserva` | 1 militar por dia (2.658) | **Snapshot** |
+
+### Por que dois fatos e não um
+
+Averbação **soma** tempo (INSS, FFAA, PMPE, PM/BM de outros estados);
+afastamento **subtrai** (LTIP, férias não gozadas). Seria tentador unir os
+dois numa tabela genérica de ajuste, com um sinal. Não uni, por duas razões:
+são eventos diferentes com atributos diferentes — a averbação tem processo do
+INSS, o afastamento não — e o projeto já decidiu, na sessão do SGP, que evento
+de pessoal vira fato próprio em vez de tabela genérica.
+
+Quem quer o líquido usa `marts.tempo_reserva_por_militar`, que une os dois
+com sinal. É a camada certa para isso: o `core` guarda o que aconteceu, a
+`marts` responde a pergunta.
+
+### Por que a previsão é snapshot
+
+`reservaRequerimento` e `reservaCompulsoria` não são fato consumado: são
+**previsão**, e mudam quando uma averbação nova entra. A origem só guarda a
+previsão vigente — o histórico de como ela mudou só existe se nós guardarmos.
+Mesma lógica de `fato_efetivo_diario`, e mesma limitação: depende de chave
+substituta estável antes de a carga diária ser agendada.
+
+> **Cuidado com o nome.** `fato_efetivo_diario.afastado` é outra coisa:
+> "afastamento superior a 90 dias publicado em SP", que vem da planilha do
+> Pecúlio. O `fato_afastamento_reserva` é o tempo que o sistema de reserva
+> desconta da contagem. Daí o sufixo.
 
 ## Demais domínios (Frota, Financeiro, Atividades Operacionais)
 

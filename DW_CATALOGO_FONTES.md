@@ -75,6 +75,39 @@ Terceiro servidor, com credencial própria. Sistema de gestão de frotas
 | `fuel_transactions` | Abastecimentos |
 | `vehicle_*_types`, `license_categories` | Domínios |
 
+### Sistema de controle de reserva remunerada (var. `DATABASE_URL_RESERVA`)
+
+**A exceção à regra abaixo.** É a única fonte em que o Neon não é cache de
+aplicação, e sim o **sistema de origem**: averbação e afastamento-para-reserva
+não existem em nenhuma outra fonte nossa, e nenhum script do Windmill as
+escreve. Se este banco sumir, o dado some.
+
+Mora no mesmo Neon do `DATABASE_URL_EFETIVO` (`ep-delicate-hat`), com nome de
+variável próprio porque o papel é outro.
+
+| Tabela | Linhas | Papel |
+|---|---|---|
+| `Averbacao` | 582 | Tempo averbado de serviço anterior. **Soma** para a reserva |
+| `Afastamento` | 8 | LTIP, férias não gozadas. **Subtrai** |
+| `Militar` | 2.703 | Ponte: `Averbacao.militarId` aponta para o `id` local, não para a matrícula. Carrega também as 5 colunas de previsão que só existem aqui |
+| `Log`, `Usuario` | 0 | Vazias |
+
+As cinco colunas de `Militar` que nenhum script nosso produz —
+`reservaRequerimento`, `reservaCompulsoria`, `abonoPermanencia`,
+`dataInicioAbono`, `processoSeiAbono` — são mantidas por esta aplicação.
+Estão preenchidas em 2.657 dos 2.658 ativos.
+
+Escrita mais recente observada: **17/08/2026**. É sistema vivo, não carga
+histórica.
+
+Averbação por tipo, do que entrou no DW: INSS 326 (562.237 dias), FFAA 128
+(177.336), PMPE 94 (80.304), PM de outros estados 8, BM de outros estados 4.
+
+**22 averbações ficaram de fora** porque pertencem a militares que não estão
+no efetivo ativo do Pecúlio — a `dim_militar` só tem os 2.658 ativos, e fato
+sem dimensão não existe. Não é perda silenciosa: a carga conta e imprime, e
+no dia em que o DW cobrir inativos essas linhas têm para onde ir.
+
 ### O DW não lê o Neon (decidido em 2026-08-24)
 
 Enquanto o app foi apresentação, o Neon foi a fonte prática de Efetivo,

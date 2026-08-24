@@ -184,6 +184,37 @@ def main():
                ) d
            """))
 
+    print("\nReserva remunerada (unica fonte em que o Neon e a origem):")
+    checar("militares com averbacao",
+           valor(cur, "SELECT count(*) FROM marts.tempo_reserva_por_militar WHERE dias_averbados > 0"))
+    checar("militares com abono de permanencia",
+           valor(cur, "SELECT count(*) FROM marts.tempo_reserva_por_militar WHERE abono_permanencia"))
+    checar("reserva compulsoria nos proximos 12 meses",
+           valor(cur, """
+               SELECT count(*) FROM marts.tempo_reserva_por_militar
+               WHERE data_reserva_compulsoria BETWEEN current_date AND current_date + 365
+           """))
+    # Averbacao soma tempo, afastamento desconta. Se o liquido nao fechar com
+    # a conta feita direto nos dois fatos, a mart esta errada.
+    falhas += not checar(
+        "dias liquidos = averbado - descontado",
+        valor(cur, """
+            SELECT (SELECT coalesce(sum(dias_liquidos), 0) FROM marts.tempo_reserva_por_militar)
+                 = (SELECT coalesce(sum(dias), 0) FROM core.fato_averbacao)
+                 - (SELECT coalesce(sum(dias), 0) FROM core.fato_afastamento_reserva)
+        """),
+        True)
+    # Toda averbacao tem que apontar para um militar que existe. O join e por
+    # id local do Neon, nao por matricula -- se a ponte quebrar, quebra aqui.
+    falhas += not checar(
+        "averbacao orfa (sem militar na dimensao)",
+        valor(cur, """
+            SELECT count(*) FROM core.fato_averbacao a
+            LEFT JOIN core.dim_militar m ON m.sk_militar = a.sk_militar
+            WHERE m.sk_militar IS NULL
+        """),
+        0)
+
     print("\nCoordenadas:")
     checar("OMEs com latitude/longitude",
            valor(cur, "SELECT count(*) FROM core.dim_ome WHERE latitude IS NOT NULL"))

@@ -2265,6 +2265,53 @@ alternativa aceitável — o histórico guarda credenciais e efetivo nominal.
 - ~~Rodar o `windmill-neon.py` atualizado (2026-08-11)~~ — **feito em
   2026-08-12**, ver log de decisões abaixo.
 
+### 2026-08-24 — Antiguidade e o sistema de reserva remunerada entram no DW
+
+**Antiguidade na `dim_militar`.** A planilha do Pecúlio já vem ordenada por
+precedência — blocos por posto, do Cel ao Sd, e dentro de cada bloco o `Nº`
+reinicia em 1. O índice da planilha **é** a antiguidade; não há o que
+calcular. Duas colunas: `antiguidade` (o `Nº` dentro do posto, o número que o
+militar cita) e `antiguidade_geral` (posição na planilha inteira, que ordena a
+corporação de ponta a ponta). Validação cruzada: `antiguidade_geral` bate
+**100% com a `ordemHierarquica` do Neon** nas 2.658 matrículas. A antiguidade
+por posto é informação nova. Três `Nº` repetidos na origem (3ºSgt, Cb,
+Subten) são reportados sem derrubar a carga.
+
+**Inventário dos Neons.** São 7 tabelas, 2 vazias. `Militar` (2.703) e
+`Viatura` (841) já estavam cobertos pelas fontes originais. Restaram três
+lacunas: Finanças, `Averbacao` (582) e `Afastamento` (8).
+
+**Finanças fica em aberto** — decisão do usuário: o domínio ainda não é bem
+compreendido. O dado já está no `raw_financas`; falta modelar o `core`.
+
+**O sistema de controle de reserva remunerada é a exceção à regra do Neon.**
+Investigando por que 590 linhas existiam só no Neon, ficou claro que nenhum
+script do repositório as escreve — e que a escrita mais recente era de
+17/08/2026, uma semana antes. O usuário confirmou: existe um sistema de
+controle de reserva remunerada rodando nesse Neon. Para esse domínio, então,
+**o Neon não é cache: é o sistema de origem**, e a decisão de 2026-08-24 de
+tirar o Neon do caminho do DW ganha uma exceção explícita.
+
+Carregado: `raw_reserva` (3.293 linhas), `core.fato_averbacao` (560),
+`core.fato_afastamento_reserva` (8), `core.fato_previsao_reserva` (2.658
+militares, snapshot) e `marts.tempo_reserva_por_militar`. Racional de
+modelagem em `DW_MODELO_DADOS.md`.
+
+Três coisas que valem registro:
+
+- **A ponte é por id local, não por matrícula.** `Averbacao.militarId` aponta
+  para o `Militar.id` do Neon. Por isso a tabela `Militar` entra na `raw`
+  junto — sem ela não há como saber de quem é cada averbação.
+- **22 averbações ficaram de fora**, por pertencerem a militares que não estão
+  no efetivo ativo. A carga conta e imprime em vez de descartar em silêncio.
+- **`raw_peculio.militar` foi removida** — era cópia do Neon `Militar` de
+  antes da virada para a planilha, e teria virado armadilha ao lado da
+  `raw_reserva.militar`.
+
+**Credencial do Neon exposta de novo em texto puro** (no chat, ao indicar o
+sistema de reserva). É a mesma `neondb_owner` que já constava da lista de
+rotação — a lista não mudou, mas o argumento para rotacionar ficou mais forte.
+
 ### Pendências do DW carregado (2026-08-24)
 
 Em ordem de urgência:

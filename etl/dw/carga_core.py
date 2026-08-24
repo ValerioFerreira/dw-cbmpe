@@ -882,6 +882,10 @@ def limpar(cur):
         DELETE FROM core.fato_frota_diaria
         WHERE sk_tempo = (to_char(current_date, 'YYYYMMDD'))::int
     """)
+    cur.execute("""
+        DELETE FROM core.fato_previsao_reserva
+        WHERE sk_tempo = (to_char(current_date, 'YYYYMMDD'))::int
+    """)
 
     # Dias anteriores ficam, mas as dimensoes vao ser reconstruidas com novas
     # chaves substitutas -- entao qualquer snapshot antigo perderia a
@@ -906,6 +910,7 @@ def limpar(cur):
         TRUNCATE
             core.fato_lancamento_militar, core.fato_lancamento_viatura,
             core.fato_lancamento_recurso,
+            core.fato_averbacao, core.fato_afastamento_reserva,
             stg.de_para_ome, stg.de_para_viatura,
             core.dim_ome_ancestral, core.dim_ome, core.dim_militar,
             core.dim_posto_grad, core.dim_orgao_externo, core.dim_viatura,
@@ -913,6 +918,84 @@ def limpar(cur):
             core.dim_funcao_servico, core.dim_tipo_recurso
         CASCADE
     """)
+
+
+# ---------------------------------------------------------------------------
+# Reserva remunerada (fonte: sistema de controle de reserva, no Neon)
+# ---------------------------------------------------------------------------
+def carregar_fatos_reserva(cur):
+    """Averbacao, afastamento e a previsao de reserva vigente.
+
+    Este e o unico dominio em que o Neon e sistema de origem, e nao cache de
+    aplicacao: nenhuma outra fonte nossa conhece averbacao, e nenhum script do
+    Windmill escreve nessas tabelas.
+
+    Averbacao e Afastamento apontam para o militar por id LOCAL do Neon
+    (militarId), nao por matricula. A ponte e raw_reserva.militar -> matricula
+    -> core.dim_militar, e por isso a tabela Militar do Neon entra na raw
+    junto com as outras duas.
+    """
+    cur.execute("""
+        CREATE OR REPLACE VIEW stg.reserva_militar AS
+        SELECT id,
+               replace(trim(matricula), '-', '')  AS matricula,
+               ativo
+        FROM raw_reserva.militar
+    """)
+
+    cur.execute("""
+        INSERT INTO core.fato_averbacao
+            (sk_averbacao, sk_militar, tipo, dias, processo_sei_militar,
+             processo_sei_inss, observacao, criado_em, atualizado_em, carga_id)
+        SELECT a.id, dm.sk_militar, a.tipo, a.dias, a."processoSeiMilitar",
+               a."processoSeiInss", a.obs, a."createdAt", a."updatedAt", a.carga_id
+        FROM raw_reserva.averbacao a
+        JOIN stg.reserva_militar rm ON rm.id = a."militarId"
+        JOIN core.dim_militar dm ON dm.matricula = rm.matricula
+    """)
+
+    cur.execute("""
+        INSERT INTO core.fato_afastamento_reserva
+            (sk_afastamento, sk_militar, tipo, dias, processo_sei_militar,
+             observacao, criado_em, atualizado_em, carga_id)
+        SELECT f.id, dm.sk_militar, f.tipo, f.dias, f."processoSeiMilitar",
+               f.obs, f."createdAt", f."updatedAt", f.carga_id
+        FROM raw_reserva.afastamento f
+        JOIN stg.reserva_militar rm ON rm.id = f."militarId"
+        JOIN core.dim_militar dm ON dm.matricula = rm.matricula
+    """)
+
+    cur.execute("""
+        INSERT INTO core.fato_previsao_reserva
+            (sk_tempo, sk_militar, data_reserva_requerimento,
+             data_reserva_compulsoria, abono_permanencia, data_inicio_abono,
+             processo_sei_abono, carga_id)
+        SELECT (to_char(current_date, 'YYYYMMDD'))::int, dm.sk_militar,
+               m."reservaRequerimento"::date, m."reservaCompulsoria"::date,
+               m."abonoPermanencia", m."dataInicioAbono"::date,
+               m."processoSeiAbono", m.carga_id
+        FROM raw_reserva.militar m
+        JOIN core.dim_militar dm
+          ON dm.matricula = replace(trim(m.matricula), '-', '')
+        ON CONFLICT (sk_tempo, sk_militar) DO NOTHING
+    """)
+
+    # Averbacao de quem nao esta no efetivo ativo do Peculio nao entra: a
+    # dim_militar so tem os 2.658 ativos, e um fato sem dimensao nao existe.
+    # Nao e perda silenciosa -- e contada e impressa aqui, porque o dia em que
+    # o DW cobrir inativos essas linhas passam a ter para onde ir.
+    for tabela, destino in (("averbacao", "fato_averbacao"),
+                            ("afastamento", "fato_afastamento_reserva")):
+        cur.execute(f"SELECT count(*) FROM raw_reserva.{tabela}")
+        origem = cur.fetchone()[0]
+        cur.execute(f"SELECT count(*) FROM core.{destino}")
+        carregado = cur.fetchone()[0]
+        fora = origem - carregado
+        extra = f"  ({fora} de militar fora do efetivo ativo)" if fora else ""
+        print(f"  {destino:<28} {carregado:>8}{extra}")
+
+    cur.execute("SELECT count(*) FROM core.fato_previsao_reserva")
+    print(f"  fato_previsao_reserva        {cur.fetchone()[0]:>8}")
 
 
 def main():
@@ -938,6 +1021,7 @@ def main():
     carregar_fato_efetivo_diario(cur)
     carregar_fato_frota_diaria(cur)
     carregar_fatos_lancamento(cur)
+    carregar_fatos_reserva(cur)
     conn.commit()
 
     cur.close()

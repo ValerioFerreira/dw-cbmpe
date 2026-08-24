@@ -83,6 +83,19 @@ FONTES = {
         ("public", "omes"),
         ("public", "fuel_transactions"),
     ]),
+    # Sistema de controle de reserva remunerada. E a UNICA fonte em que o Neon
+    # nao e cache de aplicacao, e sim o sistema de origem: averbacao e
+    # afastamento-para-reserva nao existem em nenhuma outra fonte nossa, e
+    # nenhum script do Windmill as escreve. Se este banco sumir, o dado some.
+    #
+    # A tabela Militar entra junto porque Averbacao/Afastamento apontam para
+    # ela por id local (militarId), nao por matricula -- sem ela nao da para
+    # resolver de quem e cada averbacao.
+    "reserva": ("DATABASE_URL_RESERVA", None, [
+        ("public", "Militar"),
+        ("public", "Averbacao"),
+        ("public", "Afastamento"),
+    ]),
 }
 
 # O Peculio nao esta aqui de proposito: ele e planilha, nao banco. Ver

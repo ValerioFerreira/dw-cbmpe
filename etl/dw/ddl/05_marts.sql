@@ -160,3 +160,38 @@ SELECT 'lancamento_viatura',
        CASE WHEN sk_viatura IS NULL THEN 'sem_casar' ELSE 'resolvido' END,
        count(*), NULL
 FROM core.fato_lancamento_viatura GROUP BY 1, 2;
+
+-- ---------------------------------------------------------------------------
+-- Tempo de reserva por militar -- averbacao menos afastamento
+-- ---------------------------------------------------------------------------
+-- No core os dois eventos vivem separados, porque sao eventos diferentes.
+-- Aqui eles se encontram com sinal, que e como a pergunta e feita de fato:
+-- "quanto tempo liquido este militar tem para a reserva?".
+CREATE OR REPLACE VIEW marts.tempo_reserva_por_militar AS
+WITH ajuste AS (
+    SELECT sk_militar,  dias AS dias, 'averbacao'  AS origem FROM core.fato_averbacao
+    UNION ALL
+    SELECT sk_militar, -dias AS dias, 'afastamento' AS origem FROM core.fato_afastamento_reserva
+)
+SELECT
+    m.sk_militar,
+    m.matricula_exibida,
+    m.nome_guerra,
+    pg.sigla                                                   AS posto_grad,
+    m.antiguidade,
+    m.antiguidade_geral,
+    coalesce(sum(a.dias) FILTER (WHERE a.origem = 'averbacao'), 0)    AS dias_averbados,
+    coalesce(-sum(a.dias) FILTER (WHERE a.origem = 'afastamento'), 0) AS dias_descontados,
+    coalesce(sum(a.dias), 0)                                   AS dias_liquidos,
+    p.data_reserva_requerimento,
+    p.data_reserva_compulsoria,
+    p.abono_permanencia
+FROM core.dim_militar m
+LEFT JOIN core.dim_posto_grad pg ON pg.sk_posto_grad = m.sk_posto_grad
+LEFT JOIN ajuste a ON a.sk_militar = m.sk_militar
+LEFT JOIN core.fato_previsao_reserva p
+       ON p.sk_militar = m.sk_militar
+      AND p.sk_tempo = (SELECT max(sk_tempo) FROM core.fato_previsao_reserva)
+GROUP BY m.sk_militar, m.matricula_exibida, m.nome_guerra, pg.sigla,
+         m.antiguidade, m.antiguidade_geral, p.data_reserva_requerimento,
+         p.data_reserva_compulsoria, p.abono_permanencia;
