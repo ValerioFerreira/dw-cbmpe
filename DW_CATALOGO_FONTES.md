@@ -75,6 +75,52 @@ Terceiro servidor, com credencial própria. Sistema de gestão de frotas
 | `fuel_transactions` | Abastecimentos |
 | `vehicle_*_types`, `license_categories` | Domínios |
 
+### SGU — autenticação da corporação (`10.193.0.20`, banco `sgu_api_production`)
+
+Descoberto em 2026-08-24, pela documentação interna da Seção de Sistemas
+(cópia em `docs/intranet/`). **Não é fonte de dado para o DW — é a resposta
+para "quem valida a senha?"**, pergunta que estava em aberto desde o desenho
+dos perfis de acesso.
+
+O SGU é uma API Rails que autentica contra o Active Directory
+(`10.193.0.17:636`, LDAPS) e guarda o registro local no `sgu_api_production`,
+**no mesmo `10.193.0.20` que já alcançamos com a credencial `ctic`**. Nosso
+mapa de conexões registrava esse servidor só como aplicações Rails; ele roda
+o SGU também.
+
+| Medido em 2026-08-24 | |
+|---|---|
+| Usuários no SGU | 3.455 |
+| Já logaram alguma vez | 3.279 |
+| Contas criadas entre | 2021-02 e 2026-08 |
+| **Efetivo ativo do DW com conta no SGU** | **2.615 de 2.658 — 98,4%** |
+| Efetivo ativo com CPF no SGP | 2.655 de 2.658 — 99,9% |
+
+Fluxo de integração (detalhe em `docs/intranet/guia-de-integracao.md`):
+
+1. `POST /sgu/api/v1/auth/sign_in` com `{"username": "<CPF só dígitos>",
+   "password": "<senha do AD>"}` — o campo é `username`, não `cpf`.
+2. Os tokens vêm nos **cabeçalhos** da resposta, não no corpo: `access-token`,
+   `client`, `uid`. Validade 24h, não rotacionam, não há refresh.
+3. `GET /auth/validate_token` com os três cabeçalhos devolve os dados do
+   usuário **e uma chave `military`** com posto/OBM, vinda da `consultas-api`.
+
+**O SGU não faz autorização** — só responde "esta pessoa é quem diz ser". Todo
+controle de acesso continua sendo nosso, o que confirma o desenho de
+`src/lib/accessControl.js`.
+
+#### Como implementar `resolverOmePorCpf()`
+
+Duas rotas possíveis, e a segunda é melhor:
+
+| Rota | Avaliação |
+|---|---|
+| Ler a chave `military` do `validate_token` | Mais simples, mas a OME vem da `consultas-api`, com a hierarquia que ela usar |
+| **CPF → `ovrsgp.tb_pess` → matrícula → `core.dim_militar`** | **Preferível.** Cobre 99,9%, e a OME sai da nossa `dim_ome`, já com a hierarquia do organograma e com CPPA/ADIDOS resolvidos |
+
+A segunda também mantém o CPF fora do DW: ele é usado na consulta e
+descartado, nunca materializado.
+
 ### Sistema de controle de reserva remunerada (var. `DATABASE_URL_RESERVA`)
 
 **A exceção à regra abaixo.** É a única fonte em que o Neon não é cache de

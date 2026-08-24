@@ -346,3 +346,53 @@ vira um alvo único de `GRANT` quando os papéis (`etl_writer`, `bi_reader`,
 As abas de telefone da planilha trazem também **e-mail e endereço**. Não foram
 carregados: nenhum consumidor pediu, e dado sensível sem uso concreto não
 entra no DW. A mesma regra que manteve o CPF do mapa de força fora da `raw`.
+
+## A autenticação da corporação tem um problema que atinge nossos perfis (2026-08-24)
+
+Levantado pela documentação da Seção de Sistemas (`docs/intranet/`), não por
+nós. Registrado aqui porque **muda o que o BI pode expor**, não porque seja
+nosso para consertar.
+
+Dois achados do SGU, que isolados já são ruins e combinados são piores:
+
+- **Usuário novo nasce com senha igual ao próprio CPF**, e com
+  `userAccountControl = 66048`, que significa *senha nunca expira*. Quem nunca
+  trocou continua com o CPF como senha, indefinidamente.
+- **`GET /users` estava público na internet**, devolvendo nome, CPF, e-mail e
+  username de 2.500+ pessoas, sem autenticação.
+
+Ou seja: por algum tempo, qualquer pessoa na internet teve a lista de logins
+**e** a senha padrão de quem nunca trocou.
+
+### O que isso significa para o nosso controle de acesso
+
+Nosso modelo de perfis assume que a identidade autenticada é confiável — é o
+pressuposto de qualquer modelo de autorização. Se um Titular nunca trocou a
+senha, o acesso aos dados da unidade dele está protegido por um CPF que
+esteve público.
+
+Isso **não** é motivo para não usar o SGU: é a autenticação da corporação, tem
+98,4% do efetivo, e construir outra seria pior. É motivo para duas exigências
+no desenho do backend:
+
+1. **Exigir troca de senha no primeiro acesso ao BI**, ou ao menos detectar e
+   bloquear senha igual ao CPF.
+2. **Não expor dado nominal a perfil autenticado apenas pelo SGU** enquanto o
+   item 1 não existir. Contagem agregada, sim; lista nominal, não.
+
+### Uma regra do wiki que passa a valer aqui
+
+> "Os logs contêm CPF nos parâmetros de login. Não colar em ferramentas
+> externas nem em contexto de IA."
+
+Vale para as sessões de Claude Code neste projeto: **log do SGU não entra em
+contexto**. A medição de cobertura de 2026-08-24 foi feita respeitando isso —
+os CPFs foram comparados em memória e só as contagens saíram.
+
+### Onde os segredos deveriam morar
+
+A Seção mantém um cofre KeePass, `cofre-sistemas.kdbx`, com uma entrada por
+sistema espelhando o `.env` inteiro. É para lá que as nossas cinco credenciais
+devem ir quando forem rotacionadas — não para outro `.env.local`. A regra do
+wiki, que adotamos: *a documentação nunca guarda valor de segredo, só o mapa
+de onde ele está.*

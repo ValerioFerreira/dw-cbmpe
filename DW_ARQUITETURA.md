@@ -210,3 +210,51 @@ possíveis a avaliar quando chegarmos lá:
   camadas.
 - A governança (`DW_GOVERNANCA.md`) define quem pode acessar o quê em cada
   camada.
+
+## Deploy no CapRover (documentado em 2026-08-24)
+
+A Seção de Sistemas já tem plataforma de deploy interna: **CapRover** em
+`caprover-01` (`10.193.1.252`), PaaS sobre Docker Swarm. É o mesmo servidor
+onde o DW está. Procedimento completo em
+`docs/intranet/operacao-e-recuperacao-de-desastre.md`.
+
+Isso resolve o impasse de rede: **a Vercel não alcança o DW** (`10.193.1.252`
+é endereço privado), e por isso o app hoje só consome JSON estático gerado
+pelos extratores. Rodando no CapRover, o app fica do lado de dentro.
+
+### O que já está pronto no repositório
+
+| Arquivo | Papel |
+|---|---|
+| `Dockerfile` | Multi-stage: build do Vite, depois nginx servindo `dist/` |
+| `nginx.conf` | `try_files ... /index.html` — necessário para o BrowserRouter |
+| `captain-definition` | Aponta o CapRover para o `Dockerfile` |
+
+Deploy: `caprover deploy -a <app> -b main`. O CapRover recebe o código e
+constrói a imagem — não há registry, o build é do zero a cada vez.
+
+### O que NÃO está no repositório e será esquecido
+
+O wiki é enfático sobre isso, e a advertência vale igual para nós:
+
+1. **Port Mapping manual no painel.** É configuração de painel, não de
+   arquivo. Para o `auth-api` é `9090 → 3000`; **para o nosso app o destino é
+   a porta 80**, que é onde o nginx do `Dockerfile` escuta. Sem isso, o
+   `proxy_pass` bate em porta fechada e não há mensagem de erro que aponte
+   para a causa.
+2. **Vhost no proxy reverso.** A entrada pública passa por `srv-nginx01`
+   (`10.193.0.19`), com um `location` por sistema. Depende de quem administra
+   esse servidor.
+3. **As envs vão para os App Configs do CapRover**, que a documentação trata
+   como fonte da verdade — e os valores, para o cofre `cofre-sistemas.kdbx`.
+   Ver `DW_GOVERNANCA.md`.
+4. **Sem `Has Persistent Data`**: nosso app é stateless, igual ao `auth-api`.
+
+### Duas lições do sistema vizinho, de graça
+
+O wiki registra que o `.env.example` do `auth-api` está defasado e que o
+GitHub Actions do repositório ainda dispara deploy para um destino que não é
+produção. As duas coisas envelhecem em silêncio e só aparecem no dia em que
+alguém precisa recriar o sistema. Vale conferir periodicamente que o nosso
+`.env.example` acompanha o `.env.local` — ele estava defasado até 2026-08-24.
+

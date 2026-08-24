@@ -2342,6 +2342,55 @@ cada OME — insumo direto para o perfil Titular do `/adm`) e `Ag` em **18**
 planilha recebe texto livre, e 10 dos 14 "tipos" são sigla de OME ou nome de
 função digitados no lugar errado. Entram como estão, com relatório.
 
+### 2026-08-24 — A documentação da Seção responde autenticação e deploy
+
+O usuário compartilhou quatro páginas do wiki interno (BookStack em
+`docs.captain.cbmpe.intranet`). Cópias versionadas em `docs/intranet/`, para
+que o conhecimento não dependa de acesso à rede. **Nenhum valor de segredo
+nos arquivos** — o wiki adota a regra de só mapear onde os segredos estão, e
+nós adotamos a mesma.
+
+**Deploy: o caminho existe e já está quase pronto do nosso lado.** A Seção usa
+CapRover em `caprover-01` — o mesmo servidor onde o DW está. O `Dockerfile` e
+o `nginx.conf` do repositório já servem; faltava o `captain-definition`, que
+foi criado. O que não está em arquivo nenhum e é o calcanhar de aquiles
+documentado: o **Port Mapping manual no painel** (para nós, destino porta 80)
+e o vhost no proxy reverso `srv-nginx01`. Detalhe em `DW_ARQUITETURA.md`.
+
+**Autenticação: o SGU é a resposta, e a cobertura é melhor que o esperado.**
+API Rails que autentica contra o AD, com login por CPF. Medido nesta sessão,
+sem imprimir nenhum CPF: o SGU tem 3.455 usuários, 3.279 já logaram, e
+**2.615 dos 2.658 militares do efetivo ativo (98,4%) já têm conta**. O
+`validate_token` devolve inclusive posto/OBM.
+
+**Decisão sobre `resolverOmePorCpf()`**: preferir CPF → `ovrsgp.tb_pess` →
+matrícula → `core.dim_militar` em vez de ler a chave `military` do SGU. Cobre
+99,9%, e faz a OME sair da nossa `dim_ome` — já com a hierarquia do
+organograma e CPPA/ADIDOS resolvidos. Também mantém o CPF fora do DW: usado na
+consulta, descartado em seguida.
+
+**O SGU não faz autorização** — confirma que o modelo de perfis de
+`accessControl.js` continua sendo responsabilidade nossa. O wiki cita um mau
+exemplo a não copiar: o `portalcbmpe` criou middlewares de verificação de
+token e deixou os dois vazios, de modo que a API parece protegida e não valida
+nada.
+
+**Um achado que muda o que o BI pode expor.** Usuário novo no AD nasce com
+**senha igual ao próprio CPF, que nunca expira**, e o `GET /users` do SGU
+esteve público na internet com o CPF de 2.500+ pessoas. Combinados, qualquer
+um teve a lista de logins e a senha padrão de quem nunca trocou. Não é nosso
+para consertar, mas é nosso para respeitar: enquanto isso não for resolvido, o
+BI não deve expor lista nominal a perfil autenticado só pelo SGU. Registrado
+em `DW_GOVERNANCA.md`.
+
+**Correção ao mapa de conexões**: o `10.193.0.20` estava registrado só como
+servidor de aplicações Rails. Ele roda também o `sgu_api_production`,
+alcançável com a credencial `ctic` que já temos.
+
+**Regra adotada**: log do SGU contém CPF nos parâmetros de login e, por
+instrução do wiki, não entra em contexto de IA. Vale para as sessões deste
+projeto.
+
 ### Pendências do DW carregado (2026-08-24)
 
 Em ordem de urgência:
