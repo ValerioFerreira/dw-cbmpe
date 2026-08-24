@@ -34,20 +34,38 @@ QCG = (-8.051522, -34.890144)
 # normalizacao automatica nao casa. Cada linha aqui e uma decisao humana.
 DE_PARA_SIGLA = {
     "SCG": "SG",            # Subcomando Geral
-    "CAT / ZM": "CAT Zona da Mata",
 }
 
-# Override explicito de coordenada -- pedido do usuario (2026-08-21): as duas
-# Diretorias Integradas do Interior nao ficam no QCG, e sim junto do
-# grupamento de referencia de cada uma.
-OVERRIDE_POR_SIGLA = {
-    "DINTER/1": "2ºGB",
-    "DINTER/2": "4ºGB",
+# Override explicito de coordenada -- pedido do usuario (2026-08-21): a
+# unidade nao fica onde o casamento automatico colocaria, e sim junto do
+# grupamento de referencia. Vale por prefixo de sigla: as CAT numeradas
+# (CAT / SERTAO 2..6, CAT / ZM 2, CAT / AGRESTE 2 e 3) foram todas absorvidas
+# pela de numero 1, entao repetem a coordenada da sua regiao. Os nomes e a
+# numeracao ficam como estao -- so a coordenada e compartilhada.
+OVERRIDE_POR_PREFIXO = [
+    ("DINTER/1", "2ºGB"),
+    ("DINTER/2", "4ºGB"),
+    ("CAT / ZM", "1ºGB"),
+    ("CAT / AGRESTE", "2ºGB"),
+    ("CAT / SERTÃO", "4ºGB"),
+]
+
+# Coordenada literal, quando nao existe unidade de referencia na origem.
+# GBFN deixou de ser Grupamento e virou Secao (SBFN) vinculada ao GBI, mas
+# continua sendo o unico ponto fora do continente -- herdar o QCG destruiria
+# qualquer mapa.
+COORDENADA_LITERAL = {
+    "GBFN": (-3.85609, -32.42678),
 }
 
 # Linhas da tb_ome que nao sao OME de verdade: sao situacoes funcionais
 # modeladas como unidade. Nunca recebem coordenada.
 NAO_E_OME = {"INATIVOS", "ADIDO", "OUT SIT / DGP", "LIC / DGP", "CFHP 2017"}
+
+# Unidades que nao existem mais, mas seguem marcadas como ativas (ic_stat='A')
+# na tb_ome. O usuario ainda vai confirmar se alguma coisa depende delas, entao
+# NAO devem ser inativadas por nossa conta -- so ficam de fora da coordenada.
+EXTINTAS = {35, 37, 42, 54, 57, 86}
 
 
 def normalizar(texto):
@@ -101,7 +119,7 @@ def resolver(linha, origem, por_sigla, por_nome):
     do relatorio: 'ignorar' nao recebe nada, 'casado'/'override'/'padrao_qcg'
     recebem, e 'divergencia' fica para decisao humana.
     """
-    _id, nome, sigla, tipo, stat, _lat, _lon = linha
+    id_ome, nome, sigla, tipo, stat, _lat, _lon = linha
     sigla = (sigla or "").strip()
 
     if sigla in NAO_E_OME:
@@ -110,8 +128,15 @@ def resolver(linha, origem, por_sigla, por_nome):
     if stat == "I":
         return None, "ignorar", "OME inativa no SGP (ic_stat = I)"
 
-    if sigla in OVERRIDE_POR_SIGLA:
-        alvo = OVERRIDE_POR_SIGLA[sigla]
+    if int(id_ome) in EXTINTAS:
+        return None, "ignorar", "unidade extinta, ainda marcada como ativa na tb_ome"
+
+    if sigla in COORDENADA_LITERAL:
+        return COORDENADA_LITERAL[sigla], "override", "coordenada informada diretamente"
+
+    for prefixo, alvo in OVERRIDE_POR_PREFIXO:
+        if not sigla.startswith(prefixo):
+            continue
         if alvo not in origem:
             return None, "divergencia", "override aponta para %s, ausente na origem" % alvo
         return origem[alvo]["coord"], "override", "regra explicita: coordenada de %s" % alvo
