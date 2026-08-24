@@ -144,6 +144,33 @@ def main():
     for dominio, situacao, pares in cur.fetchall():
         print(f"    {dominio:<22} {situacao:<12} {pares:>8}")
 
+    print("\nCampos da dim_militar (o alargamento de 2026-08-24):")
+    # Esta checagem existe por causa de um defeito real: o cast de data so
+    # aceitava ISO, a planilha escreve DD/MM/AAAA, e data_nascimento e
+    # data_ingresso ficaram 100% NULAS sem que nada reclamasse. Data que
+    # deveria estar sempre preenchida e checada aqui.
+    for coluna in ("data_nascimento", "data_ingresso", "data_ultima_promocao"):
+        falhas += not checar(
+            f"{coluna} preenchida",
+            valor(cur, f"SELECT count({coluna}) FROM core.dim_militar"),
+            ESPERADO_TOTAL)
+    checar("militares com telefone (core.contato_militar)",
+           valor(cur, "SELECT count(*) FROM core.contato_militar"))
+    checar("militares marcados como agregado na OBS",
+           valor(cur, """
+               SELECT count(*) FROM core.dim_militar
+               WHERE observacao ~* '(^|[^A-Za-z])Ag([^A-Za-z]|$)'
+           """))
+    # A coluna de afastamento da planilha e texto livre, e recebe sigla de OME
+    # e nome de funcao no lugar do tipo. Os tipos de verdade sao LE, LTS,
+    # LTIP e LM -- o resto e digitacao errada na origem, reportada aqui.
+    checar("tipos de afastamento que nao parecem tipo (erro na origem)",
+           valor(cur, """
+               SELECT count(*) FROM core.dim_tipo_afastamento
+               WHERE sigla NOT IN ('LE', 'LTS', 'LTIP', 'LM')
+           """))
+
+
     print("\nAntiguidade (lida do indice da planilha do Peculio):")
     falhas += not checar(
         "militares com antiguidade preenchida",

@@ -195,3 +195,53 @@ LEFT JOIN core.fato_previsao_reserva p
 GROUP BY m.sk_militar, m.matricula_exibida, m.nome_guerra, pg.sigla,
          m.antiguidade, m.antiguidade_geral, p.data_reserva_requerimento,
          p.data_reserva_compulsoria, p.abono_permanencia;
+
+-- ---------------------------------------------------------------------------
+-- Militar -- a visao de consumo, com as duracoes calculadas na hora
+-- ---------------------------------------------------------------------------
+-- A planilha do Peculio traz idade, tempo de servico e tempo na OBM ja
+-- calculados. Nao guardamos nenhum dos tres: numero calculado envelhece, data
+-- nao. Medido em 2026-08-24: a idade declarada na planilha ja divergia do
+-- calculo em 126 dos 2.658 militares. Aqui a conta e refeita a cada consulta.
+--
+-- Sem telefone de proposito -- ver core.contato_militar.
+CREATE OR REPLACE VIEW marts.militar AS
+SELECT
+    m.sk_militar,
+    m.matricula_exibida,
+    m.nome,
+    m.nome_guerra,
+    pg.sigla                                    AS posto_grad,
+    m.antiguidade,
+    m.antiguidade_geral,
+    o.sigla                                     AS ome,
+    m.sexo,
+    m.raca_cor,
+    m.data_nascimento,
+    extract(year FROM age(current_date, m.data_nascimento))::int  AS idade,
+    m.data_ingresso,
+    extract(year FROM age(current_date, m.data_ingresso))::int    AS tempo_servico_anos,
+    m.data_ultima_promocao,
+    pp.principio                                AS principio_ultima_promocao,
+    m.data_movimentacao_sp,
+    (current_date - m.data_movimentacao_sp)     AS dias_na_ome_atual,
+    m.ome_anterior,
+    sp.numero_ano                               AS suplemento_pessoal,
+    m.acumulo_cargos,
+    m.observacao,
+    f.adido,
+    f.horario_especial,
+    f.readaptado,
+    f.pcd,
+    f.le,
+    f.ltip,
+    ta.sigla                                    AS tipo_afastamento
+FROM core.dim_militar m
+LEFT JOIN core.dim_posto_grad pg          ON pg.sk_posto_grad = m.sk_posto_grad
+LEFT JOIN core.dim_principio_promocao pp  ON pp.sk_principio_promocao = m.sk_principio_promocao
+LEFT JOIN core.dim_suplemento_pessoal sp  ON sp.sk_suplemento = m.sk_suplemento
+LEFT JOIN core.fato_efetivo_diario f
+       ON f.sk_militar = m.sk_militar
+      AND f.sk_tempo = (SELECT max(sk_tempo) FROM core.fato_efetivo_diario)
+LEFT JOIN core.dim_ome o                  ON o.sk_ome = f.sk_ome
+LEFT JOIN core.dim_tipo_afastamento ta    ON ta.sk_tipo_afastamento = f.sk_tipo_afastamento;

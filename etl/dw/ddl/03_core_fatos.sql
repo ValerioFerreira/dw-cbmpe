@@ -169,3 +169,8 @@ CREATE TABLE IF NOT EXISTS core.fato_previsao_reserva (
     carga_id              bigint REFERENCES stg.carga (carga_id),
     PRIMARY KEY (sk_tempo, sk_militar)
 );
+
+-- Estados que variam no tempo, entao vivem no snapshot diario e nao na
+-- dimensao (2026-08-24).
+ALTER TABLE core.fato_efetivo_diario ADD COLUMN IF NOT EXISTS horario_especial    boolean;
+ALTER TABLE core.fato_efetivo_diario ADD COLUMN IF NOT EXISTS sk_tipo_afastamento integer;

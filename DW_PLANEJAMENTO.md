@@ -2312,6 +2312,36 @@ Três coisas que valem registro:
 sistema de reserva). É a mesma `neondb_owner` que já constava da lista de
 rotação — a lista não mudou, mas o argumento para rotacionar ficou mais forte.
 
+### 2026-08-24 — `dim_militar` alargada; um defeito silencioso e dois achados na coluna OBS
+
+**A `dim_militar` cobria 10 dos 38 campos** que a aplicação usa. Alargada com
+três critérios: data entra e duração não (número calculado envelhece, data
+não — a idade declarada na planilha já divergia do cálculo em 126 dos 2.658);
+campo redundante não vira coluna (ano de ingresso é o ano da data de praça em
+2.657 de 2.658); e contato sai da dimensão, para `core.contato_militar`.
+
+Três dimensões novas: `dim_principio_promocao` (5), `dim_suplemento_pessoal`
+(103) e `dim_tipo_afastamento` (14). Nova view `marts.militar`, que recalcula
+idade, tempo de serviço e tempo na OME a cada consulta. Detalhe em
+`DW_MODELO_DADOS.md`.
+
+**Defeito encontrado e corrigido: `data_nascimento` e `data_ingresso` estavam
+100% nulas.** O cast só aceitava `AAAA-MM-DD` e a planilha escreve
+`DD/MM/AAAA`; o `CASE` devolvia `NULL` em silêncio nas 2.658 linhas. Nada
+reclamou porque a contagem de linhas fechava e o efetivo batia. O `validar.py`
+passou a exigir preenchimento das datas que nunca deveriam faltar — é o tipo
+de erro que contagem de linha nunca pega.
+
+**A coluna OBS da planilha responde duas perguntas abertas.** Ninguém a tinha
+lido. Ela marca `Titular` em **45 militares** (o Pecúlio já sabe quem comanda
+cada OME — insumo direto para o perfil Titular do `/adm`) e `Ag` em **18**
+(agregado, em aberto desde 2026-08-21). Carregados como texto e contados pelo
+`validar.py`; **não viraram regra** — dependem de confirmação do usuário.
+
+**Qualidade de dado registrada, não corrigida**: a coluna de afastamento da
+planilha recebe texto livre, e 10 dos 14 "tipos" são sigla de OME ou nome de
+função digitados no lugar errado. Entram como estão, com relatório.
+
 ### Pendências do DW carregado (2026-08-24)
 
 Em ordem de urgência:

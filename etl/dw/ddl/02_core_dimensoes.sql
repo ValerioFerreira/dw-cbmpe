@@ -241,3 +241,77 @@ COMMENT ON COLUMN core.dim_ome.no_organograma IS
   'True quando a unidade consta do organograma oficial (46 unidades).';
 COMMENT ON COLUMN core.dim_ome.origem_hierarquia IS
   'organograma | sgp | regra -- de onde veio o sk_ome_pai desta linha.';
+
+-- ---------------------------------------------------------------------------
+-- Alargamento da dim_militar (2026-08-24) -- fonte: planilha do Peculio
+-- ---------------------------------------------------------------------------
+-- A dim_militar carregava 10 dos 38 campos que a aplicacao usa. Estes fecham
+-- a diferenca, com tres criterios:
+--
+--   1. DATA entra; DURACAO nao. A planilha traz idade, tempo de servico e
+--      tempo na OBM ja calculados -- numeros que envelhecem sozinhos. Medido:
+--      a idade declarada ja diverge do calculo em 126 dos 2.658, e o tempo de
+--      servico bate com (hoje - data de praca) em 2.653. Guardamos as datas e
+--      derivamos em marts.militar, que nunca fica velho.
+--   2. "Ano de ingresso" nao entra: e o ano da data de praca em 2.657 de
+--      2.658. Coluna redundante nao vira coluna.
+--   3. Telefone vai para tabela separada (core.contato_militar), nao para ca:
+--      um SELECT * na dimensao nao pode vazar contato de 2.043 militares.
+ALTER TABLE core.dim_militar ADD COLUMN IF NOT EXISTS data_ultima_promocao  date;
+ALTER TABLE core.dim_militar ADD COLUMN IF NOT EXISTS sk_principio_promocao integer;
+ALTER TABLE core.dim_militar ADD COLUMN IF NOT EXISTS ome_anterior          text;
+ALTER TABLE core.dim_militar ADD COLUMN IF NOT EXISTS data_movimentacao_sp  date;
+ALTER TABLE core.dim_militar ADD COLUMN IF NOT EXISTS sk_suplemento         integer;
+ALTER TABLE core.dim_militar ADD COLUMN IF NOT EXISTS acumulo_cargos        text;
+ALTER TABLE core.dim_militar ADD COLUMN IF NOT EXISTS observacao            text;
+
+-- ---------------------------------------------------------------------------
+-- dim_principio_promocao -- por que o militar foi promovido
+-- ---------------------------------------------------------------------------
+-- 5 valores: ANTIGUIDADE (2.140), MERECIMENTO (353), ANTIGUIDADE DECENAL
+-- (160), PROMOCAO REQUERIDA (2), RESSARCIMENTO DE PRETERICAO (2).
+CREATE TABLE IF NOT EXISTS core.dim_principio_promocao (
+    sk_principio_promocao integer PRIMARY KEY,
+    principio             text    NOT NULL UNIQUE,
+    origem                text    NOT NULL
+);
+
+-- ---------------------------------------------------------------------------
+-- dim_suplemento_pessoal -- o ato que publicou a movimentacao
+-- ---------------------------------------------------------------------------
+-- "SP no 013/2026" e afins: 103 publicacoes distintas. Vira dimensao porque
+-- numero e data andam juntos e se repetem em centenas de militares -- o SP
+-- 013/2026 sozinho move 548 pessoas.
+CREATE TABLE IF NOT EXISTS core.dim_suplemento_pessoal (
+    sk_suplemento    integer PRIMARY KEY,
+    numero_ano       text    NOT NULL UNIQUE,
+    data_publicacao  date,
+    origem           text    NOT NULL
+);
+
+-- ---------------------------------------------------------------------------
+-- dim_tipo_afastamento -- LE, LTS, LTIP, LM
+-- ---------------------------------------------------------------------------
+-- Afastamento superior a 90 dias publicado em SP. Cuidado: a coluna da
+-- planilha tem lixo digitado (siglas de OME no lugar do tipo) -- entra como
+-- esta e o validar.py reporta, porque corrigir na origem nao e nosso.
+CREATE TABLE IF NOT EXISTS core.dim_tipo_afastamento (
+    sk_tipo_afastamento integer PRIMARY KEY,
+    sigla               text    NOT NULL UNIQUE,
+    origem              text    NOT NULL
+);
+
+-- ---------------------------------------------------------------------------
+-- contato_militar -- telefone, separado de proposito
+-- ---------------------------------------------------------------------------
+-- Tabela propria, e nao colunas na dim_militar, para que o contato seja uma
+-- decisao explicita de quem consulta em vez de carona num SELECT *. Fonte:
+-- as abas de telefone da planilha (DIRETORIAS tem prioridade sobre
+-- GRUPAMENTOS, mesma regra do script que alimenta o app hoje).
+-- Ver DW_GOVERNANCA.md.
+CREATE TABLE IF NOT EXISTS core.contato_militar (
+    sk_militar  integer PRIMARY KEY REFERENCES core.dim_militar (sk_militar),
+    telefone_1  text,
+    telefone_2  text,
+    origem      text NOT NULL
+);

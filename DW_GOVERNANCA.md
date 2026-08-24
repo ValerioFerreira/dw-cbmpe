@@ -331,3 +331,18 @@ que alimenta o app é servido junto com ele — quem abrir o DevTools lê tudo,
 independente do perfil. Organiza a interface, não protege o dado. Autorização
 real exige o backend, e é pré-requisito para o app sair da Vercel com dado
 nominal. A própria tela `/adm` diz isso.
+
+## Contato de militar fica em tabela separada (2026-08-24)
+
+`core.contato_militar` existe como tabela própria, e não como duas colunas na
+`dim_militar`, por um motivo operacional: um `SELECT *` na dimensão é a coisa
+mais natural do mundo, e não pode ser o caminho pelo qual o telefone de 2.045
+militares sai do DW. Separado, consultar contato vira decisão explícita — e
+vira um alvo único de `GRANT` quando os papéis (`etl_writer`, `bi_reader`,
+`app_reader`) forem criados.
+
+`marts.militar` deliberadamente **não** traz telefone.
+
+As abas de telefone da planilha trazem também **e-mail e endereço**. Não foram
+carregados: nenhum consumidor pediu, e dado sensível sem uso concreto não
+entra no DW. A mesma regra que manteve o CPF do mapa de força fora da `raw`.

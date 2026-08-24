@@ -273,9 +273,9 @@ etl/dw/validar.py         bateria de perguntas de negocio com resposta conhecida
 | `raw_reserva` | sistema de reserva remunerada (3.293) |
 | `raw_financas` | planilha de Finanças, uma tabela por aba (2.839) |
 | `raw_frota` | 11 tabelas de `frotas_production` (59.318) |
-| `core` | 12 dimensões + 8 fatos |
+| `core` | 15 dimensões + 8 fatos + `contato_militar` |
 | `stg` | `de_para_ome` (122), `de_para_viatura` (1.626), controle de carga |
-| `marts` | 9 views de consumo |
+| `marts` | 11 views de consumo |
 
 Fatos: `fato_averbacao` (560), `fato_afastamento_reserva` (8),
 `fato_previsao_reserva` (2.658), `fato_efetivo_diario` (2.658),
@@ -527,6 +527,70 @@ Grão: 1 militar. **2.658 linhas, carregada.** Chave natural: **matrícula**.
 Fonte hoje: planilha do Pecúlio (não mais o Neon). Fonte futura: SGP, quando
 regularizado. Para que a virada seja uma troca de precedência e não uma
 reescrita, cada atributo carrega a sua **procedência**.
+
+#### O alargamento de 2026-08-24
+
+A dimensão carregava 10 dos 38 campos que a aplicação usa. Os que faltavam
+entraram, com três critérios — e os três valem para qualquer campo futuro:
+
+**1. Data entra; duração não.** A planilha traz idade, tempo de serviço e
+tempo na OBM já calculados. Nenhum dos três é guardado: número calculado
+envelhece, data não. E não é hipótese — medido: a **idade declarada na
+planilha já diverge do cálculo em 126 dos 2.658** militares, porque foi
+computada quando a planilha foi atualizada pela última vez. O tempo de serviço
+declarado bate com `hoje − data de praça` em 2.653 de 2.658. As três durações
+são recalculadas a cada consulta em `marts.militar`.
+
+**2. Campo redundante não vira coluna.** "Ano de ingresso" é o ano da data de
+praça em 2.657 de 2.658 — não entrou.
+
+**3. Contato sai da dimensão.** Telefone foi para `core.contato_militar`
+(2.045 militares), tabela própria, para que consultar contato seja decisão
+explícita e não carona num `SELECT *`. As abas de telefone trazem também
+e-mail e endereço — não entraram: ninguém pediu, e dado sensível sem uso
+concreto não entra no DW.
+
+Colunas novas: `data_ultima_promocao`, `sk_principio_promocao`,
+`ome_anterior`, `data_movimentacao_sp`, `sk_suplemento`, `acumulo_cargos`,
+`observacao`. Estados que variam no tempo (`horario_especial`,
+`sk_tipo_afastamento`) foram para `fato_efetivo_diario`, não para a dimensão.
+
+##### O defeito que isso revelou
+
+`data_nascimento` e `data_ingresso` estavam **100% nulas** na `dim_militar`.
+O cast só aceitava `AAAA-MM-DD`; a planilha escreve `DD/MM/AAAA`. O `CASE`
+devolvia `NULL` em silêncio para as 2.658 linhas, e nenhuma validação
+percebeu — a `dim_militar` tinha 2.658 linhas, o efetivo fechava, tudo
+"passava". Corrigido, e o `validar.py` passou a exigir preenchimento das datas
+que nunca deveriam faltar. É o tipo de erro que uma contagem de linhas nunca
+pega.
+
+##### Três dimensões novas
+
+| Dimensão | Linhas | Por quê |
+|---|---|---|
+| `dim_principio_promocao` | 5 | ANTIGUIDADE (2.140), MERECIMENTO (353), ANTIGUIDADE DECENAL (160), PROMOÇÃO REQUERIDA (2), RESSARCIMENTO DE PRETERIÇÃO (2) |
+| `dim_suplemento_pessoal` | 103 | O ato que publicou a movimentação. Vira dimensão porque número e data andam juntos e se repetem: o SP nº 013/2026 sozinho move 548 pessoas |
+| `dim_tipo_afastamento` | 14 | LE, LTS, LTIP, LM — **e 10 valores que não são tipo nenhum** |
+
+Os 10 valores estranhos da última são texto digitado na coluna errada da
+planilha: siglas de OME (`1ºGB`, `GBI`, `GBAPH`…) e nomes de função
+(`Monitor INC Florestal`). Entram como estão e o `validar.py` os reporta —
+corrigir na origem não é nosso.
+
+##### O que a coluna OBS revelou
+
+A coluna OBS da planilha, que ninguém tinha lido, carrega dois marcadores que
+respondem perguntas abertas do projeto:
+
+| Valor | Militares | O que significa |
+|---|---|---|
+| `Titular` | 45 | **É o titular da OME.** O Pecúlio já sabe quem comanda cada unidade — ver o perfil Titular em `DW_GOVERNANCA.md` |
+| `Ag`, `Ag - READAP`, `CARGO ELETIVO - Ag` | 18 | **Agregado** — a regra estava em aberto desde 2026-08-21 |
+
+Nenhum dos dois foi transformado em regra ainda: estão carregados como texto
+em `dim_militar.observacao` e contados pelo `validar.py`. Viram regra quando
+o usuário confirmar a leitura.
 
 #### Antiguidade — lida do índice da planilha, não calculada
 

@@ -468,13 +468,22 @@ def carregar_dimensoes_pessoal(cur):
         return "upper(trim(\"{}\")) = 'TRUE'".format(col[posicao])
 
     def data(posicao):
-        # Data vem como texto da planilha e pode vir mal preenchida. O cast
-        # so acontece quando o formato bate, senao a celula vira NULL -- uma
+        # A planilha escreve data em DD/MM/AAAA -- o formato brasileiro, que e
+        # o que se esperaria de uma planilha mantida pela DGP. A primeira
+        # versao desta funcao so aceitava ISO, e o resultado foi
+        # data_nascimento e data_ingresso 100% NULAS na dim_militar sem que
+        # nada reclamasse: o CASE devolvia NULL em silencio para as 2.658
+        # linhas. Por isso o validar.py agora checa preenchimento de data.
+        #
+        # ISO continua aceito como segunda alternativa, porque planilha muda
+        # de formato sozinha. Celula fora dos dois formatos vira NULL -- uma
         # celula errada nao pode derrubar a carga inteira.
         alvo = col[posicao]
         return (
-            "CASE WHEN \"{0}\" ~ '^[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}}' "
-            "THEN left(trim(\"{0}\"), 10)::date END".format(alvo)
+            "CASE WHEN \"{0}\" ~ '^[0-9]{{2}}/[0-9]{{2}}/[0-9]{{4}}$' "
+            "     THEN to_date(trim(\"{0}\"), 'DD/MM/YYYY') "
+            "     WHEN \"{0}\" ~ '^[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}}' "
+            "     THEN left(trim(\"{0}\"), 10)::date END".format(alvo)
         )
 
     # DROP antes do CREATE: "CREATE OR REPLACE VIEW" so aceita acrescentar
@@ -501,8 +510,17 @@ def carregar_dimensoes_pessoal(cur):
             {booleano(26)}                         AS ltip,
             {booleano(22)}                         AS readaptado,
             {booleano(23)}                         AS pcd,
+            {texto(24)}                            AS acumulo_cargos,
+            {texto(5)}                             AS observacao,
+            {texto(11)}                            AS ome_anterior,
+            {texto(18)}                            AS principio_promocao,
+            {texto(28)}                            AS suplemento,
+            {booleano(21)}                         AS horario_especial,
             {data(27)}                             AS data_nascimento,
-            {data(15)}                             AS data_praca
+            {data(15)}                             AS data_praca,
+            {data(17)}                             AS data_ultima_promocao,
+            {data(4)}                              AS data_movimentacao_sp,
+            {data(29)}                             AS data_suplemento
         FROM raw_peculio.planilha
         WHERE nullif(trim("{col[8]}"), '') IS NOT NULL
     """)
@@ -522,20 +540,56 @@ def carregar_dimensoes_pessoal(cur):
     """)
 
     cur.execute("""
+        INSERT INTO core.dim_principio_promocao (sk_principio_promocao, principio, origem)
+        SELECT row_number() OVER (ORDER BY count(*) DESC), principio_promocao, 'peculio'
+        FROM stg.peculio WHERE principio_promocao IS NOT NULL
+        GROUP BY principio_promocao
+    """)
+
+    cur.execute("""
+        INSERT INTO core.dim_suplemento_pessoal
+            (sk_suplemento, numero_ano, data_publicacao, origem)
+        SELECT row_number() OVER (ORDER BY min(data_suplemento)), suplemento,
+               min(data_suplemento), 'peculio'
+        FROM stg.peculio WHERE suplemento IS NOT NULL
+        GROUP BY suplemento
+    """)
+
+    # O tipo de afastamento vem de uma coluna de texto livre, entao entra
+    # lixo digitado (sigla de OME no lugar do tipo). Carrega como esta: a
+    # dimensao reflete a origem, e o validar.py mostra o que nao parece tipo.
+    cur.execute("""
+        INSERT INTO core.dim_tipo_afastamento (sk_tipo_afastamento, sigla, origem)
+        SELECT row_number() OVER (ORDER BY count(*) DESC), afastamento, 'peculio'
+        FROM stg.peculio WHERE afastamento IS NOT NULL
+        GROUP BY afastamento
+    """)
+
+    cur.execute("""
         INSERT INTO core.dim_militar
             (sk_militar, matricula, matricula_exibida, nome, nome_guerra, sexo,
              data_nascimento, data_ingresso, raca_cor, sk_posto_grad,
-             antiguidade, antiguidade_geral, ativo, origem)
+             antiguidade, antiguidade_geral, data_ultima_promocao,
+             sk_principio_promocao, ome_anterior, data_movimentacao_sp,
+             sk_suplemento, acumulo_cargos, observacao, ativo, origem)
         SELECT row_number() OVER (ORDER BY p.matricula), p.matricula,
                p.matricula_exibida, p.nome, p.nome_guerra, p.sexo,
                p.data_nascimento, p.data_praca, p.raca_cor,
                pg.sk_posto_grad, p.antiguidade, p.antiguidade_geral,
-               true, 'peculio'
+               p.data_ultima_promocao, pp.sk_principio_promocao,
+               p.ome_anterior, p.data_movimentacao_sp, sp.sk_suplemento,
+               p.acumulo_cargos, p.observacao, true, 'peculio'
         FROM stg.peculio p
         LEFT JOIN core.dim_posto_grad pg ON pg.sigla = p.posto_grad
+        LEFT JOIN core.dim_principio_promocao pp ON pp.principio = p.principio_promocao
+        LEFT JOIN core.dim_suplemento_pessoal sp ON sp.numero_ano = p.suplemento
     """)
 
-    for tabela in ("dim_posto_grad", "dim_orgao_externo", "dim_militar"):
+    carregar_contato_militar(cur)
+
+    for tabela in ("dim_posto_grad", "dim_orgao_externo",
+                   "dim_principio_promocao", "dim_suplemento_pessoal",
+                   "dim_tipo_afastamento", "dim_militar", "contato_militar"):
         cur.execute(f"SELECT count(*) FROM core.{tabela}")
         print(f"  {tabela:<28} {cur.fetchone()[0]:>8}")
 
@@ -739,7 +793,8 @@ def carregar_fato_efetivo_diario(cur):
     cur.execute("""
         INSERT INTO core.fato_efetivo_diario
             (sk_tempo, sk_militar, sk_ome, sk_posto_grad, sk_orgao_externo,
-             adido, afastado, le, ltip, readaptado, pcd)
+             adido, afastado, le, ltip, readaptado, pcd,
+             horario_especial, sk_tipo_afastamento)
         SELECT (to_char(current_date, 'YYYYMMDD'))::int,
                dm.sk_militar,
                dp.sk_ome,
@@ -747,12 +802,14 @@ def carregar_fato_efetivo_diario(cur):
                oe.sk_orgao_externo,
                m.ome = 'ADIDO',
                m.afastamento IS NOT NULL,
-               m.le, m.ltip, m.readaptado, m.pcd
+               m.le, m.ltip, m.readaptado, m.pcd,
+               m.horario_especial, ta.sk_tipo_afastamento
         FROM stg.peculio m
         JOIN core.dim_militar dm ON dm.matricula = m.matricula
         JOIN stg.de_para_ome dp ON dp.sistema = 'peculio' AND dp.valor_origem = m.ome
         LEFT JOIN core.dim_orgao_externo oe
                ON m.ome = 'ADIDO' AND oe.nome = m.orgao
+        LEFT JOIN core.dim_tipo_afastamento ta ON ta.sigla = m.afastamento
         ON CONFLICT (sk_tempo, sk_militar) DO NOTHING
     """)
     cur.execute("SELECT count(*) FROM core.fato_efetivo_diario")
@@ -914,9 +971,78 @@ def limpar(cur):
             stg.de_para_ome, stg.de_para_viatura,
             core.dim_ome_ancestral, core.dim_ome, core.dim_militar,
             core.dim_posto_grad, core.dim_orgao_externo, core.dim_viatura,
+            core.contato_militar, core.dim_principio_promocao,
+            core.dim_suplemento_pessoal, core.dim_tipo_afastamento,
             core.dim_posto_servico, core.dim_turno, core.dim_tipo_servico,
             core.dim_funcao_servico, core.dim_tipo_recurso
         CASCADE
+    """)
+
+
+def carregar_contato_militar(cur):
+    """Telefone dos militares, das duas abas de contato da planilha.
+
+    Tabela separada da dim_militar de proposito: contato de 2.043 pessoas nao
+    pode sair de carona num SELECT * na dimensao. Ver DW_GOVERNANCA.md.
+
+    As colunas sao localizadas PELO NOME, e nao pela posicao como no resto do
+    Peculio -- aqui a posicao nao serve de contrato porque as duas abas
+    guardam o mesmo campo em posicoes diferentes (telefone 1 e a coluna 34 na
+    aba DIRETORIAS e a 35 na GRUPAMENTOS). Se o cabecalho mudar, isto falha
+    alto em vez de gravar a coluna errada.
+
+    DIRETORIAS tem prioridade sobre GRUPAMENTOS -- mesma regra do script que
+    alimenta o app hoje (etl/windmill/apps/peculio_para_metabase_e_neon.py).
+
+    As abas trazem tambem e-mail e endereco. Nao entram: nenhum consumidor
+    pediu, e dado sensivel sem uso concreto nao entra no DW.
+    """
+    def colunas(tabela):
+        cur.execute("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_schema = 'raw_peculio' AND table_name = %s
+              AND column_name ILIKE %s
+            ORDER BY ordinal_position
+        """, (tabela, "%telefone%"))
+        achadas = [c for (c,) in cur.fetchall()]
+        if len(achadas) != 2:
+            raise SystemExit(
+                f"raw_peculio.{tabela}: esperava 2 colunas de telefone, "
+                f"achei {len(achadas)} ({achadas}). O cabecalho da planilha "
+                "mudou -- confira antes de recarregar."
+            )
+        cur.execute("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_schema = 'raw_peculio' AND table_name = %s
+              AND column_name ILIKE %s
+            ORDER BY ordinal_position LIMIT 1
+        """, (tabela, "%matr%"))
+        return cur.fetchone()[0], achadas[0], achadas[1]
+
+    dir_m, dir_1, dir_2 = colunas("telefones_diretorias")
+    gru_m, gru_1, gru_2 = colunas("telefones_grupamentos")
+
+    cur.execute(f"""
+        INSERT INTO core.contato_militar (sk_militar, telefone_1, telefone_2, origem)
+        SELECT dm.sk_militar,
+               coalesce(d.t1, g.t1),
+               coalesce(d.t2, g.t2),
+               'peculio.telefones'
+        FROM core.dim_militar dm
+        LEFT JOIN (
+            SELECT replace(trim("{dir_m}"), '-', '') AS matricula,
+                   nullif(trim("{dir_1}"), '') AS t1, nullif(trim("{dir_2}"), '') AS t2
+            FROM raw_peculio.telefones_diretorias
+            WHERE nullif(trim("{dir_m}"), '') IS NOT NULL
+        ) d ON d.matricula = dm.matricula
+        LEFT JOIN (
+            SELECT replace(trim("{gru_m}"), '-', '') AS matricula,
+                   nullif(trim("{gru_1}"), '') AS t1, nullif(trim("{gru_2}"), '') AS t2
+            FROM raw_peculio.telefones_grupamentos
+            WHERE nullif(trim("{gru_m}"), '') IS NOT NULL
+        ) g ON g.matricula = dm.matricula
+        WHERE coalesce(d.t1, g.t1, d.t2, g.t2) IS NOT NULL
+        ON CONFLICT (sk_militar) DO NOTHING
     """)
 
 
