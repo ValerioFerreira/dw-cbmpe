@@ -412,32 +412,90 @@ def carregar_dimensoes_pessoal(cur):
     cur.execute("DELETE FROM core.dim_posto_grad")
     cur.execute("DELETE FROM core.dim_orgao_externo")
 
+    # Fonte: a planilha do Peculio como ela e (raw_peculio.planilha), nao o
+    # Neon "Militar". O Neon ja vem transformado -- infere data de praca pela
+    # moda do prefixo da matricula e descarta militar sem campo obrigatorio --
+    # e a camada raw nao pode herdar transformacao de outro consumidor.
+    # Ver etl/windmill/README.md.
+    #
+    # A planilha nao tem flag de ativo: quem esta nela e o efetivo ativo. Isso
+    # e mais honesto que o ativo=false do Neon, que so marca quem saiu da
+    # planilha em alguma rodada anterior e nunca foi limpo.
+    # A view abaixo e montada POR POSICAO, nao por nome de coluna: o
+    # cabecalho da planilha e texto livre, muda sozinho e ja veio truncado
+    # em 40 caracteres pelo carregador. A posicao e o unico contrato estavel
+    # que uma planilha oferece.
+    cur.execute("""
+        SELECT column_name FROM information_schema.columns
+        WHERE table_schema = 'raw_peculio' AND table_name = 'planilha'
+          AND column_name LIKE 'col%' ORDER BY ordinal_position
+    """)
+    col = {int(c[4:6]): c for (c,) in cur.fetchall()}
+
+    def texto(posicao):
+        return "nullif(trim(\"{}\"), '')".format(col[posicao])
+
+    def booleano(posicao):
+        return "upper(trim(\"{}\")) = 'TRUE'".format(col[posicao])
+
+    def data(posicao):
+        # Data vem como texto da planilha e pode vir mal preenchida. O cast
+        # so acontece quando o formato bate, senao a celula vira NULL -- uma
+        # celula errada nao pode derrubar a carga inteira.
+        alvo = col[posicao]
+        return (
+            "CASE WHEN \"{0}\" ~ '^[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}}' "
+            "THEN left(trim(\"{0}\"), 10)::date END".format(alvo)
+        )
+
+    cur.execute(f"""
+        CREATE OR REPLACE VIEW stg.peculio AS
+        SELECT
+            linha                                  AS ordem,
+            trim("{col[8]}")                       AS matricula_exibida,
+            replace(trim("{col[8]}"), '-', '')     AS matricula,
+            trim("{col[2]}")                       AS posto_grad,
+            trim("{col[3]}")                       AS ome,
+            trim("{col[9]}")                       AS nome,
+            trim("{col[10]}")                      AS nome_guerra,
+            trim("{col[12]}")                      AS sexo,
+            {texto(13)}                            AS raca_cor,
+            {texto(7)}                             AS orgao,
+            {texto(6)}                             AS afastamento,
+            {booleano(25)}                         AS le,
+            {booleano(26)}                         AS ltip,
+            {booleano(22)}                         AS readaptado,
+            {booleano(23)}                         AS pcd,
+            {data(27)}                             AS data_nascimento,
+            {data(15)}                             AS data_praca
+        FROM raw_peculio.planilha
+        WHERE nullif(trim("{col[8]}"), '') IS NOT NULL
+    """)
+
     cur.execute("""
         INSERT INTO core.dim_posto_grad (sk_posto_grad, sigla, ordem_hierarquica, origem)
-        SELECT row_number() OVER (ORDER BY min("ordemHierarquica")), "postoGrad",
-               min("ordemHierarquica")::int, 'peculio'
-        FROM raw_peculio.militar
-        WHERE "postoGrad" IS NOT NULL
-        GROUP BY "postoGrad"
+        SELECT row_number() OVER (ORDER BY min(ordem)), posto_grad, min(ordem)::int, 'peculio'
+        FROM stg.peculio WHERE posto_grad IS NOT NULL AND posto_grad <> ''
+        GROUP BY posto_grad
     """)
 
     cur.execute("""
         INSERT INTO core.dim_orgao_externo (sk_orgao_externo, nome, origem)
-        SELECT row_number() OVER (ORDER BY orgao), orgao, 'peculio.Militar.orgao'
-        FROM (SELECT DISTINCT trim(orgao) AS orgao FROM raw_peculio.militar
-              WHERE ome = 'ADIDO' AND orgao IS NOT NULL AND trim(orgao) <> '') x
+        SELECT row_number() OVER (ORDER BY orgao), orgao, 'peculio.orgao'
+        FROM (SELECT DISTINCT orgao FROM stg.peculio
+              WHERE ome = 'ADIDO' AND orgao IS NOT NULL) x
     """)
 
     cur.execute("""
         INSERT INTO core.dim_militar
             (sk_militar, matricula, matricula_exibida, nome, nome_guerra, sexo,
              data_nascimento, data_ingresso, raca_cor, sk_posto_grad, ativo, origem)
-        SELECT row_number() OVER (ORDER BY m.matricula),
-               replace(m.matricula, '-', ''), m.matricula, m.nome, m."nomeGuerra",
-               m.sexo, m."dataNascimento"::date, m."dataIngresso"::date, m."racaCor",
-               pg.sk_posto_grad, coalesce(m.ativo, false), 'peculio'
-        FROM raw_peculio.militar m
-        LEFT JOIN core.dim_posto_grad pg ON pg.sigla = m."postoGrad"
+        SELECT row_number() OVER (ORDER BY p.matricula), p.matricula,
+               p.matricula_exibida, p.nome, p.nome_guerra, p.sexo,
+               p.data_nascimento, p.data_praca, p.raca_cor,
+               pg.sk_posto_grad, true, 'peculio'
+        FROM stg.peculio p
+        LEFT JOIN core.dim_posto_grad pg ON pg.sigla = p.posto_grad
     """)
 
     for tabela in ("dim_posto_grad", "dim_orgao_externo", "dim_militar"):
@@ -454,11 +512,38 @@ def carregar_dim_viatura(cur):
     cur.execute("DELETE FROM core.fato_frota_diaria")
     cur.execute("DELETE FROM core.dim_viatura")
 
+    # Fonte: a Frota como ela e, nao o Neon "Viatura" (que e cache de
+    # aplicacao, com TRUNCATE a cada rodada e recorte de colunas).
+    # OME e situacao nao sao colunas de vehicles: sao derivadas do registro
+    # mais recente em transfers e vehicle_statuses -- mesma logica que o
+    # proprio sistema de frotas usa.
     cur.execute("""
-        SELECT id, placa, chassis, renavam, patrimonio, tipo, "tipoAcronym",
-               "numeroOrdem", marca, modelo, ano, posse, destinacao, combustivel,
-               "categoriaHabilitacao", rastreado, caracterizado, "omeAcronym", status
-        FROM raw_frota.viatura WHERE placa IS NOT NULL AND trim(placa) <> ''
+        WITH ultima_transferencia AS (
+            SELECT DISTINCT ON (t.vehicle_id) t.vehicle_id, o.acronym
+            FROM raw_frota.transfers t
+            JOIN raw_frota.omes o ON o.id = t.ome_id
+            ORDER BY t.vehicle_id, t.transfer_date DESC NULLS LAST, t.created_at DESC
+        ),
+        ultimo_status AS (
+            SELECT DISTINCT ON (vs.vehicle_id) vs.vehicle_id, vst.name
+            FROM raw_frota.vehicle_statuses vs
+            JOIN raw_frota.vehicle_status_types vst ON vst.id = vs.status_type_id
+            ORDER BY vs.vehicle_id, vs.reference_date DESC NULLS LAST, vs.created_at DESC
+        )
+        SELECT v.id, trim(v.license_plate), v.chassis, v.renavam, v.patrimony,
+               vt.name, vt.acronym, v.order_number, v.brand, v.model,
+               nullif(v.year, 0)::int,
+               posse.name, destino.name, combustivel.name, categoria.code,
+               v.is_tracked, v.is_characterized, ut.acronym, us.name
+        FROM raw_frota.vehicles v
+        LEFT JOIN raw_frota.vehicle_types vt ON vt.id = v.type_id
+        LEFT JOIN raw_frota.vehicle_ownership_types posse ON posse.id = v.vehicle_ownership_type_id
+        LEFT JOIN raw_frota.vehicle_destination_types destino ON destino.id = v.vehicle_destination_type_id
+        LEFT JOIN raw_frota.vehicle_fuel_types combustivel ON combustivel.id = v.vehicle_fuel_type_id
+        LEFT JOIN raw_frota.license_categories categoria ON categoria.id = v.license_category_id
+        LEFT JOIN ultima_transferencia ut ON ut.vehicle_id = v.id
+        LEFT JOIN ultimo_status us ON us.vehicle_id = v.id
+        WHERE nullif(trim(v.license_plate), '') IS NOT NULL
     """)
     fonte = cur.fetchall()
 
@@ -479,7 +564,7 @@ def carregar_dim_viatura(cur):
         linhas.append((
             i, placa, r[0], r[2], r[3], r[4], r[5], r[6], r[7],
             normalizar_numero(r[7]), r[8], r[9], r[10], r[11], r[12], r[13],
-            r[14], r[15], r[16], sk_ome, r[18], "frota",
+            r[14], r[15], r[16], sk_ome, r[18], "frotas_production",
         ))
 
     execute_values(cur, """
@@ -538,7 +623,7 @@ def carregar_de_para_ome(cur):
                            "fk", "omes.id_scriptcase = tb_ome.id_ome"))
 
     # Frota: por sigla normalizada.
-    cur.execute("SELECT DISTINCT \"omeAcronym\" FROM raw_frota.viatura WHERE \"omeAcronym\" IS NOT NULL")
+    cur.execute("SELECT DISTINCT acronym FROM raw_frota.omes WHERE acronym IS NOT NULL")
     for (acronimo,) in cur.fetchall():
         alvo = PECULIO_PARA_SGP.get(acronimo.strip(), acronimo)
         sk = por_sigla.get(normalizar(alvo))
@@ -624,14 +709,13 @@ def carregar_fato_efetivo_diario(cur):
                dm.sk_posto_grad,
                oe.sk_orgao_externo,
                m.ome = 'ADIDO',
-               nullif(trim(coalesce(m."afastamentoSup90Dias", '')), '') IS NOT NULL,
+               m.afastamento IS NOT NULL,
                m.le, m.ltip, m.readaptado, m.pcd
-        FROM raw_peculio.militar m
-        JOIN core.dim_militar dm ON dm.matricula = replace(m.matricula, '-', '')
+        FROM stg.peculio m
+        JOIN core.dim_militar dm ON dm.matricula = m.matricula
         JOIN stg.de_para_ome dp ON dp.sistema = 'peculio' AND dp.valor_origem = m.ome
         LEFT JOIN core.dim_orgao_externo oe
-               ON m.ome = 'ADIDO' AND oe.nome = trim(m.orgao)
-        WHERE m.ativo
+               ON m.ome = 'ADIDO' AND oe.nome = m.orgao
         ON CONFLICT (sk_tempo, sk_militar) DO NOTHING
     """)
     cur.execute("SELECT count(*) FROM core.fato_efetivo_diario")
@@ -642,9 +726,12 @@ def carregar_fato_frota_diaria(cur):
     cur.execute("""
         INSERT INTO core.fato_frota_diaria (sk_tempo, sk_viatura, sk_ome, situacao, odometro)
         SELECT (to_char(current_date, 'YYYYMMDD'))::int, v.sk_viatura, v.sk_ome,
-               v.situacao, f.odometro
+               v.situacao, ab.mileage
         FROM core.dim_viatura v
-        LEFT JOIN raw_frota.viatura f ON f.id = v.id_frota
+        LEFT JOIN LATERAL (
+            SELECT mileage FROM raw_frota.fuel_transactions ft
+            WHERE ft.vehicle_id = v.id_frota ORDER BY ft.time DESC NULLS LAST LIMIT 1
+        ) ab ON true
         ON CONFLICT (sk_tempo, sk_viatura) DO NOTHING
     """)
     cur.execute("SELECT count(*) FROM core.fato_frota_diaria")
@@ -740,12 +827,46 @@ def carregar_fatos_lancamento(cur):
 
 
 def limpar(cur):
-    """Reconstrucao completa: derruba fatos antes das dimensoes, senao as FKs
-    barram. TRUNCATE em vez de DELETE porque e reconstrucao total e nao ha
-    nada a preservar entre execucoes."""
+    """Reconstrucao: derruba fatos antes das dimensoes, senao as FKs barram.
+
+    Os fatos de lancamento sao reconstruidos inteiros a cada rodada, porque a
+    fonte guarda o historico e reprocessar da o mesmo resultado.
+
+    Os SNAPSHOTS DIARIOS sao o oposto: a fonte so tem o estado de hoje, entao
+    o dia de ontem so existe se nos guardamos. Apagar tudo aqui destruiria a
+    unica serie temporal de efetivo e frota que o DW produz -- por isso eles
+    perdem so o dia corrente, que sera reescrito logo abaixo.
+    """
+    cur.execute("""
+        DELETE FROM core.fato_efetivo_diario
+        WHERE sk_tempo = (to_char(current_date, 'YYYYMMDD'))::int
+    """)
+    cur.execute("""
+        DELETE FROM core.fato_frota_diaria
+        WHERE sk_tempo = (to_char(current_date, 'YYYYMMDD'))::int
+    """)
+
+    # Dias anteriores ficam, mas as dimensoes vao ser reconstruidas com novas
+    # chaves substitutas -- entao qualquer snapshot antigo perderia a
+    # referencia. Enquanto as sk nao forem estaveis entre cargas, o jeito
+    # honesto e avisar em vez de deixar o dado apontando para o lugar errado.
+    cur.execute("""
+        SELECT count(DISTINCT sk_tempo) FROM core.fato_efetivo_diario
+        WHERE sk_tempo <> (to_char(current_date, 'YYYYMMDD'))::int
+    """)
+    dias_anteriores = cur.fetchone()[0]
+    if dias_anteriores:
+        raise SystemExit(
+            f"Ha {dias_anteriores} snapshot(s) de dias anteriores em "
+            "fato_efetivo_diario. A reconstrucao total das dimensoes trocaria "
+            "as chaves substitutas e quebraria a referencia deles.\n"
+            "Antes de agendar a carga diaria, dim_militar/dim_viatura precisam "
+            "de chave substituta estavel entre execucoes (hoje sao row_number). "
+            "Ver etl/windmill/README.md."
+        )
+
     cur.execute("""
         TRUNCATE
-            core.fato_efetivo_diario, core.fato_frota_diaria,
             core.fato_lancamento_militar, core.fato_lancamento_viatura,
             core.fato_lancamento_recurso,
             stg.de_para_ome, stg.de_para_viatura,
@@ -753,6 +874,7 @@ def limpar(cur):
             core.dim_posto_grad, core.dim_orgao_externo, core.dim_viatura,
             core.dim_posto_servico, core.dim_turno, core.dim_tipo_servico,
             core.dim_funcao_servico, core.dim_tipo_recurso
+        CASCADE
     """)
 
 

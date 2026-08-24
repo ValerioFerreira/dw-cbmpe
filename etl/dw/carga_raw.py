@@ -28,8 +28,13 @@ import os
 import sys
 
 import psycopg2
-from psycopg2 import sql
+from psycopg2 import extras, sql
 from psycopg2.extras import execute_values
+
+# json/jsonb voltam como str, nao dict: numa copia fiel queremos o texto
+# original, e dict nem seria aceito de volta no INSERT.
+extras.register_default_json(loads=lambda x: x)
+extras.register_default_jsonb(loads=lambda x: x)
 
 LOTE = 5000
 
@@ -62,13 +67,27 @@ FONTES = {
         ("public", "launch_vehicles"),
         ("public", "launch_operational_resources"),
     ]),
-    "peculio": ("DATABASE_URL_EFETIVO", None, [
-        ("public", "Militar"),
-    ]),
-    "frota": ("DATABASE_URL_VIATURAS", None, [
-        ("public", "Viatura"),
+    # Frota lida DIRETO da fonte, nao do Neon. O Neon "Viatura" e um cache de
+    # aplicacao alimentado por etl/windmill/apps/frota_para_neon.py, com
+    # TRUNCATE a cada rodada e recorte de colunas -- serve ao app, nao ao DW.
+    "frota": ("DATABASE_URL_FROTA", None, [
+        ("public", "vehicles"),
+        ("public", "vehicle_types"),
+        ("public", "vehicle_statuses"),
+        ("public", "vehicle_status_types"),
+        ("public", "vehicle_ownership_types"),
+        ("public", "vehicle_destination_types"),
+        ("public", "vehicle_fuel_types"),
+        ("public", "license_categories"),
+        ("public", "transfers"),
+        ("public", "omes"),
+        ("public", "fuel_transactions"),
     ]),
 }
+
+# O Peculio nao esta aqui de proposito: ele e planilha, nao banco. Ver
+# etl/windmill/dw/raw_planilhas.py -- que le a planilha original, e nao o
+# Neon "Militar", que ja vem transformado e com linha descartada.
 
 
 def url_do_dw():
@@ -85,18 +104,35 @@ def url_da_fonte(variavel, banco):
 
 
 def colunas_da_origem(cur, schema, tabela):
-    """Nome e tipo exato de cada coluna, direto do catalogo da fonte."""
+    """Nome e tipo exato de cada coluna, direto do catalogo da fonte.
+
+    Tipo que nao existe no destino vira text. Sao dois casos: tipo de
+    extensao (a Frota usa citext, que exige CREATE EXTENSION) e enum, que
+    teria que ser recriado tipo a tipo. Guardar como text nao perde
+    informacao na camada raw -- o valor e o mesmo, so a validacao fica de
+    fora, e validar nao e papel do raw.
+    """
     cur.execute(
         """
-        SELECT a.attname, format_type(a.atttypid, a.atttypmod)
+        SELECT a.attname, format_type(a.atttypid, a.atttypmod), t.typtype,
+               n.nspname
         FROM pg_attribute a
+        JOIN pg_type t ON t.oid = a.atttypid
+        JOIN pg_namespace n ON n.oid = t.typnamespace
         WHERE a.attrelid = %s::regclass AND a.attnum > 0 AND NOT a.attisdropped
         ORDER BY a.attnum
         """,
         (f'"{schema}"."{tabela}"',),
     )
     negadas = NEGADAS.get(tabela, set())
-    return [(nome, tipo) for nome, tipo in cur.fetchall() if nome not in negadas]
+    colunas = []
+    for nome, tipo, typtype, nspname in cur.fetchall():
+        if nome in negadas:
+            continue
+        if typtype == "e" or nspname != "pg_catalog":
+            tipo = "text"
+        colunas.append((nome, tipo))
+    return colunas
 
 
 def recriar_destino(cur_dw, schema_dw, tabela_dw, colunas):
@@ -112,11 +148,29 @@ def recriar_destino(cur_dw, schema_dw, tabela_dw, colunas):
     )
 
 
-def copiar(conn_origem, conn_dw, schema_origem, tabela, schema_dw, tabela_dw):
+TIPOS_DE_DATA = ("date", "timestamp", "time")
+
+
+def copiar(conn_origem, conn_dw, schema_origem, tabela, schema_dw, tabela_dw,
+           datas_como_texto=False):
+    """Copia uma tabela da fonte para a raw.
+
+    datas_como_texto existe porque as fontes tem datas impossiveis: ja
+    encontramos ano 22, ano 4202 e ano 62025 em tabelas diferentes. O driver
+    nao consegue nem converter para date em Python. Numa camada raw, engolir
+    o valor como texto e o comportamento certo -- descartar a tabela inteira
+    por causa de uma celula seria pior, e converter e trabalho do stg. O
+    chamador nao precisa saber de antemao quais tabelas tem o problema: a
+    primeira tentativa e tipada, e o modo texto e a segunda.
+    """
     cur_origem = conn_origem.cursor()
     cur_dw = conn_dw.cursor()
 
     colunas = colunas_da_origem(cur_origem, schema_origem, tabela)
+    virar_texto = set()
+    if datas_como_texto:
+        virar_texto = {n for n, t in colunas if t.startswith(TIPOS_DE_DATA)}
+        colunas = [(n, "text" if n in virar_texto else t) for n, t in colunas]
     nomes = [c[0] for c in colunas]
 
     cur_dw.execute(
@@ -133,10 +187,16 @@ def copiar(conn_origem, conn_dw, schema_origem, tabela, schema_dw, tabela_dw):
         f'INSERT INTO "{schema_dw}"."{tabela_dw}" ({lista_colunas}, carga_id) VALUES %s'
     )
 
+    # No modo texto o cast tem que acontecer no servidor de origem, senao o
+    # driver tenta converter para date em Python antes de nos vermos o valor.
+    selecao = ", ".join(
+        f'"{n}"::text' if n in virar_texto else f'"{n}"' for n in nomes
+    )
+
     # Cursor nomeado = server-side: nao traz 1 milhao de linhas para a memoria.
     leitor = conn_origem.cursor(name=f"le_{tabela}")
     leitor.itersize = LOTE
-    leitor.execute(f'SELECT {lista_colunas} FROM "{schema_origem}"."{tabela}"')
+    leitor.execute(f'SELECT {selecao} FROM "{schema_origem}"."{tabela}"')
 
     total = 0
     while True:
@@ -171,10 +231,20 @@ def main():
         print(f"\n=== {fonte} ===")
         conn_origem = psycopg2.connect(url_da_fonte(variavel, banco), connect_timeout=30)
         for schema_origem, tabela in tabelas:
-            total_geral += copiar(
-                conn_origem, conn_dw, schema_origem, tabela,
-                f"raw_{fonte}", tabela.lower(),
-            )
+            try:
+                total_geral += copiar(
+                    conn_origem, conn_dw, schema_origem, tabela,
+                    f"raw_{fonte}", tabela.lower(),
+                )
+            except ValueError as erro:
+                # Data impossivel na fonte -- ver docstring de copiar().
+                conn_origem.rollback()
+                conn_dw.rollback()
+                print(f"    {tabela}: {erro} -- recarregando com datas como texto")
+                total_geral += copiar(
+                    conn_origem, conn_dw, schema_origem, tabela,
+                    f"raw_{fonte}", tabela.lower(), datas_como_texto=True,
+                )
         conn_origem.close()
 
     print(f"\nTotal: {total_geral} linhas em raw.")
