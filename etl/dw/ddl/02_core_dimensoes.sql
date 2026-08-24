@@ -91,10 +91,28 @@ CREATE TABLE IF NOT EXISTS core.dim_militar (
     data_ingresso     date,
     raca_cor          text,
     sk_posto_grad     integer,
+    antiguidade       integer,                   -- No dentro do posto/graduacao
+    antiguidade_geral integer,                   -- precedencia na corporacao inteira
     ativo             boolean NOT NULL,
     origem            text    NOT NULL,
     carregado_em      timestamptz NOT NULL DEFAULT now()
 );
+
+-- Antiguidade (2026-08-24). A planilha do Peculio e ordenada por precedencia:
+-- bloco por posto/graduacao, do Cel ao Sd, e dentro de cada bloco a coluna
+-- "No" reinicia em 1. Ou seja, o indice da planilha E a antiguidade -- nao
+-- precisa ser calculada, so lida.
+--
+--   antiguidade        o "No" declarado na planilha, dentro do posto.
+--                      E o numero que o militar cita ("sou o 269o 3o Sgt").
+--   antiguidade_geral  posicao na planilha inteira, 1..N. Ordena a corporacao
+--                      de ponta a ponta, o que a coluna acima nao faz: o No 1
+--                      dos Cel e o No 1 dos Sd sao pessoas muito diferentes.
+--
+-- ALTER separado do CREATE porque o CREATE tem IF NOT EXISTS: num banco que
+-- ja existe ele nao acrescentaria coluna nenhuma.
+ALTER TABLE core.dim_militar ADD COLUMN IF NOT EXISTS antiguidade       integer;
+ALTER TABLE core.dim_militar ADD COLUMN IF NOT EXISTS antiguidade_geral integer;
 
 -- ---------------------------------------------------------------------------
 -- dim_posto_grad

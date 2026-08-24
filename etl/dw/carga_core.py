@@ -443,6 +443,13 @@ def carregar_dimensoes_pessoal(cur):
     # A planilha nao tem flag de ativo: quem esta nela e o efetivo ativo. Isso
     # e mais honesto que o ativo=false do Neon, que so marca quem saiu da
     # planilha em alguma rodada anterior e nunca foi limpo.
+    #
+    # A ORDEM DA PLANILHA E A ANTIGUIDADE. Ela vem em blocos por posto, do Cel
+    # ao Sd, e a coluna "No" (posicao 1) reinicia em 1 a cada bloco. Entao a
+    # antiguidade nao e calculada por nos: e lida. col[1] da a antiguidade
+    # dentro do posto; a posicao na planilha inteira da a precedencia na
+    # corporacao. Se um dia a planilha deixar de vir ordenada, os dois valores
+    # deixam de significar o que dizem -- validar.py checa isso.
     # A view abaixo e montada POR POSICAO, nao por nome de coluna: o
     # cabecalho da planilha e texto livre, muda sozinho e ja veio truncado
     # em 40 caracteres pelo carregador. A posicao e o unico contrato estavel
@@ -470,10 +477,16 @@ def carregar_dimensoes_pessoal(cur):
             "THEN left(trim(\"{0}\"), 10)::date END".format(alvo)
         )
 
+    # DROP antes do CREATE: "CREATE OR REPLACE VIEW" so aceita acrescentar
+    # coluna no fim da lista, e esta view muda de forma sempre que a planilha
+    # ganha um campo novo. Nada depende dela alem desta funcao.
+    cur.execute("DROP VIEW IF EXISTS stg.peculio")
     cur.execute(f"""
-        CREATE OR REPLACE VIEW stg.peculio AS
+        CREATE VIEW stg.peculio AS
         SELECT
             linha                                  AS ordem,
+            nullif(trim("{col[1]}"), '')::int       AS antiguidade,
+            row_number() OVER (ORDER BY linha)     AS antiguidade_geral,
             trim("{col[8]}")                       AS matricula_exibida,
             replace(trim("{col[8]}"), '-', '')     AS matricula,
             trim("{col[2]}")                       AS posto_grad,
@@ -511,11 +524,13 @@ def carregar_dimensoes_pessoal(cur):
     cur.execute("""
         INSERT INTO core.dim_militar
             (sk_militar, matricula, matricula_exibida, nome, nome_guerra, sexo,
-             data_nascimento, data_ingresso, raca_cor, sk_posto_grad, ativo, origem)
+             data_nascimento, data_ingresso, raca_cor, sk_posto_grad,
+             antiguidade, antiguidade_geral, ativo, origem)
         SELECT row_number() OVER (ORDER BY p.matricula), p.matricula,
                p.matricula_exibida, p.nome, p.nome_guerra, p.sexo,
                p.data_nascimento, p.data_praca, p.raca_cor,
-               pg.sk_posto_grad, true, 'peculio'
+               pg.sk_posto_grad, p.antiguidade, p.antiguidade_geral,
+               true, 'peculio'
         FROM stg.peculio p
         LEFT JOIN core.dim_posto_grad pg ON pg.sigla = p.posto_grad
     """)

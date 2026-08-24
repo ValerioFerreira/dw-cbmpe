@@ -519,11 +519,35 @@ dessa distinção foi exatamente a causa do bug acima. As duas DGP (ids 8 e
 
 ### 2. `dim_militar`
 
-Grão: 1 militar. SCD tipo 2. Chave natural: **matrícula**.
+Grão: 1 militar. **2.658 linhas, carregada.** Chave natural: **matrícula**.
 
-Fonte hoje: Pecúlio/Neon (efetivo ativo). Fonte futura: SGP, quando
+Fonte hoje: planilha do Pecúlio (não mais o Neon). Fonte futura: SGP, quando
 regularizado. Para que a virada seja uma troca de precedência e não uma
 reescrita, cada atributo carrega a sua **procedência**.
+
+#### Antiguidade — lida do índice da planilha, não calculada
+
+A planilha do Pecúlio já vem ordenada por precedência: blocos por posto, do
+Cel ao Sd, e dentro de cada bloco a coluna `Nº` reinicia em 1. **O índice da
+planilha é a antiguidade** — não há nada a calcular, só a ler. Duas colunas:
+
+| Coluna | O que é |
+|---|---|
+| `antiguidade` | O `Nº` declarado na planilha, dentro do posto. É o número que o militar cita — "sou o 269º 3º Sgt" |
+| `antiguidade_geral` | Posição na planilha inteira, 1..2.658. Ordena a corporação de ponta a ponta, o que a coluna acima não faz: o nº 1 dos Cel e o nº 1 dos Sd são pessoas muito diferentes |
+
+`antiguidade_geral` bate **100% com a `ordemHierarquica` do Neon** nas 2.658
+matrículas — validação cruzada com o campo que a aplicação já usava. A
+`antiguidade` por posto é informação nova: o Neon não a tinha.
+
+Como a planilha é a fonte da ordem, o `validar.py` checa que **cada posto
+ocupa um bloco contíguo**. Se a planilha deixar de vir ordenada, as duas
+colunas passariam a mentir em silêncio — essa é a checagem que pega isso.
+
+**Três `Nº` repetidos** dentro do posto (um em 3ºSgt, um em Cb, um em
+Subten) — erro de digitação na origem, reportado pelo `validar.py` sem
+derrubar a carga. O número é da corporação, não nosso: renumerar por conta
+própria seria pior do que exibir o conflito. A ordem da planilha desempata.
 
 Formatos de matrícula por sistema, medidos em 2026-08-24 — a normalização
 canônica é **sem hífen, com dígito verificador**:

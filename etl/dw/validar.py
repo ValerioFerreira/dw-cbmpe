@@ -144,6 +144,46 @@ def main():
     for dominio, situacao, pares in cur.fetchall():
         print(f"    {dominio:<22} {situacao:<12} {pares:>8}")
 
+    print("\nAntiguidade (lida do indice da planilha do Peculio):")
+    falhas += not checar(
+        "militares com antiguidade preenchida",
+        valor(cur, "SELECT count(*) FROM core.dim_militar WHERE antiguidade IS NOT NULL"),
+        ESPERADO_TOTAL)
+    falhas += not checar(
+        "antiguidade_geral cobre 1..N sem furo",
+        valor(cur, """
+            SELECT max(antiguidade_geral) - min(antiguidade_geral) + 1
+                   = count(DISTINCT antiguidade_geral)
+            FROM core.dim_militar
+        """),
+        True)
+    # A planilha e a fonte da ordem. Se ela deixar de vir ordenada por posto,
+    # antiguidade e antiguidade_geral passam a mentir em silencio -- esta e a
+    # checagem que pega isso: o bloco de cada posto tem que ser contiguo.
+    falhas += not checar(
+        "cada posto ocupa um bloco contiguo da planilha",
+        valor(cur, """
+            SELECT count(*) FROM (
+                SELECT sk_posto_grad,
+                       max(antiguidade_geral) - min(antiguidade_geral) + 1 AS faixa,
+                       count(*) AS militares
+                FROM core.dim_militar WHERE sk_posto_grad IS NOT NULL
+                GROUP BY 1
+            ) b WHERE faixa <> militares
+        """),
+        0)
+    # No repetido dentro do posto e erro de digitacao na planilha, nao da
+    # carga. Reportar sem falhar: o numero e da corporacao, nao nosso, e
+    # renumerar por conta propria seria pior do que exibir o conflito.
+    checar("postos com No repetido na planilha (erro na origem)",
+           valor(cur, """
+               SELECT count(*) FROM (
+                   SELECT sk_posto_grad, antiguidade FROM core.dim_militar
+                   WHERE antiguidade IS NOT NULL
+                   GROUP BY 1, 2 HAVING count(*) > 1
+               ) d
+           """))
+
     print("\nCoordenadas:")
     checar("OMEs com latitude/longitude",
            valor(cur, "SELECT count(*) FROM core.dim_ome WHERE latitude IS NOT NULL"))
