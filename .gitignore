@@ -35,3 +35,6 @@ __pycache__/
 .env
 .vite
 .vercel
+
+# saida gerada pelos scripts de reconciliacao do DW
+etl/mapa_forca/de_para_viatura.json

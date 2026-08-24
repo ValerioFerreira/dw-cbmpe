@@ -2093,7 +2093,7 @@ descartada:
 - Inativo é de outra diretoria, fora de escopo por ora.
 - **Adido conta quatro vezes, sem duplicidade**: para o órgão externo, para
   uma OME fantasma `ADIDOS`, para o rollup do Comando Geral e para o total.
-  A OME fantasma entra na `dim_organizacao`. Adido **pode** ser escalado.
+  A OME fantasma entra na `dim_ome`. Adido **pode** ser escalado.
 - Órgão do adido vem do `Militar.orgao` do Pecúlio; rever quando o SGP virar
   a fonte.
 - **Agregado segue em aberto.**

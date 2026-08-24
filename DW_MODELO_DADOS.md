@@ -246,6 +246,124 @@ cruzada de contagem por posto).
 
 ---
 
+# O DW existe (construído em 2026-08-24)
+
+> Esta seção descreve o que **está no ar**, não proposta. O que vem depois
+> dela é o desenho que gerou isto.
+
+Banco `dw` no Postgres interno (`10.193.1.252:54301`), **427 MB, 1,85 milhão
+de linhas**. Construído por `etl/dw/`, em quatro passos idempotentes:
+
+```
+etl/dw/criar_banco.py     cria o database (CREATE DATABASE nao roda em transacao)
+etl/dw/aplicar_ddl.py     aplica etl/dw/ddl/*.sql em ordem
+etl/dw/carga_raw.py       copia fiel das fontes para raw_*
+etl/dw/carga_core.py      raw -> stg -> core (e onde a regra de negocio mora)
+etl/dw/validar.py         bateria de perguntas de negocio com resposta conhecida
+```
+
+## O que está carregado
+
+| Camada | Conteúdo |
+|---|---|
+| `raw_sgp` | `tb_ome` (82), `tb_secao` (1.100) |
+| `raw_escala` | `tb_posto`, `tb_turn_servi`, `tb_tipo_servi`, `tb_func_oper`, `tb_natur_servi` |
+| `raw_mapa_forca` | 1.845.200 linhas — lançamentos, militares, viaturas, recursos e cadastros |
+| `raw_peculio` | `Militar` (2.703) |
+| `raw_frota` | `Viatura` (841) |
+| `core` | 11 dimensões + 5 fatos, 1.379.128 linhas |
+| `stg` | `de_para_ome` (121), `de_para_viatura` (1.626), controle de carga |
+| `marts` | 8 views de consumo |
+
+Fatos: `fato_efetivo_diario` (2.658), `fato_frota_diaria` (805),
+`fato_lancamento_militar` (902.164), `fato_lancamento_viatura` (204.443),
+`fato_lancamento_recurso` (259.998).
+
+**CPF não foi copiado** (`launch_militaries.military_cpf`,
+`action_logs.user_cpf`) — bloqueado por lista de negação no `carga_raw.py`.
+
+## As regras de negócio, verificadas
+
+`etl/dw/validar.py` não é teste unitário: é uma bateria de perguntas de
+negócio com resposta esperada conhecida. Resultado atual, tudo passando:
+
+| Verificação | Valor |
+|---|---|
+| Total da corporação | 2.658 |
+| CPPA (efetivo próprio) | 11 |
+| DGP própria + CPPA (o número que o app mostra) | 39 |
+| ADIDOS (OME fantasma) | 187 |
+| COMANDO GERAL (rollup) | 2.658 |
+| Adido entra no rollup da DGP? | 0 — não entra |
+| Soma do efetivo próprio de todas as OMEs | 2.658 |
+
+A última é a que prova que não há dupla contagem nem perda: cada militar tem
+exatamente uma linha de fato, e a hierarquia distribui.
+
+## Divergência encontrada: a hierarquia do SGP não é a do organograma
+
+**Não é erro de carga** — o DW reflete fielmente a fonte declarada como
+autoridade. É uma decisão pendente.
+
+No SGP, a DGP tem **77** militares por rollup; no organograma que o app usa,
+são **39**. A diferença são unidades que o SGP pendura na DGP e o organograma
+não:
+
+| Unidade | Efetivo próprio |
+|---|---|
+| DAS | 30 |
+| CEFD | 8 |
+| CPPA | 11 (esta é comum aos dois) |
+
+No organograma oficial, DAS e CEFD são unidades irmãs sob a DGA; no SGP,
+pendem da DGP. A hipótese mais provável é que o SGP esteja desatualizado —
+a DGA ainda não existe operacionalmente, então DAS e CEFD ficaram sob a DGP
+por herança. **A decidir com o usuário**, e enquanto não for decidido a
+`marts.efetivo_por_ome` expõe as duas leituras: `efetivo_proprio` (só a
+própria unidade) e `efetivo_total` (com rollup).
+
+## O que já dá para responder e antes não dava
+
+**Série temporal de emprego operacional** — a fonte sozinha não dá, porque
+guarda só o estado atual:
+
+| Ano | Lançamentos | Militares escalados |
+|---|---|---|
+| 2021 | 28.592 | 80.585 |
+| 2022 | 47.079 | 138.568 |
+| 2023 | 63.518 | 172.524 |
+| 2024 | 67.498 | 168.933 |
+| 2025 | 68.902 | 173.611 |
+| 2026 (parcial) | 58.821 | 167.917 |
+
+**Dias de emprego por viatura** — a pergunta que motivou a reconciliação
+Frota × mapa de força, via `marts.emprego_viatura_resumo`. Exemplo real: a
+`PCH1493` (ABT-819) foi empregada em **1.864 dias** distintos, de 2021-05-26
+a 2026-08-24.
+
+E dois números que caem de graça e valem alerta de gestão: **367 viaturas da
+frota nunca apareceram em serviço**, e **116 viaturas com situação "Ativa"
+estão há mais de 180 dias sem emprego**. Ambos precisam ser lidos junto com a
+cobertura da reconciliação (`marts.qualidade_reconciliacao`), porque parte
+pode ser falha de casamento e não ociosidade real.
+
+## Cobertura da reconciliação, publicada de propósito
+
+`marts.qualidade_reconciliacao` existe para que ninguém leia "viaturas
+empregadas" como número completo:
+
+| Domínio | Resolvido | Sem casar |
+|---|---|---|
+| `fato_lancamento_militar` | 830.152 (92,0%) | 72.012 |
+| `fato_lancamento_viatura` | 164.399 (80,4%) | 40.044 |
+
+A cobertura de viatura aqui (80,4%) é menor que os 98,6% medidos em 12 meses
+porque o histórico vai a 2019 e a `dim_viatura` só tem a frota **atual** —
+viatura baixada desde então não tem para onde casar. Resolve quando a
+`dim_viatura` virar SCD2 de verdade, carregada do histórico da Frota.
+
+---
+
 # Dimensões conformadas (proposta de 2026-08-24)
 
 > Esta seção é a primeira proposta concreta de dimensões, feita **depois**
@@ -262,7 +380,7 @@ negócio, mas as **dimensões conformadas passam a ser tabelas materializadas
 no `core`**, por um motivo concreto que só ficou visível com as fontes na
 mão: a dimensão não é uma projeção do dado — ela **carrega a reconciliação**.
 
-`dim_organizacao` precisa guardar o de-para de cinco sistemas que chamam a
+`dim_ome` precisa guardar o de-para de cinco sistemas que chamam a
 mesma unidade de nomes diferentes, mais a chave substituta que sobrevive à
 troca de fonte, mais o histórico SCD2. Nada disso cabe numa view: é dado
 novo, produzido por nós, que não existe em nenhuma origem. O mesmo vale para
@@ -280,7 +398,7 @@ usadas por um único fato não precisam desse tratamento.
 
 ## Dimensões propostas
 
-### 1. `dim_organizacao` — a espinha dorsal
+### 1. `dim_ome` — a espinha dorsal
 
 Grão: 1 OME. SCD tipo 2. **Autoridade: `ovrsgp.tb_ome`.**
 
@@ -433,7 +551,7 @@ Grão a definir com a DF. Única dimensão desta lista **sem fonte analisada**.
 
 | Dimensão | efetivo diário | frota diária | movimentação | promoção | lançamento militar | lançamento viatura | lançamento recurso | abastecimento | vacinação |
 |---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-| `dim_organizacao` | x | x | x | | x | x | x | | x |
+| `dim_ome` | x | x | x | | x | x | x | | x |
 | `dim_tempo` | x | x | x | x | x | x | x | x | x |
 | `dim_militar` | x | | x | x | x | | | | x |
 | `dim_posto_graduacao` | x | | | x | x | | | | |
@@ -446,7 +564,7 @@ Grão a definir com a DF. Única dimensão desta lista **sem fonte analisada**.
 | `dim_tipo_recurso_operacional` | | | | | | | x | | |
 | `dim_vacina` / `dim_campanha` | | | | | | | | | x |
 
-`dim_organizacao`, `dim_tempo` e `dim_militar` aparecem em quase tudo — são
+`dim_ome`, `dim_tempo` e `dim_militar` aparecem em quase tudo — são
 as três que precisam estar certas antes de qualquer outra coisa.
 
 # Fatos propostos
