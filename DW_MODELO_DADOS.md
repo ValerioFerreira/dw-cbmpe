@@ -192,57 +192,91 @@ resolvem isso — **confirmado com o usuário, não presumido**:
   Previsto (`etl/efetivo/extract_previsto.py`/`extract_previsto_divisoes.py`)
   — define quantas vagas de função existem por unidade/seção e que posto
   cada uma espera.
-- **Repercussão Financeira.xlsx** (CPPA) — conecta as duas: quem ocupa
-  qual função.
+- **QOD publicado pela DPlaG** (Google Sheets, "publicar na web") —
+  conecta as duas: quem ocupa qual função. **Substituiu a Repercussão
+  Financeira nesse papel em 2026-08-26** (ver abaixo).
 
 ### Entidade `lotacao_funcao` (grão: 1 por (militar, função ocupada))
 
-Fonte: aba `DIST_FUNCOES` da Repercussão Financeira.xlsx. Campos: matrícula
-(FK `militar`), unidade (texto bruto — de-para pro organograma a
-construir), posto do militar, **nome completo da função e seção** (texto
-livre, ex. "Chefe da Divisão de Operações", "Comandante do(a) 5º Grupo de
-Salvamento da 1ª SBS"), posto esperado pela função, portaria, BGE,
-antiguidade. Permite N linhas por matrícula (acúmulo de função —
-confirmado pelo usuário e observado nos dados: mesma matrícula em 2 linhas
-com funções diferentes).
+Fonte: **QOD publicado pela DPlaG**, duas abas do mesmo arquivo:
 
-**Cobertura parcial, não 100%**: hoje 846 linhas de ~2.659 militares
-ativos (~32%). Confirmado pelo usuário: "DIST_FUNCOES está sendo
-atualizada, e irá conter todos os militares do pecúlio" — é uma planilha
-viva, em expansão pela CPPA, não um snapshot completo. Cobre todos os
-postos (verificado: 223 Sd, 169 3º Sgt, 111 Cb nas amostras, com funções
-como "Combatente do Grupo de Salvamento", não só chefias — não é só
-função de chefia/comando). Pro efetivo ainda fora de `DIST_FUNCOES`, a
-granularidade continua só OME (via Pecúlio/Neon) até a cobertura
-aumentar.
+| Aba | Grão | Papel |
+|---|---|---|
+| `QOD_FUNCOES` | 1 por função prevista (1.823) | Catálogo: `ID_FUNCAO`, tipo (FUNÇÃO/ENCARGO), OME, localidade, **seção**, nome da função, ordem de exibição |
+| `QOD_CONSOLIDADA` | 1 por (militar, função ocupada) (2.775) | Ocupação: antiguidade, unidade, matrícula, posto, nome, cursos, posto esperado da função, portaria, BGE, **`CÓDIGO`** |
 
-**Aba `REPERC_FINANC` (mesmo arquivo) — catalogada, não integrada agora**:
-~2.531 linhas, grão 1 por militar, mas só com o posto-tier da função (ex.
-"CAP QOC"), sem nome de seção — parece servir pra reconciliar vagas
-disponíveis x ocupadas por posto (repercussão financeira/gratificação de
-função). Redundante com `DIST_FUNCOES` pro nosso propósito (função+seção)
-e o usuário não confirmou sincronismo garantido entre as duas abas — fica
-de fora do modelo até haver motivo concreto pra usá-la (ex. validação
-cruzada de contagem por posto).
+`QOD_CONSOLIDADA.CÓDIGO` → `QOD_FUNCOES.ID_FUNCAO` é **chave estrangeira
+de verdade**: 2.744 das 2.775 linhas trazem `CÓDIGO` e 100% delas
+resolvem. O par militar→função não tem nada para adivinhar.
+
+Permite N linhas por matrícula (acúmulo de função): 239 militares hoje.
+
+**Por que substituiu a Repercussão Financeira.** Até 2026-08-26 a função
+vinha da aba `DIST_FUNCOES` da Repercussão Financeira (CPPA): uma coluna
+de TEXTO LIVRE por militar, casada contra o organograma por três camadas
+de heurística. Cobria 716 militares (26,9%) em 14 unidades. O QOD
+publicado cobre **2.356 (88,6%) em 43 unidades**, sem heurística nenhuma
+no par militar→função, e traz os mesmos campos administrativos
+(antiguidade, portaria, BGE, posto da função) mais cursos, seção,
+localidade e a distinção FUNÇÃO/ENCARGO. A Repercussão Financeira
+continua existindo para o cálculo financeiro — só deixou de ser fonte de
+lotação/função.
+
+**FUNÇÃO vs ENCARGO.** O catálogo separa 1.397 funções de 426 encargos.
+Encargo é acúmulo, com `ID_FUNCAO_VINCULADA` apontando para a função que
+a pessoa já ocupa. 87 militares têm função e encargo; 10 só encargo.
+Contar as duas linhas duplicaria os 87 — então a contagem por
+divisão/seção usa só FUNÇÃO, mais o encargo de quem não tem função
+lançada. A ficha do militar mostra as duas, com o campo `tipo`.
+
+### Seção x divisão — a única coisa que ainda depende de casamento
+
+O QOD é **um nível mais fino** que o organograma do app: ele lista "Seção
+de Tesouraria - ST", que em `SUBSETORES` (`src/data/organograma.js`) não
+existe — lá ela está dentro de "Divisão Administrativa - DA". Casar seção
+contra divisão direto resolve **980 das 1.823 funções**; o resto fica com
+`divisao: null` e aparece só em `por_unidade_secao`, com o nome exato que
+o QOD dá.
+
+A tentativa de fechar o resto por heurística foi feita e **rejeitada por
+medição**. A ideia era usar `ORDEM_EXIBICAO`: o QOD é lido de cima para
+baixo, então a seção herdaria a última divisão aberta acima dela. Sobe a
+atribuição de 65% para 91% — mas a conferência contra o efetivo previsto
+por divisão (`efetivo_previsto_divisoes.json`, que vem da árvore numerada
+do QOD original) reprova:
+
+| Regra | Funções atribuídas | Divisões acima do previsto | Pessoas sobrando |
+|---|---:|---:|---:|
+| Só casamento direto | 1.701 | 4 | 12 |
+| + rollup por ordem de exibição | 2.370 | 28 | 115 |
+
+O caso que revela o furo: no 1º GB a ordem põe SICT e SEO (6 funções)
+logo depois do bloco da Secretaria e ANTES da linha que abre a Divisão de
+Operações — as seis vão parar numa Secretaria de 4 vagas. O documento não
+é uma árvore linear confiável. 669 atribuições a mais não pagam 93
+pessoas na divisão errada.
+
+As 4 divisões que ainda passam do previsto no casamento direto são fato
+da fonte, não erro de casamento — a maior é `GBAPH / Secretaria e Apoio
+do Comando - SAC`, com **16 militares lançados para 8 vagas previstas**.
 
 ### Pendências explícitas desta fonte (não resolver por suposição)
 
-- **De-para de unidades da Repercussão Financeira → organograma**: nomes
-  divergem em vários casos (ex. "DIInter/1"/"DIInter/2" → "DINTER I"/
-  "DINTER II", "CAT/Zona da Mata (Carpina)" → "CAT/ZM"). Usuário autorizou
-  construir por inferência de nome (mesmo padrão do
-  `etl/efetivo/mapeamento_previsto.json` do QOD), com revisão dele depois
-  — ainda não construído.
-- **Granularidade de `SUBSETORES`**: o texto de função de `DIST_FUNCOES` é
-  mais fino em vários casos (ex. "grupo de salvamento" dentro de uma SBS)
-  do que as divisões que o app já exibe hoje (`SUBSETORES` em
-  `organograma.js`). Não forçar casamento automático até decidir se o app
-  deve descer a esse nível ou se essa granularidade fica só no `core`.
-- **Cobertura parcial de `DIST_FUNCOES`** (~32% hoje) — qualquer extração
-  precisa deixar claro que "sem função" não significa "não tem função",
-  só que ainda não foi lançada na planilha.
-- Sem extração/script escrito ainda — isto é só o desenho (passo 3 do
-  `DW_PROCESSO_INTEGRACAO.md`), aguardando revisão do usuário.
+- **De-para seção → divisão** (ou o QOD original com a numeração
+  hierárquica `1.`/`1.1.`/`1.1.1.`, que o `extract_previsto_divisoes.py`
+  já sabe ler): é o que falta para atribuir os 843 restantes sem
+  adivinhar. Mesma pendência, por outro caminho, do subfiltro de seção do
+  painel de Mapa de Força.
+- **31 linhas de ocupação sem `CÓDIGO`** — 13 delas na CAT/Zona da Mata.
+  Sem código não dá para saber a função; ficam de fora, contadas e
+  listadas na saída do extrator.
+- **110 divergências de unidade** entre o QOD e o Pecúlio (ex. militar em
+  "3º GB (Serra Talhada)" no QOD e em GBI no Pecúlio, num bloco de
+  matrículas 725xxx). Vale o Pecúlio, e o extrator lista todas.
+- **Cobertura de 88,6%** — "sem função" continua significando "ainda não
+  lançada", não "não tem função".
+- **1 matrícula fora do Pecúlio**: 950759-0 (Subcomandante Geral). Entra
+  pelo de-para de unidade da própria planilha.
 
 ---
 
@@ -725,6 +759,25 @@ segurança pública do estado que não existe em nenhuma outra fonte nossa.
 Ressalva: 140 das 142 `stations` estão com `latitude = 0.0, longitude = 0.0`,
 e a de Fernando de Noronha tem coordenada do Recife. Mesma classe de
 problema da `tb_ome`, e corrigível pelo mesmo caminho.
+
+**A coordenada que o painel usa não é lida direto da dimensão.** Ela passa por
+`etl/mapa_forca/conferir_coordenadas.py`, que resolve e confere, porque a
+coordenada gravada erra em silêncio — a varredura de 2026-08-26 achou uma no
+Rio de Janeiro, duas com sinal invertido e uma apontando para a cidade vizinha.
+Ordem das regras: coordenada própria conferida (com correção de sinal) → o
+nome do posto é a sigla de uma unidade com coordenada → cidade citada no nome →
+campo `municipio` (nunca para posto de evento) → coordenada da OME. Toda
+coordenada é comparada com o polígono do município declarado pelo posto,
+usando a malha oficial do IBGE, com 2 km de tolerância.
+
+O campo `origemCoord` do índice do painel registra qual regra respondeu —
+`posto`, `unidade`, `municipio` ou `ome` —, e o mapa desenha tracejado tudo
+que não é `posto`. Distribuição em 2026-08-26: 103 / 7 / 32 / 43.
+
+O campo `municipio` da dimensão **não serve para localizar o posto**: ele
+guarda o município da OME. Os 20 postos municipais da CAT/ZM estão todos
+gravados como CARPINA, e todo posto de `OPERAÇÃO *` está gravado como RECIFE.
+Quem carrega a cidade de verdade é o NOME do posto.
 
 ### 8. `dim_turno`
 

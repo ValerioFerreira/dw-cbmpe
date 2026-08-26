@@ -296,6 +296,28 @@ O tamanho do problema de reconciliação, medido em 2026-08-24:
 | Pecúlio / Neon (`Militar.ome`) | 46 | por sigla — `etl/efetivo/mapeamento_unidades.json` |
 | `dw_dim.efetivo.ome` (em desuso) | 48 | por sigla/nome — casado em 2026-08-24 |
 
+### Malha de municípios (geometria do mapa)
+
+| Item | Valor |
+|---|---|
+| Fonte | IBGE — API de malhas territoriais, `servicodados.ibge.gov.br/api/v3/malhas/estados/26` |
+| Tipo | sistema externo, público, sem autenticação |
+| Acesso | HTTP GET, `formato=application/vnd.geo+json&qualidade=maxima&intrarregiao=municipio` |
+| Frequência | eventual — só quando o IBGE revisa a malha |
+| Sensibilidade | pública |
+| Script | `etl/_geo/baixar_malha_ibge.py` → `etl/_geo/municipios_pe.geojson.json` |
+| Consumidores | `etl/_geo/projetar_municipios.py` (paths SVG do app), `etl/mapa_forca/coordenadas_postos.py` (centroide), `etl/mapa_forca/conferir_coordenadas.py` (conferência de coordenada) |
+| Status | **confirmado, em uso desde 2026-08-26** |
+
+Substituiu a malha simplificada que vinha desde os painéis de Distribuição
+Geográfica (15.635 vértices, `Polygon` de anel único). A oficial tem 37.451
+vértices e `MultiPolygon` onde é preciso — Noronha (5 corpos de terra),
+Ipojuca (2) e Sirinhaém (2). A API devolve só `codarea`; o nome de cada
+município vem por junção pelo código com o arquivo anterior, e os 185 batem.
+
+A troca também corrigiu divisas erradas — ver o log de 2026-08-26 em
+`DW_PLANEJAMENTO.md`.
+
 ### Coordenadas geográficas
 
 Situação em 2026-08-24: **nenhuma OME tem coordenada real no SGP** — as 75
@@ -320,6 +342,24 @@ Regras de coordenada confirmadas pelo usuário:
   `CAT/ZM*` usa o 1º GB, `CAT/AGRESTE*` o 2º GB, `CAT/SERTÃO*` o 4º GB.
 - **GBFN** (hoje Seção, SBFN, vinculada ao GBI) recebe coordenada literal
   `-3.85609, -32.42678` — é o único ponto fora do continente.
+
+#### Coordenada do posto de serviço (mais fino que a OME)
+
+O Mapa de Força tem grão de POSTO, e `ovresc.tb_posto` grava `0,0` na maioria
+deles. O de-para vem de dois KMZ enviados pela corporação
+(`etl/mapa_forca/kmz/`, DINTER 2 com prioridade sobre o geral) mais o centroide
+do município. `etl/mapa_forca/conferir_coordenadas.py` resolve e **confere**:
+toda coordenada é comparada com o polígono do município que o posto declara,
+com 2 km de tolerância.
+
+Defeitos confirmados na fonte, corrigidos na leitura (nunca no SGP):
+
+- coordenada de outro estado (`CEASA / Recife` gravada no Rio de Janeiro);
+- sinal invertido (`7ªSB / CARUARU` em +8,295/+35,990);
+- coordenada de outra cidade (`4ªSB / BONITO` apontando para Palmares);
+- campo `municipio` que guarda o município da OME, não o do posto — os 20
+  postos municipais da CAT/ZM estão todos gravados como CARPINA, e todo posto
+  de `OPERAÇÃO *` está gravado como RECIFE.
 - Seis unidades extintas (ids 35, 37, 42, 54, 57, 86) não recebem
   coordenada, mas **não devem ser inativadas** por nossa conta.
 
@@ -342,9 +382,10 @@ Regras de coordenada confirmadas pelo usuário:
 |---|---|---|---|---|---|---|
 | SGP (Sistema de Gestão de Pessoal), schema `ovrsgp` | Sistema interno | Acesso direto a banco — **conexão obtida em 2026-08-24**: `10.193.0.16:5432`, banco `db_portal_sistemas_prod`, var. `DATABASE_URL_SGP` | A LEVANTAR | A LEVANTAR | Misto — PII pesado + dado sensível (saúde), ver escopo proposto em `DW_MODELO_DADOS.md` | Escopo de entidades proposto (a confirmar campo a campo); conexão e frequência a levantar. Ficha `/militar/:matricula` — Caminho A (público, só não sensível, lido da base Neon) implementada 2026-08-19; Caminho B (ficha completa do SGP) engatilhado, aguarda conexão ao SGP + autenticação real — allowlist/denylist em `DW_GOVERNANCA.md`, mapa de blocos em `DW_MODELO_DADOS.md` |
 | Neon (Postgres gerenciado) — tabela `Militar` | Sistema interno (mantido pelo usuário) | Acesso direto a banco (connection string própria, fora da rede interna/VPN) | A LEVANTAR | Sincronizado por script Windmill a partir de planilha Google Sheets — frequência real a levantar | Misto — `efetivo.json` é agregado (contagem por unidade); `efetivo_lista.json` é individual por decisão deliberada e confirmada (postoGrad/matrícula/nome/nomeGuerra/sexo/idade — ver `DW_GOVERNANCA.md`); painel "dados completos" adiciona campo sensível LGPD, coleta pendente | Confirmado para Efetivo (contagem por `ome`, `ativo=true`) — ver extração em `etl/efetivo/`. Não substitui o SGP para o aprofundamento futuro do domínio |
-| QOD ("Quadro de Organização e Distribuição", planilha oficial, "08 - QOD - AGOSTO - 2026.xlsx") | Planilha | Arquivo local compartilhado diretamente pelo usuário (sem link/API — 97 abas, uma por unidade + seções internas) | A LEVANTAR | Ad hoc — compartilhado manualmente pelo usuário quando atualizado; sem mecanismo de coleta automática ainda | Agregado (só o total previsto por unidade e por divisão interna sai dos extratores, nunca dado de militar individual) | Confirmado para Efetivo Previsto por unidade (aba GERAL 001, coluna TOTAL) — ver `etl/efetivo/extract_previsto.py` — e por divisão/seção interna de cada unidade (uma aba por unidade, ex. "GBI 012", "DGP 080") — ver `etl/efetivo/extract_previsto_divisoes.py`, gera `src/data/real/efetivo_previsto_divisoes.json`. Pendente de homologação/publicação em BGE (usado mesmo assim, a pedido do usuário). Também serve de fonte de `dim_funcao` (vagas de função por unidade/seção) pro cruzamento com a Repercussão Financeira abaixo |
+| QOD ("Quadro de Organização e Distribuição", planilha oficial, "08 - QOD - AGOSTO - 2026.xlsx") | Planilha | Arquivo local compartilhado diretamente pelo usuário (sem link/API — 97 abas, uma por unidade + seções internas) | A LEVANTAR | Ad hoc — compartilhado manualmente pelo usuário quando atualizado; sem mecanismo de coleta automática ainda | Agregado (só o total previsto por unidade e por divisão interna sai dos extratores, nunca dado de militar individual) | Confirmado para Efetivo Previsto por unidade (aba GERAL 001, coluna TOTAL) — ver `etl/efetivo/extract_previsto.py` — e por divisão/seção interna de cada unidade (uma aba por unidade, ex. "GBI 012", "DGP 080") — ver `etl/efetivo/extract_previsto_divisoes.py`, gera `src/data/real/efetivo_previsto_divisoes.json`. Pendente de homologação/publicação em BGE (usado mesmo assim, a pedido do usuário). Também serve de fonte de `dim_funcao` (vagas de função por unidade/seção) pro cruzamento com o QOD publicado abaixo — e é o árbitro que reprovou o rollup por ordem de exibição (ver DW_MODELO_DADOS.md) |
 | Pecúlio.xlsx (DGP, planilha oficial) | Planilha | Arquivo local compartilhado diretamente pelo usuário | A LEVANTAR | Ad hoc | Misto — mesmos campos já cobertos por PII em `efetivo_lista.json` | **Confirmado pelo usuário: é a mesma fonte que já alimenta o Neon** (linha acima) — não é uma superfície de integração nova, só a planilha de origem visível. Ver `DW_MODELO_DADOS.md` |
-| Repercussão Financeira.xlsx (CPPA, planilha oficial) | Planilha | Arquivo local compartilhado diretamente pelo usuário (12 abas; relevante: `DIST_FUNCOES`) | A LEVANTAR | Ad hoc — planilha viva, em atualização contínua pela CPPA (não um snapshot fechado) | Misto — matrícula/nome (PII) + função/seção (agregável) | **Implementado**: `etl/efetivo/extract_lotacao_funcao.py` lê `DIST_FUNCOES`, casa matrícula com `efetivo_lista.json` (Pecúlio/Neon) e gera `src/data/real/lotacao_funcao.json`. Rodada de 2026-08-17: 716/2.659 militares com função (~27%, cobertura parcial confirmada pelo usuário como em expansão). Aba `REPERC_FINANC` catalogada mas não integrada (redundante — só posto-tier, sem seção) |
+| **QOD publicado pela DPlaG** (Google Sheets, "publicar na web", `pub?output=xlsx`; abas `QOD_FUNCOES` + `QOD_CONSOLIDADA`) | Planilha | URL pública, baixada pelo próprio extrator (mesmo mecanismo de `etl/windmill/dw/raw_planilhas.py`) | DPlaG | Contínua — a planilha é viva e o extrator sempre lê a versão publicada no momento da execução | Misto — matrícula/nome/cursos (PII) + função/seção (agregável) | **Implementado, 2026-08-26**: `etl/efetivo/extract_lotacao_funcao.py` liga `QOD_CONSOLIDADA.CÓDIGO` → `QOD_FUNCOES.ID_FUNCAO` (FK exata, 100% resolve), casa matrícula com `efetivo_lista.json` e gera `src/data/real/lotacao_funcao.json`. **2.356/2.658 militares (88,6%) em 43 unidades** — antes eram 716 (26,9%) em 14. Traz seção exata, localidade, cursos e a distinção FUNÇÃO/ENCARGO. ⚠️ O link publicado serve nome, matrícula e função de 2.356 militares **sem autenticação** |
+| ~~Repercussão Financeira.xlsx (CPPA), aba `DIST_FUNCOES`~~ | Planilha | Arquivo local compartilhado pelo usuário | A LEVANTAR | Ad hoc | Misto | **SUPERADA em 2026-08-26** como fonte de lotação/função — texto livre casado por heurística, cobertura 26,9%. O QOD publicado dá os mesmos campos administrativos (antiguidade, portaria, BGE, posto da função) com FK exata e 3× a cobertura. A planilha continua existindo para o cálculo financeiro; a aba `REPERC_FINANC` segue catalogada e não integrada |
 | Funções - DPlaG.xlsx (DPlaG, catálogo oficial de funções) | Planilha | Arquivo local compartilhado diretamente pelo usuário (aba `QOD_FUNCOES`, 1.754 linhas) | A LEVANTAR | Ad hoc | Agregado (catálogo de definição de função, sem matrícula) | **Confirmado pelo usuário**: é a fonte de onde a coluna "NOME DA FUNÇÃO E SEÇÃO/OME" do `DIST_FUNCOES` acima passa a ser preenchida — usado por `extract_lotacao_funcao.py` como dicionário pra casar o texto da função com a divisão/seção exata (prioridade 1 de casamento, antes de heurística de texto ou rollup na árvore do QOD) |
 | Postgres do "data warehouse" compartilhado (`10.193.1.252:54301`, dbname `postgres`) — tabelas `inativos_metabase`, `peculio_metabase_v1`, `cim_pedidos`, `cim_atendidos`, `escolaridade_militares` | Sistema interno | Acesso direto a banco (env var `DATABASE_URL_DW`) — **diferente do Neon** usado pelos outros extratores de Efetivo | Igor (mantém os scripts de carga a partir de planilhas Google Sheets públicas) | Ad hoc — recarregado manualmente por Igor via TRUNCATE+COPY | Agregado nos 3 extratores nossos (nunca matrícula/nome extraídos); as próprias tabelas de origem têm matrícula/nome (não extraímos) | **Confirmado 2026-08-19**: alimenta os painéis 07 (`extract_saida_previsao.py` — `inativos_metabase`/`peculio_metabase_v1`) e 09 (`extract_intencao_movimentacao.py` — `cim_pedidos`/`cim_atendidos`) do Dashboard Pessoal de Efetivo. `escolaridade_militares` catalogada mas não usada em nenhum painel ainda. **Credencial exposta em texto puro no chat — recomendação de rotação registrada em `DW_PLANEJAMENTO.md`** |
 

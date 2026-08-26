@@ -2748,3 +2748,251 @@ não entra, e CPF nunca entrou no DW.
 - Qualquer código de ETL, scaffold de projeto Python, ou API.
 - Levantamento fino, sistema por sistema, de cada fonte de dados.
 - Sessão de definição de visualizações/KPIs com o gestor da corporação.
+
+### 2026-08-26 (terceira sessão) — Fernando de Noronha no mapa; QOD publicado substitui a Repercussão Financeira
+
+**1. Fernando de Noronha entra nos mapas.** A ilha estava no geojson de
+origem mas fora do `municipios_pe.json`: a 350 km da costa, dentro da mesma
+bbox ela espremeria o continente. O resultado era um buraco — município de
+PE ausente do coroplético, e o SBFN (onde o GBI lança guarnição todo dia)
+sem lugar no Mapa de Força, resolvido até então por uma caixa de canto fora
+do SVG.
+
+Decisão do usuário: entrar como em qualquer atlas — **deslocada e
+ampliada**, como se fosse uma ilha próxima da costa nordeste, no canto
+superior direito. Implementado assim:
+
+- geometria real (o mesmo polígono de 31 vértices do geojson), transformada
+  por `NORONHA_DESTINO_X/Y` + `NORONHA_AMPLIACAO = 3,5×` (na escala do
+  continente a ilha teria 12,9 × 7,8 unidades — menor que o balão que se
+  quer pousar em cima dela);
+- o viewBox passa a começar em `minY = -50`, abrindo uma faixa de oceano
+  acima do continente. **Os 184 paths continentais não mudam um decimal** —
+  o `projetar_municipios.py` confere path por path e imprime o resultado;
+- `projetarNoMapa()` (novo, em `src/lib/projecaoPe.js`) aplica a
+  transformação sozinho para qualquer lat/long do arquipélago; `projetar()`
+  continua sendo a projeção continental pura, que é a que a verificação
+  reproduz;
+- como o mapa passa a mentir sobre distância e escala, o rótulo é
+  obrigatório: `MolduraNoronha` (moldura tracejada + "Fernando de Noronha —
+  3.5×, fora de posição") entra nos DOIS mapas, e o tooltip do Mapa de
+  Força repete o aviso.
+
+**2. QOD publicado substitui a Repercussão Financeira como fonte de
+lotação/função.** O usuário enviou um novo link publicado (DPlaG) com duas
+abas ligadas por chave estrangeira de verdade — `QOD_CONSOLIDADA.CÓDIGO` →
+`QOD_FUNCOES.ID_FUNCAO`.
+
+| | antes (`DIST_FUNCOES`) | agora (QOD publicado) |
+|---|---|---|
+| militares com função | 716 (26,9%) | **2.356 (88,6%)** |
+| unidades | 14 | **43** |
+| par militar→função | texto livre, 3 camadas de heurística | **FK exata, 100% resolve** |
+| granularidade | divisão (quando casava) | **seção exata** + divisão quando casa |
+| campos novos | — | seção, localidade, cursos, FUNÇÃO/ENCARGO |
+| coleta | arquivo local enviado à mão | **URL publicada, baixada pelo extrator** |
+
+Três decisões que valem registro porque não são óbvias:
+
+- **O arquivo foi normalizado.** `por_matricula` guarda só o que varia por
+  pessoa e aponta para um catálogo `funcoes` pelo `idFuncao`. Repetir nome,
+  seção, divisão e OME nas 2.600 ocupações custava ~600 KB num arquivo que
+  é `import`ado — ou seja, que entra no bundle baixado antes do login. O
+  bundle subiu 5.175 → 5.418 kB (+242 kB) em vez de +1,5 MB.
+- **O rollup de seção→divisão por ordem de exibição foi medido e
+  rejeitado.** Subia a atribuição de 65% para 91%, mas triplicava as
+  divisões acima do previsto (4 → 28) e as pessoas na divisão errada
+  (12 → 115). Detalhe e o caso do 1º GB em `DW_MODELO_DADOS.md`. Fechar os
+  843 restantes exige de-para ou o QOD original numerado — mesma pendência
+  do subfiltro de seção do Mapa de Força.
+- **Encargo não conta duas vezes.** 87 militares acumulam função e encargo;
+  a contagem por divisão/seção usa só FUNÇÃO, mais o encargo de quem não
+  tem função lançada (10 casos), para que ninguém suma.
+
+**Achados para a DPlaG** (fatos da fonte, não erro de extração):
+- 31 linhas de ocupação **sem `CÓDIGO`** (13 na CAT/Zona da Mata) — sem
+  código não há como saber a função;
+- 110 militares com **unidade divergente do Pecúlio**, concentrados num
+  bloco de matrículas 725xxx;
+- `GBAPH / Secretaria e Apoio do Comando - SAC` com **16 militares lançados
+  para 8 vagas previstas** (a maior das 4 divisões acima do previsto).
+
+⚠️ **Governança**: o link publicado serve nome completo, matrícula, função e
+cursos de 2.356 militares **sem autenticação**, como já acontecia com as
+duas planilhas do efetivo nominal. Continua registrado como risco aberto.
+
+### 2026-08-26 (quarta sessão) — KMZ das SBs, mapa com zoom, insígnias, filtro e cargos repetidos
+
+**1. Coordenadas reais das SBs (dois KMZ).** `etl/mapa_forca/coordenadas_postos.py`
+lê os dois arquivos enviados e monta o de-para por cidade. A DINTER 2 tem
+prioridade sobre o geral por decisão do usuário, e a razão está nos dados: o
+geral ainda descreve a organização antiga (8º, 10º, 11º e 12º GB existem lá),
+enquanto a DINTER 2 já reflete a reorganização — Araripina e Ouricuri são 3ª e
+4ª SB do 5º GB no novo e 10º GB no antigo. Macaparana entra à mão
+(-7,55406 / -35,44778) e o script avisa se um dia ela aparecer num KMZ.
+
+O casamento posto→ponto **não** usa o campo `municipio`: ele guarda o município
+da OME, não o do posto — os 20 postos municipais da CAT/ZM estão todos gravados
+como CARPINA. Quem carrega a cidade de verdade é o NOME do posto. Para cidade
+sem ponto levantado, entra o centroide do município (`origemCoord: "municipio"`,
+balão tracejado).
+
+Resultado: **81 → 102 postos com ponto real**, 18 no centroide, 64 ainda na
+coordenada da OME (quase todos `OPERAÇÃO *`, que são eventos sem endereço fixo).
+
+**2. Mapa: zoom, hover de município e anti-sobreposição.**
+- `useZoomMapa` faz zoom/pan por **viewBox**, não por `transform` — assim o
+  contorno do município não engorda ao ampliar. Em troca todo tamanho fixo é
+  dividido por `escala`.
+- `antiSobreposicao.js` faz duas coisas: agrupa o que está perto demais para
+  caber lado a lado (a RMR tem ~70 postos numa área minúscula) e afasta o que
+  ainda encavala, ligando cada balão ao ponto real por uma **linha-guia** com
+  âncora. As duas distâncias encolhem com o zoom, então aproximar abre os
+  grupos sozinho; clicar num grupo enquadra nele.
+- Hover no município mostra o nome.
+
+**3. Insígnias.** `etl/_geo/copiar_insignias.py` copia só os PNG usados,
+reduzidos para 256px — **9,7 MB → 2,3 MB**. A pasta enviada fica fora do
+commit (`.gitignore`). No cabeçalho da página da unidade entra a insígnia
+dela; no mapa, só grupamentos, e o QCG leva o brasão do CBMPE. Unidade sem
+insígnia própria (Comando, Subcomando, GCG, GSG, CPO, CPP, DGA e **DVP**, que
+não está no repositório) cai no brasão.
+
+**4. Balão de filtro abrindo longe do gatilho — causa medida.** O Radix
+(Floating UI) posiciona por `transform: translate(x, y)` com pixels reais,
+dentro do `<html>` que tem `zoom: 1.25`: o navegador multiplica de novo e o
+erro vira 25% da distância até a origem. Medido: gatilho em (575, 420), balão
+em (719, 530) — 144px e 111px de desvio. `MultiSelectFiltro` deixou de usar o
+Popover do Radix e passou a usar `usePosicaoAncorada`, o mesmo posicionamento
+manual que `FiltroColuna` já tinha. Depois: **0px em x, 5px em y**.
+
+**5. Cargos contados mais de uma vez.** Duas coisas diferentes, medidas:
+- **No catálogo**: 219 triplas (OME, SEÇÃO, FUNÇÃO) repetidas, 224 linhas a
+  mais, sendo 108 de chefia/comando. Agora são colapsadas na de menor
+  `ORDEM_EXIBICAO` (`deduplicar()`), então a mesma vaga não conta duas vezes.
+- **Na ocupação**: sobram **43 cargos de chefia administrativa com 2 ou 3
+  ocupantes** — chefe é um por seção, então é erro de lançamento na planilha,
+  não do casamento. Listados na saída do extrator. "Comandante de Grupo" de
+  GCI/GS/GAPH fica de fora do alerta de propósito: aquilo é função de turno, e
+  ter 17 é o esperado.
+
+**Em aberto — precisa do usuário:** o `previsto = 3` da Chefia do GCG vem de
+`efetivo_previsto_divisoes.json`, gerado do QOD original
+(`08 - QOD - AGOSTO - 2026.xlsx`), que **não está no repositório**. Naquele
+documento o nó soma Comandante Geral + Chefe do Gabinete + Ajudante de ordens.
+Mudar isso mexe num total já validado (5.247 contra 5.249) e não dá para fazer
+sem o arquivo.
+
+### 2026-08-26 (quinta sessão) — malha do IBGE, navegação do mapa e varredura de coordenadas
+
+**1. A malha de municípios passou a ser a oficial do IBGE.** O
+`municipios_pe.geojson.json` que vinha sendo usado desde os painéis de
+Distribuição Geográfica era uma versão simplificada: 15.635 vértices, tudo em
+`Polygon` de anel único. `etl/_geo/baixar_malha_ibge.py` baixa a malha
+municipal de PE em `qualidade=maxima` (37.451 vértices, com `MultiPolygon`
+onde é preciso) e junta o nome de cada município pelo código IBGE — os 185
+códigos batem exatamente com os do arquivo antigo.
+
+Por que trocar, além do detalhe: o litoral genérico fazia postos de praia
+(Forte Orange, GBMar/Sede, GBS/Sede) caírem FORA do polígono do próprio
+município, o que inviabiliza qualquer conferência geográfica de coordenada — e
+é exatamente essa conferência que resolveu os erros do item 4.
+
+A malha nova também **corrige divisas**: doze municípios mudaram de forma, com
+destaque para Ibimirim (o limite oeste andou 32 km), Petrolândia e Tupanatinga,
+em torno do lago de Itaparica, e Trindade/Araripina (emancipação). O script de
+projeção lista os doze e só aborta se algum andar mais de 40 unidades, o que
+seria erro de projeção e não diferença de malha.
+
+`projetar_municipios.py` ganhou suporte a `MultiPolygon` e simplificação
+Douglas-Peucker em espaço projetado (tolerância 0,055 unidade ≈ 40 m, menos de
+um pixel no zoom máximo). O `municipios_pe.json` foi de 239 KB para 460 KB — é
+o preço do detalhe, num JSON que o app importa.
+
+**Fernando de Noronha:** a malha do IBGE traz os cinco corpos de terra do
+arquipélago. O mapa desenha só a ilha principal, que é onde estão o aeródromo,
+a vila e os três postos do GBI; as quatro ilhotas triplicariam a altura da
+moldura para render quatro pontinhos. Ampliação 3,5× → **3,6×**, destino
+inalterado.
+
+**2. Navegação do mapa.** Três correções, todas medidas:
+
+- **Arrastar.** A versão anterior media o deslocamento do mouse na escala do
+  viewBox ATUAL, que ela mesma acabara de alterar no quadro anterior — dois
+  referenciais misturados, e o mapa "escapava" do cursor. Agora o gesto congela
+  o quadro inicial e cada movimento parte dele. Verificado no navegador: um
+  arrasto de (+100, +50) px produziu `dx = -28,4667` contra `-28,4667`
+  esperado e `dy = -7,5931` contra `-7,5931` — o ponto sob o cursor fica sob o
+  cursor, como no Google Maps. `setPointerCapture` segura o gesto fora do SVG.
+- **Roda só com Ctrl** (pedido do usuário): o mapa ocupa boa parte da página e
+  prendia quem só queria descer até as viaturas e o efetivo escalado. Sem
+  Ctrl, o evento passa e a página rola.
+- **Zoom em lote.** Achado ao verificar o item acima: numa rolagem rápida o
+  navegador entrega vários `wheel` no mesmo quadro, e a versão que lia o
+  viewBox de fora aplicava só o primeiro. Medido: **nove eventos davam 1,18×
+  em vez de 4,44×**. Corrigido passando a conta para dentro do `setVb`, a
+  partir do estado anterior.
+
+**3. Leitura do mapa.**
+- Hover de município: além do nome, o município é **redesenhado por cima** dos
+  vizinhos com realce avermelhado e 4% de escala (SVG não tem `z-index`, então
+  destacar no lugar deixaria a borda do vizinho passando por cima).
+- Brasões maiores (2,1× o raio do círculo) e **sem o anel vermelho** em volta —
+  com insígnia o círculo vira só alvo de clique.
+- **Brasões lado a lado no zoom.** A partir de 3,2× o agrupamento é desligado e
+  cada posto vira um balão. Duas correções para isso funcionar: pontos
+  exatamente coincidentes (37 postos na coordenada do QCG) passam a nascer
+  abertos num anel, e o anti-sobreposição separa pelo raio do BRASÃO, não pelo
+  do círculo. Medido a 4,44× na RMR: **35 pares de brasões sobrepostos → 1**.
+- Saíram o título "Onde a força está", o subtítulo e a legenda de três linhas;
+  entrou "Ctrl + rolar para aproximar · arrastar para mover" no rodapé.
+- "Seções com serviço" virou "Unidades com lançamentos" (o número continua
+  sendo o de postos com lançamento no dia — é o que o mapa desenha).
+- Cards de lançamento em grade (até 3 colunas), menores, e "Viaturas" no
+  singular: o lançamento do mapa de força tem uma viatura só.
+- Filtro de data virou **calendário** (`FiltroData`, react-day-picker + o
+  posicionamento manual de `usePosicaoAncorada`), com os dias sem lançamento
+  desabilitados. Procurar "12/07" numa lista de noventa linhas era pior do que
+  apontar no mês. Verificado: balão a 0px em x e 5px em y do gatilho.
+
+**4. Varredura completa das coordenadas dos postos.** Os dois erros que o
+usuário apontou tinham causas diferentes, e a busca por outros iguais virou
+`etl/mapa_forca/conferir_coordenadas.py` — que resolve a coordenada no
+extrator E roda sozinho como conferência contra o índice já gerado.
+
+O que a varredura achou nos 185 postos:
+
+| posto | o que estava gravado | diagnóstico |
+|---|---|---|
+| 147-150 `3º/4º/5º/9º GB` | sem coordenada, OME = DINTER II | os quatro caíam em **Petrolina** |
+| 67 `4ªSB / BONITO` | -8,686 / -35,591 | é **Palmares**, 14,8 km fora de Bonito |
+| 32 `CEASA / Recife` | -22,881 / -43,636 | **Rio de Janeiro** |
+| 151 `7ªSB / CARUARU` | +8,295 / +35,990 | **sinal invertido** nos dois eixos |
+| 49 `POSTO 01 - FORTE ORANGE` | -7,811 / +34,841 | sinal invertido na longitude |
+| 94/96/98/107/108 | sem coordenada | CATs do interior caindo na sede |
+
+Regras de resolução, nesta ordem: coordenada própria conferida (com correção
+de sinal quando espelhar traz o ponto de volta para PE) → o NOME do posto é a
+sigla de uma unidade que tem coordenada → cidade citada no NOME → campo
+`municipio` (nunca para posto de evento, cujo `municipio` está todo gravado
+como RECIFE) → coordenada da OME. Toda coordenada é conferida contra o
+polígono do município que o posto declara, com 2 km de tolerância — a menor
+divergência real encontrada tem 14,8 km.
+
+Resultado: **0 postos suspeitos** na varredura, contra 30 antes. Distribuição
+final: 103 com ponto próprio ou levantado, 32 no centroide do município, 7 na
+coordenada da unidade que o posto nomeia, 43 na coordenada da OME (quase todos
+`OPERAÇÃO *`, eventos sem endereço fixo).
+
+**Em aberto — precisa do usuário:**
+- **`CAT/SERTÃO` (posto 97, 392 lançamentos na janela)**: a `dim_ome` diz que a
+  CAT/SE é de Serra Talhada, mas a coordenada gravada é Petrolina, e o próprio
+  posto declara PETROLINA. Hoje fica em Petrolina. Qual das duas vale?
+- **`SEDE` do 11º GB (posto 156)**: `municipio` = RECIFE, mas o 11º GB extinto
+  era de Petrolândia. Sem lançamento nenhum na janela de 90 dias, então não
+  aparece no mapa — fica registrado para quando alguém reativar o posto.
+- **Postos duplicados na fonte**: `6ªSB / TORITAMA` (2º GB) e
+  `8º GB/3º SB - TORITAMA` (8º GB) são a mesma seção sob a nomenclatura nova e
+  a antiga. O mesmo vale para vários pares GBI/GBS/GBAPH que apontam para a
+  sede um do outro.
+- Continua valendo o `previsto = 3` da Chefia do GCG da sessão anterior.
