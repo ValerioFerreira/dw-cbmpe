@@ -65,6 +65,10 @@ mas todas impedem **reexecutar** alguma coisa:
 | `CBMPE - Repositório de Insígnias*/` | 280 arquivos (.cdr, .pdf, brevês) enviados pela corporação; só os 39 PNG usados entram, já reduzidos, em `public/insignias/` | reexecutar `etl/_geo/copiar_insignias.py`. O app **não** trava: os PNG usados estão commitados |
 | `08 - QOD - AGOSTO - 2026.xlsx` | nunca chegou ao repositório | reexecutar `etl/efetivo/extract_previsto_divisoes.py`. O JSON gerado está commitado |
 
+`etl/mapa_forca/de_para_viatura.json` também é git-ignorado, mas **não é
+insumo de nada**: é o relatório que `reconciliar_viaturas.py` grava. A carga
+do DW monta o de-para dentro do próprio SQL (`stg.de_para_viatura`).
+
 ### 4. Onde está o raciocínio
 
 O histórico de decisões é a parte mais difícil de reconstruir e está todo
