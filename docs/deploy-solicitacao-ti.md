@@ -4,7 +4,9 @@ Documento para encaminhamento à Seção de Tecnologia. Descreve o que já está
 pronto do nosso lado, o que precisa ser feito no ambiente da corporação, e as
 decisões que dependem do TI antes de começarmos.
 
-Repositório: `dw-cbmpe` · Commit de referência: `9dbd28c` · Data: 26/08/2026
+Repositório: `dw-cbmpe` · Branch `main` · Data: 26/08/2026
+(revisado em 26/08/2026 — ver seção 1, item 3: apareceu um segundo caminho de
+exposição de dado nominal que não existia quando este documento foi escrito)
 
 ---
 
@@ -32,10 +34,13 @@ dois limites que motivam este deploy:
    entregue antes de qualquer autenticação**. Quem abrir as ferramentas de
    desenvolvedor lê o conteúdo sem logar.
 
-   O que está nesse pacote hoje: **nome completo, matrícula, idade,
-   raça/cor, PCD, readaptado, licenças de saúde e telefones dos 2.658
-   militares da ativa** (`efetivo_lista.json`, 2,8 MB), mais função por
-   matrícula de outros 716 (`lotacao_funcao.json`). Raça/cor e PCD são
+   O que está nesse pacote hoje, medido em 26/08/2026 no arquivo gerado:
+   **nome completo, matrícula, idade e sexo dos 2.658 militares da ativa**, e,
+   dentro do sub-objeto `completo` de cada um, **raça/cor (2.658 registros),
+   telefone (2.043), PCD, readaptado, licenças (LE/LTIP), afastamento acima de
+   90 dias e datas de ingresso, promoção e movimentação**
+   (`efetivo_lista.json`, 2,7 MB). Some-se a função por matrícula de outros
+   2.356 (`lotacao_funcao.json`, 1,0 MB). Raça/cor e dado de saúde são
    categoria especial pela LGPD.
 
    Isso foi uma exceção deliberada, registrada em `DW_PLANEJAMENTO.md`
@@ -43,7 +48,23 @@ dois limites que motivam este deploy:
    protegia o conteúdo. **A suposição estava errada** — e é o principal motivo
    técnico para trazer a aplicação para dentro da rede.
 
-Trazer a aplicação para dentro resolve os dois de uma vez.
+3. **Há um segundo caminho, mais direto que o primeiro, aberto depois que este
+   documento foi escrito.** O painel de Mapa de Força não embute os dados no
+   pacote: ele os **busca em tempo de execução** de arquivos servidos como
+   conteúdo estático, em `/dados/mapa-forca/`. São **91 arquivos, 11,5 MB**,
+   um por dia dos últimos 90 dias.
+
+   Cada lançamento traz a guarnição nominal — **matrícula, posto/graduação,
+   nome de guerra e função** de cada militar escalado. Em 24/08/2026 são 570
+   militares escalados em 290 lançamentos; na janela inteira, 73.627 registros
+   de escala.
+
+   A diferença em relação ao item 2 é que aqui **não é preciso nem abrir o
+   pacote JavaScript**: basta pedir a URL do arquivo. Qualquer pessoa com o
+   endereço do site baixa a escala de serviço de 90 dias com um `curl`. Isso
+   torna a migração para a rede interna mais urgente, não menos.
+
+Trazer a aplicação para dentro resolve os três de uma vez.
 
 ---
 
@@ -76,7 +97,17 @@ O comando de deploy é o mesmo padrão dos demais apps da Seção:
 
     caprover deploy -a <nome-do-app> -b main
 
-`npm run build` foi executado e passa (bundle de ~5,1 MB, 743 KB comprimido).
+`npm run build` foi executado e passa. Medido em 26/08/2026:
+
+| Item | Tamanho |
+|---|---|
+| Pacote JavaScript | 5,9 MB (879 KB comprimido) |
+| `dist/` inteiro | **21 MB** |
+| — dos quais `dados/` (Mapa de Força, buscado em execução) | 11,5 MB |
+| — dos quais `insignias/` (39 PNG de brasão) | 2,4 MB |
+
+O `dist/` é conteúdo estático puro: nginx serve, não há processo de aplicação.
+Consumo de memória e CPU é o do próprio nginx.
 
 > ⚠️ **Ressalva honesta:** a **imagem Docker nunca foi construída**. Não há
 > Docker instalado na máquina de desenvolvimento. O passo que costuma falhar
@@ -196,6 +227,7 @@ desenvolvimento e **precisam ser rotacionadas na origem**:
 | Dois usuários `neondb_owner` (bancos Neon) | Expostos |
 | Usuário do banco de Frota | Exposto |
 | Usuário `ctic` do SGP (`10.193.0.16`) | Exposto |
+| Senha do administrador do BookStack (wiki da Seção) | Exposta — chegou até nós em texto claro |
 
 Pedimos também a criação de três papéis de acesso separados, substituindo o uso
 do superusuário:
@@ -273,6 +305,28 @@ e não devem ser colados em ferramentas externas**.
 
 ---
 
+## 5.1 Dá para fazer o deploy hoje?
+
+**Dá — com uma condição.** O que está pronto do nosso lado é suficiente para o
+app subir no CapRover e atender pela rede interna: `Dockerfile`, `nginx.conf`,
+`captain-definition`, build compilando, e o conteúdo é estático (sem processo
+de aplicação, sem banco em tempo de execução, sem volume).
+
+A condição é a **borda**. Enquanto o login for o que é hoje — verificação
+feita no próprio navegador, com a senha embutida em texto claro no pacote —,
+ele **não protege nada**: os arquivos de `/dados/` respondem a qualquer
+requisição, autenticada ou não. Então:
+
+- **Publicar apenas dentro da rede interna, sem exposição para a internet**,
+  até a integração com o SGU existir. É a condição mínima, e é o que o
+  `srv-nginx01` já faz para os demais sistemas.
+- Se houver qualquer chance de o vhost ficar acessível de fora, pedir ao TI
+  uma proteção na borda (restrição por faixa de IP ou autenticação básica no
+  proxy) enquanto a autenticação de verdade não entra.
+
+Com essa condição atendida, o deploy **melhora** a situação atual em vez de
+piorá-la: hoje o mesmo conteúdo está na Vercel, aberto para a internet inteira.
+
 ## 6. Resumo executivo
 
 **Pronto:** data warehouse em produção interna, validado; `Dockerfile`,
@@ -289,3 +343,6 @@ nas dimensões; repontar os extratores; implementar o login pelo SGU.
 
 **Não verificado:** a imagem Docker nunca foi construída — não há Docker na
 máquina de desenvolvimento.
+
+**Condição para subir:** publicar só na rede interna enquanto o login não
+passar pelo SGU. Ver seção 5.1.

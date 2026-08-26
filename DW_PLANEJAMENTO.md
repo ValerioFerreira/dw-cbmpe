@@ -2984,15 +2984,62 @@ final: 103 com ponto próprio ou levantado, 32 no centroide do município, 7 na
 coordenada da unidade que o posto nomeia, 43 na coordenada da OME (quase todos
 `OPERAÇÃO *`, eventos sem endereço fixo).
 
-**Em aberto — precisa do usuário:**
-- **`CAT/SERTÃO` (posto 97, 392 lançamentos na janela)**: a `dim_ome` diz que a
-  CAT/SE é de Serra Talhada, mas a coordenada gravada é Petrolina, e o próprio
-  posto declara PETROLINA. Hoje fica em Petrolina. Qual das duas vale?
-- **`SEDE` do 11º GB (posto 156)**: `municipio` = RECIFE, mas o 11º GB extinto
-  era de Petrolândia. Sem lançamento nenhum na janela de 90 dias, então não
-  aparece no mapa — fica registrado para quando alguém reativar o posto.
-- **Postos duplicados na fonte**: `6ªSB / TORITAMA` (2º GB) e
-  `8º GB/3º SB - TORITAMA` (8º GB) são a mesma seção sob a nomenclatura nova e
-  a antiga. O mesmo vale para vários pares GBI/GBS/GBAPH que apontam para a
-  sede um do outro.
-- Continua valendo o `previsto = 3` da Chefia do GCG da sessão anterior.
+**As três pendências foram respondidas pelo usuário em 2026-08-26** e estão
+registradas no código, não só aqui:
+
+- **`CAT/SERTÃO` fica em Petrolina.** Virou `SEDE_CONFIRMADA` em
+  `conferir_coordenadas.py`, para não parecer que o resultado saiu por acidente
+  da regra de fallback. A `dim_ome` continua dizendo Serra Talhada — divergência
+  da fonte, não nossa.
+- **O 11º GB foi extinto e Petrolândia é a 4ª SB do 3º GB** (posto 20, que já
+  aponta certo, com 333 lançamentos). O posto 156 (`SEDE` do 11º GB) entrou em
+  `MUNICIPIO_NAO_CONFIAVEL`: o cadastro grava RECIFE, que nunca foi a sede.
+  Sem município confiável e sem coordenada de OME, ele fica **fora do mapa** —
+  que é o correto para unidade extinta.
+- **Toritama é a 6ª SB do 2º GB.** Confirmado nos lançamentos: `6ªSB / TORITAMA`
+  (2º GB) tem 180 na janela e `8º GB/3ª SB - TORITAMA` tem **zero** — o segundo
+  é o registro obsoleto da nomenclatura antiga. Nada a corrigir; fica anotado
+  para quem estranhar os dois no cadastro.
+
+Continua valendo o `previsto = 3` da Chefia do GCG da sessão anterior.
+
+### 2026-08-26 (sexta sessão) — brasão garantido na sede, login por CPF, documentação de deploy
+
+**1. O brasão da unidade aparece na sede em qualquer zoom.** Pedido do usuário:
+"garanta que em toda sede (1ª SB) de unidade, mesmo que haja mais unidades
+aglomeradas, o brasão da unidade apareça no mapa, mesmo no zoom mais distante".
+
+O problema era o agrupamento: um balão que junta postos de OMEs diferentes não
+tem brasão para mostrar — vira círculo com número —, e na RMR a sede do GBI ou
+do GBS era absorvida pela vizinhança. A solução tem três partes:
+
+- `conferir_coordenadas.e_sede()` marca o posto como sede pelo NOME
+  (`SEDE` como palavra, ou `1ª SB` em qualquer grafia), excluindo
+  `POSTO ...` e posto de evento. O extrator grava `sede: true` no índice.
+  **A distância até a coordenada da OME não serve de critério**: a `dim_ome`
+  guarda sede desatualizada em vários casos — a do GBMar está a 1,55 km do
+  quartel que o próprio KMZ levantou.
+- `agruparProximos` ganhou `fixo` + `chave`: um grupo liderado por uma sede só
+  aceita postos da mesma OME, então a insígnia sobrevive. A âncora do grupo
+  passa a ser a própria sede (não a média dos membros) — o brasão do batalhão
+  tem que pousar no quartel.
+- No anti-sobreposição a sede tem peso 0,9 (quase imóvel): quem se afasta é a
+  vizinhança.
+
+Medido a 1× de zoom: **25 → 40 insígnias no mapa, cobrindo os 13 grupamentos**
+(antes, vários sumiam dentro de balões de grupo).
+
+**2. Login.** Placeholder do usuário virou "Insira seu CPF", com máscara
+aplicada enquanto digita; o da senha virou "Insira sua senha"; os dois ficaram
+um tom mais claros (`placeholder:text-muted-foreground/60`).
+
+A máscara **só entra quando a digitação é numérica**. O acesso hoje não é por
+CPF — é o usuário administrador (`VITE_ADMIN_USUARIO`) ou uma das siglas de
+nível de acesso —, e mascarar tudo travaria os dois: quem digitasse `adm` veria
+o texto ser reescrito. Verificado no navegador: `1234 → 123.4`,
+`12345678901 → 123.456.789-01`, `adm → adm`. O que vai para o autenticador é o
+CPF **sem** máscara, para o dia em que o login por CPF existir de fato.
+
+**3. Documentação de deploy e de continuidade.** Ver `DEPLOY_SERVIDOR_INTERNO.md`
+(documento para entregar à equipe de TI) e o `README.md` reescrito (como
+retomar o trabalho em outra máquina).
