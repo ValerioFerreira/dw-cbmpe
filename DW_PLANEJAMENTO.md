@@ -2517,6 +2517,31 @@ Em ordem de urgência:
   Observações, Histórico) ficam fora de escopo por decisão do usuário —
   só "Detalhes" (Resumo + Outros) foi implementado.
 
+### 2026-08-26 — Solicitação formal de deploy ao setor de TI
+
+Consolidado em `docs/deploy-solicitacao-ti.md`, documento único para
+encaminhamento externo: o que está pronto (DW em produção com 15 dimensões, 8
+fatos e 10 views de `marts`; `Dockerfile`, `nginx.conf` e `captain-definition`
+no repositório; build compilando), o que depende do TI (app no CapRover com
+Port Mapping para a **porta 80**, vhost no `srv-nginx01`, envs a partir do
+cofre, rotação de cinco credenciais e criação de `etl_writer`/`bi_reader`/
+`app_reader`) e o que ainda é nosso (camada de servidor, chaves estáveis,
+repontar extratores, login pelo SGU).
+
+Dois achados novos que motivaram o documento:
+
+1. **O app exige a raiz de um host.** Sem `base` no Vite e sem `basename` no
+   `BrowserRouter`, publicar sob subcaminho quebra a aplicação — e subcaminho é
+   justamente o padrão da Intranet. Virou a primeira pergunta ao TI, porque
+   define se o deploy é imediato ou exige recompilar. Detalhado em
+   `DW_ARQUITETURA.md`.
+2. **A contagem de views de `marts` era 10, não 11**, como registros anteriores
+   sugeriam. Conferido no DDL.
+
+Registrado também, como ressalva que precisa constar para quem operar o
+sistema: a imagem Docker **nunca foi construída** — não há Docker na máquina de
+desenvolvimento, então só o `npm run build` está verificado.
+
 ## Roadmap por fases
 
 | Fase | Objetivo | Status |

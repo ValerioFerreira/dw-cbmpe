@@ -250,6 +250,25 @@ O wiki é enfático sobre isso, e a advertência vale igual para nós:
    Ver `DW_GOVERNANCA.md`.
 4. **Sem `Has Persistent Data`**: nosso app é stateless, igual ao `auth-api`.
 
+### O app exige a raiz de um host (verificado em 2026-08-26)
+
+Achado ao preparar a solicitação de deploy, e que precisa ser resolvido
+**antes** do primeiro deploy: o `vite.config.js` não define `base` e o
+`App.jsx` usa `BrowserRouter` sem `basename`. O `dist/index.html` gerado
+referencia os arquivos como `/assets/...`, em caminho absoluto.
+
+Consequência: se o app for publicado sob um subcaminho — no padrão do
+`location /sgu` que a Seção usa hoje — a página carrega em branco e as rotas
+internas dão 404. O padrão vigente da Intranet é justamente o subcaminho, ou
+seja, a colisão é o caso provável, não o excepcional.
+
+Duas saídas, e a escolha é de quem administra o proxy reverso:
+
+| Caminho | Custo |
+|---|---|
+| Subdomínio/host próprio (ex.: `bi.intranet.bombeiros.pe.gov.br`) | Zero — funciona como está |
+| Subcaminho | Definir `base` no Vite e `basename` no `BrowserRouter`, recompilar e testar |
+
 ### Duas lições do sistema vizinho, de graça
 
 O wiki registra que o `.env.example` do `auth-api` está defasado e que o
