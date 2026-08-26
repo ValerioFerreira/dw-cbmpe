@@ -43,7 +43,7 @@ mesmo banco.
 | `ovrsac` / `sacbm1` | SAC | 6 | A levantar |
 | `ovrsgo` | Ocorrências (despacho) | 22 | **Fora de uso** (confirmado pelo usuário 2026-08-24) |
 | `ovrroe` | Relatório de ocorrência (APH, incêndio, salvamento) | 56 | **Fora de uso** (idem) |
-| `ovrsmf` | Mapa de força antigo (ScriptCase) | 27 | **Congelado**: dados de 2018-02 a 2020-10. Sucedido pelo `mapa_forca_api_development` |
+| `ovrsmf` | Mapa de força antigo (ScriptCase) | 27 | **Congelado**: dados de 2018-02 a 2020-10. Sucedido pelo `mapa_forca_api_development`. **Não é fonte de snapshot diário** — a confusão de nome já apareceu uma vez (2026-08-26); quem tem o dado vivo, com data consultável, é o `mapa_forca_api_development` |
 
 ### `10.193.0.20:5432` (var. `DATABASE_URL_OPS`)
 
@@ -416,10 +416,25 @@ de força grava `039`, `092`, `024`. O **acrônimo é a parte não confiável** 
 em 26% dos casos que casam pelo número o tipo diverge (`MSA-911` no mapa de
 força é um `ABT` na Frota).
 
-Resíduos, ambos tratáveis: **150 pares ambíguos** (número de ordem
-reciclado — viatura baixada, nova herdou o número; resolve por data, contra
-a `dim_viatura` SCD2) e **42 pares sem casamento** (1,4% do volume:
-MTP-1066/1067/1068, MSA-991/992 e outros).
+**Resolvido em 2026-08-26.** A `dim_viatura` virou SCD tipo 2 e o fato passou
+a casar por (número normalizado, data dentro da vigência), com queda para a
+candidata fora de serviço quando não há outra. Sobre os 204.443 lançamentos
+do histórico inteiro:
+
+| | Pares | Lançamentos |
+|---|---:|---:|
+| resolvido (número com dona única) | 1.057 | 164.409 |
+| **resolvido pela data** (o ganho do SCD2) | 356 | 32.517 |
+| ambíguo | 57 | 5.544 |
+| sem casar | 156 | 1.973 |
+
+No fato, com o desempate por acrônimo somado: **99,0%** (202.429 de 204.443).
+Os que sobram são número que nunca existiu na Frota — MTP-1066/1067/1068,
+MSA-991/992 e outros.
+
+Ver `DW_MODELO_DADOS.md`, seção `dim_viatura`, para as duas regras que só
+apareceram medindo (quem herda o passado, e por que vigência sozinha não
+basta).
 
 ## Vacinação
 

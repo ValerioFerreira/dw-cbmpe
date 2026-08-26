@@ -368,10 +368,11 @@ SCD2 na `dim_ome` só passa a ser necessário no dia em que alguém precisar
 responder *"como era a estrutura em 2021?"*. Fica registrado como opção, não
 como pendência.
 
-**Onde SCD2 continua sendo necessário: `dim_viatura`** — ali o problema é
-outro. Números de ordem são reciclados (413 pares ambíguos): o mesmo número
-designa veículos diferentes em épocas diferentes, e sem versão por período
-não há como dizer a qual deles um lançamento antigo se refere.
+**`dim_viatura` virou SCD2 em 2026-08-26.** Números de ordem são reciclados:
+o mesmo número designa veículos diferentes em épocas diferentes, e sem versão
+por período não havia como dizer a qual deles um lançamento antigo se refere
+— eram 413 pares ambíguos. Com vigência, sobraram 57. Ver a seção
+`dim_viatura` mais abaixo para as duas regras que só apareceram medindo.
 
 ## O que já dá para responder e antes não dava
 
@@ -405,13 +406,17 @@ empregadas" como número completo:
 
 | Domínio | Resolvido | Sem casar |
 |---|---|---|
-| `fato_lancamento_militar` | 830.152 (92,0%) | 72.012 |
-| `fato_lancamento_viatura` | 164.399 (80,4%) | 40.044 |
+| `fato_lancamento_militar` | 819.554 (90,8%) | 82.610 |
+| `fato_lancamento_viatura` | **202.429 (99,0%)** | 2.014 |
 
-A cobertura de viatura aqui (80,4%) é menor que os 98,6% medidos em 12 meses
-porque o histórico vai a 2019 e a `dim_viatura` só tem a frota **atual** —
-viatura baixada desde então não tem para onde casar. Resolve quando a
-`dim_viatura` virar SCD2 de verdade, carregada do histórico da Frota.
+A viatura estava em 80,4% enquanto a `dim_viatura` tinha só a frota **atual**:
+viatura baixada desde 2021 não tinha para onde casar. Com o SCD2 carregado do
+histórico da Frota (2026-08-26) foi para 99,0% — acima até dos 98,6% medidos
+em 12 meses, porque a vigência resolve também o número reciclado, que a
+medição por número sozinho não resolvia.
+
+Os 2.014 restantes são o piso real: número que nunca existiu na Frota
+(MTP-1066/1067/1068, MSA-991/992 e outros 151 pares).
 
 ---
 
@@ -651,17 +656,61 @@ trimestre, nome do mês, dia da semana, feriado, expediente.
 
 ### 6. `dim_viatura`
 
-Grão: 1 viatura. SCD tipo 2 — a OME muda por transferência, e o número de
-ordem é reciclado entre viaturas (ver abaixo). Fonte: sistema de Frotas.
+Grão: **1 versão de viatura** (SCD tipo 2, implementado em 2026-08-26). São
+813 viaturas em 2.827 versões — 3,5 cada. Uma versão nova nasce a cada
+mudança de OME (`transfers`) ou de situação (`vehicle_statuses`); são os dois
+únicos atributos que mudam ao longo da vida do veículo. Fonte: sistema de
+Frotas.
 
-Atributos: `sk_viatura`, `id_frota`, `placa`, `chassi`, `renavam`,
-`patrimonio`, `tipo`, `tipo_acronym`, `numero_ordem`, `numero_ordem_norm`,
-`marca`, `modelo`, `ano`, `posse`, `destinacao`, `combustivel`,
-`categoria_habilitacao`, `rastreado`, `caracterizado`.
+Atributos: `sk_viatura`, `id_frota`, `valido_de`, `valido_ate`,
+`versao_atual`, `placa`, `chassi`, `renavam`, `patrimonio`, `tipo`,
+`tipo_acronym`, `numero_ordem`, `numero_ordem_norm`, `marca`, `modelo`,
+`ano`, `posse`, `destinacao`, `combustivel`, `categoria_habilitacao`,
+`rastreado`, `caracterizado`, `sk_ome`, `situacao`, `em_servico`.
+
+`sk_viatura = id_frota * 100 + sequência da versão`. É determinístico, e por
+isso a `dim_viatura` deixou de fazer parte da pendência de chaves substitutas
+instáveis — cabe folgado, já que o maior `id` da Frota é 859 e a viatura com
+mais versões tem 27.
 
 `numero_ordem_norm` é a coluna que liga esta dimensão ao mapa de força:
-número sem zeros à esquerda e sem o sufixo `L`. Ver
-`stg.de_para_viatura` na seção de fatos operacionais.
+número sem zeros à esquerda e sem o sufixo `L`. A regra vive em
+`stg.normalizar_numero_ordem()`, criada porque a mesma normalização é
+aplicada em três lugares e já divergiu uma vez.
+
+**Duas regras que só apareceram medindo**, e que valem mais que o desenho:
+
+1. **Só uma viatura por número de ordem herda o passado.** A primeira versão
+   precisa valer para trás (`valido_de = 1900-01-01`), porque o histórico da
+   Frota começa em 2023-12-06 e o mapa de força em 2021-05-07 — sem isso, dois
+   anos e meio de lançamento ficam sem casar. Mas abrir *todas* as primeiras
+   versões devolve a ambiguidade inteira: as duas donas do mesmo número ficam
+   vigentes no mesmo dia. Dentro de um número, só a que chegou primeiro herda
+   o passado. Ambíguos: 413 → 231 pares.
+
+2. **Vigência sozinha não basta.** Uma viatura `Devolvida` mantém a última
+   versão aberta (`valido_ate` nulo) e concorre com a sucessora. Daí a coluna
+   `em_servico` (o `still_usable` do próprio catálogo da Frota: falso para
+   `Descarregada` e `Devolvida`) e a resolução em dois estágios — candidata em
+   serviço manda; na falta de qualquer uma, vale a fora de serviço. Ambíguos:
+   231 → 57 pares.
+
+Medido sobre os 204.443 lançamentos de viatura:
+
+| Regra | Lançamentos resolvidos |
+|---|---|
+| só vigência | 91,9% |
+| vigência + em serviço | 97,5% (mas 367 perdiam a única candidata) |
+| **os dois, com queda para a fora de serviço** | **97,7%** |
+
+No fato carregado, com o desempate por acrônimo somado, dá **99,0%**.
+
+As quatro invariantes do SCD2 são conferidas por `etl/dw/validar.py`: versão
+atual única por viatura, vigência não invertida, versões sem sobreposição, e
+um só dono do passado por número. Todas em zero.
+
+Ver `stg.de_para_viatura` na seção de fatos operacionais — que deixou de ser
+a chave de resolução e passou a ser relatório de qualidade.
 
 ### 7. `dim_posto_servico`
 
@@ -786,9 +835,11 @@ quer é "das N viaturas da frota, quantas rodaram no último mês".
 
 Caminho em duas etapas:
 
-1. **Agora, dentro do DW**: `stg.de_para_viatura` reconcilia pelo número de
-   ordem normalizado (sem zeros à esquerda, sem sufixo `L`), com desempate
-   temporal pela `dim_viatura` SCD2 nos 150 casos de número reciclado.
+1. **Feito em 2026-08-26**: o fato casa direto contra a `dim_viatura` SCD2,
+   pelo número de ordem normalizado (sem zeros à esquerda, sem sufixo `L`) e
+   pela data dentro da vigência da versão — o desempate temporal que os
+   números reciclados pediam. A `stg.de_para_viatura` deixou de ser a chave
+   de resolução e virou relatório de qualidade.
    `fato_lancamento_viatura` ganha `sk_viatura` resolvido, e nulo quando
    não resolvido, com cobertura publicada como métrica. Isso já entrega
    "clicar numa viatura e ver os dias em que foi empregada", com histórico

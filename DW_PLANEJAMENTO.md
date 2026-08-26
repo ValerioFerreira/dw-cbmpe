@@ -2391,19 +2391,22 @@ alcançável com a credencial `ctic` que já temos.
 instrução do wiki, não entra em contexto de IA. Vale para as sessões deste
 projeto.
 
-### Pendências do DW carregado (2026-08-24)
+### Pendências do DW carregado (2026-08-24, revisto em 2026-08-26)
 
 Em ordem de urgência:
 
-1. **Chaves substitutas estáveis** — `dim_militar` e `dim_viatura` ainda usam
-   `row_number()`, então a chave de um militar muda entre cargas. Por isso o
-   `limpar()` do `carga_core.py` só apaga o dia corrente e **falha alto** se
-   encontrar snapshot de dia anterior. *É pré-requisito para agendar a carga
-   diária no Windmill*: enquanto não for resolvido, a série temporal de
-   efetivo não começa a acumular — e é exatamente esse histórico que o DW
-   existe para comprar.
-2. **`dim_viatura` como SCD tipo 2** — fecha a cobertura de viatura de 80,4%
-   para ~98,6% e desambigua os 413 números de ordem reciclados.
+1. ~~**Chaves substitutas estáveis**~~ — **resolvido de outro jeito em
+   2026-08-26.** A `dim_viatura` ganhou chave determinística
+   (`id_frota * 100 + versão`), mas a `dim_militar` continua com
+   `row_number()`. O que destravou o agendamento foi o `limpar()` parar de
+   recusar a carga: agora ele **guarda os snapshots diários pela chave
+   natural** (matrícula, placa) e os devolve depois de reconstruir as
+   dimensões. A série temporal deixou de ser destruída a cada rodada — já são
+   2 dias acumulados. Chave estável na `dim_militar` continua desejável (é
+   mais barato que traduzir por matrícula toda carga), mas não bloqueia mais.
+2. ~~**`dim_viatura` como SCD tipo 2**~~ — **feito em 2026-08-26.** Cobertura
+   de viatura de 80,4% para **99,0%**; ambíguos de 413 para 57 pares. Ver o
+   log de decisões abaixo.
 3. **Rotacionar as cinco credenciais expostas** e criar papéis separados
    (`etl_writer`, `bi_reader`, `app_reader`) — hoje tudo roda com
    superusuário.
@@ -2541,6 +2544,144 @@ Dois achados novos que motivaram o documento:
 Registrado também, como ressalva que precisa constar para quem operar o
 sistema: a imagem Docker **nunca foi construída** — não há Docker na máquina de
 desenvolvimento, então só o `npm run build` está verificado.
+
+### 2026-08-26 (segunda sessão) — Mapa de Força entra no roadmap; `dim_viatura` vira SCD2
+
+**O pedido.** Painel de Mapa de Força dentro de "Atividades Específicas" da
+DGO, funcionando como qualquer outro painel (o mesmo para as subordinadas,
+com o filtro da OME aplicado): mapa de Pernambuco com balões por OME,
+detalhando as viaturas ativadas, com clique levando a `/viatura/{placa}` e à
+guarnição, e de lá a `/militar/{matricula}`. Filtros: OME (com subfiltro de
+seção), matrícula com autocomplete, tipo de viatura (com subfiltro de número
+de ordem) e data.
+
+**Três decisões do usuário, tomadas antes de escrever código:**
+
+| Tema | Decisão |
+|---|---|
+| Entrega do dado | Janela curta em arquivos buscados em runtime (`public/`), não `import` no bundle. A URL de fetch vira chamada de API quando o servidor existir. |
+| Chave do militar | **Matrícula continua na URL**; CPF entra só como coluna de junção no `core`, atrás do servidor. Confirma a decisão de 2026-08-19 (Caminho A/B) contra o pedido inicial de trocar tudo por CPF. |
+| Ordem do trabalho | SCD2 da `dim_viatura` **antes** do painel. |
+
+**Por que o CPF não virou chave.** O pedido original era usar CPF como chave
+de militar em todo o sistema. Levantei três coisas contra: (a)
+`carga_raw.py:43` exclui deliberadamente `military_cpf` da cópia do mapa de
+força para o DW, e `core.dim_militar` não tem coluna de CPF; (b) o bundle é
+entregue antes do login, então CPF na chave publicaria 2.658 CPFs; (c)
+`/militar/07012345678` vaza em histórico de navegador, log de proxy e
+`Referer` — e a regra que a própria Seção adotou para os logs do SGU é não
+deixar CPF circular. Como chave de junção interna o CPF é ótimo, e é o que o
+mapa de força usa na origem. O usuário aceitou a recomendação.
+
+**Correção importante ao pedido: o `ovrsmf` não serve.** O pedido dizia que o
+snapshot diário "já existe no ovrsmf, basta consumir". O `ovrsmf` é o mapa de
+força **antigo** (ScriptCase), congelado em 2018-02 → 2020-10. O vivo é o
+`mapa_forca_api_development`. E não é preciso guardar snapshot nenhum:
+`launches.date` é data de verdade, então qualquer dia passado é consultável
+direto. O DW já tem 2021-05-07 → hoje.
+
+**O que o levantamento mediu (DW consultado ao vivo em 2026-08-26):**
+
+- 902.164 lançamentos de militar, 204.443 de viatura, 259.998 de recurso — e
+  **o app não usa nenhum deles**. Dos 10 marts, o app consome 2.
+- Só **17 OMEs** lançam mapa de força, e todas caem na subárvore da DGO
+  (DIM, DINTER I/II → GBs, GBAPH, GBS, GBMar, CATs). A colocação do painel na
+  DGO está certa por construção; numa unidade administrativa ele fica
+  legitimamente vazio.
+- Volume diário: ~170 lançamentos de viatura, ~85 viaturas distintas, ~830
+  militares, 13 a 15 OMEs.
+- **43 dos 91 postos de serviço com lançamento no último ano não têm
+  coordenada.** É exatamente a tabela que o usuário está construindo — encaixa
+  em `core.dim_posto_servico`, que já tem as colunas. Até lá, o balão cai na
+  coordenada da OME.
+- `launches.active` é `true` em 100% das 342.024 linhas — não serve como
+  filtro de "ativada". O sinal real de cancelamento é `discarded_at` (4.656).
+
+**A projeção do mapa de Pernambuco, recuperada.** O `municipios_pe.json` que
+já estava no app é o geojson enviado, projetado — mas só os paths, sem
+lat/long e sem a projeção escrita em lugar nenhum. Sem ela, nenhum balão tem
+onde pousar. Recuperada por comparação e conferida **path por path nos 184
+municípios**: equirretangular simples, sem correção de cosseno, na bbox do
+continente, largura 1000. Fica em `etl/_geo/projetar_municipios.py`
+(verificação reexecutável) e `src/lib/projecaoPe.js` (uso no app). Não
+precisamos de Leaflet nem de tiles — o que importa, porque na intranet não
+haveria servidor de tiles.
+
+**Fernando de Noronha está no geojson e não no mapa.** A ilha fica a ~350 km
+da costa e, dentro da mesma bbox, espremeria o continente. O GBI lança
+guarnição no SBFN todo dia, então o painel vai precisar de um encarte.
+
+#### `dim_viatura` como SCD tipo 2 — o pré-requisito
+
+O número de ordem é reciclado: viatura devolvida, a que entra no lugar herda
+o número. Com uma linha por viatura não há como saber qual estava em serviço
+no dia do lançamento — e 1 em cada 8 balões do mapa ficaria sem link para a
+ficha. Medido antes: 1.756 de 14.487 lançamentos dos últimos 90 dias sem
+casar (12,1%), pior que os 1,4% da medição original de 2026-08-24, porque a
+`dim_viatura` só tinha a frota atual.
+
+Grão novo: **uma linha por versão** — 813 viaturas em 2.827 versões. Versão
+nova a cada mudança de OME (`transfers`) ou de situação
+(`vehicle_statuses`), montada da linha do tempo dos dois.
+
+Duas regras que só apareceram medindo, e que valem mais que o desenho:
+
+1. **Só uma viatura por número herda o passado.** A primeira versão precisa
+   valer para trás (`valido_de = 1900-01-01`), porque o histórico da Frota
+   começa em 2023-12-06 e o mapa de força em 2021-05-07. Mas abrir *todas* as
+   primeiras versões — que foi o que fiz na primeira tentativa — devolve a
+   ambiguidade inteira: as duas donas do mesmo número ficam vigentes no mesmo
+   dia. Ambíguos: 413 → 231 pares.
+2. **Vigência sozinha não basta.** Uma viatura `Devolvida` mantém a última
+   versão aberta e concorre com a sucessora. Daí a coluna `em_servico` (o
+   `still_usable` do próprio catálogo da Frota) e a resolução em dois
+   estágios: candidata em serviço manda; na falta de qualquer uma, vale a fora
+   de serviço. Ambíguos: 231 → 57 pares.
+
+| Regra | Lançamentos resolvidos (de 204.443) |
+|---|---|
+| só vigência | 91,9% |
+| vigência + em serviço | 97,5% (mas 367 perdiam a única candidata) |
+| os dois, com queda para a fora de serviço | 97,7% |
+| **no fato, somando o desempate por acrônimo** | **99,0%** |
+
+Os 2.014 restantes são o piso real: número que nunca existiu na Frota.
+
+`sk_viatura` passa a ser determinístico (`id_frota * 100 + versão`), o que
+tira a `dim_viatura` da pendência de chaves substitutas instáveis.
+
+#### Efeito colateral bom: a série temporal parou de ser destruída
+
+O `limpar()` recusava a carga inteira quando encontrava snapshot de dia
+anterior, porque o `TRUNCATE ... CASCADE` levaria os snapshots junto e as
+chaves substitutas mudariam. Era honesto e travava o agendamento da carga
+diária — que é justamente o que o DW existe para comprar.
+
+Agora ele **guarda os três snapshots pela chave natural** (matrícula, placa) e
+os devolve depois de reconstruir as dimensões, antes do primeiro commit (as
+temporárias são `ON COMMIT DROP`, e um erro no meio faz rollback com tudo
+intacto). Uma linha cuja chave natural sumiu da dimensão é descartada e
+contada. Resultado: 2 dias acumulados em vez de 1 destruído.
+
+Consequências tratadas na mesma leva:
+
+- `marts.frota_por_ome` e `fato_frota_diaria` filtram `versao_atual` — senão
+  contam a mesma viatura uma vez por versão (177 viaturas têm mais de uma).
+- `marts.emprego_viatura_resumo` agrupa por `id_frota` — senão parte o
+  histórico de cada viatura em pedaços.
+- `validar.py` recorta por dia as contas que supunham um snapshot só. Sem
+  isso, "total da corporação" passaria a dar 5.316.
+- `stg.normalizar_numero_ordem()` vira função no banco: a mesma regra é
+  aplicada em três lugares e já divergiu uma vez.
+- `validar.py` ganha as quatro invariantes do SCD2 — versão atual única,
+  vigência não invertida, versões sem sobreposição, um só dono do passado por
+  número. Todas em zero.
+
+**Achado de qualidade para a DTIC.** Três `reference_date` da Frota têm ano
+com 5 ou 6 dígitos: `62025-02-05`, `22025-06-09`, `252024-01-01`. É a mesma
+classe de erro já conhecida no `ovresc` (ano 22, 4202). Descartados em vez de
+adivinhados — chutar o ano de um evento de status não é trabalho de ETL — e
+contados na saída da carga.
 
 ## Roadmap por fases
 
