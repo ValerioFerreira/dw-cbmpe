@@ -26,9 +26,22 @@ dois limites que motivam este deploy:
 1. **A Vercel está fora da rede da corporação** e não alcança `10.193.1.252`.
    Enquanto a aplicação estiver lá, o dado só se atualiza quando alguém roda a
    extração à mão e faz um novo deploy.
-2. **O dado publicado é público.** Qualquer pessoa com o endereço da Vercel
-   baixa os JSONs. Por isso, hoje só publicamos números agregados — nenhuma
-   lista nominal.
+2. **O dado publicado é efetivamente público, e inclui dado nominal.** Os JSONs
+   são embutidos no pacote JavaScript em tempo de compilação. O login da
+   aplicação é feito no próprio navegador, ou seja, **o pacote com os dados é
+   entregue antes de qualquer autenticação**. Quem abrir as ferramentas de
+   desenvolvedor lê o conteúdo sem logar.
+
+   O que está nesse pacote hoje: **nome completo, matrícula, idade,
+   raça/cor, PCD, readaptado, licenças de saúde e telefones dos 2.658
+   militares da ativa** (`efetivo_lista.json`, 2,8 MB), mais função por
+   matrícula de outros 716 (`lotacao_funcao.json`). Raça/cor e PCD são
+   categoria especial pela LGPD.
+
+   Isso foi uma exceção deliberada, registrada em `DW_PLANEJAMENTO.md`
+   (2026-08-07 e 2026-08-11), tomada quando a suposição era que o login
+   protegia o conteúdo. **A suposição estava errada** — e é o principal motivo
+   técnico para trazer a aplicação para dentro da rede.
 
 Trazer a aplicação para dentro resolve os dois de uma vez.
 
@@ -117,9 +130,9 @@ antes do primeiro deploy.
 Se **migra**, os JSONs estáticos deixam de existir e a aplicação passa a ler o
 data warehouse — é o desenho que recomendamos.
 
-Se **convive**, a versão pública continua com dado agregado e sem lista
-nominal, e isso precisa ficar registrado como decisão consciente, não como
-descuido.
+Se **convive**, é preciso antes remover o dado nominal do pacote publicado
+(seção 1, item 2) — hoje ele sai junto, sem autenticação. Manter a versão
+pública só é aceitável com o conteúdo reduzido a números agregados.
 
 ### 3.2 Criação do app no CapRover
 
@@ -249,6 +262,11 @@ exigências no nosso sistema, que assumimos como requisito:
   senha igual ao CPF).
 - **Não exibir lista nominal** a usuário autenticado apenas pelo SGU enquanto
   o item acima não existir. Números agregados, sim.
+
+Vale registrar que hoje a situação é pior do que o cenário acima descreve: o
+dado nominal descrito na seção 1 sai **sem autenticação nenhuma**. A exigência
+de troca de senha trata do passo seguinte; o passo imediato é a aplicação parar
+de embarcar esse dado no pacote público.
 
 Adotamos ainda a regra já registrada pela Seção de que **logs do SGU contêm CPF
 e não devem ser colados em ferramentas externas**.
