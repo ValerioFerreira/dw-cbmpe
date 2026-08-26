@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { fmtNumero } from "@/lib/cbmpe";
+import MolduraNoronha from "./MolduraNoronha";
 
 // Teto fixo da escala de intensidade (pedido do usuário: legenda sempre
 // "0 a 1000", em vez de recalcular o topo a cada mudança de filtro — mantém
@@ -46,7 +47,7 @@ export default function GeoChoropleth({
     <div className="flex flex-col gap-4 lg:flex-row">
       <div className="relative flex-1 rounded-lg border border-border bg-muted/20 p-2">
         <svg
-          viewBox={`0 0 ${municipios.width} ${municipios.height}`}
+          viewBox={`${municipios.minX ?? 0} ${municipios.minY ?? 0} ${municipios.width} ${municipios.height}`}
           style={{ width: "100%", height: altura }}
           onMouseLeave={() => setHover(null)}
         >
@@ -71,6 +72,7 @@ export default function GeoChoropleth({
               />
             );
           })}
+          <MolduraNoronha />
         </svg>
         {hover && createPortal(
           <div
