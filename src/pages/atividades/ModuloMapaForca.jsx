@@ -4,6 +4,7 @@ import { Truck, Users, MapPin, CalendarDays, Search, X, TriangleAlert } from "lu
 import SectionCard from "@/components/ui/section-card";
 import EmptyState from "@/components/ui/empty-state";
 import MultiSelectFiltro from "@/components/ui/multi-select-filtro";
+import FiltroData, { formatarData } from "@/components/ui/filtro-data";
 import GeoMarcadores from "@/components/charts/GeoMarcadores";
 import { fmtNumero } from "@/lib/cbmpe";
 import municipios from "@/data/real/efetivo_dashboard/municipios_pe.json";
@@ -132,18 +133,7 @@ export default function ModuloMapaForca({ permitidas, unidade }) {
     <div className="space-y-4">
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-2">
-        <label className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-[12px] font-medium text-muted-foreground">
-          <CalendarDays className="h-3.5 w-3.5" />
-          <select
-            value={dia || ""}
-            onChange={(e) => setDia(e.target.value)}
-            className="bg-transparent text-[12px] font-medium text-foreground outline-none"
-          >
-            {indice.datas.slice().reverse().map((d) => (
-              <option key={d} value={d}>{formatarData(d)}</option>
-            ))}
-          </select>
-        </label>
+        <FiltroData valor={dia} datas={indice.datas} onChange={setDia} />
 
         <MultiSelectFiltro label="OME" valores={opcoes.omes} selecionado={omes}
           onChange={(v) => { setOmes(v); setPostosSel(VAZIO); }} />
@@ -180,16 +170,13 @@ export default function ModuloMapaForca({ permitidas, unidade }) {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Kpi icone={MapPin} rotulo="Seções com serviço" valor={porPosto.length} />
+            <Kpi icone={MapPin} rotulo="Unidades com lançamentos" valor={porPosto.length} />
             <Kpi icone={Truck} rotulo="Viaturas ativadas" valor={resumo.viaturas} />
             <Kpi icone={Users} rotulo="Militares escalados" valor={resumo.militares} />
             <Kpi icone={CalendarDays} rotulo="Lançamentos" valor={resumo.lancamentos} />
           </div>
 
-          <SectionCard
-            titulo="Onde a força está"
-            subtitulo={`${formatarData(dia)} — o número no balão é a quantidade de viaturas ativadas na seção`}
-          >
+          <SectionCard>
             <GeoMarcadores
               municipios={municipios}
               pontos={porPosto}
@@ -236,77 +223,81 @@ function DetalheDoPosto({ posto, aoFechar }) {
         </button>
       }
     >
-      <div className="space-y-4">
+      {/* Um card por lançamento, lado a lado. Antes era uma coluna de blocos
+          largos, e um posto com dez lançamentos virava uma página inteira de
+          rolagem — o que se quer ver aqui é a escala do dia de uma vez. */}
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
         {posto.lancamentos.map((l) => (
-          <div key={l.id} className="rounded-lg border border-border p-3">
-            <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px]">
-              <span className="font-semibold text-foreground">{l.tipoServico || "Serviço não informado"}</span>
-              {l.turno && (
-                <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                  {l.turno}
-                </span>
-              )}
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-2">
-              <div>
-                <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Viaturas
-                </p>
-                {l.viaturas.length === 0 && (
-                  <p className="text-[12px] text-muted-foreground">Nenhuma viatura neste lançamento.</p>
-                )}
-                <div className="space-y-1">
-                  {l.viaturas.map((v, i) => {
-                    const rotulo = `${v.acronimo || "?"}-${v.numero || "?"}`;
-                    // Sem placa = viatura que o mapa de força lançou e a Frota
-                    // não conhece (1,0% do volume). Mostra sem link, em vez de
-                    // sumir com ela do painel.
-                    return v.placa ? (
-                      <Link
-                        key={`${l.id}-${i}`}
-                        to={`/viatura/${v.placa}`}
-                        className="flex items-center justify-between gap-2 rounded px-2 py-1 text-[12px] hover:bg-primary/10"
-                      >
-                        <span className="font-medium text-foreground">{rotulo}</span>
-                        <span className="text-muted-foreground">{v.placa}</span>
-                      </Link>
-                    ) : (
-                      <div key={`${l.id}-${i}`}
-                        className="flex items-center justify-between gap-2 rounded px-2 py-1 text-[12px]">
-                        <span className="font-medium text-foreground">{rotulo}</span>
-                        <span className="text-[11px] text-muted-foreground">sem cadastro na Frota</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Guarnição ({fmtNumero(l.guarnicao.length)})
-                </p>
-                <div className="space-y-1">
-                  {l.guarnicao.map((m, i) => (
-                    <Link
-                      key={`${l.id}-m-${i}`}
-                      to={`/militar/${m.matricula}`}
-                      className="flex items-center justify-between gap-2 rounded px-2 py-1 text-[12px] hover:bg-primary/10"
-                    >
-                      <span className="truncate text-foreground">
-                        <span className="text-muted-foreground">{m.postoGrad} </span>
-                        {m.nomeGuerra || m.matricula}
-                      </span>
-                      <span className="shrink-0 text-[11px] text-muted-foreground">{m.funcao}</span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+          <CardLancamento key={l.id} lancamento={l} />
         ))}
       </div>
     </SectionCard>
+  );
+}
+
+function CardLancamento({ lancamento: l }) {
+  return (
+    <div className="rounded-lg border border-border p-2.5">
+      <div className="mb-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px]">
+        <span className="font-semibold text-foreground">{l.tipoServico || "Serviço não informado"}</span>
+        {l.turno && (
+          <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+            {l.turno}
+          </span>
+        )}
+      </div>
+
+      {/* "Viatura" no singular: o lançamento do mapa de força tem uma só. O
+          array continua porque a fonte permite mais de uma linha por
+          lançamento, e esconder a segunda seria mentir sobre o dado. */}
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        Viatura
+      </p>
+      {l.viaturas.length === 0 && (
+        <p className="text-[11px] text-muted-foreground">sem viatura neste lançamento</p>
+      )}
+      {l.viaturas.map((v, i) => {
+        const rotulo = `${v.acronimo || "?"}-${v.numero || "?"}`;
+        // Sem placa = viatura que o mapa de força lançou e a Frota não
+        // conhece (1,0% do volume). Mostra sem link, em vez de sumir com ela.
+        return v.placa ? (
+          <Link
+            key={`${l.id}-${i}`}
+            to={`/viatura/${v.placa}`}
+            className="flex items-center justify-between gap-2 rounded px-1 py-0.5 text-[11px] hover:bg-primary/10"
+          >
+            <span className="font-medium text-foreground">{rotulo}</span>
+            <span className="text-muted-foreground">{v.placa}</span>
+          </Link>
+        ) : (
+          <div key={`${l.id}-${i}`}
+            className="flex items-center justify-between gap-2 px-1 py-0.5 text-[11px]">
+            <span className="font-medium text-foreground">{rotulo}</span>
+            <span className="text-[10px] text-muted-foreground">sem cadastro na Frota</span>
+          </div>
+        );
+      })}
+
+      <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        Guarnição ({fmtNumero(l.guarnicao.length)})
+      </p>
+      {l.guarnicao.map((m, i) => (
+        <Link
+          key={`${l.id}-m-${i}`}
+          to={`/militar/${m.matricula}`}
+          className="flex items-baseline justify-between gap-2 rounded px-1 py-0.5 text-[11px] hover:bg-primary/10"
+          title={m.funcao || ""}
+        >
+          <span className="truncate text-foreground">
+            <span className="text-muted-foreground">{m.postoGrad} </span>
+            {m.nomeGuerra || m.matricula}
+          </span>
+          <span className="shrink-0 truncate text-[10px] text-muted-foreground" style={{ maxWidth: "45%" }}>
+            {m.funcao}
+          </span>
+        </Link>
+      ))}
+    </div>
   );
 }
 
@@ -358,10 +349,4 @@ function BuscaMilitar({ valor, onChange, opcoes }) {
       )}
     </div>
   );
-}
-
-function formatarData(iso) {
-  if (!iso) return "—";
-  const [a, m, d] = iso.split("-");
-  return `${d}/${m}/${a}`;
 }
