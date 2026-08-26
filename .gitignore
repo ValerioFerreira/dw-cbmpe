@@ -38,3 +38,7 @@ __pycache__/
 
 # saida gerada pelos scripts de reconciliacao do DW
 etl/mapa_forca/de_para_viatura.json
+
+# Repositorio de insignias enviado pelo usuario: 280 arquivos (.cdr/.pdf/.png).
+# So os PNG usados entram no repo, via etl/_geo/copiar_insignias.py --copiar.
+CBMPE - Repositório de Insígnias*/

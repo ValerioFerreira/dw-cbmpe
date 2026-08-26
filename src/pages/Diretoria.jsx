@@ -11,6 +11,7 @@ import {
   tituloKpi, valorKpi, extraKpi,
   metricasProprias, metricasDivisoesProprias
 } from "@/lib/cbmpe";
+import Insignia from "@/components/ui/insignia";
 import KpiCard from "@/components/ui/kpi-card";
 import SectionCard from "@/components/ui/section-card";
 import EmptyState from "@/components/ui/empty-state";
@@ -50,7 +51,7 @@ function celulaEfetivoDivisao(d) {
 }
 
 // Célula da coluna Efetivo para uma divisão/seção interna: efetivo atual
-// vem da Repercussão Financeira (DIST_FUNCOES, cobertura parcial — ver
+// vem do QOD publicado pela DPlaG (cobertura parcial — ver
 // organograma.js/metricasDivisoesProprias) — "x" só aparece quando a seção
 // ainda não teve nenhuma função lançada na planilha, não quando o valor é
 // realmente 0 (decisão registrada em DW_PLANEJAMENTO.md).
@@ -179,6 +180,7 @@ export default function Diretoria() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <span className="mt-1 h-12 w-1.5 shrink-0 rounded-full bg-primary" />
+          <Insignia sigla={unidade.sigla} tamanho={72} className="-mt-1" />
           <div>
             <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">{unidade.nome}</h1>
             {unidade.responsavel && (
@@ -329,7 +331,7 @@ export default function Diretoria() {
           </div>
           {temDivisoesInternas && (
             <p className="border-t border-border px-2.5 py-2 text-right text-[11px] text-muted-foreground">
-              "x" = seção ainda sem função lançada na Repercussão Financeira (CPPA) — o efetivo atual por seção está sendo preenchido gradualmente, não é um valor confirmado de zero.
+              "x" = seção sem função casada com o QOD publicado pela DPlaG — o QOD é mais fino que este organograma, então parte das funções conta no total da unidade sem cair numa divisão. Não é um zero confirmado.
             </p>
           )}
         </SectionCard>
