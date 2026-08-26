@@ -11,8 +11,22 @@ import {
 import EmptyState from "@/components/ui/empty-state";
 import { MODULOS_EFETIVO_DASHBOARD } from "@/lib/efetivoDashboard";
 import { MODULOS_VIATURAS_DASHBOARD } from "@/lib/viaturasDashboard";
+import { MODULOS_ATIVIDADES_DASHBOARD } from "@/lib/mapaForca";
 
 const QTD_MODULOS_PLACEHOLDER = 4;
+
+// Indicadores que já têm Dashboard Pessoal de verdade. O resto ainda cai nos
+// cards "em construção".
+//
+// Atividades Específicas é um caso misto, de propósito: o NÚMERO do indicador
+// continua sendo mock (a fonte real, o SGAT, ainda não foi levantada), mas o
+// Mapa de Força já é dado real do DW. Por isso o card de valor segue dizendo
+// "Em construção" enquanto o módulo abaixo funciona.
+const DASHBOARDS_REAIS = {
+  "Efetivo": { rota: "efetivo", modulos: MODULOS_EFETIVO_DASHBOARD },
+  "Viaturas": { rota: "viaturas", modulos: MODULOS_VIATURAS_DASHBOARD },
+  "Atividades Específicas": { rota: "atividades", modulos: MODULOS_ATIVIDADES_DASHBOARD },
+};
 
 export default function Indicador() {
   const { id } = useParams();
@@ -139,16 +153,13 @@ export default function Indicador() {
         )}
       </div>
 
-      {/* Módulos deste indicador — Efetivo e Viaturas já ligam aos
-          respectivos Dashboards Pessoais reais (ver src/pages/efetivo/ e
-          src/pages/viaturas/); os demais indicadores ainda são placeholders
-          "em construção". */}
+      {/* Módulos deste indicador — ver DASHBOARDS_REAIS no topo. */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {ind.nome === "Efetivo" || ind.nome === "Viaturas"
-          ? (ind.nome === "Efetivo" ? MODULOS_EFETIVO_DASHBOARD : MODULOS_VIATURAS_DASHBOARD).map((m) => (
+        {DASHBOARDS_REAIS[ind.nome]
+          ? DASHBOARDS_REAIS[ind.nome].modulos.map((m) => (
               <Link
                 key={m.key}
-                to={`/${ind.nome === "Efetivo" ? "efetivo" : "viaturas"}/${ind.id}/dashboard/${m.key}`}
+                to={`/${DASHBOARDS_REAIS[ind.nome].rota}/${ind.id}/dashboard/${m.key}`}
                 className="group flex flex-col items-center justify-center gap-2 rounded-xl border border-border bg-card p-4 text-center transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm"
               >
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary">

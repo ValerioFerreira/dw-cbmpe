@@ -1,0 +1,25 @@
+{
+  "_comentario": [
+    "De-para OME do DW -> sigla do organograma do app. O organograma e a",
+    "autoridade sobre a hierarquia (decisao de 2026-08-24), entao e para a",
+    "sigla dele que o painel tem que falar.",
+    "",
+    "Quase tudo casa por normalizacao (tirar acento, espaco e barra): '2o GB'",
+    "e '2o GB', 'GBMAR' e 'GBMar'. Este arquivo guarda so o que NAO casa --",
+    "cada linha aqui e uma decisao humana, nao um palpite do script.",
+    "",
+    "null = unidade que existiu e nao existe mais no organograma, e cujo",
+    "destino ninguem confirmou. O extrator FALHA se uma delas aparecer na",
+    "janela pedida, em vez de somar o lancamento na unidade errada em",
+    "silencio. Nenhuma aparece na janela de 90 dias (as tres extintas pararam",
+    "de lancar em 2021)."
+  ],
+  "CAT / AGRESTE": "CAT/AG",
+  "CAT / SERTÃO": "CAT/SE",
+  "DINTER/1": "DINTER I",
+  "DINTER/2": "DINTER II",
+  "GBFN": "GBI",
+  "8º GB": null,
+  "10º GB": null,
+  "12º GB": null
+}
