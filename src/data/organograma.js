@@ -419,14 +419,17 @@ function divisoesDaSigla(sigla) {
 // Efetivo previsto por divisão/seção interna de uma unidade — fonte real
 // (QOD, ver etl/efetivo/extract_previsto_divisoes.py).
 //
-// Efetivo ATUAL por divisão vem da Repercussão Financeira (CPPA, aba
-// DIST_FUNCOES — ver etl/efetivo/extract_lotacao_funcao.py), que ainda
-// está sendo preenchida pela CPPA: hoje cobre só uma parte do efetivo
-// (ver lotacaoFuncaoReal.cobertura.percentual). "efetivoAtual" fica null
-// (não 0) pra divisão de unidade cuja função ainda não foi lançada em
-// nenhuma linha — evita mostrar "0" como se a seção estivesse vazia
-// quando na verdade é só falta de lançamento na planilha. A UI decide
-// como exibir esse "sem dado ainda" (ver Diretoria.jsx).
+// Efetivo ATUAL por divisão vem do QOD publicado pela DPlaG (ver
+// etl/efetivo/extract_lotacao_funcao.py), que cobre 88,6% do efetivo.
+// "efetivoAtual" fica null (não 0) pra divisão cuja função ainda não foi
+// lançada — evita mostrar "0" como se a seção estivesse vazia quando na
+// verdade é só falta de lançamento. A UI decide como exibir esse "sem
+// dado ainda" (ver Diretoria.jsx).
+//
+// Atenção: o QOD é um nível MAIS FINO que este organograma (ele lista
+// seções dentro das divisões), e só 980 das 1.823 funções do catálogo
+// casam com uma divisão daqui. As outras contam no total da unidade mas
+// não em divisão nenhuma — daí divisão com efetivoAtual abaixo do real.
 export function metricasDivisoesProprias(sigla) {
   const divisoes = divisoesDaSigla(sigla);
   if (!divisoes.length) return [];

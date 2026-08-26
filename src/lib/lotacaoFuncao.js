@@ -1,0 +1,47 @@
+import lotacaoFuncao from "@/data/real/lotacao_funcao.json";
+
+// Leitura da lotação/função por militar.
+//
+// A fonte é o QOD publicado pela DPlaG (ver etl/efetivo/extract_lotacao_funcao.py).
+// O arquivo é NORMALIZADO: `por_matricula` guarda só o que varia por pessoa
+// (portaria, BGE, posto da função) e aponta para `funcoes` pelo idFuncao, que
+// é onde moram nome, seção, divisão, OME e localidade. Sem isso os mesmos
+// textos se repetiriam nas 2.600 ocupações e o arquivo — que é `import`ado,
+// logo entra no bundle — ficava ~1 MB maior.
+//
+// Cobertura parcial e conhecida: 2.356 dos 2.658 militares ativos (88,6%).
+// Militar sem função lançada devolve null, e isso significa "ainda não
+// lançado no QOD", não "sem função".
+
+const CATALOGO = lotacaoFuncao.funcoes || {};
+
+/** Ocupações de um militar, já com os dados da função resolvidos. */
+export function ocupacoesDoMilitar(matricula) {
+  const registros = lotacaoFuncao.por_matricula?.[matricula];
+  if (!registros?.length) return [];
+  return registros.map((r) => ({ ...CATALOGO[r.idFuncao], ...r }));
+}
+
+/**
+ * Texto da função para tabela/ficha. Acúmulo (mesma matrícula em mais de uma
+ * função) junta com " + ", como antes.
+ */
+export function funcaoDoMilitar(matricula) {
+  const nomes = ocupacoesDoMilitar(matricula).map((o) => o.funcao).filter(Boolean);
+  return nomes.length ? nomes.join(" + ") : null;
+}
+
+/**
+ * Seção do QOD onde o militar está lotado — granularidade que o organograma
+ * do app não tem (ele para na divisão). Ver a nota sobre seção x divisão em
+ * etl/efetivo/extract_lotacao_funcao.py.
+ */
+export function secaoDoMilitar(matricula) {
+  const secoes = [...new Set(
+    ocupacoesDoMilitar(matricula).map((o) => o.secao).filter(Boolean)
+  )];
+  return secoes.length ? secoes.join(" + ") : null;
+}
+
+export const COBERTURA_LOTACAO = lotacaoFuncao.cobertura;
+export default lotacaoFuncao;

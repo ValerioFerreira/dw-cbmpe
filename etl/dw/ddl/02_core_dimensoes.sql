@@ -269,7 +269,7 @@ CREATE TABLE IF NOT EXISTS core.dim_tipo_servico (
 
 -- Funcao que o militar exerce NAQUELE servico (motorista, chefe de guarnicao,
 -- socorrista). Nao confundir com a funcao administrativa da lotacao_funcao,
--- que vem da Repercussao Financeira.
+-- que vem do QOD publicado pela DPlaG.
 CREATE TABLE IF NOT EXISTS core.dim_funcao_servico (
     sk_funcao_servico integer PRIMARY KEY,
     id_funcao         integer UNIQUE,

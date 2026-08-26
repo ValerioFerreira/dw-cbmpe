@@ -129,7 +129,7 @@ def main():
     # Contagem própria dos setores vinculados (ex. CPPA), por unidade-mãe.
     # É um recorte de por_unidade[mãe], não um acréscimo: quem está aqui já
     # está contado na mãe. Serve pra tabela de setores vinculados mostrar o
-    # efetivo atual do setor sem depender da Repercussão Financeira (que só
+    # efetivo atual do setor sem depender do QOD publicado (que só
     # cobre parte do efetivo).
     por_setor_vinculado = {}
     for ome, contagem in contagem_por_ome.items():

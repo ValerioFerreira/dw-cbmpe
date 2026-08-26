@@ -11,21 +11,9 @@ import ScrollDuplo from "@/components/ui/scroll-duplo";
 import { FiltroColuna, passaFiltro, valorFiltro, filtrosIniciaisDaUrl } from "@/components/ui/filtro-coluna";
 import { useLarguras, useLarguraContainer, ColGroup, AlcaResize, CELULA_TRUNCADA } from "@/components/ui/tabela-colunas";
 import efetivoLista from "@/data/real/efetivo_lista.json";
-import lotacaoFuncao from "@/data/real/lotacao_funcao.json";
+import lotacaoFuncao, { funcaoDoMilitar, secaoDoMilitar } from "@/lib/lotacaoFuncao";
 
 const TAMANHOS_PAGINA = [10, 20, 50];
-
-// Função ocupada por um militar, via matrícula — fonte: Repercussão
-// Financeira (CPPA, aba DIST_FUNCOES), ver etl/efetivo/extract_lotacao_funcao.py.
-// Cobertura parcial (planilha em preenchimento pela CPPA): retorna null
-// quando o militar ainda não tem função lançada, não "sem função"
-// confirmado. Acúmulo de função (mesma matrícula, múltiplas linhas) junta
-// os textos com " + ".
-function funcaoDoMilitar(matricula) {
-  const registros = lotacaoFuncao.por_matricula[matricula];
-  if (!registros || !registros.length) return null;
-  return registros.map((r) => r.funcao).join(" + ");
-}
 
 function fmtCampoCompleto(valor) {
   if (valor === null || valor === undefined || valor === "") return "—";
@@ -71,6 +59,12 @@ const COLUNAS_PRINCIPAIS = [
   {
     chave: "funcao", rotulo: "Função", tipoPadrao: "texto", filtravel: true, largura: 200,
     bruto: (r) => funcaoDoMilitar(r.matricula),
+  },
+  // Seção do QOD — um nível abaixo da divisão que o organograma conhece.
+  // Ver src/lib/lotacaoFuncao.js.
+  {
+    chave: "secao", rotulo: "Seção", tipoPadrao: "texto", filtravel: true, largura: 200,
+    bruto: (r) => secaoDoMilitar(r.matricula),
   },
 ];
 
@@ -204,7 +198,7 @@ export default function EfetivoDetalhe() {
     if (!unidade) return [];
     // Filtro por setor/divisão (vindo de "Setores Vinculados" na página da
     // Diretoria): só a própria unidade, restrita às matrículas que a
-    // Repercussão Financeira (DIST_FUNCOES) já lançou naquela divisão —
+    // o QOD publicado já lançou naquela divisão —
     // nunca soma unidades subordinadas nesse modo.
     // Militares adidos (omeExibicao preenchido, ex. "ADIDO") contam no
     // efetivo do Comando Geral mas mostram a origem real na coluna OME — só
@@ -219,7 +213,7 @@ export default function EfetivoDetalhe() {
       // Setor vinculado que é OME própria na fonte (ex. CPPA dentro da
       // DGP): os militares contam no efetivo da mãe mas guardam a OME de
       // origem em omeExibicao — filtra por ela, e não pela função lançada
-      // na Repercussão Financeira (que cobre só parte do efetivo e não tem
+      // no QOD publicado (que cobre só parte do efetivo e não tem
       // esses setores como "divisão"). Ver extract_efetivo.py.
       const porOme = daUnidade.filter((r) => r.omeExibicao === setor);
       if (porOme.length) {

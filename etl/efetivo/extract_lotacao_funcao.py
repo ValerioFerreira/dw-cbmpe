@@ -1,46 +1,64 @@
 # requirements:
 # openpyxl
-"""Extração pontual da Lotação/Função a partir da aba DIST_FUNCOES da
-planilha "Repercussão Financeira" (CPPA) — conecta o efetivo já conhecido
-(Pecúlio/Neon, em src/data/real/efetivo_lista.json) com a função e seção
-que cada militar ocupa. O QOD (etl/efetivo/extract_previsto_divisoes.py)
-já diz quantas vagas de função existem por divisão; esta aba diz quem
-ocupa qual.
+# requests
+"""Extração da Lotação/Função a partir do QOD publicado (DPlaG) — diz qual
+função cada militar ocupa, em qual seção e em qual unidade.
 
-Cobertura parcial e conhecida, não um bug: hoje só as unidades abaixo têm
-função lançada em DIST_FUNCOES — "está sendo atualizada, e irá conter
-todos os militares do pecúlio" (usuário, 2026-08-17). Unidade/militar
-ausente aqui não significa "sem função", só que ainda não foi lançado.
+    python etl/efetivo/extract_lotacao_funcao.py                  # baixa do link publicado
+    python etl/efetivo/extract_lotacao_funcao.py caminho.xlsx     # usa um arquivo local
 
-Chave de junção: MATRÍCULA. A unidade (OME) de cada militar vem de
-src/data/real/efetivo_lista.json (fonte já reconciliada com o organograma,
-mesma origem do Neon) — a coluna UNIDADE da própria DIST_FUNCOES só é
-usada como fallback (matrícula não encontrada no Pecúlio) e para avisos de
-divergência, nunca como fonte primária.
+O QUE MUDOU EM 2026-08-26 (e por que importa)
+---------------------------------------------
+Até aqui a função vinha da aba DIST_FUNCOES da "Repercussão Financeira"
+(CPPA): uma coluna de TEXTO LIVRE por militar, casada contra o organograma
+por 3 camadas de heurística em cascata (catálogo -> substring -> rollup na
+árvore do QOD parseada de outro xlsx). Cobria 716 militares, 26,9% do
+efetivo, em 14 unidades.
 
-O casamento de função usa 3 camadas, nesta ordem de prioridade:
-1. Catálogo oficial (Funções - DPlaG.xlsx, aba QOD_FUNCOES) — a partir da
-   próxima planilha, "NOME DA FUNÇÃO E SEÇÃO/OME" do DIST_FUNCOES passa a
-   ser preenchido com o valor exato da coluna FUNÇÃO deste catálogo
-   (confirmado pelo usuário, 2026-08-17) — motivo pelo qual esta camada é
-   tentada primeiro e tende a virar praticamente 100% dos casos com o
-   tempo, à medida que os lançamentos antigos (texto livre, sem seguir o
-   catálogo) forem sendo substituídos.
-2. Heurística de texto direto contra as divisões de SUBSETORES
-   (organograma.js) — cobre lançamentos antigos que não citam o catálogo.
-3. Rollup na árvore real do QOD (etl/efetivo/extract_previsto_divisoes.py)
-   — sobe pela hierarquia de seções até achar um ancestral que já bate com
-   uma divisão conhecida, pra função em nível mais fino do que SUBSETORES
-   reconhece hoje (ex. "Seção de Instrução" dentro de "Divisão de
-   Operações").
+O QOD publicado resolve isso na origem, porque traz DUAS abas ligadas por
+chave estrangeira de verdade:
 
-Funções que não batem em nenhuma das 3 camadas ficam registradas como
-"não classificadas" (contam no total da unidade, não em nenhuma divisão
-específica), sem falhar o script.
+    QOD_CONSOLIDADA.CÓDIGO  ->  QOD_FUNCOES.ID_FUNCAO
 
-Uso:
-    python etl/efetivo/extract_lotacao_funcao.py "<caminho do xlsx>"
+Ou seja: quem ocupa a função aponta para a função pelo ID, não pelo nome.
+Não sobra nada para adivinhar no par militar->função — 2.744 de 2.775
+linhas trazem CÓDIGO e 100% delas resolvem. São 2.372 militares (89,2% do
+efetivo) em 45 unidades, contra 716 em 14.
+
+O que ainda precisa ser casado é OUTRA coisa, um nível acima: a SEÇÃO do
+QOD contra a DIVISÃO do organograma do app (SUBSETORES, em
+src/data/organograma.js). O QOD é mais fino que o organograma — ele lista
+"Seção de Tesouraria - STes", que no organograma está dentro de "Divisão
+Administrativa - DA", sem a seção aparecer. Ver resolver_divisoes abaixo.
+
+Como a Repercussão Financeira também dava ANTIGUIDADE, PORTARIA, BGE e
+FUNÇÃO DE:, e a QOD_CONSOLIDADA dá as quatro, ela fica INTEIRAMENTE
+substituída para este fim (a planilha continua existindo para o cálculo
+financeiro, que não é assunto deste script).
+
+CHAVE DE JUNÇÃO E FONTE DA UNIDADE
+----------------------------------
+Junção com o efetivo por MATRÍCULA. A unidade (OME) de cada militar
+continua vindo de src/data/real/efetivo_lista.json (Pecúlio/Neon, já
+reconciliado com o organograma) — a coluna UNIDADE da QOD_CONSOLIDADA é
+usada só como fallback e para avisar divergência, nunca como fonte
+primária. Assim a contagem por unidade continua batendo com o efetivo
+mostrado no resto do app.
+
+FUNÇÃO vs ENCARGO
+-----------------
+O catálogo separa 1.397 FUNÇÕES de 426 ENCARGOS. Encargo é acúmulo: vem
+com ID_FUNCAO_VINCULADA apontando para a função que a pessoa já ocupa
+(ex. o Chefe da Secretaria acumula o Núcleo de Assistência Social). Hoje
+87 militares aparecem com função E encargo, e 10 só com encargo.
+
+Contar as duas linhas na lotação da seção duplicaria esses 87. Então:
+por_unidade_divisao/por_unidade_secao contam só FUNÇÃO — mais o encargo de
+quem NÃO tem nenhuma função lançada, para que ninguém desapareça da
+contagem. por_matricula guarda tudo, com o campo "tipo", porque na ficha
+do militar o encargo é informação legítima.
 """
+import io
 import json
 import re
 import sys
@@ -55,55 +73,88 @@ ORGANOGRAMA_JS = ROOT / "src" / "data" / "organograma.js"
 EFETIVO_LISTA_JSON = ROOT / "src" / "data" / "real" / "efetivo_lista.json"
 OUT_JSON = ROOT / "src" / "data" / "real" / "lotacao_funcao.json"
 
-SHEET = "DIST_FUNCOES"
-LINHA_INICIO = 23
-COL_UNIDADE = 3
-COL_MATRICULA = 4
-COL_POSTO = 5
-COL_NOME = 6
-COL_FUNCAO_SECAO = 8
-COL_FUNCAO_DE = 9
-COL_PORTARIA = 10
-COL_BGE = 11
-COL_ANTIGUIDADE = 2
+# QOD publicado pela DPlaG ("publicar na web" do Google Sheets). Mesmo
+# mecanismo já usado em etl/windmill/dw/raw_planilhas.py.
+URL_QOD = (
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vRLXuwu8Q9WIe3OBC7A5CC_95t6yj"
+    "niWITLEg-8OD09-ytRjV-Yphb7Pcbze7Gd5MZmhbk1r7riO0Dn/pub?output=xlsx"
+)
 
-# De-para best-effort da coluna UNIDADE de DIST_FUNCOES -> sigla do
-# organograma. Só usado como fallback (matrícula não achada no Pecúlio) ou
-# pra avisos de divergência — não é a fonte primária de unidade.
+ABA_CATALOGO = "QOD_FUNCOES"
+ABA_OCUPACAO = "QOD_CONSOLIDADA"
+
+# QOD_FUNCOES (0-based)
+F_ID, F_TIPO, F_VINCULADA, F_OME_COMPLETA = 0, 1, 2, 4
+F_OME, F_LOCALIDADE, F_SECAO, F_FUNCAO = 5, 6, 7, 8
+F_ORDEM, F_ATIVO = 10, 18
+
+# QOD_CONSOLIDADA (0-based)
+C_ANTIGUIDADE, C_UNIDADE, C_MATRICULA, C_POSTO = 1, 2, 3, 4
+C_NOME, C_CURSOS, C_FUNCAO_DE, C_PORTARIA, C_BGE, C_CODIGO = 5, 6, 8, 9, 10, 11
+
+TIPO_FUNCAO = "FUNÇÃO"
+
+# De-para da coluna UNIDADE da QOD_CONSOLIDADA -> sigla do organograma. Só
+# vale como fallback (matrícula não achada no Pecúlio) e para avisos.
 DE_PARA_UNIDADE_FALLBACK = {
-    "GCG": "GCG", "GBI": "GBI", "GBS": "GBS", "GBMAR": "GBMar",
-    "DGP": "DGP", "DVP": "DVP", "DJD": "DJD", "DTIC": "DTIC",
-    "DPLAG": "DPLAG", "DLOG": "DLOG", "DF": "DF", "DGO": "DGO",
-    "DIINTER/1": "DINTER I", "DIINTER/2": "DINTER II",
-    "ADIDO": None,  # sem sigla própria — decisão já registrada (Pecúlio/Neon)
+    "gcg": "GCG", "gsg": "GSG", "ajg": "AJG", "cpp": "CPP", "cpo": "CPO",
+    "ci": "CI", "cint": "CINT", "cman": "CMAN", "ceao": "CEAO", "cefd": "CEFD",
+    "ccs": "CCS", "aeci": "AECI", "abmg": "ABMG", "dim": "DIM", "diesp": "DIESP",
+    "dgo": "DGO", "dgp": "DGP", "djd": "DJD", "dvp": "DVP", "dtic": "DTIC",
+    "dplag": "DPLAG", "dlog": "DLOG", "df": "DF", "das": "DAS", "deip": "DEIP",
+    "gbi": "GBI", "gbs": "GBS", "gbaph": "GBAPH", "gbmar": "GBMar",
+    "diinter 1": "DINTER I", "diinter 2": "DINTER II",
+    "cat rmr recife": "CAT/RMR", "cat zona da mata carpina": "CAT/ZM",
+    "cat agreste caruaru": "CAT/AG", "cat sertao petrolina": "CAT/SE",
+    "1 gb vitoria": "1º GB", "2 gb caruaru": "2º GB", "3 gb serra talhada": "3º GB",
+    "4 gb petrolina": "4º GB", "5 gb salgueiro": "5º GB", "6 gb garanhuns": "6º GB",
+    "7 gb carpina": "7º GB", "9 gb": "9º GB",
+    # CPPA é OME própria na fonte mas setor vinculado da DGP no organograma
+    # (mesmo tratamento de extract_efetivo.py, OME_SETOR_VINCULADO).
+    "cppa": "DGP",
 }
 
-# Regras especiais pra funções de comando/chefia que não citam o nome da
-# divisão explicitamente (ex. "Comandante", "Subcomandante", "Chefe do
-# GCG", "Diretor(a) de Tecnologia da Informação e Comunicação").
+# Prefixos que resolvem o topo da unidade, onde o texto não cita o nome da
+# divisão. Os três primeiros olham a FUNÇÃO ("Comandante Geral"); os dois
+# últimos olham a SEÇÃO, e existem porque o QOD chama a caixa de topo de
+# "Chefia do Centro de X" / "Gabinete do Comando Geral", que o organograma
+# chama simplesmente de "Chefia".
 PREFIXOS_COMANDO = [
     (re.compile(r"^subcomand"), "subcomand"),
     (re.compile(r"^comand"), "comand"),
     (re.compile(r"^diretor"), "diretor"),
+    (re.compile(r"^chefia\b"), "chefia"),
+    (re.compile(r"^gabinete do (sub)?comando"), "chefia"),
 ]
 
-# Divisões de vaga única (1 comandante, 1 subcomandante, 1 diretor, 1
-# chefe) — só podem ser preenchidas pelas regras explícitas de prefixo
-# acima (ou pelo casamento "Chefe do/da {sigla}"), nunca pelas passagens
-# genéricas de substring/sobreposição de palavras nem pelo rollup na
-# árvore do QOD. Sem isso, texto como "Secretaria e Ajudância do Comando"
-# batia por conter a palavra solta "comando", e o rollup, ao não achar
-# nada mais específico, subia até a raiz "Diretoria"/"Comando" da árvore
-# e atribuía qualquer função não classificada a essas vagas de 1 pessoa —
-# bug relatado pelo usuário (mais gente que o previsto=1 em Comando/
-# Subcomando/Diretoria/Chefia).
+# Cargo que É a unidade, não uma divisão dela: Comandante Geral,
+# Subcomandante Geral, Diretor. Se a unidade não tiver uma divisão própria
+# para o cargo (GCG não tem "Comando"; GSG não tem "Subcomando"), ele fica
+# SEM divisão de propósito — deixar cair na regra da seção jogaria o
+# Subcomandante Geral dentro da "Chefia" do GSG, que é a vaga (única) do
+# Chefe do Gabinete.
+CARGO_DE_TOPO = re.compile(r"^(comandante|subcomandante|diretor)")
+
+# ...mas só quando a SEÇÃO também é a caixa de topo da unidade. Sem esta
+# checagem, "Comandante da 1ª SATec" e "Comandante do 1º Grupo de Combate a
+# Incêndio" também casariam com ^comand e cairiam no "Comando" da unidade —
+# vaga única do comandante do batalhão, que assim aparecia com 4, 27, 51
+# pessoas.
+SECAO_DE_TOPO = re.compile(r"^(comando|subcomando|gabinete|chefia|diretoria)\b")
+
+# Divisões de vaga única — só as regras explícitas de prefixo podem
+# preenchê-las, nunca substring genérica nem rollup. Sem isso, "Secretaria
+# e Ajudância do Comando" batia em "Comando" por conter a palavra solta, e
+# apareciam mais pessoas que o previsto=1.
 DIVISOES_SINGULARES = {"comando", "subcomando", "diretoria", "chefia"}
+
+# Para o relatorio de chefia duplicada: seccao administrativa + cargo de chefe.
+SECAO_ADMINISTRATIVA = re.compile(
+    r"^(sec|div|nuc|secretaria|gabinete|chefia|diretoria|assessoria)")
+CHEFIA = re.compile(r"^(chefe|diretor)")
 
 
 def contem_palavra(maior, menor):
-    """Como `menor in maior`, mas exigindo borda de palavra — evita que
-    "comandante" seja considerado "contido" em "subcomandante" (são
-    palavras diferentes coladas, não um caso de substring válido)."""
     if not menor or not maior:
         return False
     return re.search(r"\b" + re.escape(menor) + r"\b", maior) is not None
@@ -116,299 +167,120 @@ def normalizar(s):
     s = s.lower()
     s = s.replace("divisao", "div").replace("secao", "sec").replace("nucleo", "nuc")
     s = re.sub(r"[^a-z0-9 ]+", " ", s)
-    s = re.sub(r"\s+", " ", s).strip()
-    return s
+    return re.sub(r"\s+", " ", s).strip()
 
 
-def extrair_parenteses(texto):
-    texto = str(texto or "")
-    m = re.search(r"\(([^)]*)\)", texto)
-    hint = m.group(1) if m else None
-    sem_parenteses = re.sub(r"\([^)]*\)", "", texto).strip()
-    return sem_parenteses, hint
+def _bloco_js(nome):
+    texto = ORGANOGRAMA_JS.read_text(encoding="utf-8")
+    abre = texto.index("{", texto.index("const " + nome + " = {"))
+    profundidade = 0
+    bloco = ""
+    for i in range(abre, len(texto)):
+        profundidade += (texto[i] == "{") - (texto[i] == "}")
+        if profundidade == 0:
+            bloco = texto[abre:i + 1]
+            break
+    bloco = re.sub(r"^\s*//.*$", "", bloco, flags=re.MULTILINE)
+    bloco = bloco.replace("'", '"')
+    return json.loads(re.sub(r",(\s*[\]}])", r"\1", bloco))
 
 
 def carregar_subsetores():
-    texto = ORGANOGRAMA_JS.read_text(encoding="utf-8")
-    inicio = texto.index("const SUBSETORES = {")
-    abre = texto.index("{", inicio)
-    profundidade = 0
-    fim = None
-    for i in range(abre, len(texto)):
-        if texto[i] == "{":
-            profundidade += 1
-        elif texto[i] == "}":
-            profundidade -= 1
-            if profundidade == 0:
-                fim = i + 1
-                break
-    bloco = texto[abre:fim]
-    bloco = re.sub(r"^\s*//.*$", "", bloco, flags=re.MULTILINE)
-    bloco = bloco.replace("'", '"')
-    bloco = re.sub(r",(\s*[\]}])", r"\1", bloco)
-    return json.loads(bloco)
+    return _bloco_js("SUBSETORES")
 
 
 def carregar_arvore_filhos():
-    texto = ORGANOGRAMA_JS.read_text(encoding="utf-8")
-    inicio = texto.index("const ARVORE = {")
-    abre = texto.index("{", inicio)
-    profundidade = 0
-    fim = None
-    for i in range(abre, len(texto)):
-        if texto[i] == "{":
-            profundidade += 1
-        elif texto[i] == "}":
-            profundidade -= 1
-            if profundidade == 0:
-                fim = i + 1
-                break
-    bloco = texto[abre:fim]
-    bloco = re.sub(r"^\s*//.*$", "", bloco, flags=re.MULTILINE)
-    bloco = bloco.replace("'", '"')
-    bloco = re.sub(r",(\s*[\]}])", r"\1", bloco)
-    return json.loads(bloco)
+    return _bloco_js("ARVORE")
 
 
 def divisoes_da_sigla(sigla, subsetores, arvore):
     filhos = set(arvore.get(sigla, []))
-    itens = [item for item in subsetores.get(sigla, []) if item not in filhos]
-    return [re.sub(r"^↳\s*", "", item) for item in itens]
+    return [re.sub(r"^↳\s*", "", item)
+            for item in subsetores.get(sigla, []) if item not in filhos]
 
 
 def variantes_divisao(titulo):
-    """Núcleo(s) normalizados de uma divisão pra tentar casar contra texto
-    livre de função — inclui a forma completa, a abreviação (depois do
-    último hífen) e a forma sem abreviação, cada uma normalizada."""
     partes = re.split(r"\s*-\s*", titulo)
     formas = {titulo}
     if len(partes) >= 2:
         formas.add(partes[-1])
         formas.add(" - ".join(partes[:-1]))
-    # remove sufixo "/SIGLA (Cidade)" das seções operacionais, ex.
-    # "1ª SBI/GBI (Jaboatão dos Guararapes)" -> "1ª SBI"
-    sem_sufixo = re.sub(r"\s*/\s*\S+\s*\([^)]*\)\s*$", "", titulo)
-    formas.add(sem_sufixo)
+    # "1ª SBI/GBI (Jaboatão)" -> "1ª SBI" e "1ª SATec (Carpina)" -> "1ª SATec":
+    # o QOD nomeia a seção sem a cidade, o organograma com.
+    formas.add(re.sub(r"\s*/\s*\S+\s*\([^)]*\)\s*$", "", titulo))
+    formas.add(re.sub(r"\s*\([^)]*\)\s*$", "", titulo))
     return {normalizar(f) for f in formas if normalizar(f)}
 
 
-def casar_divisao(funcao_texto, divisoes):
-    """Retorna o nome da divisão (como está em SUBSETORES) que melhor casa
-    com o texto livre de função, ou None se não achar candidato razoável."""
-    sem_parenteses, hint = extrair_parenteses(funcao_texto)
-    core = normalizar(sem_parenteses)
-    core_hint = normalizar(hint) if hint else ""
-
+def casar_divisao(texto, divisoes):
+    """Casa um título (seção do QOD, ou o nome da função) contra as divisões
+    do organograma. Devolve o nome como está em SUBSETORES, ou None."""
+    core = normalizar(texto)
+    if not core:
+        return None
     candidatos = [(d, variantes_divisao(d)) for d in divisoes]
 
-    def tenta(texto_norm):
-        if not texto_norm:
-            return None
-        melhores = []
-        for divisao, variantes in candidatos:
-            if normalizar(divisao) in DIVISOES_SINGULARES:
-                continue  # só pelas regras explícitas de prefixo, mais abaixo
-            for v in variantes:
-                if len(v) >= 4 and (contem_palavra(texto_norm, v) or contem_palavra(v, texto_norm)):
-                    melhores.append((len(v), divisao))
-        if melhores:
-            melhores.sort(reverse=True)
-            return melhores[0][1]
-        return None
+    melhores = []
+    for divisao, variantes in candidatos:
+        if normalizar(divisao) in DIVISOES_SINGULARES:
+            continue
+        for v in variantes:
+            if len(v) >= 4 and (contem_palavra(core, v) or contem_palavra(v, core)):
+                melhores.append((len(v), divisao))
+    if melhores:
+        melhores.sort(reverse=True)
+        return melhores[0][1]
 
-    achado = tenta(core)
-    if achado:
-        return achado
-    achado = tenta(core_hint)
-    if achado:
-        return achado
-
-    # Regras especiais pra comando/subcomando/diretoria (função não cita o
-    # nome da divisão, só o cargo de topo da própria unidade) — testadas
-    # ANTES do fallback fuzzy de sobreposição de palavras, de propósito:
-    # são bem mais precisas (a função tem que começar literalmente com
-    # "Comandante"/"Subcomandante"/"Diretor(a)") do que a heurística
-    # abaixo, que pode empatar por engano quando o título do diretor cita
-    # o próprio domínio da unidade (ex. "Diretor(a) de Justiça e
-    # Disciplina" tem sobreposição de palavras tão forte com "Divisão de
-    # Justiça e Disciplina" quanto com "Divisão de Planejamento de Justiça
-    # e Disciplina" — só a regra de prefixo sabe que é o cargo de Diretor).
+    # Cargo de topo da unidade: a função não cita o nome da divisão, só o
+    # cargo ("Comandante Geral", "Diretor de Logística"). Testado depois do
+    # casamento literal e antes do fuzzy, porque é bem mais preciso.
     for padrao, prefixo in PREFIXOS_COMANDO:
         if padrao.match(core):
             for divisao, variantes in candidatos:
                 if any(v.startswith(prefixo) for v in variantes):
                     return divisao
-
-    # "Chefe do/da {sigla da própria unidade}" (ex. "Chefe do GCG") — cargo
-    # de topo da unidade, mapeia pra divisão "Chefia" quando existir.
     m = re.match(r"^chefe d[oae]\s+(.+)$", core)
     if m and len(m.group(1)) <= 6:
         for divisao, variantes in candidatos:
             if any(v.startswith("chefia") for v in variantes):
                 return divisao
 
-    # Fallback por sobreposição de palavras (não exige substring exata) —
-    # cobre casos como "Transporte, Serviços e Telemática" vs "Transporte,
-    # Serviços Gerais e Telemática" (uma palavra a mais no meio quebra a
-    # contenção literal, mas o conjunto de palavras ainda bate muito).
-    def tenta_tokens(texto_norm):
-        if not texto_norm:
-            return None
-        alvo_tokens = set(texto_norm.split())
-        melhores = []
-        for divisao, variantes in candidatos:
-            for v in variantes:
-                v_tokens = set(v.split())
-                if len(v_tokens) < 2:
-                    continue
-                intersecao = len(alvo_tokens & v_tokens)
-                menor = min(len(alvo_tokens), len(v_tokens))
-                if menor and intersecao / menor >= 0.7:
-                    melhores.append((intersecao / menor, len(v), divisao))
-        if melhores:
-            melhores.sort(reverse=True)
-            return melhores[0][2]
-        return None
-
-    return tenta_tokens(core)
-
-
-# sigla -> índice da aba de unidade no QOD (mesma tabela usada em
-# extract_previsto_divisoes.py) — usado só pro rollup de seções internas
-# (ex. "Seção de Instrução..." dentro de "Divisão de Operações") que o
-# catálogo de funções resolve num nível mais fino do que SUBSETORES
-# reconhece hoje.
-SIGLA_SHEET_IDX = {
-    "GCG": 4, "CI": 5, "CPO": 6, "AECI": 7, "CCS": 8, "GSG": 9, "AJG": 10, "CPP": 11,
-    "DGO": 12, "DIM": 13, "GBI": 14, "GBAPH": 20, "GBS": 25, "GBMar": 31,
-    "DIESP": 34, "CAT/RMR": 35, "DINTER I": 36, "1º GB": 37, "2º GB": 41,
-    "6º GB": 49, "7º GB": 52, "CAT/ZM": 57, "CAT/AG": 58, "DINTER II": 59,
-    "3º GB": 60, "4º GB": 65, "5º GB": 69, "9º GB": 74, "CAT/SE": 78,
-    "DAS": 79, "DGP": 80, "DJD": 82, "DVP": 83, "DTIC": 84, "DPLAG": 85,
-    "DLOG": 86, "CMAN": 87, "CINT": 88, "CEAO": 89, "DF": 90, "DEIP": 91,
-    "ABMG": 92, "CEFD": 93,
-}
-COL_QOD_DISCRIMINACAO = 1
-PADRAO_QOD_HEADER = re.compile(r"^(\d+(?:\.\d+)*)\)\s*(.+)$")
-PADRAO_QOD_BODY = re.compile(r"^[a-z]\.\s")
-
-
-class NoQod:
-    __slots__ = ("titulo", "nivel", "filhos", "pai")
-
-    def __init__(self, titulo, nivel, pai):
-        self.titulo = titulo
-        self.nivel = nivel
-        self.filhos = []
-        self.pai = pai
-
-
-def parsear_arvore_qod(ws):
-    raizes = []
-    pilha = []
-    for row in ws.iter_rows(min_row=7, max_row=ws.max_row):
-        a = row[COL_QOD_DISCRIMINACAO - 1].value
-        if a is None:
+    # Sobreposição de palavras — cobre "Transporte, Serviços e Telemática"
+    # vs "Transporte, Serviços Gerais e Telemática" (uma palavra a mais no
+    # meio quebra a contenção literal, mas o conjunto ainda bate).
+    alvo_tokens = set(core.split())
+    melhores = []
+    for divisao, variantes in candidatos:
+        if normalizar(divisao) in DIVISOES_SINGULARES:
             continue
-        a = str(a).strip()
-        if not a or a.upper().startswith("TOTAL"):
-            continue
-        m = PADRAO_QOD_HEADER.match(a)
-        if m:
-            nivel = len(m.group(1).split("."))
-            no = NoQod(m.group(2).strip(), nivel, None)
-            while pilha and pilha[-1].nivel >= nivel:
-                pilha.pop()
-            if pilha:
-                no.pai = pilha[-1]
-                pilha[-1].filhos.append(no)
-            else:
-                raizes.append(no)
-            pilha.append(no)
-            continue
-        if PADRAO_QOD_BODY.match(a) and pilha:
-            # linha-folha (ex. "a. Chefe") — mesmo nó-pai, sem nó próprio.
-            continue
-    return raizes
+        for v in variantes:
+            v_tokens = set(v.split())
+            if len(v_tokens) < 2:
+                continue
+            menor = min(len(alvo_tokens), len(v_tokens))
+            razao = len(alvo_tokens & v_tokens) / menor if menor else 0
+            if razao >= 0.7:
+                melhores.append((razao, len(v), divisao))
+    if melhores:
+        melhores.sort(reverse=True)
+        return melhores[0][2]
+    return None
 
 
-def achatar_qod(raizes):
-    out = []
-
-    def visitar(no):
-        out.append(no)
-        for f in no.filhos:
-            visitar(f)
-
-    for r in raizes:
-        visitar(r)
-    return out
-
-
-def construir_rollup_qod(sigla, wb_qod, divisoes):
-    """Devolve uma função texto_livre -> divisão (SUBSETORES) que resolve
-    seções internas mais finas subindo a árvore real do QOD até achar um
-    ancestral que já case com alguma divisão conhecida."""
-    idx = SIGLA_SHEET_IDX.get(sigla)
-    if idx is None or wb_qod is None:
-        return lambda _texto: None
-    ws = wb_qod[wb_qod.sheetnames[idx]]
-    nos = achatar_qod(parsear_arvore_qod(ws))
-
-    def resolver(texto_livre):
-        core = normalizar(texto_livre)
-        if not core:
-            return None
-        candidatos = []
-        for no in nos:
-            nucleo = normalizar(re.sub(r"\s*/\s*\S+\s*\([^)]*\)\s*$", "", no.titulo))
-            if len(nucleo) >= 4 and (contem_palavra(core, nucleo) or contem_palavra(nucleo, core)):
-                candidatos.append(no)
-        if not candidatos:
-            return None
-        # nó mais específico primeiro (título mais longo)
-        candidatos.sort(key=lambda n: len(n.titulo), reverse=True)
-        no = candidatos[0]
-        while no is not None:
-            achado = casar_divisao(no.titulo, divisoes)
-            # Nunca aceita rollup pousando numa vaga de 1 pessoa só (ver
-            # DIVISOES_SINGULARES) — só o casamento direto sobre o texto
-            # original da função (regras de prefixo em casar_divisao) pode
-            # preencher essas divisões.
-            if achado and normalizar(achado) not in DIVISOES_SINGULARES:
-                return achado
-            no = no.pai
-        return None
-
-    return resolver
-
-
-def carregar_ome_por_matricula():
-    dados = json.loads(EFETIVO_LISTA_JSON.read_text(encoding="utf-8"))
-    mapa = {}
-    for sigla, registros in dados["por_unidade"].items():
-        for r in registros:
-            if r.get("matricula"):
-                mapa[r["matricula"]] = sigla
-    return mapa
-
-
-# Aliases da coluna OME do catálogo de funções (Funções - DPlaG.xlsx) que
-# não batem literalmente com a sigla do organograma.
-OME_CATALOGO_ALIAS = {
-    "ajg": "AJG", "diesp": "DIESP", "cat rmr": "CAT/RMR",
-    "dinter 1": "DINTER I", "dinter ii": "DINTER II", "cat ser": "CAT/SE",
+OME_ALIAS = {
+    "ajg": "AJG", "diesp": "DIESP", "cat rmr": "CAT/RMR", "dinter 1": "DINTER I",
+    "dinter ii": "DINTER II", "cat ser": "CAT/SE", "dlog": "DLOG", "dplag": "DPLAG",
+    "gsg": "GSG", "cint": "CINT", "cman": "CMAN", "cppa": "DGP",
 }
 
 
-def unidade_pai(ome_valor, siglas_validas):
-    """Resolve a coluna OME do catálogo de funções pra sigla do
-    organograma — seções operacionais vêm como "1ª SB/4º GB" (a sigla da
-    unidade-mãe é a parte depois da última barra)."""
-    ome = str(ome_valor or "").strip()
+def unidade_pai(ome, siglas_validas):
+    """Sigla do organograma para a coluna OME do catálogo. Seções operacionais
+    vêm como "1ª SB/4º GB" — a unidade-mãe é a parte depois da última barra."""
+    ome = str(ome or "").strip()
     chave = normalizar(ome)
-    if chave in OME_CATALOGO_ALIAS:
-        return OME_CATALOGO_ALIAS[chave]
+    if chave in OME_ALIAS:
+        return OME_ALIAS[chave]
     if ome in siglas_validas:
         return ome
     if "/" in ome:
@@ -418,218 +290,316 @@ def unidade_pai(ome_valor, siglas_validas):
     return ome
 
 
-def carregar_catalogo_funcoes(caminho, siglas_validas):
-    """Carrega o dicionário oficial de funções (Funções - DPlaG.xlsx,
-    aba QOD_FUNCOES) — dado pelo usuário como a fonte da qual o texto de
-    DIST_FUNCOES é extraído. Cada linha vira um candidato de casamento,
-    agrupado pela sigla da unidade-mãe."""
-    wb = openpyxl.load_workbook(caminho, data_only=True)
-    ws = wb["QOD_FUNCOES"]
-    cabecalho = [c.value for c in next(ws.iter_rows(min_row=1, max_row=1))]
+def baixar(url):
+    import requests
+    resposta = requests.get(url, timeout=120)
+    resposta.raise_for_status()
+    return io.BytesIO(resposta.content)
 
-    def idx(nome_parcial):
-        for i, c in enumerate(cabecalho):
-            if c and nome_parcial in normalizar(c).upper():
-                return i
-        return None
 
-    i_ome = idx("OME") if idx("OME") is not None else 4
-    # colunas exatas pela posição observada (ID_FUNCAO, TIPO_FUNCAO,
-    # ID_FUNCAO_VINCULADA, OME_COMPLETA, OME, LOCALIDADE, SEÇÃO, FUNÇÃO, OBS)
-    linhas = []
-    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, values_only=True):
-        if len(row) < 8 or not row[7]:
+def carregar_catalogo(origem, subsetores, arvore, siglas_validas):
+    """QOD_FUNCOES -> {ID_FUNCAO: {...}}, já com a divisão do organograma
+    resolvida para cada função."""
+    wb = openpyxl.load_workbook(origem, data_only=True)
+    faltando = {ABA_CATALOGO, ABA_OCUPACAO} - set(wb.sheetnames)
+    if faltando:
+        raise SystemExit("abas ausentes na planilha: %s (tem %s)"
+                         % (sorted(faltando), wb.sheetnames))
+
+    catalogo = {}
+    for r in wb[ABA_CATALOGO].iter_rows(min_row=2, values_only=True):
+        if not r[F_ID]:
             continue
-        ome_bruta = row[4]
-        linhas.append({
-            "id": row[0],
-            "tipo": row[1],
-            "ome": str(ome_bruta).strip() if ome_bruta else "",
-            "unidade_pai": unidade_pai(ome_bruta, siglas_validas),
-            "secao": str(row[6]).strip() if row[6] else "",
-            "funcao": str(row[7]).strip() if row[7] else "",
-        })
+        ome = str(r[F_OME] or "").strip()
+        catalogo[str(r[F_ID]).strip()] = {
+            "tipo": str(r[F_TIPO] or "").strip(),
+            "vinculada": str(r[F_VINCULADA]).strip() if r[F_VINCULADA] else None,
+            "ome": ome,
+            "omeCompleta": str(r[F_OME_COMPLETA] or "").strip() or None,
+            "localidade": str(r[F_LOCALIDADE] or "").strip() or None,
+            "secao": str(r[F_SECAO] or "").strip(),
+            "funcao": str(r[F_FUNCAO] or "").strip(),
+            "sigla": unidade_pai(ome, siglas_validas),
+            "ordem": float(r[F_ORDEM] or 0),
+            "ativo": str(r[F_ATIVO] or "").strip().upper() != "NÃO",
+        }
+    resolver_divisoes(catalogo, subsetores, arvore)
+    canonico = deduplicar(catalogo)
+    return catalogo, canonico, wb
 
-    por_unidade_pai = {}
-    for linha in linhas:
-        por_unidade_pai.setdefault(linha["unidade_pai"], []).append(linha)
-    return por_unidade_pai
+
+def deduplicar(catalogo):
+    """{id repetido: id canonico} para funcoes lancadas mais de uma vez.
+
+    O catalogo repete a MESMA funcao (mesma OME, mesma secao, mesmo nome) em
+    linhas diferentes: 219 triplas duplicadas, 224 linhas a mais. Em 108 delas
+    o cargo e de chefia ou comando -- "Chefe do Nucleo de Comunicacao Social"
+    aparece duas vezes no GCG, tres vezes na DVP, quatro na CAT/SER. Cargo de
+    chefia e um por secao por definicao, entao cada repetida e uma vaga
+    fantasma: quem contar linha de catalogo conta o mesmo cargo duas vezes.
+
+    A canonica e a de menor ORDEM_EXIBICAO (a primeira no documento). As
+    outras passam a apontar para ela, e o arquivo final grava uma so.
+    """
+    por_tripla = {}
+    for chave, item in sorted(catalogo.items(), key=lambda kv: kv[1]["ordem"]):
+        tripla = (item["ome"], item["secao"], item["funcao"])
+        por_tripla.setdefault(tripla, []).append(chave)
+    return {
+        repetida: ids[0]
+        for ids in por_tripla.values() if len(ids) > 1
+        for repetida in ids[1:]
+    }
 
 
-def casar_via_catalogo(funcao_texto, candidatos_catalogo):
-    """Casa o texto livre de DIST_FUNCOES contra o catálogo oficial de
-    funções (já filtrado pra unidade-mãe do militar). Retorna a linha do
-    catálogo (dict) com melhor casamento, ou None."""
-    if not candidatos_catalogo:
-        return None
-    core = normalizar(funcao_texto)
-    if not core:
-        return None
-    melhores = []
-    for linha in candidatos_catalogo:
-        alvo = normalizar(linha["funcao"])
-        if not alvo:
+def resolver_divisoes(catalogo, subsetores, arvore):
+    """Preenche catalogo[id]["divisao"] com a divisão do organograma, ou None.
+
+    O QOD é UM NÍVEL MAIS FINO que o organograma do app: ele lista "Seção de
+    Tesouraria - ST", que no organograma não existe — lá ela está dentro de
+    "Divisão Administrativa - DA". Casar direto resolve 65% das funções; o
+    resto fica com divisao=None e aparece só em por_unidade_secao, com o
+    nome exato que o QOD dá.
+
+    Por que não completar os outros 35% por heurística. A tentativa óbvia é
+    usar a ORDEM_EXIBICAO: o QOD é lido de cima para baixo, então a seção
+    herdaria a última divisão aberta acima dela. Isso sobe a atribuição de
+    65% para 91% — e foi medido, não suposto. Mas a conferência contra o
+    efetivo PREVISTO por divisão (etl/efetivo/extract_previsto_divisoes.py,
+    que parseia a árvore numerada do QOD original) reprova o resultado:
+
+        só casamento direto   1.701 funções atribuídas,  9 divisões acima
+                              do previsto, 22 pessoas sobrando
+        + rollup por ordem    2.370 funções atribuídas, 28 divisões acima
+                              do previsto, 115 pessoas sobrando
+
+    O caso que revela o furo: no 1º GB a ORDEM põe SICT e SEO (6 funções)
+    logo depois do bloco da Secretaria e ANTES da linha que abre a Divisão
+    de Operações, então as seis vão para a Secretaria — que tem 4 vagas
+    previstas no total. O documento não é uma árvore linear confiável.
+
+    669 atribuições a mais não pagam 93 pessoas na divisão errada: número
+    errado num painel é pior que número ausente. Para fechar os 35% que
+    faltam sem adivinhar, o caminho é um de-para seção -> divisão, ou o QOD
+    original com a numeração hierárquica (1., 1.1., 1.1.1.) que o
+    extract_previsto_divisoes.py já sabe ler.
+    """
+    for item in catalogo.values():
+        sigla = item["sigla"]
+        divisoes = divisoes_da_sigla(sigla, subsetores, arvore)
+        if not divisoes:
+            item["divisao"] = None
             continue
-        if alvo == core:
-            melhores.append((1000, linha))
-        elif contem_palavra(core, alvo) or contem_palavra(alvo, core):
-            melhores.append((len(alvo), linha))
-    if not melhores:
-        return None
-    melhores.sort(key=lambda x: x[0], reverse=True)
-    return melhores[0][1]
+        # Seção que é sub-OME própria (ex. "1ª SB/1º GB") casa pelo NOME DA
+        # OME — o comandante da SB pertence à caixa da SB, não ao "Comando"
+        # do GB, que é a vaga única do comandante do batalhão.
+        if item["ome"] != sigla:
+            item["divisao"] = casar_divisao(item["ome"], divisoes)
+            continue
+        # Cargo que É a unidade: resolvido pelo nome da FUNÇÃO ("Comandante
+        # Geral"), nunca pelo da seção — senão o Subcomandante Geral cairia
+        # na "Chefia" do GSG, que é a vaga do Chefe do Gabinete. Pode dar
+        # None de propósito (o GCG não tem divisão "Comando").
+        if (SECAO_DE_TOPO.match(normalizar(item["secao"]))
+                and CARGO_DE_TOPO.match(normalizar(item["funcao"]))):
+            item["divisao"] = casar_divisao(item["funcao"], divisoes)
+            continue
+        item["divisao"] = casar_divisao(item["secao"], divisoes)
+
+
+def carregar_ome_por_matricula():
+    dados = json.loads(EFETIVO_LISTA_JSON.read_text(encoding="utf-8"))
+    mapa = {r["matricula"]: sigla
+            for sigla, registros in dados["por_unidade"].items()
+            for r in registros if r.get("matricula")}
+    return mapa, dados
 
 
 def main():
-    if len(sys.argv) < 2:
-        raise SystemExit(
-            "uso: extract_lotacao_funcao.py <caminho da Repercussão Financeira.xlsx> "
-            "[caminho do catálogo de Funções.xlsx]"
-        )
-    caminho = sys.argv[1]
-    caminho_catalogo = sys.argv[2] if len(sys.argv) > 2 else None
-    caminho_qod = sys.argv[3] if len(sys.argv) > 3 else None
+    local = next((a for a in sys.argv[1:] if not a.startswith("-")), None)
+    origem = local or baixar(URL_QOD)
+    print("Fonte: " + (local or URL_QOD))
 
     subsetores = carregar_subsetores()
     arvore = carregar_arvore_filhos()
-    ome_por_matricula = carregar_ome_por_matricula()
-    siglas_validas = set(arvore.keys()) | set(subsetores.keys())
+    siglas_validas = set(arvore) | set(subsetores)
     for filhos in arvore.values():
         siglas_validas.update(filhos)
 
-    catalogo_por_unidade = (
-        carregar_catalogo_funcoes(caminho_catalogo, siglas_validas) if caminho_catalogo else {}
-    )
-    wb_qod = openpyxl.load_workbook(caminho_qod, data_only=True) if caminho_qod else None
-    rollup_por_sigla = {}
-    usados_via_catalogo = 0
-    usados_via_heuristica = 0
-    usados_via_rollup_qod = 0
-
-    wb = openpyxl.load_workbook(caminho, data_only=True)
-    ws = wb[SHEET]
+    catalogo, canonico, wb = carregar_catalogo(origem, subsetores, arvore, siglas_validas)
+    ome_por_matricula, efetivo = carregar_ome_por_matricula()
 
     por_matricula = {}
-    por_unidade_divisao = {}
-    nao_classificados = []
-    matriculas_sem_pecunlio = []
-    divergencias_unidade = []
+    usadas = set()
+    linhas_por_matricula = {}  # matricula -> [(sigla, item)]
+    sem_codigo = []
+    codigo_orfao = []
+    sem_pecunlio = []
+    divergencia_unidade = []
 
-    for r in ws.iter_rows(min_row=LINHA_INICIO, max_row=ws.max_row):
-        matricula = r[COL_MATRICULA - 1].value
+    for r in wb[ABA_OCUPACAO].iter_rows(min_row=2, values_only=True):
+        matricula = r[C_MATRICULA]
         if matricula is None:
             continue
         matricula = str(matricula).strip()
-        unidade_bruta = r[COL_UNIDADE - 1].value
-        posto = r[COL_POSTO - 1].value
-        nome = r[COL_NOME - 1].value
-        funcao_secao = r[COL_FUNCAO_SECAO - 1].value
-        funcao_de = r[COL_FUNCAO_DE - 1].value
-        portaria = r[COL_PORTARIA - 1].value
-        bge = r[COL_BGE - 1].value
-        antiguidade = r[COL_ANTIGUIDADE - 1].value
-        if not funcao_secao:
+        nome = r[C_NOME]
+        unidade_bruta = str(r[C_UNIDADE] or "").strip()
+        codigo = str(r[C_CODIGO]).strip() if r[C_CODIGO] else None
+
+        if not codigo:
+            sem_codigo.append((matricula, nome, unidade_bruta))
+            continue
+        # Duas pessoas lancadas em FUN114 e FUN116 ocupam o MESMO cargo: as
+        # duas linhas viram a canonica, e a duplicidade aparece no relatorio
+        # em vez de virar duas vagas diferentes.
+        codigo = canonico.get(codigo, codigo)
+        item = catalogo.get(codigo)
+        if item is None:
+            codigo_orfao.append((matricula, nome, codigo))
             continue
 
         sigla = ome_por_matricula.get(matricula)
         if sigla is None:
-            sigla = DE_PARA_UNIDADE_FALLBACK.get(normalizar(unidade_bruta).upper().replace(" ", ""))
+            sigla = DE_PARA_UNIDADE_FALLBACK.get(normalizar(unidade_bruta))
             if sigla is None:
-                matriculas_sem_pecunlio.append((matricula, nome, unidade_bruta))
+                sem_pecunlio.append((matricula, nome, unidade_bruta))
                 continue
         else:
-            sigla_fallback = DE_PARA_UNIDADE_FALLBACK.get(str(unidade_bruta).strip().upper())
-            if sigla_fallback and sigla_fallback != sigla:
-                divergencias_unidade.append((matricula, nome, unidade_bruta, sigla))
+            esperada = DE_PARA_UNIDADE_FALLBACK.get(normalizar(unidade_bruta))
+            if esperada and esperada != sigla:
+                divergencia_unidade.append((matricula, nome, unidade_bruta, sigla))
 
-        registro = {
-            "funcao": str(funcao_secao).strip(),
-            "postoFuncao": str(funcao_de).strip() if funcao_de else None,
-            "portaria": str(portaria).strip() if portaria else None,
-            "bge": str(bge).strip() if bge else None,
+        antiguidade = r[C_ANTIGUIDADE]
+        # Só o que varia por PESSOA. O que descreve a função (nome, seção,
+        # divisão, OME, localidade) fica uma vez só em "funcoes", referenciado
+        # por idFuncao — repetir esses textos em cada uma das 2.600 ocupações
+        # inflava o arquivo em ~1 MB, e ele é `import`ado, ou seja, entra no
+        # bundle que o navegador baixa antes do login.
+        por_matricula.setdefault(matricula, []).append({
+            "idFuncao": codigo,
+            "postoFuncao": str(r[C_FUNCAO_DE]).strip() if r[C_FUNCAO_DE] else None,
+            "cursos": str(r[C_CURSOS]).strip() if r[C_CURSOS] else None,
+            "portaria": str(r[C_PORTARIA]).strip() if r[C_PORTARIA] else None,
+            "bge": str(r[C_BGE]).strip() if r[C_BGE] else None,
             "antiguidade": antiguidade if isinstance(antiguidade, (int, float)) else None,
-        }
-        # Acúmulo de função: guarda todas, matrícula -> lista.
-        por_matricula.setdefault(matricula, []).append(registro)
+        })
+        usadas.add(codigo)
+        linhas_por_matricula.setdefault(matricula, []).append((sigla, item))
 
-        divisoes = divisoes_da_sigla(sigla, subsetores, arvore)
-        divisao = None
-        candidato_texto = None
-        if divisoes:
-            linha_catalogo = casar_via_catalogo(str(funcao_secao), catalogo_por_unidade.get(sigla, []))
-            if linha_catalogo:
-                # Seção operacional (sub-OME própria, ex. "1ª SBI/GBI") vira
-                # o próprio candidato de divisão; senão usa o campo SEÇÃO.
-                candidato_texto = linha_catalogo["ome"] if linha_catalogo["ome"] != sigla else linha_catalogo["secao"]
-                divisao = casar_divisao(candidato_texto, divisoes)
-                if divisao:
-                    usados_via_catalogo += 1
-            if not divisao:
-                divisao = casar_divisao(str(funcao_secao), divisoes)
-                if divisao:
-                    usados_via_heuristica += 1
-            if not divisao and wb_qod is not None:
-                if sigla not in rollup_por_sigla:
-                    rollup_por_sigla[sigla] = construir_rollup_qod(sigla, wb_qod, divisoes)
-                divisao = rollup_por_sigla[sigla](candidato_texto or str(funcao_secao))
-                if divisao:
-                    usados_via_rollup_qod += 1
-        bucket = por_unidade_divisao.setdefault(sigla, {})
-        if divisao:
-            bucket.setdefault(divisao, set()).add(matricula)
-        else:
-            nao_classificados.append((sigla, matricula, str(funcao_secao)))
+    # Contagem por divisão/seção: só FUNÇÃO, mais o ENCARGO de quem não tem
+    # nenhuma função lançada (ver docstring). Sem isso, os 87 militares que
+    # acumulam encargo contariam duas vezes na lotação da seção.
+    por_unidade_divisao = {}
+    por_unidade_secao = {}
+    sem_divisao = []
+    for matricula, linhas in linhas_por_matricula.items():
+        principais = [(s, i) for s, i in linhas if i["tipo"] == TIPO_FUNCAO]
+        for sigla, item in (principais or linhas):
+            # A divisão foi resolvida contra a unidade DO CATÁLOGO. Quando o
+            # Pecúlio lota o militar em outra unidade (110 casos hoje), essa
+            # divisão não existe lá — usá-la criaria divisão fantasma. Só
+            # vale se pertencer à unidade onde o militar de fato está.
+            # Só re-casa quando a divisão EXISTE mas é de outra unidade.
+            # Divisão já nula fica nula: ela foi anulada de propósito (o
+            # Subcomandante Geral não ocupa a "Chefia" do GSG), e re-casar
+            # pela seção desfaria justamente essa decisão.
+            divisoes_do_militar = divisoes_da_sigla(sigla, subsetores, arvore)
+            if item["divisao"] and item["divisao"] not in divisoes_do_militar:
+                item = dict(item, divisao=casar_divisao(item["secao"], divisoes_do_militar))
+            if item["divisao"]:
+                por_unidade_divisao.setdefault(sigla, {}) \
+                    .setdefault(item["divisao"], set()).add(matricula)
+            else:
+                sem_divisao.append((sigla, matricula, item["secao"] or item["funcao"]))
+            if item["secao"]:
+                por_unidade_secao.setdefault(sigla, {}) \
+                    .setdefault(item["secao"], set()).add(matricula)
 
-    # Serializa contagens (set -> len, mas guarda as matrículas também pra
-    # depuração futura sem precisar reabrir o xlsx).
-    por_unidade_divisao_out = {
-        sigla: {divisao: sorted(matriculas) for divisao, matriculas in divs.items()}
-        for sigla, divs in por_unidade_divisao.items()
-    }
+    def serializar(mapa):
+        return {sigla: {nome: sorted(mats) for nome, mats in sorted(grupos.items())}
+                for sigla, grupos in sorted(mapa.items())}
 
-    total_militares_pecunlio = sum(len(v) for v in json.loads(EFETIVO_LISTA_JSON.read_text(encoding="utf-8"))["por_unidade"].values())
+    total_ativos = sum(len(v) for v in efetivo["por_unidade"].values())
     cobertura = {
         "matriculas_com_funcao": len(por_matricula),
-        "total_militares_ativos": total_militares_pecunlio,
-        "percentual": round(100 * len(por_matricula) / total_militares_pecunlio, 1) if total_militares_pecunlio else None,
-        "unidades_cobertas": sorted(por_unidade_divisao.keys()),
-    }
-
-    saida = {
-        "fonte": "Repercussão Financeira.xlsx, aba DIST_FUNCOES (CPPA) — planilha viva, em atualização contínua, cobertura parcial",
-        "gerado_em": datetime.now(timezone.utc).isoformat(),
-        "cobertura": cobertura,
-        "por_matricula": por_matricula,
-        "por_unidade_divisao": por_unidade_divisao_out,
+        "total_militares_ativos": total_ativos,
+        "percentual": round(100 * len(por_matricula) / total_ativos, 1) if total_ativos else None,
+        # Unidade coberta = tem alguém com função lançada. É por_unidade_secao,
+        # não por_unidade_divisao: a segunda só lista unidade onde ALGUMA
+        # função casou com uma divisão do organograma (36 das 43), e usá-la
+        # aqui esconderia 7 unidades que estão cobertas, só que em seções que
+        # o organograma não conhece.
+        "unidades_cobertas": sorted(por_unidade_secao),
+        "unidades_com_divisao_casada": sorted(por_unidade_divisao),
     }
 
     OUT_JSON.parent.mkdir(parents=True, exist_ok=True)
-    OUT_JSON.write_text(
-        json.dumps(saida, ensure_ascii=False, indent=2, sort_keys=True),
-        encoding="utf-8",
-    )
+    OUT_JSON.write_text(json.dumps({
+        "fonte": ("QOD publicado pela DPlaG (Google Sheets), abas QOD_FUNCOES "
+                  "(catálogo de funções) e QOD_CONSOLIDADA (quem ocupa cada uma), "
+                  "ligadas por CÓDIGO -> ID_FUNCAO"),
+        "url": URL_QOD,
+        "gerado_em": datetime.now(timezone.utc).isoformat(),
+        "cobertura": cobertura,
+        "funcoes": {
+            chave: {
+                "tipo": item["tipo"],
+                "funcao": item["funcao"],
+                "secao": item["secao"] or None,
+                "divisao": item["divisao"],
+                "ome": item["ome"] or None,
+                "omeCompleta": item["omeCompleta"],
+                "localidade": item["localidade"],
+            }
+            for chave, item in catalogo.items() if chave in usadas
+        },
+        "por_matricula": por_matricula,
+        "por_unidade_divisao": serializar(por_unidade_divisao),
+        "por_unidade_secao": serializar(por_unidade_secao),
+    }, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
 
-    print(f"OK: {len(por_matricula)} militares com função ({cobertura['percentual']}% do efetivo ativo)")
-    print(f"Unidades cobertas: {cobertura['unidades_cobertas']}")
-    if caminho_catalogo:
-        print(
-            f"Divisão casada via catálogo oficial: {usados_via_catalogo} | "
-            f"via heurística de texto: {usados_via_heuristica} | "
-            f"via rollup na árvore do QOD: {usados_via_rollup_qod}"
-        )
-    print(f"Gravado em {OUT_JSON}")
-    if matriculas_sem_pecunlio:
-        print(f"\nAVISO: {len(matriculas_sem_pecunlio)} matrícula(s) em DIST_FUNCOES não encontradas no Pecúlio/Neon (efetivo_lista.json):")
-        for m in matriculas_sem_pecunlio[:20]:
-            print("  -", m)
-    if divergencias_unidade:
-        print(f"\nAVISO: {len(divergencias_unidade)} matrícula(s) com unidade em DIST_FUNCOES divergente do Pecúlio (usando o Pecúlio como fonte):")
-        for d in divergencias_unidade[:20]:
-            print("  -", d)
-    if nao_classificados:
-        print(f"\nAVISO: {len(nao_classificados)} função(ões) não casadas com nenhuma divisão conhecida (contam só no total da unidade):")
-        for n in nao_classificados[:40]:
-            print("  -", n)
+    com_divisao = sum(1 for i in catalogo.values() if i["divisao"])
+    print("OK: %d militares com função (%s%% do efetivo ativo), em %d unidades"
+          % (len(por_matricula), cobertura["percentual"], len(cobertura["unidades_cobertas"])))
+    print("Catálogo: %d funções/encargos | %d casam com uma divisão do organograma"
+          % (len(catalogo), com_divisao))
+    print("Seções ocupadas: %d, em %d unidades | divisões preenchidas: %d, em %d unidades"
+          % (sum(len(v) for v in por_unidade_secao.values()), len(por_unidade_secao),
+             sum(len(v) for v in por_unidade_divisao.values()), len(por_unidade_divisao)))
+    print("Gravado em %s" % OUT_JSON.relative_to(ROOT))
+
+    def avisar(titulo, itens, limite=15):
+        if itens:
+            print("\nAVISO: %s: %d" % (titulo, len(itens)))
+            for i in itens[:limite]:
+                print("  -", i)
+
+    avisar("linhas de ocupação sem CÓDIGO (não dá para saber a função)", sem_codigo)
+    avisar("CÓDIGO que não existe no catálogo", codigo_orfao)
+    avisar("matrículas não encontradas no Pecúlio/Neon", sem_pecunlio)
+    avisar("unidade da planilha divergente do Pecúlio (vale o Pecúlio)", divergencia_unidade)
+    avisar("funções sem divisão do organograma (contam só no total da unidade)", sem_divisao)
+
+    # Cargo de chefia ADMINISTRATIVA e um por secao. "Comandante de Grupo" de
+    # um GCI/GS/GAPH nao entra aqui: aquilo e funcao de turno, e ter 17 e o
+    # esperado. O que nao pode e a mesma Secao ter dois Chefes.
+    ocupantes = {}
+    for matricula, linhas in linhas_por_matricula.items():
+        for _, item in linhas:
+            if item["tipo"] != TIPO_FUNCAO:
+                continue
+            if not SECAO_ADMINISTRATIVA.match(normalizar(item["secao"])):
+                continue
+            if not CHEFIA.match(normalizar(item["funcao"])):
+                continue
+            ocupantes.setdefault((item["ome"], item["secao"], item["funcao"]), set()).add(matricula)
+    duplicadas = sorted(((k, v) for k, v in ocupantes.items() if len(v) > 1),
+                        key=lambda kv: -len(kv[1]))
+    if duplicadas:
+        print(f"\nAVISO: {len(duplicadas)} cargo(s) de chefia com mais de um ocupante "
+              f"(um por seção, por definição) — fato da planilha, não do casamento:")
+        for (ome, secao, funcao), mats in duplicadas[:15]:
+            print(f"  - {len(mats)}x  {ome} | {secao} | {funcao}")
 
 
 if __name__ == "__main__":

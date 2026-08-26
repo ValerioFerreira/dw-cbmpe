@@ -4,7 +4,7 @@ import { ChevronLeft, UserRound, CalendarClock, ShieldCheck, Lock } from "lucide
 import SectionCard from "@/components/ui/section-card";
 import EmptyState from "@/components/ui/empty-state";
 import efetivoLista from "@/data/real/efetivo_lista.json";
-import lotacaoFuncao from "@/data/real/lotacao_funcao.json";
+import { funcaoDoMilitar, secaoDoMilitar } from "@/lib/lotacaoFuncao";
 
 // Ficha do militar — CAMINHO A (público). Só campos NÃO sensíveis, servidos
 // pelo build estático na Vercel. Todo o dado sensível do SGP (CPF/RG/
@@ -33,12 +33,6 @@ const POR_MATRICULA = (() => {
   }
   return idx;
 })();
-
-function funcaoDoMilitar(matricula) {
-  const registros = lotacaoFuncao.por_matricula?.[matricula];
-  if (!registros || !registros.length) return null;
-  return registros.map((r) => r.funcao).join(" + ");
-}
 
 // Data ISO "aaaa-mm-dd" → dd/mm/aaaa (lê por regex pra não sofrer com fuso).
 function fmtData(valor) {
@@ -87,6 +81,7 @@ export default function MilitarFicha() {
   const militar = POR_MATRICULA[matricula];
   const completo = militar?.completo || {};
   const funcao = militar ? funcaoDoMilitar(militar.matricula) : null;
+  const secao = militar ? secaoDoMilitar(militar.matricula) : null;
 
   const nomeExibido = militar
     ? [militar.postoGrad, militar.nomeGuerra || militar.nome].filter(Boolean).join(" ")
@@ -143,6 +138,7 @@ export default function MilitarFicha() {
               <Campo rotulo="Matrícula" valor={fmtCampo(militar.matricula)} />
               <Campo rotulo="OME" valor={fmtCampo(militar.ome)} />
               <Campo rotulo="Função" valor={fmtCampo(funcao)} />
+              <Campo rotulo="Seção" valor={fmtCampo(secao)} />
               <Campo rotulo="Data de Ingresso" valor={fmtData(completo.dataIngresso)} />
               <Campo rotulo="Última Promoção" valor={fmtData(completo.dataUltimaPromocao)} />
               <Campo rotulo="Última Movimentação" valor={fmtData(completo.dataMovimentacaoSp)} />
