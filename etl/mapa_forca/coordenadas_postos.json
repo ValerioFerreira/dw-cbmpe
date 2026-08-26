@@ -1,0 +1,1848 @@
+{
+  "fonte": "KMZ da DINTER 2 (prioritario) + KMZ geral das unidades do CBMPE, com centroide do municipio para o resto",
+  "gerado_por": "etl/mapa_forca/coordenadas_postos.py",
+  "por_unidade_cidade": {
+    "10º GB|ARARIPINA": {
+      "lat": -7.587159,
+      "lon": -40.496605,
+      "origem": "posto",
+      "sigla": "10º GB",
+      "fonte": "geral",
+      "referencia": "10ºGB (SEDE) / 1ªSB - ARARIPINA"
+    },
+    "10º GB|OURICURI": {
+      "lat": -7.881322,
+      "lon": -40.082513,
+      "origem": "posto",
+      "sigla": "10º GB",
+      "fonte": "geral",
+      "referencia": "10ºGB / 2ªSB - OURICURI"
+    },
+    "11º GB|PETROLANDIA": {
+      "lat": -8.987637,
+      "lon": -38.222364,
+      "origem": "posto",
+      "sigla": "11º GB",
+      "fonte": "geral",
+      "referencia": "11ºGB (SEDE) / 1ªSB - PETROLÂNDIA"
+    },
+    "12º GB|PALMARES": {
+      "lat": -8.683604,
+      "lon": -35.584819,
+      "origem": "posto",
+      "sigla": "12º GB",
+      "fonte": "geral",
+      "referencia": "12ºGB (SEDE) / 1ªSB - PALMARES"
+    },
+    "1º GB|VITORIA DE SANTO ANTAO": {
+      "lat": -8.124133,
+      "lon": -35.28221,
+      "origem": "posto",
+      "sigla": "1º GB",
+      "fonte": "geral",
+      "referencia": "1ºGB (SEDE) / 1ªSB - VITÓRIA DE SANTO ANTÃO"
+    },
+    "2 SB 1 GB GRAVATA|GRAVATA": {
+      "lat": -8.195367,
+      "lon": -35.550706,
+      "origem": "posto",
+      "sigla": "2 SB 1 GB GRAVATA",
+      "fonte": "geral",
+      "referencia": "2ª SB / 1º GB GRAVATÁ"
+    },
+    "2º GB|BELO JARDIM": {
+      "lat": -8.343498,
+      "lon": -36.415687,
+      "origem": "posto",
+      "sigla": "2º GB",
+      "fonte": "geral",
+      "referencia": "2ºGB / 3ªSB - BELO JARDIM"
+    },
+    "2º GB|BEZERROS": {
+      "lat": -8.237062,
+      "lon": -35.747193,
+      "origem": "posto",
+      "sigla": "2º GB",
+      "fonte": "geral",
+      "referencia": "2º GB/ 2ª SB - BEZERROS"
+    },
+    "2º GB|BONITO": {
+      "lat": -8.467425,
+      "lon": -35.733833,
+      "origem": "posto",
+      "sigla": "2º GB",
+      "fonte": "geral",
+      "referencia": "2º GB / 5ª SB - BONITO"
+    },
+    "2º GB|CARUARU": {
+      "lat": -8.29553,
+      "lon": -35.989217,
+      "origem": "posto",
+      "sigla": "2º GB",
+      "fonte": "geral",
+      "referencia": "2ºGB (SEDE) / 1ªSB - CARUARU"
+    },
+    "2º GB|PESQUEIRA": {
+      "lat": -8.366611,
+      "lon": -36.68623,
+      "origem": "posto",
+      "sigla": "2º GB",
+      "fonte": "geral",
+      "referencia": "2ºGB / 4ªSB - PESQUEIRA"
+    },
+    "3º GB|AFOGADOS DA INGAZEIRA": {
+      "lat": -7.736569,
+      "lon": -37.641853,
+      "origem": "posto",
+      "sigla": "3º GB",
+      "fonte": "dinter2",
+      "referencia": "3ºGB - 2ªSB - Afogados da Ingazeira"
+    },
+    "3º GB|PETROLANDIA": {
+      "lat": -8.987694,
+      "lon": -38.222361,
+      "origem": "posto",
+      "sigla": "3º GB",
+      "fonte": "dinter2",
+      "referencia": "3ºGB - 4ªSB - Petrolândia"
+    },
+    "3º GB|SAO JOSE DO BELMONTE": {
+      "lat": -7.865681,
+      "lon": -38.760586,
+      "origem": "posto",
+      "sigla": "3º GB",
+      "fonte": "geral",
+      "referencia": "3ºGB / 4ªSB - SÃO JOSÉ DO BELMONTE"
+    },
+    "3º GB|SAO JOSE DO EGITO": {
+      "lat": -7.463983,
+      "lon": -37.273417,
+      "origem": "posto",
+      "sigla": "3º GB",
+      "fonte": "dinter2",
+      "referencia": "3ºGB - 3ªSB - São José do Egito"
+    },
+    "3º GB|SERRA TALHADA": {
+      "lat": -7.980419,
+      "lon": -38.310381,
+      "origem": "posto",
+      "sigla": "3º GB",
+      "fonte": "dinter2",
+      "referencia": "3ºGB - 1ªSB - Serra Talhada"
+    },
+    "4º GB|PETROLINA": {
+      "lat": -9.3928892,
+      "lon": -40.5088045,
+      "origem": "posto",
+      "sigla": "4º GB",
+      "fonte": "dinter2",
+      "referencia": "4ºGB - 3ªSB - Mergulho"
+    },
+    "4º GB|SANTA MARIA DA BOA VISTA": {
+      "lat": -8.805858,
+      "lon": -39.824003,
+      "origem": "posto",
+      "sigla": "4º GB",
+      "fonte": "dinter2",
+      "referencia": "4ºGB - 2ªSB - Santa Maria da Boa Vista"
+    },
+    "5º GB|ARARIPINA": {
+      "lat": -7.574431,
+      "lon": -40.509681,
+      "origem": "posto",
+      "sigla": "5º GB",
+      "fonte": "dinter2",
+      "referencia": "5ºGB - 3ªSB - Araripina"
+    },
+    "5º GB|OURICURI": {
+      "lat": -7.883869,
+      "lon": -40.081531,
+      "origem": "posto",
+      "sigla": "5º GB",
+      "fonte": "dinter2",
+      "referencia": "5ºGB - 4ªSB - Ouricuri"
+    },
+    "5º GB|SALGUEIRO": {
+      "lat": -8.074456,
+      "lon": -39.132061,
+      "origem": "posto",
+      "sigla": "5º GB",
+      "fonte": "dinter2",
+      "referencia": "5ºGB - 1ªSB - Salgueiro"
+    },
+    "5º GB|SAO JOSE DO BELMONTE": {
+      "lat": -7.865675,
+      "lon": -38.760489,
+      "origem": "posto",
+      "sigla": "5º GB",
+      "fonte": "dinter2",
+      "referencia": "5ºGB - 2ªSB - São José do Belmonte"
+    },
+    "6º GB|BOM CONSELHO": {
+      "lat": -9.163193,
+      "lon": -36.688694,
+      "origem": "posto",
+      "sigla": "6º GB",
+      "fonte": "geral",
+      "referencia": "6ºGB / 2ªSB - BOM CONSELHO"
+    },
+    "6º GB|GARANHUNS": {
+      "lat": -8.885448,
+      "lon": -36.485724,
+      "origem": "posto",
+      "sigla": "6º GB",
+      "fonte": "geral",
+      "referencia": "6ºGB (SEDE) / 1ªSB - GARANHUNS"
+    },
+    "7º GB|CARPINA": {
+      "lat": -7.847103,
+      "lon": -35.246202,
+      "origem": "posto",
+      "sigla": "7º GB",
+      "fonte": "geral",
+      "referencia": "7ºGB (SEDE) / 1ªSB - CARPINA"
+    },
+    "7º GB|GOIANA": {
+      "lat": -7.56654,
+      "lon": -35.011144,
+      "origem": "posto",
+      "sigla": "7º GB",
+      "fonte": "geral",
+      "referencia": "7ºGB / 2ªSB - GOIANA"
+    },
+    "8º GB|SANTA CRUZ DO CAPIBARIBE": {
+      "lat": -7.947058,
+      "lon": -36.206289,
+      "origem": "posto",
+      "sigla": "8º GB",
+      "fonte": "geral",
+      "referencia": "8ºGB / 2ªSB - SANTA CRUZ DO CAPIBARIBE"
+    },
+    "8º GB|SURUBIM": {
+      "lat": -7.844923,
+      "lon": -35.755624,
+      "origem": "posto",
+      "sigla": "8º GB",
+      "fonte": "geral",
+      "referencia": "8ºGB (SEDE) / 1ªSB - SURUBIM"
+    },
+    "8º GB|TORITAMA": {
+      "lat": -8.007867,
+      "lon": -36.060994,
+      "origem": "posto",
+      "sigla": "8º GB",
+      "fonte": "geral",
+      "referencia": "8ºGB / 3ªSB - TORITAMA"
+    },
+    "9º GB|ARCOVERDE": {
+      "lat": -8.424664,
+      "lon": -37.074,
+      "origem": "posto",
+      "sigla": "9º GB",
+      "fonte": "dinter2",
+      "referencia": "9ºGB - 1ªSB - Arcoverde"
+    },
+    "9º GB|CUSTODIA": {
+      "lat": -8.086114,
+      "lon": -37.650217,
+      "origem": "posto",
+      "sigla": "9º GB",
+      "fonte": "dinter2",
+      "referencia": "9ºGB - 3ªSB - Custódia"
+    },
+    "9º GB|PESQUEIRA": {
+      "lat": -8.366672,
+      "lon": -36.686194,
+      "origem": "posto",
+      "sigla": "9º GB",
+      "fonte": "dinter2",
+      "referencia": "9ºGB - 2ªSB - Pesqueira"
+    },
+    "ABMG|JABOATAO DOS GUARARAPES": {
+      "lat": -8.078095,
+      "lon": -34.985023,
+      "origem": "posto",
+      "sigla": "ABMG",
+      "fonte": "geral",
+      "referencia": "ABMG - JABOATÃO DOS GUARARAPES"
+    },
+    "CMAN|RECIFE": {
+      "lat": -8.048766,
+      "lon": -34.870847,
+      "origem": "posto",
+      "sigla": "CMAN",
+      "fonte": "geral",
+      "referencia": "CMan - RECIFE"
+    },
+    "GBAPH|IGARASSU": {
+      "lat": -7.828266,
+      "lon": -34.915197,
+      "origem": "posto",
+      "sigla": "GBAPH",
+      "fonte": "geral",
+      "referencia": "GBAPH / 2ªSBAPH - IGARASSU"
+    },
+    "GBAPH|OLINDA": {
+      "lat": -8.019979,
+      "lon": -34.856492,
+      "origem": "posto",
+      "sigla": "GBAPH",
+      "fonte": "geral",
+      "referencia": "GBAPH (SEDE) / 1ªSBAPH - OLINDA"
+    },
+    "GBAPH|SAO LOURENCO DA MATA": {
+      "lat": -7.994531,
+      "lon": -35.03672,
+      "origem": "posto",
+      "sigla": "GBAPH",
+      "fonte": "geral",
+      "referencia": "GBAPH / 3ªSBAPH - SÃO LOURENÇO DA MATA"
+    },
+    "GBI|FERNANDO DE NORONHA": {
+      "lat": -3.856095,
+      "lon": -32.42678,
+      "origem": "posto",
+      "sigla": "GBI",
+      "fonte": "geral",
+      "referencia": "GBFN"
+    },
+    "GBI|IPOJUCA": {
+      "lat": -8.379224,
+      "lon": -35.007275,
+      "origem": "posto",
+      "sigla": "GBI",
+      "fonte": "geral",
+      "referencia": "GBI / 3ªSBI - IPOJUCA"
+    },
+    "GBI|JABOATAO DOS GUARARAPES": {
+      "lat": -8.164029,
+      "lon": -34.922812,
+      "origem": "posto",
+      "sigla": "GBI",
+      "fonte": "geral",
+      "referencia": "GBI (SEDE) / 1ªSBI - JABOATÃO DOS GUARARAPES"
+    },
+    "GBI|RECIFE": {
+      "lat": -8.126616,
+      "lon": -34.925322,
+      "origem": "posto",
+      "sigla": "GBI",
+      "fonte": "geral",
+      "referencia": "GBI / 4ªSBI - RECIFE"
+    },
+    "GBMar|JABOATAO DOS GUARARAPES": {
+      "lat": -8.15921,
+      "lon": -34.91114,
+      "origem": "posto",
+      "sigla": "GBMar",
+      "fonte": "geral",
+      "referencia": "GBMar (SEDE) / 1ªSB - JABOATÃO DOS GUARARAPES"
+    },
+    "GBMar|RECIFE": {
+      "lat": -8.048552,
+      "lon": -34.87089,
+      "origem": "posto",
+      "sigla": "GBMar",
+      "fonte": "geral",
+      "referencia": "GBMar/2ª SB"
+    },
+    "GBS|ABREU E LIMA": {
+      "lat": -7.928133,
+      "lon": -34.900625,
+      "origem": "posto",
+      "sigla": "GBS",
+      "fonte": "geral",
+      "referencia": "GBS (SEDE) / 1ªSB - ABREU E LIMA"
+    },
+    "QCG|RECIFE": {
+      "lat": -8.051193,
+      "lon": -34.890456,
+      "origem": "posto",
+      "sigla": "QCG",
+      "fonte": "geral",
+      "referencia": "QCG - RECIFE"
+    }
+  },
+  "por_cidade": {
+    "ABREU E LIMA": {
+      "lat": -7.928133,
+      "lon": -34.900625,
+      "origem": "posto",
+      "sigla": "GBS",
+      "fonte": "geral",
+      "referencia": "GBS (SEDE) / 1ªSB - ABREU E LIMA"
+    },
+    "AFOGADOS DA INGAZEIRA": {
+      "lat": -7.736569,
+      "lon": -37.641853,
+      "origem": "posto",
+      "sigla": "3º GB",
+      "fonte": "dinter2",
+      "referencia": "3ºGB - 2ªSB - Afogados da Ingazeira"
+    },
+    "AFRANIO": {
+      "lat": -8.618932,
+      "lon": -41.00539,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "AFRANIO"
+    },
+    "AGRESTINA": {
+      "lat": -8.456615,
+      "lon": -35.945242,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "AGRESTINA"
+    },
+    "AGUA PRETA": {
+      "lat": -8.72928,
+      "lon": -35.48185,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "AGUA PRETA"
+    },
+    "AGUAS BELAS": {
+      "lat": -9.087043,
+      "lon": -37.038649,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "AGUAS BELAS"
+    },
+    "ALAGOINHA": {
+      "lat": -8.491945,
+      "lon": -36.755522,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "ALAGOINHA"
+    },
+    "ALIANCA": {
+      "lat": -7.602583,
+      "lon": -35.193032,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "ALIANCA"
+    },
+    "ALTINHO": {
+      "lat": -8.49051,
+      "lon": -36.098981,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "ALTINHO"
+    },
+    "AMARAJI": {
+      "lat": -8.365021,
+      "lon": -35.46545,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "AMARAJI"
+    },
+    "ANGELIM": {
+      "lat": -8.891518,
+      "lon": -36.276754,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "ANGELIM"
+    },
+    "ARACOIABA": {
+      "lat": -7.793215,
+      "lon": -35.076144,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "ARACOIABA"
+    },
+    "ARARIPINA": {
+      "lat": -7.574431,
+      "lon": -40.509681,
+      "origem": "posto",
+      "sigla": "5º GB",
+      "fonte": "dinter2",
+      "referencia": "5ºGB - 3ªSB - Araripina"
+    },
+    "ARCOVERDE": {
+      "lat": -8.424664,
+      "lon": -37.074,
+      "origem": "posto",
+      "sigla": "9º GB",
+      "fonte": "dinter2",
+      "referencia": "9ºGB - 1ªSB - Arcoverde"
+    },
+    "BARRA DE GUABIRABA": {
+      "lat": -8.418163,
+      "lon": -35.633811,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "BARRA DE GUABIRABA"
+    },
+    "BARREIROS": {
+      "lat": -8.820194,
+      "lon": -35.258614,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "BARREIROS"
+    },
+    "BELEM DE MARIA": {
+      "lat": -8.605083,
+      "lon": -35.815565,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "BELEM DE MARIA"
+    },
+    "BELEM DE SAO FRANCISCO": {
+      "lat": -8.583571,
+      "lon": -38.981951,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "BELEM DE SAO FRANCISCO"
+    },
+    "BELO JARDIM": {
+      "lat": -8.343498,
+      "lon": -36.415687,
+      "origem": "posto",
+      "sigla": "2º GB",
+      "fonte": "geral",
+      "referencia": "2ºGB / 3ªSB - BELO JARDIM"
+    },
+    "BETANIA": {
+      "lat": -8.265294,
+      "lon": -37.987651,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "BETANIA"
+    },
+    "BEZERROS": {
+      "lat": -8.237062,
+      "lon": -35.747193,
+      "origem": "posto",
+      "sigla": "2º GB",
+      "fonte": "geral",
+      "referencia": "2º GB/ 2ª SB - BEZERROS"
+    },
+    "BODOCO": {
+      "lat": -7.656372,
+      "lon": -39.965125,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "BODOCO"
+    },
+    "BOM CONSELHO": {
+      "lat": -9.163193,
+      "lon": -36.688694,
+      "origem": "posto",
+      "sigla": "6º GB",
+      "fonte": "geral",
+      "referencia": "6ºGB / 2ªSB - BOM CONSELHO"
+    },
+    "BOM JARDIM": {
+      "lat": -7.786775,
+      "lon": -35.5885,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "BOM JARDIM"
+    },
+    "BONITO": {
+      "lat": -8.467425,
+      "lon": -35.733833,
+      "origem": "posto",
+      "sigla": "2º GB",
+      "fonte": "geral",
+      "referencia": "2º GB / 5ª SB - BONITO"
+    },
+    "BREJAO": {
+      "lat": -9.026755,
+      "lon": -36.529868,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "BREJAO"
+    },
+    "BREJINHO": {
+      "lat": -7.336671,
+      "lon": -37.320878,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "BREJINHO"
+    },
+    "BREJO DA MADRE DE DEUS": {
+      "lat": -8.075624,
+      "lon": -36.281411,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "BREJO DA MADRE DE DEUS"
+    },
+    "BUENOS AIRES": {
+      "lat": -7.737914,
+      "lon": -35.347226,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "BUENOS AIRES"
+    },
+    "BUIQUE": {
+      "lat": -8.649992,
+      "lon": -37.122663,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "BUIQUE"
+    },
+    "CABO DE SANTO AGOSTINHO": {
+      "lat": -8.269225,
+      "lon": -35.085902,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "CABO DE SANTO AGOSTINHO"
+    },
+    "CABROBO": {
+      "lat": -8.386469,
+      "lon": -39.329435,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "CABROBO"
+    },
+    "CACHOEIRINHA": {
+      "lat": -8.484924,
+      "lon": -36.29095,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "CACHOEIRINHA"
+    },
+    "CAETES": {
+      "lat": -8.803949,
+      "lon": -36.659174,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "CAETES"
+    },
+    "CALCADO": {
+      "lat": -8.750572,
+      "lon": -36.32174,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "CALCADO"
+    },
+    "CALUMBI": {
+      "lat": -8.003939,
+      "lon": -38.078691,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "CALUMBI"
+    },
+    "CAMARAGIBE": {
+      "lat": -7.986775,
+      "lon": -34.99582,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "CAMARAGIBE"
+    },
+    "CAMOCIM DE SAO FELIX": {
+      "lat": -8.350032,
+      "lon": -35.772086,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "CAMOCIM DE SAO FELIX"
+    },
+    "CAMUTANGA": {
+      "lat": -7.433915,
+      "lon": -35.299186,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "CAMUTANGA"
+    },
+    "CANHOTINHO": {
+      "lat": -8.893232,
+      "lon": -36.176902,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "CANHOTINHO"
+    },
+    "CAPOEIRAS": {
+      "lat": -8.686656,
+      "lon": -36.599161,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "CAPOEIRAS"
+    },
+    "CARNAIBA": {
+      "lat": -7.796234,
+      "lon": -37.727163,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "CARNAIBA"
+    },
+    "CARNAUBEIRA DA PENHA": {
+      "lat": -8.409197,
+      "lon": -38.721554,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "CARNAUBEIRA DA PENHA"
+    },
+    "CARPINA": {
+      "lat": -7.847103,
+      "lon": -35.246202,
+      "origem": "posto",
+      "sigla": "7º GB",
+      "fonte": "geral",
+      "referencia": "7ºGB (SEDE) / 1ªSB - CARPINA"
+    },
+    "CARUARU": {
+      "lat": -8.29553,
+      "lon": -35.989217,
+      "origem": "posto",
+      "sigla": "2º GB",
+      "fonte": "geral",
+      "referencia": "2ºGB (SEDE) / 1ªSB - CARUARU"
+    },
+    "CASINHAS": {
+      "lat": -7.756394,
+      "lon": -35.721387,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "CASINHAS"
+    },
+    "CATENDE": {
+      "lat": -8.67554,
+      "lon": -35.730923,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "CATENDE"
+    },
+    "CEDRO": {
+      "lat": -7.743812,
+      "lon": -39.203733,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "CEDRO"
+    },
+    "CHA DE ALEGRIA": {
+      "lat": -7.999414,
+      "lon": -35.222215,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "CHA DE ALEGRIA"
+    },
+    "CHA GRANDE": {
+      "lat": -8.229572,
+      "lon": -35.473982,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "CHA GRANDE"
+    },
+    "CONDADO": {
+      "lat": -7.596322,
+      "lon": -35.098675,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "CONDADO"
+    },
+    "CORRENTES": {
+      "lat": -9.114712,
+      "lon": -36.338677,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "CORRENTES"
+    },
+    "CORTES": {
+      "lat": -8.433064,
+      "lon": -35.530107,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "CORTES"
+    },
+    "CUMARU": {
+      "lat": -8.039945,
+      "lon": -35.720751,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "CUMARU"
+    },
+    "CUPIRA": {
+      "lat": -8.583014,
+      "lon": -35.931375,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "CUPIRA"
+    },
+    "CUSTODIA": {
+      "lat": -8.086114,
+      "lon": -37.650217,
+      "origem": "posto",
+      "sigla": "9º GB",
+      "fonte": "dinter2",
+      "referencia": "9ºGB - 3ªSB - Custódia"
+    },
+    "DORMENTES": {
+      "lat": -8.496153,
+      "lon": -40.620073,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "DORMENTES"
+    },
+    "ESCADA": {
+      "lat": -8.369727,
+      "lon": -35.264572,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "ESCADA"
+    },
+    "EXU": {
+      "lat": -7.51602,
+      "lon": -39.748249,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "EXU"
+    },
+    "FEIRA NOVA": {
+      "lat": -7.952881,
+      "lon": -35.383225,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "FEIRA NOVA"
+    },
+    "FERNANDO DE NORONHA": {
+      "lat": -3.856095,
+      "lon": -32.42678,
+      "origem": "posto",
+      "sigla": "GBI",
+      "fonte": "geral",
+      "referencia": "GBFN"
+    },
+    "FERREIROS": {
+      "lat": -7.478448,
+      "lon": -35.244572,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "FERREIROS"
+    },
+    "FLORES": {
+      "lat": -7.939926,
+      "lon": -37.894754,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "FLORES"
+    },
+    "FLORESTA": {
+      "lat": -8.566888,
+      "lon": -38.310846,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "FLORESTA"
+    },
+    "FREI MIGUELINHO": {
+      "lat": -7.935079,
+      "lon": -35.884991,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "FREI MIGUELINHO"
+    },
+    "GAMELEIRA": {
+      "lat": -8.612494,
+      "lon": -35.393069,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "GAMELEIRA"
+    },
+    "GARANHUNS": {
+      "lat": -8.885448,
+      "lon": -36.485724,
+      "origem": "posto",
+      "sigla": "6º GB",
+      "fonte": "geral",
+      "referencia": "6ºGB (SEDE) / 1ªSB - GARANHUNS"
+    },
+    "GLORIA DO GOITA": {
+      "lat": -8.012687,
+      "lon": -35.338236,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "GLORIA DO GOITA"
+    },
+    "GOIANA": {
+      "lat": -7.56654,
+      "lon": -35.011144,
+      "origem": "posto",
+      "sigla": "7º GB",
+      "fonte": "geral",
+      "referencia": "7ºGB / 2ªSB - GOIANA"
+    },
+    "GRANITO": {
+      "lat": -7.788462,
+      "lon": -39.694351,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "GRANITO"
+    },
+    "GRAVATA": {
+      "lat": -8.195367,
+      "lon": -35.550706,
+      "origem": "posto",
+      "sigla": "2 SB 1 GB GRAVATA",
+      "fonte": "geral",
+      "referencia": "2ª SB / 1º GB GRAVATÁ"
+    },
+    "IATI": {
+      "lat": -9.143454,
+      "lon": -36.901053,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "IATI"
+    },
+    "IBIMIRIM": {
+      "lat": -8.585863,
+      "lon": -37.610651,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "IBIMIRIM"
+    },
+    "IBIRAJUBA": {
+      "lat": -8.613388,
+      "lon": -36.201419,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "IBIRAJUBA"
+    },
+    "IGARASSU": {
+      "lat": -7.828266,
+      "lon": -34.915197,
+      "origem": "posto",
+      "sigla": "GBAPH",
+      "fonte": "geral",
+      "referencia": "GBAPH / 2ªSBAPH - IGARASSU"
+    },
+    "IGUARACI": {
+      "lat": -7.845564,
+      "lon": -37.403153,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "IGUARACI"
+    },
+    "ILHA DE ITAMARACA": {
+      "lat": -7.759523,
+      "lon": -34.854415,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "ILHA DE ITAMARACA"
+    },
+    "INAJA": {
+      "lat": -8.805516,
+      "lon": -37.837428,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "INAJA"
+    },
+    "INGAZEIRA": {
+      "lat": -7.713892,
+      "lon": -37.416133,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "INGAZEIRA"
+    },
+    "IPOJUCA": {
+      "lat": -8.379224,
+      "lon": -35.007275,
+      "origem": "posto",
+      "sigla": "GBI",
+      "fonte": "geral",
+      "referencia": "GBI / 3ªSBI - IPOJUCA"
+    },
+    "IPUBI": {
+      "lat": -7.497881,
+      "lon": -40.217395,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "IPUBI"
+    },
+    "ITACURUBA": {
+      "lat": -8.74927,
+      "lon": -38.728555,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "ITACURUBA"
+    },
+    "ITAIBA": {
+      "lat": -8.984331,
+      "lon": -37.295826,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "ITAIBA"
+    },
+    "ITAMBE": {
+      "lat": -7.449912,
+      "lon": -35.134252,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "ITAMBE"
+    },
+    "ITAPETIM": {
+      "lat": -7.398682,
+      "lon": -37.14305,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "ITAPETIM"
+    },
+    "ITAPISSUMA": {
+      "lat": -7.745126,
+      "lon": -34.906785,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "ITAPISSUMA"
+    },
+    "ITAQUITINGA": {
+      "lat": -7.686389,
+      "lon": -35.032577,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "ITAQUITINGA"
+    },
+    "JABOATAO DOS GUARARAPES": {
+      "lat": -8.078095,
+      "lon": -34.985023,
+      "origem": "posto",
+      "sigla": "ABMG",
+      "fonte": "geral",
+      "referencia": "ABMG - JABOATÃO DOS GUARARAPES"
+    },
+    "JAQUEIRA": {
+      "lat": -8.743316,
+      "lon": -35.807836,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "JAQUEIRA"
+    },
+    "JATAUBA": {
+      "lat": -8.055223,
+      "lon": -36.533862,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "JATAUBA"
+    },
+    "JATOBA": {
+      "lat": -9.207762,
+      "lon": -38.213788,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "JATOBA"
+    },
+    "JOAO ALFREDO": {
+      "lat": -7.860985,
+      "lon": -35.592354,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "JOAO ALFREDO"
+    },
+    "JOAQUIM NABUCO": {
+      "lat": -8.562438,
+      "lon": -35.545076,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "JOAQUIM NABUCO"
+    },
+    "JUCATI": {
+      "lat": -8.74404,
+      "lon": -36.459593,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "JUCATI"
+    },
+    "JUPI": {
+      "lat": -8.715343,
+      "lon": -36.394041,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "JUPI"
+    },
+    "JUREMA": {
+      "lat": -8.755442,
+      "lon": -36.142739,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "JUREMA"
+    },
+    "LAGOA DO CARRO": {
+      "lat": -7.852596,
+      "lon": -35.336703,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "LAGOA DO CARRO"
+    },
+    "LAGOA DO ITAENGA": {
+      "lat": -7.909244,
+      "lon": -35.294827,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "LAGOA DO ITAENGA"
+    },
+    "LAGOA DO OURO": {
+      "lat": -9.162182,
+      "lon": -36.465153,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "LAGOA DO OURO"
+    },
+    "LAGOA DOS GATOS": {
+      "lat": -8.682363,
+      "lon": -35.895598,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "LAGOA DOS GATOS"
+    },
+    "LAGOA GRANDE": {
+      "lat": -8.777207,
+      "lon": -40.223025,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "LAGOA GRANDE"
+    },
+    "LAJEDO": {
+      "lat": -8.677937,
+      "lon": -36.286282,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "LAJEDO"
+    },
+    "LIMOEIRO": {
+      "lat": -7.847719,
+      "lon": -35.447861,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "LIMOEIRO"
+    },
+    "MACAPARANA": {
+      "lat": -7.55406,
+      "lon": -35.44778,
+      "origem": "posto",
+      "sigla": null,
+      "fonte": "informado pelo usuario (2026-08-26)",
+      "referencia": "MACAPARANA"
+    },
+    "MACHADOS": {
+      "lat": -7.703361,
+      "lon": -35.500299,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "MACHADOS"
+    },
+    "MANARI": {
+      "lat": -8.892943,
+      "lon": -37.554247,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "MANARI"
+    },
+    "MARAIAL": {
+      "lat": -8.834214,
+      "lon": -35.761702,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "MARAIAL"
+    },
+    "MIRANDIBA": {
+      "lat": -8.157504,
+      "lon": -38.736071,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "MIRANDIBA"
+    },
+    "MOREILANDIA": {
+      "lat": -7.618124,
+      "lon": -39.522553,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "MOREILANDIA"
+    },
+    "MORENO": {
+      "lat": -8.144052,
+      "lon": -35.146281,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "MORENO"
+    },
+    "NAZARE DA MATA": {
+      "lat": -7.737186,
+      "lon": -35.233189,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "NAZARE DA MATA"
+    },
+    "OLINDA": {
+      "lat": -8.019979,
+      "lon": -34.856492,
+      "origem": "posto",
+      "sigla": "GBAPH",
+      "fonte": "geral",
+      "referencia": "GBAPH (SEDE) / 1ªSBAPH - OLINDA"
+    },
+    "OROBO": {
+      "lat": -7.705932,
+      "lon": -35.598696,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "OROBO"
+    },
+    "OROCO": {
+      "lat": -8.472141,
+      "lon": -39.59108,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "OROCO"
+    },
+    "OURICURI": {
+      "lat": -7.883869,
+      "lon": -40.081531,
+      "origem": "posto",
+      "sigla": "5º GB",
+      "fonte": "dinter2",
+      "referencia": "5ºGB - 4ªSB - Ouricuri"
+    },
+    "PALMARES": {
+      "lat": -8.683604,
+      "lon": -35.584819,
+      "origem": "posto",
+      "sigla": "12º GB",
+      "fonte": "geral",
+      "referencia": "12ºGB (SEDE) / 1ªSB - PALMARES"
+    },
+    "PALMEIRINA": {
+      "lat": -9.011424,
+      "lon": -36.277844,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "PALMEIRINA"
+    },
+    "PANELAS": {
+      "lat": -8.665103,
+      "lon": -36.049154,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "PANELAS"
+    },
+    "PARANATAMA": {
+      "lat": -8.89395,
+      "lon": -36.70716,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "PARANATAMA"
+    },
+    "PARNAMIRIM": {
+      "lat": -8.160025,
+      "lon": -39.77002,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "PARNAMIRIM"
+    },
+    "PASSIRA": {
+      "lat": -8.012451,
+      "lon": -35.546292,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "PASSIRA"
+    },
+    "PAUDALHO": {
+      "lat": -7.905607,
+      "lon": -35.155074,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "PAUDALHO"
+    },
+    "PAULISTA": {
+      "lat": -7.928148,
+      "lon": -34.883382,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "PAULISTA"
+    },
+    "PEDRA": {
+      "lat": -8.697076,
+      "lon": -36.899896,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "PEDRA"
+    },
+    "PESQUEIRA": {
+      "lat": -8.366672,
+      "lon": -36.686194,
+      "origem": "posto",
+      "sigla": "9º GB",
+      "fonte": "dinter2",
+      "referencia": "9ºGB - 2ªSB - Pesqueira"
+    },
+    "PETROLANDIA": {
+      "lat": -8.987694,
+      "lon": -38.222361,
+      "origem": "posto",
+      "sigla": "3º GB",
+      "fonte": "dinter2",
+      "referencia": "3ºGB - 4ªSB - Petrolândia"
+    },
+    "PETROLINA": {
+      "lat": -9.393014,
+      "lon": -40.508775,
+      "origem": "posto",
+      "sigla": "4º GB",
+      "fonte": "dinter2",
+      "referencia": "4ºGB - 1ªSB - Petrolina"
+    },
+    "POCAO": {
+      "lat": -8.224728,
+      "lon": -36.711274,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "POCAO"
+    },
+    "POMBOS": {
+      "lat": -8.181673,
+      "lon": -35.387272,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "POMBOS"
+    },
+    "PRIMAVERA": {
+      "lat": -8.326906,
+      "lon": -35.390928,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "PRIMAVERA"
+    },
+    "QUIPAPA": {
+      "lat": -8.836069,
+      "lon": -36.028681,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "QUIPAPA"
+    },
+    "QUIXABA": {
+      "lat": -7.717616,
+      "lon": -37.849063,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "QUIXABA"
+    },
+    "RECIFE": {
+      "lat": -8.051193,
+      "lon": -34.890456,
+      "origem": "posto",
+      "sigla": "QCG",
+      "fonte": "geral",
+      "referencia": "QCG - RECIFE"
+    },
+    "RIACHO DAS ALMAS": {
+      "lat": -8.081945,
+      "lon": -35.88289,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "RIACHO DAS ALMAS"
+    },
+    "RIBEIRAO": {
+      "lat": -8.504543,
+      "lon": -35.366473,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "RIBEIRAO"
+    },
+    "RIO FORMOSO": {
+      "lat": -8.67507,
+      "lon": -35.21813,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "RIO FORMOSO"
+    },
+    "SAIRE": {
+      "lat": -8.30275,
+      "lon": -35.684472,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "SAIRE"
+    },
+    "SALGADINHO": {
+      "lat": -7.916139,
+      "lon": -35.593854,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "SALGADINHO"
+    },
+    "SALGUEIRO": {
+      "lat": -8.074456,
+      "lon": -39.132061,
+      "origem": "posto",
+      "sigla": "5º GB",
+      "fonte": "dinter2",
+      "referencia": "5ºGB - 1ªSB - Salgueiro"
+    },
+    "SALOA": {
+      "lat": -8.991614,
+      "lon": -36.738936,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "SALOA"
+    },
+    "SANHARO": {
+      "lat": -8.364786,
+      "lon": -36.549494,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "SANHARO"
+    },
+    "SANTA CRUZ": {
+      "lat": -8.291219,
+      "lon": -40.302303,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "SANTA CRUZ"
+    },
+    "SANTA CRUZ DA BAIXA VERDE": {
+      "lat": -7.849495,
+      "lon": -38.175723,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "SANTA CRUZ DA BAIXA VERDE"
+    },
+    "SANTA CRUZ DO CAPIBARIBE": {
+      "lat": -7.947058,
+      "lon": -36.206289,
+      "origem": "posto",
+      "sigla": "8º GB",
+      "fonte": "geral",
+      "referencia": "8ºGB / 2ªSB - SANTA CRUZ DO CAPIBARIBE"
+    },
+    "SANTA FILOMENA": {
+      "lat": -8.223657,
+      "lon": -40.571485,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "SANTA FILOMENA"
+    },
+    "SANTA MARIA DA BOA VISTA": {
+      "lat": -8.805858,
+      "lon": -39.824003,
+      "origem": "posto",
+      "sigla": "4º GB",
+      "fonte": "dinter2",
+      "referencia": "4ºGB - 2ªSB - Santa Maria da Boa Vista"
+    },
+    "SANTA MARIA DO CAMBUCA": {
+      "lat": -7.824745,
+      "lon": -35.882911,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "SANTA MARIA DO CAMBUCA"
+    },
+    "SANTA TEREZINHA": {
+      "lat": -7.430443,
+      "lon": -37.436521,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "SANTA TEREZINHA"
+    },
+    "SAO BENEDITO DO SUL": {
+      "lat": -8.809261,
+      "lon": -35.906702,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "SAO BENEDITO DO SUL"
+    },
+    "SAO BENTO DO UNA": {
+      "lat": -8.535924,
+      "lon": -36.450644,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "SAO BENTO DO UNA"
+    },
+    "SAO CAITANO": {
+      "lat": -8.328835,
+      "lon": -36.148006,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "SAO CAITANO"
+    },
+    "SAO JOAO": {
+      "lat": -8.879878,
+      "lon": -36.377584,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "SAO JOAO"
+    },
+    "SAO JOAQUIM DO MONTE": {
+      "lat": -8.455028,
+      "lon": -35.843947,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "SAO JOAQUIM DO MONTE"
+    },
+    "SAO JOSE DA COROA GRANDE": {
+      "lat": -8.865484,
+      "lon": -35.185178,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "SAO JOSE DA COROA GRANDE"
+    },
+    "SAO JOSE DO BELMONTE": {
+      "lat": -7.865675,
+      "lon": -38.760489,
+      "origem": "posto",
+      "sigla": "5º GB",
+      "fonte": "dinter2",
+      "referencia": "5ºGB - 2ªSB - São José do Belmonte"
+    },
+    "SAO JOSE DO EGITO": {
+      "lat": -7.463983,
+      "lon": -37.273417,
+      "origem": "posto",
+      "sigla": "3º GB",
+      "fonte": "dinter2",
+      "referencia": "3ºGB - 3ªSB - São José do Egito"
+    },
+    "SAO LOURENCO DA MATA": {
+      "lat": -7.994531,
+      "lon": -35.03672,
+      "origem": "posto",
+      "sigla": "GBAPH",
+      "fonte": "geral",
+      "referencia": "GBAPH / 3ªSBAPH - SÃO LOURENÇO DA MATA"
+    },
+    "SAO VICENTE FERRER": {
+      "lat": -7.605439,
+      "lon": -35.489831,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "SAO VICENTE FERRER"
+    },
+    "SERRA TALHADA": {
+      "lat": -7.980419,
+      "lon": -38.310381,
+      "origem": "posto",
+      "sigla": "3º GB",
+      "fonte": "dinter2",
+      "referencia": "3ºGB - 1ªSB - Serra Talhada"
+    },
+    "SERRITA": {
+      "lat": -7.850013,
+      "lon": -39.381561,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "SERRITA"
+    },
+    "SERTANIA": {
+      "lat": -8.210557,
+      "lon": -37.337084,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "SERTANIA"
+    },
+    "SIRINHAEM": {
+      "lat": -8.571877,
+      "lon": -35.17216,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "SIRINHAEM"
+    },
+    "SOLIDAO": {
+      "lat": -7.58484,
+      "lon": -37.651317,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "SOLIDAO"
+    },
+    "SURUBIM": {
+      "lat": -7.844923,
+      "lon": -35.755624,
+      "origem": "posto",
+      "sigla": "8º GB",
+      "fonte": "geral",
+      "referencia": "8ºGB (SEDE) / 1ªSB - SURUBIM"
+    },
+    "TABIRA": {
+      "lat": -7.577644,
+      "lon": -37.513155,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "TABIRA"
+    },
+    "TACAIMBO": {
+      "lat": -8.348005,
+      "lon": -36.270161,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "TACAIMBO"
+    },
+    "TACARATU": {
+      "lat": -8.956792,
+      "lon": -38.076494,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "TACARATU"
+    },
+    "TAMANDARE": {
+      "lat": -8.745741,
+      "lon": -35.230018,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "TAMANDARE"
+    },
+    "TAQUARITINGA DO NORTE": {
+      "lat": -7.869446,
+      "lon": -36.13046,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "TAQUARITINGA DO NORTE"
+    },
+    "TEREZINHA": {
+      "lat": -9.077542,
+      "lon": -36.630858,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "TEREZINHA"
+    },
+    "TERRA NOVA": {
+      "lat": -8.157712,
+      "lon": -39.397489,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "TERRA NOVA"
+    },
+    "TIMBAUBA": {
+      "lat": -7.534539,
+      "lon": -35.341509,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "TIMBAUBA"
+    },
+    "TORITAMA": {
+      "lat": -8.007867,
+      "lon": -36.060994,
+      "origem": "posto",
+      "sigla": "8º GB",
+      "fonte": "geral",
+      "referencia": "8ºGB / 3ªSB - TORITAMA"
+    },
+    "TRACUNHAEM": {
+      "lat": -7.759865,
+      "lon": -35.161122,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "TRACUNHAEM"
+    },
+    "TRINDADE": {
+      "lat": -7.727821,
+      "lon": -40.295008,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "TRINDADE"
+    },
+    "TRIUNFO": {
+      "lat": -7.849853,
+      "lon": -38.066629,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "TRIUNFO"
+    },
+    "TUPANATINGA": {
+      "lat": -8.683108,
+      "lon": -37.280379,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "TUPANATINGA"
+    },
+    "TUPARETAMA": {
+      "lat": -7.686329,
+      "lon": -37.263392,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "TUPARETAMA"
+    },
+    "VENTUROSA": {
+      "lat": -8.614847,
+      "lon": -36.805195,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "VENTUROSA"
+    },
+    "VERDEJANTE": {
+      "lat": -7.975855,
+      "lon": -38.989087,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "VERDEJANTE"
+    },
+    "VERTENTE DO LERIO": {
+      "lat": -7.77765,
+      "lon": -35.815471,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "VERTENTE DO LERIO"
+    },
+    "VERTENTES": {
+      "lat": -7.890073,
+      "lon": -35.982302,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "VERTENTES"
+    },
+    "VICENCIA": {
+      "lat": -7.659531,
+      "lon": -35.357233,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "VICENCIA"
+    },
+    "VITORIA DE SANTO ANTAO": {
+      "lat": -8.124133,
+      "lon": -35.28221,
+      "origem": "posto",
+      "sigla": "1º GB",
+      "fonte": "geral",
+      "referencia": "1ºGB (SEDE) / 1ªSB - VITÓRIA DE SANTO ANTÃO"
+    },
+    "XEXEU": {
+      "lat": -8.836203,
+      "lon": -35.653304,
+      "origem": "municipio",
+      "sigla": null,
+      "fonte": "centroide do municipio (etl/_geo/municipios_pe.geojson.json)",
+      "referencia": "XEXEU"
+    }
+  }
+}

@@ -38,6 +38,8 @@ from pathlib import Path
 
 import psycopg2
 
+import conferir_coordenadas as conferir
+
 RAIZ = Path(__file__).resolve().parents[2]
 MAPEAMENTO = Path(__file__).resolve().parent / "mapeamento_unidades.json"
 SAIDA = RAIZ / "public" / "dados" / "mapa-forca"
@@ -93,71 +95,35 @@ def construir_de_para(siglas_do_dw):
     return de_para, sem_resposta, descartadas
 
 
-# Fernando de Noronha e o unico municipio de Pernambuco que nao encosta no
-# continente, o que torna uma coordenada continental ali PROVADAMENTE errada.
-# E ha oito postos declarados no municipio: tres com a coordenada certa da
-# ilha (-3,856 / -32,427, que a propria fonte carrega), quatro apontando para
-# Abreu e Lima (-7,829 / -34,902) e um para Jaboatao. Nao e chute corrigir --
-# e usar, nos oito, o valor que a fonte ja da em tres deles.
+# A resolucao e a conferencia da coordenada de cada posto vivem em
+# conferir_coordenadas.py -- foi de la que sairam as correcoes de 2026-08-26
+# (Bonito apontando para Palmares, os quatro postos da DINTER II caindo em
+# Petrolina, CEASA no Rio de Janeiro). O modulo tambem roda sozinho, contra o
+# indice ja gerado, como varredura:
 #
-# O de-para fica por municipio, e nao por posto, para o dia em que aparecer um
-# nono posto na ilha ele ja nascer certo.
-COORDENADA_POR_MUNICIPIO = {
-    "FERNANDO DE NORONHA": (-3.85609, -32.42678),
-}
+#     python etl/mapa_forca/conferir_coordenadas.py
+COORDENADAS_JSON = Path(__file__).resolve().parent / "coordenadas_postos.json"
 
 
-def fora_do_municipio(municipio, lat, lon):
-    """True quando a coordenada nao pode pertencer ao municipio declarado."""
-    esperado = COORDENADA_POR_MUNICIPIO.get((municipio or "").strip().upper())
-    if not esperado or lat is None or lon is None:
-        return False
-    # 1 grau ~ 111 km. Meio grau de folga cobre a ilha inteira com sobra e
-    # nao alcanca o continente, que esta a mais de dois graus daqui.
-    return abs(float(lat) - esperado[0]) > 0.5 or abs(float(lon) - esperado[1]) > 0.5
+def carregar_coordenadas():
+    dados = json.loads(COORDENADAS_JSON.read_text(encoding="utf-8"))
+    return dados["por_unidade_cidade"], dados["por_cidade"]
 
 
 def catalogo(cur, de_para):
     """Postos de servico e OMEs -- nome, municipio, AIS e coordenada.
 
     O balao do mapa fica no posto de servico, que e mais granular que a OME
-    (a secao de bombeiros de onde a guarnicao sai). Metade dos postos ainda
-    nao tem coordenada na origem (ovresc.tb_posto grava 0,0), entao cai para a
-    coordenada da OME -- e a origem fica registrada em `origemCoord`, para o
-    painel poder dizer que aquele balao e aproximado.
+    (a secao de bombeiros de onde a guarnicao sai). Metade dos postos nao tem
+    coordenada utilizavel na origem, e parte da que existe esta errada -- quem
+    decide qual usar, e por que, e conferir_coordenadas.py. A origem escolhida
+    fica em `origemCoord`, para o painel poder dizer que o balao e aproximado.
     """
-    cur.execute("""
-        SELECT p.id_posto, p.nome, o.sigla, p.municipio, p.bairro, p.ais,
-               nullif(p.latitude, 0), nullif(p.longitude, 0),
-               nullif(o.latitude, 0), nullif(o.longitude, 0)
-        FROM core.dim_posto_servico p
-        LEFT JOIN core.dim_ome o ON o.sk_ome = p.sk_ome
-    """)
-    postos = {}
-    for (id_posto, nome, sigla, municipio, bairro, ais,
-         lat, lon, lat_ome, lon_ome) in cur.fetchall():
-        origem = "posto" if lat is not None else ("ome" if lat_ome is not None else None)
-        efetiva_lat = lat if lat is not None else lat_ome
-        efetiva_lon = lon if lon is not None else lon_ome
-        if fora_do_municipio(municipio, efetiva_lat, efetiva_lon):
-            efetiva_lat, efetiva_lon = COORDENADA_POR_MUNICIPIO[municipio.strip().upper()]
-            origem = "municipio"
-        postos[str(id_posto)] = {
-            "nome": nome,
-            "ome": de_para.get(sigla, sigla),
-            "municipio": municipio,
-            "bairro": bairro,
-            "ais": ais,
-            "lat": float(efetiva_lat) if efetiva_lat is not None else None,
-            "lon": float(efetiva_lon) if efetiva_lon is not None else None,
-            "origemCoord": origem,
-        }
-
     cur.execute("""
         SELECT sigla, nome, municipio, nullif(latitude, 0), nullif(longitude, 0)
         FROM core.dim_ome
     """)
-    omes = {}
+    omes, coord_ome = {}, {}
     for sigla, nome, municipio, lat, lon in cur.fetchall():
         destino = de_para.get(sigla)
         if not destino:
@@ -168,7 +134,44 @@ def catalogo(cur, de_para):
             "lat": float(lat) if lat is not None else None,
             "lon": float(lon) if lon is not None else None,
         }
-    return postos, omes
+        coord_ome[destino] = (float(lat) if lat is not None else None,
+                              float(lon) if lon is not None else None)
+
+    cur.execute("""
+        SELECT p.id_posto, p.nome, o.sigla, p.municipio, p.bairro, p.ais,
+               nullif(p.latitude, 0), nullif(p.longitude, 0)
+        FROM core.dim_posto_servico p
+        LEFT JOIN core.dim_ome o ON o.sk_ome = p.sk_ome
+    """)
+    por_unidade_cidade, por_cidade = carregar_coordenadas()
+    contexto = {
+        "municipios": conferir.carregar_municipios(),
+        "por_unidade_cidade": por_unidade_cidade,
+        "por_cidade": por_cidade,
+        "omes": coord_ome,
+    }
+
+    postos, diagnostico = {}, []
+    for id_posto, nome, sigla, municipio, bairro, ais, lat, lon in cur.fetchall():
+        ome = de_para.get(sigla, sigla)
+        bruto = {"nome": nome, "ome": ome, "municipio": municipio,
+                 "lat": float(lat) if lat is not None else None,
+                 "lon": float(lon) if lon is not None else None}
+        r = conferir.resolver_coordenada(bruto, contexto)
+        if r["notas"]:
+            diagnostico.append((id_posto, nome, ome, r))
+        postos[str(id_posto)] = {
+            "nome": nome,
+            "ome": ome,
+            "municipio": municipio,
+            "bairro": bairro,
+            "ais": ais,
+            "lat": r["lat"],
+            "lon": r["lon"],
+            "origemCoord": r["origem"],
+        }
+
+    return postos, omes, diagnostico
 
 
 def lancamentos_do_dia(cur, dia, de_para):
@@ -308,7 +311,7 @@ def main():
             "unidade nao existe mais e o destino nao foi confirmado)."
         )
 
-    postos, omes = catalogo(cur, de_para)
+    postos, omes, diagnostico = catalogo(cur, de_para)
     SAIDA.mkdir(parents=True, exist_ok=True)
 
     gerado_em = datetime.now(timezone.utc).isoformat()
@@ -361,11 +364,22 @@ def main():
     print(f"  {total_lanc} lancamentos, {total_vtr} viaturas, {total_mil} militares")
     print(f"  {tamanho / 1024 / 1024:.2f} MB no total, "
           f"{tamanho / len(datas) / 1024:.0f} KB por dia" if datas else "")
-    sem_coord = sum(1 for p in postos.values() if p["origemCoord"] is None)
-    aprox = sum(1 for p in postos.values() if p["origemCoord"] == "ome")
-    corrigidos = sum(1 for p in postos.values() if p["origemCoord"] == "municipio")
-    print(f"  postos: {len(postos)} ({aprox} na coordenada da OME, "
-          f"{corrigidos} corrigidos pelo municipio, {sem_coord} sem coordenada)")
+    por_origem = {}
+    for p in postos.values():
+        por_origem[p["origemCoord"]] = por_origem.get(p["origemCoord"], 0) + 1
+    rotulo = {"posto": "ponto proprio ou levantado no KMZ",
+              "unidade": "coordenada da unidade que o posto nomeia",
+              "municipio": "centroide do municipio",
+              "ome": "coordenada da OME (aproximada)",
+              None: "sem coordenada -- fica fora do mapa"}
+    print(f"  postos: {len(postos)}")
+    for origem, n in sorted(por_origem.items(), key=lambda x: -x[1]):
+        print(f"    {n:>4}  {rotulo.get(origem, origem)}")
+    if diagnostico:
+        print(f"\n  {len(diagnostico)} posto(s) em que a coordenada da fonte nao valeu "
+              f"ou nao existia:")
+        for id_posto, nome, ome, r in diagnostico:
+            print(f"    [{id_posto:>4}] {nome[:40]:<40} {ome:<12} {'; '.join(r['notas'])}")
 
     cur.close()
     conn.close()
