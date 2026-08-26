@@ -7,6 +7,31 @@ import { LogIn, User, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import { safeReturnTo } from "@/lib/authReturnTo";
 
+// Máscara de CPF aplicada SÓ quando a digitação é numérica.
+//
+// O acesso hoje não é por CPF: é o usuário administrador (VITE_ADMIN_USUARIO)
+// ou uma das siglas de nível de acesso (@/lib/accessControl). Mascarar tudo
+// travaria os dois — quem digitasse "adm" veria o texto ser reescrito. Por
+// isso a máscara só entra quando o que foi digitado tem apenas dígitos e
+// pontuação de CPF; qualquer letra passa intacta. Quando o login por CPF
+// existir de fato, a máscara já está aqui e nada mais muda nesta tela.
+const SO_CPF = /^[\d.\s-]*$/;
+
+export function mascararCpf(valor) {
+  if (!SO_CPF.test(valor)) return valor;
+  const d = valor.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+  if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+}
+
+/** O que vai para o autenticador: CPF sem máscara, qualquer outra coisa
+ *  como foi digitada. */
+function usuarioParaEnvio(valor) {
+  return SO_CPF.test(valor) && /\d/.test(valor) ? valor.replace(/\D/g, "") : valor;
+}
+
 export default function Login() {
   const [usuario, setUsuario] = useState("");
   const [senha, setSenha] = useState("");
@@ -21,7 +46,7 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      await auth.loginViaEmailPassword(usuario, senha);
+      await auth.loginViaEmailPassword(usuarioParaEnvio(usuario), senha);
       window.location.href = returnTo;
     } catch (err) {
       setError(err.message || "Usuário ou senha inválidos");
@@ -52,10 +77,10 @@ export default function Login() {
               type="text"
               autoComplete="username"
               autoFocus
-              placeholder="adm"
+              placeholder="Insira seu CPF"
               value={usuario}
-              onChange={(e) => setUsuario(e.target.value)}
-              className="pl-10 h-12"
+              onChange={(e) => setUsuario(mascararCpf(e.target.value))}
+              className="pl-10 h-12 placeholder:text-muted-foreground/60"
               required
             />
           </div>
@@ -68,10 +93,10 @@ export default function Login() {
               id="senha"
               type="password"
               autoComplete="current-password"
-              placeholder="••••••••"
+              placeholder="Insira sua senha"
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
-              className="pl-10 h-12"
+              className="pl-10 h-12 placeholder:text-muted-foreground/60"
               required
             />
           </div>

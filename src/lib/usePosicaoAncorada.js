@@ -26,6 +26,15 @@ export const FOLGA_GATILHO = 4;
 export default function usePosicaoAncorada({ aberto, gatilhoRef, painelRef, largura, aoFechar }) {
   const [pos, setPos] = React.useState({ top: 0, left: 0 });
 
+  // `aoFechar` costuma ser uma arrow inline em quem chama, ou seja, uma
+  // função nova a cada render. Guardá-la numa ref a tira das dependências do
+  // efeito abaixo — senão o efeito se re-registra a cada render, chama
+  // calcular(), que chama setPos, que causa outro render: "Maximum update
+  // depth exceeded". Foi exatamente o que apareceu no console ao montar o
+  // FiltroData.
+  const fecharRef = React.useRef(aoFechar);
+  fecharRef.current = aoFechar;
+
   const calcular = React.useCallback(() => {
     if (!gatilhoRef.current) return;
     const zoom = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
@@ -36,7 +45,10 @@ export default function usePosicaoAncorada({ aberto, gatilhoRef, painelRef, larg
       Math.max(MARGEM_JANELA, r.left / zoom),
       Math.max(MARGEM_JANELA, larguraViewport - larguraPainel - MARGEM_JANELA)
     );
-    setPos({ top: r.bottom / zoom + FOLGA_GATILHO, left });
+    const top = r.bottom / zoom + FOLGA_GATILHO;
+    // Só troca o estado quando a posição mudou de fato: um objeto novo a cada
+    // chamada re-renderiza sem necessidade e realimenta o ciclo acima.
+    setPos((atual) => (atual.top === top && atual.left === left ? atual : { top, left }));
   }, [gatilhoRef, painelRef, largura]);
 
   React.useEffect(() => {
@@ -44,10 +56,10 @@ export default function usePosicaoAncorada({ aberto, gatilhoRef, painelRef, larg
     calcular();
     function aoClicarFora(e) {
       if (painelRef?.current?.contains(e.target) || gatilhoRef.current?.contains(e.target)) return;
-      aoFechar?.();
+      fecharRef.current?.();
     }
     function aoTeclar(e) {
-      if (e.key === "Escape") aoFechar?.();
+      if (e.key === "Escape") fecharRef.current?.();
     }
     document.addEventListener("mousedown", aoClicarFora);
     document.addEventListener("keydown", aoTeclar);
@@ -61,7 +73,7 @@ export default function usePosicaoAncorada({ aberto, gatilhoRef, painelRef, larg
       window.removeEventListener("scroll", calcular, true);
       window.removeEventListener("resize", calcular);
     };
-  }, [aberto, calcular, gatilhoRef, painelRef, aoFechar]);
+  }, [aberto, calcular, gatilhoRef, painelRef]);
 
   return { pos, recalcular: calcular };
 }
