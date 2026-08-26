@@ -75,6 +75,24 @@ APELIDOS_DE_CIDADE = {
 # Agreste. Vale so para posto de evento -- "1aSB / SAO JOAO" seria a cidade.
 NAO_E_CIDADE_EM_EVENTO = {"SAO JOAO"}
 
+# Postos cujo campo `municipio` esta comprovadamente errado e nao pode servir
+# nem de ultimo recurso. Confirmado com o usuario em 2026-08-26.
+MUNICIPIO_NAO_CONFIAVEL = {
+    # O 11o GB foi EXTINTO; Petrolandia hoje e a 4a SB do 3o GB (posto 20, que
+    # ja aponta certo). O cadastro grava RECIFE nesta SEDE, que nunca foi a
+    # sede do batalhao -- sem municipio confiavel e sem coordenada de OME, o
+    # posto fica de fora do mapa, que e o correto para unidade extinta.
+    ("11º GB", "SEDE"),
+}
+
+# Unidades cuja sede diverge entre o cadastro e a realidade. `dim_ome` diz que
+# a CAT/SE e de Serra Talhada, mas a coordenada gravada e a de Petrolina e os
+# postos declaram PETROLINA. O usuario confirmou em 2026-08-26: **a CAT Sertao
+# fica em Petrolina**. Fica escrito para nao parecer acidente da regra 5.
+SEDE_CONFIRMADA = {
+    "CAT/SE": "PETROLINA",
+}
+
 # Posto de evento nao tem endereco: a operacao acontece onde a demanda estiver,
 # e o campo `municipio` desses registros esta todo gravado como RECIFE, que e
 # so o padrao do formulario. Para eles vale a coordenada da OME, aproximada e
@@ -179,6 +197,32 @@ def e_evento(nome):
     return bool(POSTO_DE_EVENTO.match(normalizar(nome)))
 
 
+# Nome que declara o posto como SEDE da unidade. Duas formas no cadastro:
+# "GBS (SEDE)", "SEDE / GARANHUNS", e a 1a Secao de Bombeiros em qualquer
+# grafia ("1aSB / CARUARU", "1aSBI / GBI (SEDE)", "5oGB - 1aSB / SALGUEIRO").
+# "POSTO 02 - JABOATAO - GBMAR/SEDE" NAO conta: e posto de praia ao lado do
+# quartel, nao o quartel.
+NOME_DE_SEDE = re.compile(r"\bSEDE\b|\b1\s*[AO]?\s*SB")
+
+
+def e_sede(nome):
+    """True quando o nome do posto declara a sede da unidade.
+
+    O mapa usa isto para garantir que o brasao da unidade apareca na sede em
+    qualquer zoom: um posto de sede so se agrupa com postos da MESMA OME,
+    entao nunca e absorvido por um balao de OMEs misturadas (que nao tem
+    brasao para mostrar). Pedido do usuario em 2026-08-26.
+
+    A distancia ate a coordenada da OME NAO serve de criterio: a `dim_ome`
+    guarda a sede desatualizada em varios casos -- a do GBMar esta a 1,55 km
+    do quartel que o proprio KMZ levantou.
+    """
+    alvo = normalizar(nome)
+    if alvo.startswith("POSTO ") or e_evento(nome):
+        return False
+    return bool(NOME_DE_SEDE.search(alvo))
+
+
 def cidades_do_posto(nome, municipio, municipios):
     """(cidade citada no NOME, cidade do campo `municipio`). Uma funcao so
     para que a varredura julgue pelo mesmo criterio que a resolucao usou."""
@@ -205,6 +249,9 @@ def resolver_coordenada(posto, contexto):
 
     cidade_nome, cidade_campo = cidades_do_posto(
         posto["nome"], posto["municipio"], municipios)
+    if (posto["ome"], (posto["nome"] or "").strip()) in MUNICIPIO_NAO_CONFIAVEL:
+        cidade_campo = None
+        notas.append("campo `municipio` marcado como nao confiavel")
     alvo = cidade_nome or cidade_campo
     poligono = municipios.get(alvo) if alvo else None
 
@@ -277,9 +324,15 @@ def resolver_coordenada(posto, contexto):
 # ---------------------------------------------------------------------------
 
 def varrer(postos, municipios):
-    """[(km_fora, id, posto, cidade, motivo)] do que continua suspeito."""
+    """[(km_fora, id, posto, cidade, motivo)] do que continua suspeito.
+
+    Posto deliberadamente deixado fora do mapa (unidade extinta, em
+    MUNICIPIO_NAO_CONFIAVEL) nao e achado: e o resultado esperado, e entra no
+    relatorio a parte."""
     achados = []
     for pid, p in sorted(postos.items(), key=lambda x: int(x[0])):
+        if (p["ome"], (p["nome"] or "").strip()) in MUNICIPIO_NAO_CONFIAVEL:
+            continue
         do_nome, do_campo = cidades_do_posto(p["nome"], p.get("municipio"), municipios)
         cidade = do_nome or do_campo
         if p["lat"] is None:
@@ -311,6 +364,13 @@ def main():
     print(f"Postos no indice: {len(postos)}")
     for origem, n in sorted(por_origem.items(), key=lambda x: -x[1]):
         print(f"   {n:>4}  origemCoord = {origem}")
+
+    fora_por_decisao = [(pid, p) for pid, p in postos.items()
+                        if (p["ome"], (p["nome"] or "").strip()) in MUNICIPIO_NAO_CONFIAVEL]
+    if fora_por_decisao:
+        print(f"\nFora do mapa por decisao registrada: {len(fora_por_decisao)}")
+        for pid, p in fora_por_decisao:
+            print(f"   [{pid:>4}] {p['nome']} ({p['ome']}) -- ver MUNICIPIO_NAO_CONFIAVEL")
 
     achados = varrer(postos, municipios)
     print(f"\nVarredura contra a malha do IBGE (tolerancia {TOLERANCIA_KM} km): "

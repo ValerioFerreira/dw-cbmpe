@@ -169,6 +169,10 @@ def catalogo(cur, de_para):
             "lat": r["lat"],
             "lon": r["lon"],
             "origemCoord": r["origem"],
+            # Sede da unidade: o mapa nunca deixa um posto de sede ser
+            # absorvido por um balao de OMEs misturadas, para o brasao da
+            # unidade aparecer ali em qualquer zoom.
+            "sede": conferir.e_sede(nome),
         }
 
     return postos, omes, diagnostico

@@ -35,9 +35,11 @@ export default function afastarSobreposicoes(pontos, opcoes = {}) {
   }
 
   // Ordem de prioridade: balão maior (mais viaturas) se move menos, porque
-  // é o que o leitor procura primeiro. peso 1 = imóvel, 0 = livre.
+  // é o que o leitor procura primeiro. peso 1 = imóvel, 0 = livre. Sede de
+  // unidade é quase imóvel: o brasão do batalhão tem que ficar no quartel, e
+  // quem se afasta em volta dela é a vizinhança.
   const raioMax = Math.max(1, ...pontos.map((p) => p.r));
-  const peso = pontos.map((p) => 0.15 + 0.5 * (p.r / raioMax));
+  const peso = pontos.map((p) => (p.fixo ? 0.9 : 0.15 + 0.5 * (p.r / raioMax)));
 
   // Pontos EXATAMENTE coincidentes não têm direção de separação, e a
   // relaxação sozinha demora a desempilhá-los — no QCG são 37 postos na mesma
@@ -125,15 +127,21 @@ export default function afastarSobreposicoes(pontos, opcoes = {}) {
  *
  * Agrupamento guloso por ligação simples: o ponto de maior valor abre o
  * grupo e puxa todos os vizinhos ainda livres dentro do raio. Determinístico
- * porque a ordem é sempre (valor desc, id).
+ * porque a ordem é sempre (fixo, valor desc, id).
  *
- * @param {Array<{x:number,y:number,valor:number,id:string}>} pontos
+ * @param {Array<{x,y,valor,id,fixo?:boolean,chave?:string}>} pontos
+ *        `fixo` marca sede de unidade; ver compativel() abaixo.
  * @param {number} distancia  limite, nas unidades do viewBox atual
  */
 export function agruparProximos(pontos, distancia) {
   const ordem = pontos
     .map((p, i) => ({ p, i }))
-    .sort((a, b) => (b.p.valor - a.p.valor) || String(a.p.id).localeCompare(String(b.p.id)));
+    // Ponto `fixo` (a sede de uma unidade) lidera: só assim ele arrasta os
+    // vizinhos da própria OME em vez de ser arrastado por um vizinho
+    // qualquer, o que apagaria o brasão da unidade do mapa.
+    .sort((a, b) => (Number(!!b.p.fixo) - Number(!!a.p.fixo))
+      || (b.p.valor - a.p.valor)
+      || String(a.p.id).localeCompare(String(b.p.id)));
   const usado = new Array(pontos.length).fill(false);
   const grupos = [];
   for (const { p, i } of ordem) {
@@ -142,6 +150,7 @@ export function agruparProximos(pontos, distancia) {
     const membros = [p];
     for (const { p: q, i: j } of ordem) {
       if (usado[j]) continue;
+      if (!compativel(p, q)) continue;
       if (Math.hypot(q.x - p.x, q.y - p.y) <= distancia) {
         usado[j] = true;
         membros.push(q);
@@ -149,13 +158,34 @@ export function agruparProximos(pontos, distancia) {
     }
     // A âncora do grupo é a média dos membros, não a do primeiro: a linha-
     // guia deve sair do meio da mancha, senão aponta para um posto qualquer.
-    const x = membros.reduce((s, m) => s + m.x, 0) / membros.length;
-    const y = membros.reduce((s, m) => s + m.y, 0) / membros.length;
+    // Exceção: grupo com sede fica ANCORADO NA SEDE — o brasão do batalhão
+    // tem que pousar no quartel, não na média dos postos em volta.
+    const ancora = p.fixo ? p : {
+      x: membros.reduce((s, m) => s + m.x, 0) / membros.length,
+      y: membros.reduce((s, m) => s + m.y, 0) / membros.length,
+    };
     grupos.push({
       id: membros.length === 1 ? membros[0].id : `grupo-${membros[0].id}`,
-      x, y, membros,
+      x: ancora.x,
+      y: ancora.y,
+      membros,
+      fixo: !!p.fixo,
       valor: membros.reduce((s, m) => s + m.valor, 0),
     });
   }
   return grupos;
+}
+
+/**
+ * Um grupo liderado por um ponto `fixo` só aceita pontos da mesma `chave`.
+ *
+ * É o que garante o pedido do usuário: "em toda sede (1ª SB) de unidade,
+ * mesmo que haja mais unidades aglomeradas, o brasão da unidade aparece no
+ * mapa, mesmo no zoom mais distante". Um balão com OMEs misturadas não tem
+ * brasão para mostrar — vira um círculo com número. Impedindo a mistura, o
+ * grupo da sede continua sendo de uma OME só, e a insígnia sobrevive.
+ */
+function compativel(lider, candidato) {
+  if (!lider.fixo && !candidato.fixo) return true;
+  return lider.chave != null && lider.chave === candidato.chave;
 }

@@ -5,7 +5,7 @@ import { fmtNumero } from "@/lib/cbmpe";
 import { projetarNoMapa, dentroDoMapa } from "@/lib/projecaoPe";
 import afastarSobreposicoes, { agruparProximos } from "@/lib/antiSobreposicao";
 import useZoomMapa from "@/lib/useZoomMapa";
-import { insigniaNoMapa } from "@/lib/insignias";
+import { insigniaNoMapa, ehGrupamento } from "@/lib/insignias";
 import MolduraNoronha from "./MolduraNoronha";
 
 // Mapa de Pernambuco com balões posicionados por lat/long — irmão do
@@ -85,10 +85,20 @@ export default function GeoMarcadores({
   // legível sem tirar nada do mapa.
   const grupos = useMemo(() => {
     const base = desenhaveis.map((p) => ({
-      ...p, x: p.ancora.x, y: p.ancora.y, valor: valorDoPonto(p),
+      ...p,
+      x: p.ancora.x,
+      y: p.ancora.y,
+      valor: valorDoPonto(p),
+      // Sede de grupamento nunca é absorvida por um balão de OMEs
+      // misturadas: um balão assim não tem brasão para mostrar, e o pedido é
+      // que o brasão da unidade apareça na sede em QUALQUER zoom.
+      fixo: !!p.sede && ehGrupamento(p.ome),
+      chave: p.ome,
     }));
     if (escala >= ZOOM_QUE_ABRE_GRUPOS) {
-      return base.map((p) => ({ id: p.id, x: p.x, y: p.y, valor: p.valor, membros: [p] }));
+      return base.map((p) => ({
+        id: p.id, x: p.x, y: p.y, valor: p.valor, membros: [p], fixo: p.fixo,
+      }));
     }
     return agruparProximos(base, DISTANCIA_GRUPO / escala);
   }, [desenhaveis, valorDoPonto, escala]);
@@ -113,7 +123,7 @@ export default function GeoMarcadores({
   }), [grupos, raio]);
 
   const baloes = useMemo(() => afastarSobreposicoes(
-    marcadores.map((m) => ({ x: m.x, y: m.y, r: m.rDesenho })),
+    marcadores.map((m) => ({ x: m.x, y: m.y, r: m.rDesenho, fixo: m.fixo })),
     { margem: 1.5 / escala, limites: quadroBase }
   ), [marcadores, escala, quadroBase]);
 
