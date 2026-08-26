@@ -28,6 +28,22 @@ CREATE TABLE IF NOT EXISTS stg.de_para_ome (
 );
 
 -- ---------------------------------------------------------------------------
+-- normalizar_numero_ordem -- a chave que liga Frota e mapa de forca
+-- ---------------------------------------------------------------------------
+-- A Frota grava 39L / 92L / 24L; o mapa de forca grava 039 / 092 / 024. Tirar
+-- o sufixo L e os zeros a esquerda leva a cobertura de 80,6% para 98,6%.
+-- Existe como funcao porque a mesma regra e aplicada em tres lugares
+-- (dim_viatura, de_para_viatura e a resolucao do fato) e ja divergiu uma vez.
+-- O espelho em Python e normalizar_numero() em carga_core.py.
+CREATE OR REPLACE FUNCTION stg.normalizar_numero_ordem(numero text)
+RETURNS text
+LANGUAGE sql IMMUTABLE AS $$
+    SELECT coalesce(
+        nullif(ltrim(regexp_replace(upper(trim(numero)), 'L$', ''), '0'), ''),
+        upper(trim(numero)))
+$$;
+
+-- ---------------------------------------------------------------------------
 -- de_para_viatura -- liga o lancamento do mapa de forca a viatura da Frota
 -- ---------------------------------------------------------------------------
 -- Os dois sistemas nao estao ligados: o mapa de forca tem catalogo proprio de
@@ -42,11 +58,23 @@ CREATE TABLE IF NOT EXISTS stg.de_para_ome (
 -- o tipo diverge, porque no mapa de forca ele e escolhido numa lista propria
 -- no ato do lancamento.
 --
+-- Desde 2026-08-26 esta tabela NAO e mais a chave de resolucao: a
+-- dim_viatura virou SCD2 e o fato casa direto por (numero_norm, data dentro
+-- da vigencia). O papel dela agora e de RELATORIO DE QUALIDADE -- e o que
+-- alimenta marts.qualidade_reconciliacao e o que permite auditar depois por
+-- que um lancamento nao casou.
+--
 -- situacao:
---   resolvido  1 viatura para o numero
---   ambiguo    numero de ordem reciclado (viatura baixada, nova herdou o
---              numero). Resolve por vigencia quando a dim_viatura virar SCD2.
---   sem_casar  ~1,4% do volume
+--   resolvido          1 viatura para o numero em toda a linha do tempo
+--   resolvido_por_data mais de uma viatura ja teve o numero, e a vigencia
+--                      desempatou -- este e o ganho do SCD2
+--   ambiguo            mais de uma candidata VIGENTE na mesma data; a
+--                      vigencia nao bastou (ver desempate por acronimo e por
+--                      situacao utilizavel em carga_core.py)
+--   sem_casar          nenhuma viatura da Frota com aquele numero
+--
+-- sk_viatura so e preenchido quando situacao = 'resolvido': nos demais casos
+-- a resposta depende da data e nao cabe numa coluna so.
 CREATE TABLE IF NOT EXISTS stg.de_para_viatura (
     acronimo_origem text    NOT NULL,
     numero_origem   text    NOT NULL,
@@ -55,7 +83,12 @@ CREATE TABLE IF NOT EXISTS stg.de_para_viatura (
     situacao        text    NOT NULL,
     candidatos      integer NOT NULL DEFAULT 0,
     acronimo_diverge boolean,
+    lancamentos            integer NOT NULL DEFAULT 0,
+    lancamentos_resolvidos integer NOT NULL DEFAULT 0,
     PRIMARY KEY (acronimo_origem, numero_origem)
 );
+
+ALTER TABLE stg.de_para_viatura ADD COLUMN IF NOT EXISTS lancamentos integer NOT NULL DEFAULT 0;
+ALTER TABLE stg.de_para_viatura ADD COLUMN IF NOT EXISTS lancamentos_resolvidos integer NOT NULL DEFAULT 0;
 
 CREATE INDEX IF NOT EXISTS ix_de_para_viatura_norm ON stg.de_para_viatura (numero_norm);

@@ -598,43 +598,139 @@ def carregar_dimensoes_pessoal(cur):
 # dim_viatura
 # ---------------------------------------------------------------------------
 def carregar_dim_viatura(cur):
-    cur.execute("DELETE FROM core.fato_lancamento_viatura")
-    cur.execute("DELETE FROM stg.de_para_viatura")
-    cur.execute("DELETE FROM core.fato_frota_diaria")
-    cur.execute("DELETE FROM core.dim_viatura")
+    """dim_viatura como SCD tipo 2: uma linha por VERSAO da viatura.
+
+    Uma versao nova nasce a cada mudanca de OME (raw_frota.transfers) ou de
+    situacao (raw_frota.vehicle_statuses) -- os dois unicos atributos que
+    mudam ao longo da vida do veiculo. Ver o comentario do DDL em
+    02_core_dimensoes.sql para o porque.
+
+    O que isso compra: o numero de ordem e reciclado (viatura devolvida, a
+    que entra no lugar herda o numero), entao "a viatura 108" so tem resposta
+    com uma data junto. Sem vigencia, 413 pares (acronimo, numero) do mapa de
+    forca ficavam ambiguos.
+
+    A linha do tempo e montada em SQL (sao ~2,2 mil eventos, nao vale trazer
+    pro Python); a resolucao OME -> sk_ome fica no Python porque reaproveita o
+    de-para e a normalizacao que ja existem aqui.
+    """
+    # Nao ha DELETE aqui: limpar() ja truncou dim_viatura e, por CASCADE, os
+    # fatos que dependem dela. Um DELETE em fato_frota_diaria neste ponto
+    # levaria junto os snapshots que limpar() acabou de guardar.
+
+    # Tres reference_date da Frota tem ano com 5 ou 6 digitos -- 62025-02-05,
+    # 22025-06-09, 252024-01-01. E o mesmo erro de digitacao ja conhecido no
+    # ovresc. Sao descartados em vez de "corrigidos": adivinhar o ano certo de
+    # um evento de status nao e trabalho de ETL. Ficam contados abaixo para
+    # nao sumirem em silencio.
+    cur.execute(r"""
+        SELECT count(*) FROM raw_frota.vehicle_statuses
+        WHERE reference_date !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
+    """)
+    datas_descartadas = cur.fetchone()[0]
 
     # Fonte: a Frota como ela e, nao o Neon "Viatura" (que e cache de
     # aplicacao, com TRUNCATE a cada rodada e recorte de colunas).
-    # OME e situacao nao sao colunas de vehicles: sao derivadas do registro
-    # mais recente em transfers e vehicle_statuses -- mesma logica que o
-    # proprio sistema de frotas usa.
-    cur.execute("""
-        WITH ultima_transferencia AS (
-            SELECT DISTINCT ON (t.vehicle_id) t.vehicle_id, o.acronym
+    cur.execute(r"""
+        WITH eventos AS (
+            SELECT t.vehicle_id, t.transfer_date::date AS d, t.id AS ord,
+                   'ome' AS tipo, o.acronym AS valor
             FROM raw_frota.transfers t
             JOIN raw_frota.omes o ON o.id = t.ome_id
-            ORDER BY t.vehicle_id, t.transfer_date DESC NULLS LAST, t.created_at DESC
-        ),
-        ultimo_status AS (
-            SELECT DISTINCT ON (vs.vehicle_id) vs.vehicle_id, vst.name
+            WHERE t.transfer_date IS NOT NULL
+            UNION ALL
+            SELECT vs.vehicle_id, vs.reference_date::date, vs.id,
+                   'situacao', vst.name
             FROM raw_frota.vehicle_statuses vs
             JOIN raw_frota.vehicle_status_types vst ON vst.id = vs.status_type_id
-            ORDER BY vs.vehicle_id, vs.reference_date DESC NULLS LAST, vs.created_at DESC
+            WHERE vs.reference_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
+        ),
+        datas AS (SELECT DISTINCT vehicle_id, d FROM eventos),
+        -- Estado da viatura em cada data de evento: o ultimo valor conhecido
+        -- de cada atributo ate aquele dia (inclusive). Desempate pelo id da
+        -- origem, para dois eventos do mesmo tipo no mesmo dia.
+        estado AS (
+            SELECT dt.vehicle_id, dt.d,
+                   (SELECT e.valor FROM eventos e
+                     WHERE e.vehicle_id = dt.vehicle_id AND e.tipo = 'ome' AND e.d <= dt.d
+                     ORDER BY e.d DESC, e.ord DESC LIMIT 1) AS ome,
+                   (SELECT e.valor FROM eventos e
+                     WHERE e.vehicle_id = dt.vehicle_id AND e.tipo = 'situacao' AND e.d <= dt.d
+                     ORDER BY e.d DESC, e.ord DESC LIMIT 1) AS situacao
+            FROM datas dt
+        ),
+        -- Colapsa datas consecutivas com o mesmo estado: so vira versao nova
+        -- quando OME ou situacao de fato mudam.
+        marcado AS (
+            SELECT e.*,
+                   (lag(ome)      OVER w IS DISTINCT FROM ome
+                 OR lag(situacao) OVER w IS DISTINCT FROM situacao)::int AS novo
+            FROM estado e
+            WINDOW w AS (PARTITION BY vehicle_id ORDER BY d)
+        ),
+        agrupado AS (
+            SELECT *, sum(novo) OVER (PARTITION BY vehicle_id ORDER BY d
+                                      ROWS UNBOUNDED PRECEDING) AS g
+            FROM marcado
+        ),
+        versao AS (
+            SELECT vehicle_id, g, min(d) AS inicio, min(ome) AS ome, min(situacao) AS situacao
+            FROM agrupado GROUP BY vehicle_id, g
+        ),
+        numerada AS (
+            SELECT v.*,
+                   row_number() OVER (PARTITION BY vehicle_id ORDER BY inicio) AS seq,
+                   lead(inicio) OVER (PARTITION BY vehicle_id ORDER BY inicio) AS proximo
+            FROM versao v
+        ),
+        -- Quem abre o passado, dentro de cada numero de ordem. O historico da
+        -- Frota comeca em 2023-12 e o mapa de forca em 2021-05, entao a
+        -- primeira versao precisa valer para tras -- senao dois anos e meio
+        -- de lancamento ficam sem casar.
+        --
+        -- Mas isso NAO pode valer para todas: quando o numero foi reciclado,
+        -- abrir as duas em 1900 faz as duas ficarem vigentes no mesmo dia e
+        -- devolve a ambiguidade que o SCD2 veio resolver (foi o que aconteceu
+        -- na primeira tentativa). A regra e: dentro de um numero de ordem, so
+        -- a viatura que chegou primeiro herda o passado; as seguintes comecam
+        -- no seu proprio primeiro evento.
+        dono_do_passado AS (
+            SELECT n.vehicle_id,
+                   -- n.seq = 1 no WHERE, entao n.inicio ja e o primeiro evento
+                   -- da viatura -- nao precisa de min().
+                   row_number() OVER (
+                       PARTITION BY stg.normalizar_numero_ordem(v.order_number)
+                       ORDER BY n.inicio, n.vehicle_id
+                   ) = 1 AS abre_passado
+            FROM numerada n
+            JOIN raw_frota.vehicles v ON v.id = n.vehicle_id
+            WHERE n.seq = 1
         )
-        SELECT v.id, trim(v.license_plate), v.chassis, v.renavam, v.patrimony,
+        SELECT n.vehicle_id, n.seq,
+               CASE WHEN n.seq = 1 AND dp.abre_passado THEN DATE '1900-01-01'
+                    ELSE n.inicio END AS valido_de,
+               (n.proximo - 1) AS valido_ate,
+               (n.proximo IS NULL) AS versao_atual,
+               n.ome, n.situacao,
+               -- Situacao NULL = antes do primeiro evento de status; tratar
+               -- como em servico e o comportamento certo, e nao ausencia.
+               coalesce(st.still_usable, true) AS em_servico,
+               trim(v.license_plate), v.chassis, v.renavam, v.patrimony,
                vt.name, vt.acronym, v.order_number, v.brand, v.model,
                nullif(v.year, 0)::int,
                posse.name, destino.name, combustivel.name, categoria.code,
-               v.is_tracked, v.is_characterized, ut.acronym, us.name
-        FROM raw_frota.vehicles v
+               v.is_tracked, v.is_characterized
+        FROM numerada n
+        JOIN dono_do_passado dp ON dp.vehicle_id = n.vehicle_id
+        JOIN raw_frota.vehicles v ON v.id = n.vehicle_id
+        LEFT JOIN raw_frota.vehicle_status_types st ON st.name = n.situacao
         LEFT JOIN raw_frota.vehicle_types vt ON vt.id = v.type_id
         LEFT JOIN raw_frota.vehicle_ownership_types posse ON posse.id = v.vehicle_ownership_type_id
         LEFT JOIN raw_frota.vehicle_destination_types destino ON destino.id = v.vehicle_destination_type_id
         LEFT JOIN raw_frota.vehicle_fuel_types combustivel ON combustivel.id = v.vehicle_fuel_type_id
         LEFT JOIN raw_frota.license_categories categoria ON categoria.id = v.license_category_id
-        LEFT JOIN ultima_transferencia ut ON ut.vehicle_id = v.id
-        LEFT JOIN ultimo_status us ON us.vehicle_id = v.id
         WHERE nullif(trim(v.license_plate), '') IS NOT NULL
+        ORDER BY n.vehicle_id, n.seq
     """)
     fonte = cur.fetchall()
 
@@ -642,32 +738,43 @@ def carregar_dim_viatura(cur):
     ome_por_sigla = {normalizar(sigla): sk for sk, sigla in cur.fetchall()}
 
     linhas, sem_ome = [], set()
-    vistos = set()
-    for i, r in enumerate(fonte, start=1):
-        placa = r[1].strip()
-        if placa in vistos:
-            continue
-        vistos.add(placa)
-        sigla_ome = (r[17] or "").strip()
+    for r in fonte:
+        (id_frota, seq, valido_de, valido_ate, versao_atual, sigla_ome, situacao,
+         em_servico,
+         placa, chassi, renavam, patrimonio, tipo, tipo_acronym, numero_ordem,
+         marca, modelo, ano, posse, destinacao, combustivel, categoria,
+         rastreado, caracterizado) = r
+        sigla_ome = (sigla_ome or "").strip()
         sk_ome = ome_por_sigla.get(normalizar(PECULIO_PARA_SGP.get(sigla_ome, sigla_ome)))
         if sigla_ome and sk_ome is None:
             sem_ome.add(sigla_ome)
         linhas.append((
-            i, placa, r[0], r[2], r[3], r[4], r[5], r[6], r[7],
-            normalizar_numero(r[7]), r[8], r[9], r[10], r[11], r[12], r[13],
-            r[14], r[15], r[16], sk_ome, r[18], "frotas_production",
+            # sk_viatura deterministico: id da Frota * 100 + numero da versao.
+            # Estavel entre cargas, ao contrario do row_number() antigo. Cabe
+            # folgado: maior id da Frota = 859, maximo de versoes = 27.
+            id_frota * 100 + seq, placa, id_frota, valido_de, valido_ate,
+            versao_atual, chassi, renavam, patrimonio, tipo, tipo_acronym,
+            numero_ordem, normalizar_numero(numero_ordem), marca, modelo, ano,
+            posse, destinacao, combustivel, categoria, rastreado, caracterizado,
+            sk_ome, situacao, em_servico, "frotas_production",
         ))
 
     execute_values(cur, """
         INSERT INTO core.dim_viatura
-            (sk_viatura, placa, id_frota, chassi, renavam, patrimonio, tipo,
-             tipo_acronym, numero_ordem, numero_ordem_norm, marca, modelo, ano,
-             posse, destinacao, combustivel, categoria_habilitacao, rastreado,
-             caracterizado, sk_ome, situacao, origem)
+            (sk_viatura, placa, id_frota, valido_de, valido_ate, versao_atual,
+             chassi, renavam, patrimonio, tipo, tipo_acronym, numero_ordem,
+             numero_ordem_norm, marca, modelo, ano, posse, destinacao,
+             combustivel, categoria_habilitacao, rastreado, caracterizado,
+             sk_ome, situacao, em_servico, origem)
         VALUES %s
     """, linhas)
 
-    print(f"  dim_viatura                  {len(linhas):>8}")
+    cur.execute("SELECT count(DISTINCT id_frota), count(*) FROM core.dim_viatura")
+    viaturas, versoes = cur.fetchone()
+    print(f"  dim_viatura                  {versoes:>8}  "
+          f"({viaturas} viaturas, {versoes / viaturas:.1f} versoes cada)")
+    if datas_descartadas:
+        print(f"    eventos de status com ano invalido, descartados: {datas_descartadas}")
     if sem_ome:
         print(f"    OMEs da frota sem correspondencia no SGP: {sorted(sem_ome)}")
 
@@ -741,45 +848,88 @@ def carregar_de_para_ome(cur):
 
 
 def carregar_de_para_viatura(cur):
+    """Relatorio de qualidade da reconciliacao Frota x mapa de forca.
+
+    Deixou de ser a chave de resolucao em 2026-08-26: com a dim_viatura em
+    SCD2, o fato casa direto por (numero normalizado, data dentro da
+    vigencia) -- ver carregar_fatos_lancamento. O que sobra aqui, e que
+    continua valendo muito, e conseguir responder DEPOIS por que um
+    lancamento nao casou.
+
+    As quatro situacoes possiveis estao descritas no DDL (04_stg.sql). A que
+    interessa medir e 'resolvido_por_data': e exatamente o que o SCD2 comprou.
+    """
+    cur.execute("DELETE FROM stg.de_para_viatura")
     cur.execute("""
         INSERT INTO stg.de_para_viatura
             (acronimo_origem, numero_origem, numero_norm, sk_viatura, situacao,
-             candidatos, acronimo_diverge)
-        WITH pares AS (
-            SELECT DISTINCT vt.acronym AS acronimo, lv.order_number AS numero
+             candidatos, acronimo_diverge, lancamentos, lancamentos_resolvidos)
+        WITH lancamento AS (
+            SELECT vt.acronym AS acronimo, lv.order_number AS numero,
+                   stg.normalizar_numero_ordem(lv.order_number) AS numero_norm,
+                   l.date::date AS data
             FROM raw_mapa_forca.launch_vehicles lv
             JOIN raw_mapa_forca.vehicle_types vt ON vt.id = lv.vehicle_type_id
-            WHERE lv.discarded_at IS NULL
+            JOIN raw_mapa_forca.launches l ON l.id = lv.launch_id
+            WHERE lv.discarded_at IS NULL AND l.discarded_at IS NULL
               AND lv.order_number IS NOT NULL AND trim(lv.order_number) <> ''
+              AND l.date BETWEEN DATE '2019-01-01' AND current_date + 365
         ),
-        normalizado AS (
-            SELECT acronimo, numero,
-                   coalesce(nullif(ltrim(regexp_replace(upper(trim(numero)), 'L$', ''), '0'), ''),
-                            upper(trim(numero))) AS numero_norm
-            FROM pares
+        -- Por lancamento: quantas viaturas estavam vigentes naquele numero
+        -- naquele dia. 0 = nao existe na Frota; 1 = a data resolveu.
+        por_lancamento AS (
+            SELECT c.*, v.vigentes, v.vigentes_uteis,
+                   -- Mesma regra de dois estagios do fato (ver
+                   -- carregar_fatos_lancamento): candidata em servico manda;
+                   -- na falta de qualquer uma, vale a fora de servico.
+                   (v.vigentes_uteis = 1
+                    OR (v.vigentes_uteis = 0 AND v.vigentes = 1)) AS resolveu
+            FROM lancamento c
+            CROSS JOIN LATERAL (
+                SELECT count(*) AS vigentes,
+                       count(*) FILTER (WHERE coalesce(dv.em_servico, true)) AS vigentes_uteis
+                FROM core.dim_viatura dv
+                WHERE dv.numero_ordem_norm = c.numero_norm
+                  AND c.data >= dv.valido_de
+                  AND (dv.valido_ate IS NULL OR c.data <= dv.valido_ate)
+            ) v
         ),
-        casado AS (
-            SELECT n.acronimo, n.numero, n.numero_norm,
-                   count(v.sk_viatura) AS candidatos,
-                   min(v.sk_viatura)   AS sk_unico,
-                   bool_or(upper(v.tipo_acronym) = upper(n.acronimo)) AS acronimo_bate
-            FROM normalizado n
-            LEFT JOIN core.dim_viatura v ON v.numero_ordem_norm = n.numero_norm
-            GROUP BY 1, 2, 3
+        -- Por par (acronimo, numero), que e o grao da tabela.
+        por_par AS (
+            SELECT acronimo, numero, numero_norm,
+                   count(*) AS lancamentos,
+                   count(*) FILTER (WHERE resolveu) AS resolvidos,
+                   count(*) FILTER (WHERE vigentes = 0) AS sem_vigente
+            FROM por_lancamento GROUP BY 1, 2, 3
+        ),
+        -- Candidatas em TODA a linha do tempo, ignorando vigencia: e o que
+        -- diz se o numero foi reciclado alguma vez.
+        candidatas AS (
+            SELECT p.acronimo, p.numero,
+                   count(DISTINCT v.id_frota) AS candidatos,
+                   min(v.sk_viatura) FILTER (WHERE v.versao_atual) AS sk_unico,
+                   bool_or(upper(v.tipo_acronym) = upper(p.acronimo)) AS acronimo_bate
+            FROM por_par p
+            LEFT JOIN core.dim_viatura v ON v.numero_ordem_norm = p.numero_norm
+            GROUP BY 1, 2
         )
-        SELECT acronimo, numero, numero_norm,
-               CASE WHEN candidatos = 1 THEN sk_unico END,
-               CASE WHEN candidatos = 0 THEN 'sem_casar'
-                    WHEN candidatos = 1 THEN 'resolvido'
+        SELECT p.acronimo, p.numero, p.numero_norm,
+               CASE WHEN c.candidatos = 1 THEN c.sk_unico END,
+               CASE WHEN c.candidatos = 0 THEN 'sem_casar'
+                    WHEN c.candidatos = 1 THEN 'resolvido'
+                    WHEN p.resolvidos = p.lancamentos THEN 'resolvido_por_data'
                     ELSE 'ambiguo' END,
-               candidatos,
-               CASE WHEN candidatos > 0 THEN NOT acronimo_bate END
-        FROM casado
+               c.candidatos,
+               CASE WHEN c.candidatos > 0 THEN NOT c.acronimo_bate END,
+               p.lancamentos, p.resolvidos
+        FROM por_par p
+        JOIN candidatas c ON c.acronimo = p.acronimo AND c.numero = p.numero
     """)
     cur.execute("""
-        SELECT situacao, count(*) FROM stg.de_para_viatura GROUP BY 1 ORDER BY 1
+        SELECT situacao, count(*), sum(lancamentos)
+        FROM stg.de_para_viatura GROUP BY 1 ORDER BY 3 DESC
     """)
-    resumo = ", ".join(f"{s}={n}" for s, n in cur.fetchall())
+    resumo = ", ".join(f"{s}={n} pares/{v} lanc." for s, n, v in cur.fetchall())
     cur.execute("SELECT count(*) FROM stg.de_para_viatura")
     print(f"  stg.de_para_viatura          {cur.fetchone()[0]:>8}  ({resumo})")
 
@@ -817,6 +967,9 @@ def carregar_fato_efetivo_diario(cur):
 
 
 def carregar_fato_frota_diaria(cur):
+    """Snapshot de hoje da frota. So a versao vigente de cada viatura: desde o
+    SCD2 a dim_viatura tem uma linha por versao, e sem o filtro a mesma
+    viatura entraria no snapshot uma vez por mudanca de OME que ja teve."""
     cur.execute("""
         INSERT INTO core.fato_frota_diaria (sk_tempo, sk_viatura, sk_ome, situacao, odometro)
         SELECT (to_char(current_date, 'YYYYMMDD'))::int, v.sk_viatura, v.sk_ome,
@@ -826,6 +979,7 @@ def carregar_fato_frota_diaria(cur):
             SELECT mileage FROM raw_frota.fuel_transactions ft
             WHERE ft.vehicle_id = v.id_frota ORDER BY ft.time DESC NULLS LAST LIMIT 1
         ) ab ON true
+        WHERE v.versao_atual
         ON CONFLICT (sk_tempo, sk_viatura) DO NOTHING
     """)
     cur.execute("SELECT count(*) FROM core.fato_frota_diaria")
@@ -850,6 +1004,9 @@ def carregar_fatos_lancamento(cur):
     cur.execute("DELETE FROM core.fato_lancamento_viatura")
     cur.execute("DELETE FROM core.fato_lancamento_recurso")
 
+    # Separado em dois pedacos porque a resolucao da viatura precisa entrar
+    # ENTRE eles: o LATERAL usa l.date, e um LATERAL so enxerga o que ja
+    # apareceu antes dele no FROM.
     juncoes = """
         JOIN raw_mapa_forca.launches l ON l.id = f.launch_id
         -- launches.ome_id ja e o id_ome do SGP (nao o id da tabela omes local):
@@ -858,6 +1015,9 @@ def carregar_fatos_lancamento(cur):
         LEFT JOIN core.dim_posto_servico dps ON dps.id_posto = l.service_station_id
         LEFT JOIN core.dim_turno dtu ON dtu.id_turno = l.service_shift_id
         LEFT JOIN core.dim_tipo_servico dts ON dts.id_tipo_servico = l.service_type_id
+    """
+
+    filtros = """
         WHERE f.discarded_at IS NULL AND l.discarded_at IS NULL
           AND l.date BETWEEN DATE '2019-01-01' AND current_date + 365
     """
@@ -875,22 +1035,59 @@ def carregar_fatos_lancamento(cur):
         LEFT JOIN core.dim_militar dm ON dm.matricula = trim(f.military_registration)
         LEFT JOIN core.dim_funcao_servico dfs ON dfs.id_funcao = f.service_occupation_id
         {juncoes}
+        {filtros}
     """)
 
+    # A resolucao da viatura mudou em 2026-08-26. Antes: um LEFT JOIN na
+    # stg.de_para_viatura, que so sabia responder quando o numero de ordem
+    # tinha uma dona unica em toda a historia -- 413 pares ficavam de fora.
+    # Agora casa contra a dim_viatura SCD2, exigindo que a data do lancamento
+    # caia dentro da vigencia da versao. E o que o numero reciclado pedia.
+    #
+    # O LATERAL devolve duas coisas de proposito: a escolhida E quantas
+    # estavam vigentes. Sem a contagem, um desempate silencioso viraria
+    # "resolvido" no relatorio de qualidade sem nunca ter sido.
+    #
+    # A vigencia sozinha nao basta: uma viatura Devolvida mantem a ultima
+    # versao aberta (valido_ate NULL), entao ela e a sucessora ficam vigentes
+    # ao mesmo tempo. Dai o filtro em dois estagios, medido sobre os 204 mil
+    # lancamentos:
+    #   so vigencia .......................... 91,9% resolvidos
+    #   vigencia + em servico ................ 97,5%  (mas 367 lancamentos
+    #                                          perdiam a unica candidata)
+    #   os dois, com queda para a candidata
+    #   fora de servico quando nao ha outra ... 97,7%   <- a implementada
+    #
+    # Desempate entre candidatas em servico, quando ainda sobra mais de uma:
+    #   1. acronimo igual ao do lancamento -- fraco, erra em 26% dos casos,
+    #      mas quando bate e sinal;
+    #   2. menor sk_viatura, so para o resultado ser deterministico.
     cur.execute(f"""
         INSERT INTO core.fato_lancamento_viatura
             (sk_lancamento_viatura, id_lancamento, sk_tempo, sk_viatura,
              acronimo_origem, numero_origem, sk_ome, sk_posto_servico, sk_turno,
              sk_tipo_servico, status)
         SELECT f.id, l.id, (to_char(l.date, 'YYYYMMDD'))::int,
-               dpv.sk_viatura, vt.acronym, f.order_number,
+               dv.sk_viatura, vt.acronym, f.order_number,
                dome.sk_ome, dps.sk_posto_servico, dtu.sk_turno, dts.sk_tipo_servico,
                f.status
         FROM raw_mapa_forca.launch_vehicles f
         LEFT JOIN raw_mapa_forca.vehicle_types vt ON vt.id = f.vehicle_type_id
-        LEFT JOIN stg.de_para_viatura dpv
-               ON dpv.acronimo_origem = vt.acronym AND dpv.numero_origem = f.order_number
         {juncoes}
+        LEFT JOIN LATERAL (
+            SELECT (array_agg(v.sk_viatura ORDER BY
+                        -- em servico primeiro: e o estagio que mais resolve
+                        coalesce(v.em_servico, true) DESC,
+                        (upper(v.tipo_acronym) = upper(vt.acronym)) DESC NULLS LAST,
+                        v.sk_viatura))[1] AS sk_viatura,
+                   count(*) AS vigentes,
+                   count(*) FILTER (WHERE coalesce(v.em_servico, true)) AS vigentes_uteis
+            FROM core.dim_viatura v
+            WHERE v.numero_ordem_norm = stg.normalizar_numero_ordem(f.order_number)
+              AND l.date::date >= v.valido_de
+              AND (v.valido_ate IS NULL OR l.date::date <= v.valido_ate)
+        ) dv ON true
+        {filtros}
     """)
 
     cur.execute(f"""
@@ -903,6 +1100,7 @@ def carregar_fatos_lancamento(cur):
         LEFT JOIN core.dim_tipo_recurso dtr
                ON dtr.id_tipo_recurso = f.operational_resource_type_id
         {juncoes}
+        {filtros}
     """)
 
     for tabela, chave in [
@@ -927,41 +1125,36 @@ def limpar(cur):
     fonte guarda o historico e reprocessar da o mesmo resultado.
 
     Os SNAPSHOTS DIARIOS sao o oposto: a fonte so tem o estado de hoje, entao
-    o dia de ontem so existe se nos guardamos. Apagar tudo aqui destruiria a
-    unica serie temporal de efetivo e frota que o DW produz -- por isso eles
-    perdem so o dia corrente, que sera reescrito logo abaixo.
-    """
-    cur.execute("""
-        DELETE FROM core.fato_efetivo_diario
-        WHERE sk_tempo = (to_char(current_date, 'YYYYMMDD'))::int
-    """)
-    cur.execute("""
-        DELETE FROM core.fato_frota_diaria
-        WHERE sk_tempo = (to_char(current_date, 'YYYYMMDD'))::int
-    """)
-    cur.execute("""
-        DELETE FROM core.fato_previsao_reserva
-        WHERE sk_tempo = (to_char(current_date, 'YYYYMMDD'))::int
-    """)
+    o dia de ontem so existe se nos guardamos. E o TRUNCATE ... CASCADE abaixo
+    leva os tres junto, porque eles apontam para as dimensoes.
 
-    # Dias anteriores ficam, mas as dimensoes vao ser reconstruidas com novas
-    # chaves substitutas -- entao qualquer snapshot antigo perderia a
-    # referencia. Enquanto as sk nao forem estaveis entre cargas, o jeito
-    # honesto e avisar em vez de deixar o dado apontando para o lugar errado.
-    cur.execute("""
-        SELECT count(DISTINCT sk_tempo) FROM core.fato_efetivo_diario
-        WHERE sk_tempo <> (to_char(current_date, 'YYYYMMDD'))::int
-    """)
-    dias_anteriores = cur.fetchone()[0]
-    if dias_anteriores:
-        raise SystemExit(
-            f"Ha {dias_anteriores} snapshot(s) de dias anteriores em "
-            "fato_efetivo_diario. A reconstrucao total das dimensoes trocaria "
-            "as chaves substitutas e quebraria a referencia deles.\n"
-            "Antes de agendar a carga diaria, dim_militar/dim_viatura precisam "
-            "de chave substituta estavel entre execucoes (hoje sao row_number). "
-            "Ver etl/windmill/README.md."
-        )
+    Ate 2026-08-26 isso era resolvido com um SystemExit: a carga simplesmente
+    se recusava a rodar se existisse snapshot de dia anterior, porque as
+    chaves substitutas eram row_number() e trocavam a cada carga -- restaurar
+    o snapshot deixaria cada linha apontando para outro militar. Era honesto,
+    mas travava o agendamento da carga diaria, que e justamente o que o DW
+    existe para comprar.
+
+    Agora os snapshots sao guardados pela CHAVE NATURAL (matricula do militar,
+    placa da viatura), que nao depende de chave substituta nenhuma, e
+    devolvidos por restaurar_snapshots() depois que as dimensoes voltam. Uma
+    linha cuja chave natural sumiu da dimensao e descartada e contada -- e o
+    caso do militar que deixou de existir na fonte entre uma carga e outra.
+    """
+    for tabela, coluna, dim, natural in SNAPSHOTS:
+        cur.execute(f"""
+            CREATE TEMP TABLE tmp_{tabela} ON COMMIT DROP AS
+            SELECT f.*, d.{natural} AS chave_natural
+            FROM core.{tabela} f
+            JOIN core.{dim} d ON d.{coluna} = f.{coluna}
+        """)
+        cur.execute(f"SELECT count(*) FROM tmp_{tabela}")
+        guardadas = cur.fetchone()[0]
+        cur.execute(f"SELECT count(*) FROM core.{tabela}")
+        total = cur.fetchone()[0]
+        if total:
+            print(f"  snapshot {tabela:<26} {guardadas:>7} de {total} guardadas "
+                  f"por {natural}")
 
     cur.execute("""
         TRUNCATE
@@ -977,6 +1170,49 @@ def limpar(cur):
             core.dim_funcao_servico, core.dim_tipo_recurso
         CASCADE
     """)
+
+
+# (tabela de snapshot, coluna de chave substituta, dimensao, chave natural).
+# A dim_viatura tem uma linha por versao desde o SCD2, entao a restauracao
+# filtra versao_atual -- um snapshot diario e sempre do estado corrente.
+SNAPSHOTS = [
+    ("fato_efetivo_diario", "sk_militar", "dim_militar", "matricula"),
+    ("fato_frota_diaria", "sk_viatura", "dim_viatura", "placa"),
+    ("fato_previsao_reserva", "sk_militar", "dim_militar", "matricula"),
+]
+
+
+def restaurar_snapshots(cur):
+    """Devolve os snapshots guardados por limpar(), traduzindo a chave natural
+    de volta para a chave substituta nova. Chamado depois das dimensoes."""
+    for tabela, coluna, dim, natural in SNAPSHOTS:
+        cur.execute(f"SELECT count(*) FROM tmp_{tabela}")
+        if not cur.fetchone()[0]:
+            continue
+        filtro_versao = " AND d.versao_atual" if dim == "dim_viatura" else ""
+        cur.execute(f"""
+            SELECT string_agg(quote_ident(column_name), ', ' ORDER BY ordinal_position)
+            FROM information_schema.columns
+            WHERE table_schema = 'core' AND table_name = '{tabela}'
+        """)
+        colunas = cur.fetchone()[0]
+        seleto = ", ".join(
+            f"d.{coluna}" if c.strip() == coluna else f"t.{c.strip()}"
+            for c in colunas.split(",")
+        )
+        cur.execute(f"""
+            INSERT INTO core.{tabela} ({colunas})
+            SELECT {seleto}
+            FROM tmp_{tabela} t
+            JOIN core.{dim} d ON d.{natural} = t.chave_natural{filtro_versao}
+            ON CONFLICT DO NOTHING
+        """)
+        restauradas = cur.rowcount
+        cur.execute(f"SELECT count(*) FROM tmp_{tabela}")
+        guardadas = cur.fetchone()[0]
+        perdidas = guardadas - restauradas
+        aviso = f"  ({perdidas} sem correspondencia na dimensao nova)" if perdidas else ""
+        print(f"  {tabela:<28} {restauradas:>8} restauradas{aviso}")
 
 
 def carregar_contato_militar(cur):
@@ -1128,14 +1364,21 @@ def main():
     conn = psycopg2.connect(url_do_dw(), connect_timeout=30)
     cur = conn.cursor()
 
+    print("Snapshots diarios (guardados pela chave natural):")
     limpar(cur)
 
-    print("Dimensoes:")
+    print("\nDimensoes:")
     carregar_dim_tempo(cur)
     carregar_dim_ome(cur)
     carregar_dimensoes_escala(cur)
     carregar_dimensoes_pessoal(cur)
     carregar_dim_viatura(cur)
+
+    # Antes do primeiro commit, de proposito: as temporarias de limpar() sao
+    # ON COMMIT DROP. E se a carga quebrar no meio, o rollback devolve os
+    # snapshots intactos.
+    print("\nSnapshots devolvidos:")
+    restaurar_snapshots(cur)
     conn.commit()
 
     print("\nDe-para:")

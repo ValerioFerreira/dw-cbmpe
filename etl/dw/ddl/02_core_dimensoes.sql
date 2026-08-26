@@ -138,15 +138,48 @@ CREATE TABLE IF NOT EXISTS core.dim_orgao_externo (
 );
 
 -- ---------------------------------------------------------------------------
--- dim_viatura
+-- dim_viatura -- SCD tipo 2 (desde 2026-08-26)
 -- ---------------------------------------------------------------------------
 -- numero_ordem_norm e a coluna que liga esta dimensao ao mapa de forca:
--- numero sem zeros a esquerda e sem o sufixo "L" da Frota. Cobre 98,6% dos
--- lancamentos. Ver stg.de_para_viatura.
+-- numero sem zeros a esquerda e sem o sufixo "L" da Frota. Ver
+-- stg.de_para_viatura.
+--
+-- Por que virou SCD2. O numero de ordem e RECICLADO: quando uma viatura e
+-- devolvida ou descarregada, a que entra no lugar herda o numero. Medido em
+-- 2026-08-26: 86 numeros repetidos, 177 viaturas envolvidas, 413 pares
+-- (acronimo, numero) ambiguos. Com uma linha por viatura nao ha como saber
+-- qual delas estava em servico no dia do lancamento -- e o mapa de forca
+-- pergunta exatamente isso. Com vigencia, a data resolve.
+--
+-- O grao passa a ser UMA LINHA POR VERSAO da viatura. Uma versao nova nasce
+-- a cada mudanca de OME (raw_frota.transfers) ou de situacao
+-- (raw_frota.vehicle_statuses) -- os dois unicos atributos que mudam ao longo
+-- da vida do veiculo. O resto (placa, chassi, tipo, numero) e carregado junto
+-- em todas as versoes, repetido de proposito: quem consulta uma versao quer a
+-- viatura inteira, nao um fragmento.
+--
+-- sk_viatura = id_frota * 100 + sequencia da versao. E deterministico, o que
+-- resolve para viatura a pendencia de chaves substitutas instaveis: o
+-- row_number() antigo trocava a chave de cada viatura a cada carga. Cabe
+-- folgado -- o maior id da Frota e 859 e a viatura com mais versoes tem 27.
+--
+-- valido_de = 1900-01-01 na primeira versao nao e lixo: o historico da Frota
+-- comeca em 2023-12-06 e o mapa de forca em 2021-05-07, entao sem abrir a
+-- primeira versao para tras dois anos e meio de lancamento ficariam sem
+-- casar. Mas isso vale so para UMA viatura por numero de ordem -- a que
+-- chegou primeiro. Abrir todas devolveria a ambiguidade que o SCD2 veio
+-- resolver: as duas donas do mesmo numero ficariam vigentes no mesmo dia.
+-- valido_ate NULL = versao aberta (versao_atual = true).
+--
+-- placa deixou de ser UNIQUE: com SCD2 ela se repete entre as versoes da
+-- mesma viatura. A unicidade agora e (id_frota, valido_de).
 CREATE TABLE IF NOT EXISTS core.dim_viatura (
     sk_viatura            integer PRIMARY KEY,
-    placa                 text    NOT NULL UNIQUE,
-    id_frota              integer,
+    placa                 text    NOT NULL,
+    id_frota              integer NOT NULL,
+    valido_de             date    NOT NULL DEFAULT DATE '1900-01-01',
+    valido_ate            date,
+    versao_atual          boolean NOT NULL DEFAULT true,
     chassi                text,
     renavam               text,
     patrimonio            text,
@@ -165,11 +198,34 @@ CREATE TABLE IF NOT EXISTS core.dim_viatura (
     caracterizado         boolean,
     sk_ome                integer REFERENCES core.dim_ome (sk_ome),
     situacao              text,
+    -- still_usable do proprio catalogo da Frota: false para Descarregada e
+    -- Devolvida. E o que desempata numero de ordem reciclado quando duas
+    -- viaturas ficam vigentes no mesmo dia -- a que saiu de servico nao
+    -- estava rodando. Sozinho, esse filtro leva a resolucao do mapa de forca
+    -- de 91,9% para 97,5% dos lancamentos.
+    em_servico            boolean,
     origem                text    NOT NULL,
     carregado_em          timestamptz NOT NULL DEFAULT now()
 );
 
+-- Migracao em cima de um DW ja criado (o CREATE acima so vale para banco
+-- novo). A dim_viatura e inteiramente derivada e reconstruida a cada carga,
+-- entao ALTER e seguro -- e evita o DROP CASCADE, que levaria junto as FKs
+-- de fato_lancamento_viatura, fato_frota_diaria e stg.de_para_viatura.
+ALTER TABLE core.dim_viatura ADD COLUMN IF NOT EXISTS valido_de date NOT NULL DEFAULT DATE '1900-01-01';
+ALTER TABLE core.dim_viatura ADD COLUMN IF NOT EXISTS valido_ate date;
+ALTER TABLE core.dim_viatura ADD COLUMN IF NOT EXISTS versao_atual boolean NOT NULL DEFAULT true;
+ALTER TABLE core.dim_viatura DROP CONSTRAINT IF EXISTS dim_viatura_placa_key;
+ALTER TABLE core.dim_viatura ADD COLUMN IF NOT EXISTS em_servico boolean;
+ALTER TABLE core.dim_viatura ALTER COLUMN id_frota SET NOT NULL;
+
 CREATE INDEX IF NOT EXISTS ix_viatura_num_norm ON core.dim_viatura (numero_ordem_norm);
+-- O indice que o mapa de forca usa de fato: numero + janela de vigencia.
+CREATE INDEX IF NOT EXISTS ix_viatura_num_vigencia
+    ON core.dim_viatura (numero_ordem_norm, valido_de, valido_ate);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_viatura_frota_vigencia
+    ON core.dim_viatura (id_frota, valido_de);
+CREATE INDEX IF NOT EXISTS ix_viatura_atual ON core.dim_viatura (versao_atual) WHERE versao_atual;
 
 -- ---------------------------------------------------------------------------
 -- Dimensoes do mapa de forca / escala

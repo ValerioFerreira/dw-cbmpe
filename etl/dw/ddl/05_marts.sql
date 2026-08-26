@@ -64,29 +64,44 @@ SELECT DISTINCT
     l.sk_ome,
     o.sigla AS sigla_ome
 FROM core.fato_lancamento_viatura l
+-- sk_viatura aponta para a VERSAO vigente no dia do lancamento (SCD2), entao
+-- placa/tipo/numero aqui sao os daquele dia, nao os de hoje.
 JOIN core.dim_viatura v ON v.sk_viatura = l.sk_viatura
 JOIN core.dim_tempo t ON t.sk_tempo = l.sk_tempo
 LEFT JOIN core.dim_ome o ON o.sk_ome = l.sk_ome;
 
 -- Resumo por viatura: quantos dias rodou, primeira e ultima vez.
-CREATE OR REPLACE VIEW marts.emprego_viatura_resumo AS
+--
+-- Agrupa por id_frota, NAO por sk_viatura: desde que a dim_viatura virou SCD2
+-- a mesma viatura tem varias linhas (uma por versao), e agrupar pela chave da
+-- versao partiria o historico de cada viatura em pedacos. Situacao e OME vem
+-- da versao atual, que e o que a pergunta "onde esta essa viatura hoje"
+-- espera. Os lancamentos, esses somam a vida inteira.
+-- DROP antes do CREATE: a view ganhou a coluna id_frota no meio da lista,
+-- e CREATE OR REPLACE nao aceita mudanca de posicao/nome de coluna.
+DROP VIEW IF EXISTS marts.emprego_viatura_resumo;
+CREATE VIEW marts.emprego_viatura_resumo AS
 SELECT
-    v.sk_viatura,
-    v.placa,
-    v.tipo_acronym,
-    v.numero_ordem,
-    v.situacao,
+    atual.sk_viatura,
+    atual.id_frota,
+    atual.placa,
+    atual.tipo_acronym,
+    atual.numero_ordem,
+    atual.situacao,
     o.sigla                       AS sigla_ome,
     count(DISTINCT t.data)        AS dias_empregada,
-    count(*)                      AS lancamentos,
+    count(l.*)                    AS lancamentos,
     min(t.data)                   AS primeiro_emprego,
     max(t.data)                   AS ultimo_emprego,
     current_date - max(t.data)    AS dias_desde_ultimo_emprego
-FROM core.dim_viatura v
+FROM core.dim_viatura atual
+LEFT JOIN core.dim_viatura v ON v.id_frota = atual.id_frota
 LEFT JOIN core.fato_lancamento_viatura l ON l.sk_viatura = v.sk_viatura
 LEFT JOIN core.dim_tempo t ON t.sk_tempo = l.sk_tempo
-LEFT JOIN core.dim_ome o ON o.sk_ome = v.sk_ome
-GROUP BY v.sk_viatura, v.placa, v.tipo_acronym, v.numero_ordem, v.situacao, o.sigla;
+LEFT JOIN core.dim_ome o ON o.sk_ome = atual.sk_ome
+WHERE atual.versao_atual
+GROUP BY atual.sk_viatura, atual.id_frota, atual.placa, atual.tipo_acronym,
+         atual.numero_ordem, atual.situacao, o.sigla;
 
 -- ---------------------------------------------------------------------------
 -- Emprego operacional de militar
@@ -121,7 +136,10 @@ SELECT
     count(*) FILTER (WHERE v.rastreado)                               AS rastreadas
 FROM core.dim_viatura v
 JOIN core.dim_ome o ON o.sk_ome = v.sk_ome
-WHERE v.situacao <> 'Descarregada' OR v.situacao IS NULL
+-- versao_atual e obrigatorio desde o SCD2: sem ele a mesma viatura seria
+-- contada uma vez por versao (177 viaturas tem mais de uma).
+WHERE v.versao_atual
+  AND (v.situacao <> 'Descarregada' OR v.situacao IS NULL)
 GROUP BY o.sk_ome, o.sigla;
 
 -- ---------------------------------------------------------------------------

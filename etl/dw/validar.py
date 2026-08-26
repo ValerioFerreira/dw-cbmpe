@@ -29,6 +29,15 @@ def valor(cur, sql, *args):
     return linha[0] if linha else None
 
 
+# Desde 2026-08-26 os snapshots diarios ACUMULAM: limpar() guarda e devolve
+# os dias anteriores pela chave natural, em vez de exigir uma base limpa. Isso
+# e o ponto do DW, mas quebra qualquer conta que suponha um dia so -- as views
+# de efetivo tem a data no grao de proposito. Todas as conferencias abaixo se
+# referem ao dia mais recente.
+HOJE = "(SELECT max(sk_tempo) FROM core.fato_efetivo_diario)"
+DIA = "(SELECT max(data_referencia) FROM marts.efetivo_por_ome)"
+
+
 def checar(rotulo, obtido, esperado=None):
     if esperado is None:
         print(f"  {rotulo:<58} {obtido}")
@@ -48,39 +57,37 @@ def main():
     print("Efetivo -- a hierarquia resolve CPPA e adidos sem regra especial:")
     falhas += not checar(
         "total da corporacao",
-        valor(cur, "SELECT count(*) FROM core.fato_efetivo_diario"),
+        valor(cur, f"SELECT count(*) FROM core.fato_efetivo_diario WHERE sk_tempo = {HOJE}"),
         ESPERADO_TOTAL)
     falhas += not checar(
         "CPPA (efetivo proprio)",
-        valor(cur, "SELECT efetivo_proprio FROM marts.efetivo_por_ome WHERE sigla = 'CPPA'"),
+        valor(cur, f"SELECT efetivo_proprio FROM marts.efetivo_por_ome WHERE sigla = 'CPPA' AND data_referencia = {DIA}"),
         ESPERADO_CPPA)
     falhas += not checar(
         "DGP propria + CPPA (o numero que o app mostra)",
         valor(cur, """
             SELECT sum(efetivo_proprio) FROM marts.efetivo_por_ome
-            WHERE sigla IN ('DGP', 'CPPA')
-        """),
+            WHERE sigla IN ('DGP', 'CPPA') AND data_referencia = """ + DIA),
         ESPERADO_DGP)
     falhas += not checar(
         "ADIDOS (OME fantasma)",
-        valor(cur, "SELECT efetivo_total FROM marts.efetivo_por_ome WHERE sigla = 'ADIDOS'"),
+        valor(cur, f"SELECT efetivo_total FROM marts.efetivo_por_ome WHERE sigla = 'ADIDOS' AND data_referencia = {DIA}"),
         ESPERADO_ADIDOS)
     falhas += not checar(
         "COMANDO GERAL (rollup: a corporacao inteira)",
-        valor(cur, "SELECT efetivo_total FROM marts.efetivo_por_ome WHERE sigla = 'CG'"),
+        valor(cur, f"SELECT efetivo_total FROM marts.efetivo_por_ome WHERE sigla = 'CG' AND data_referencia = {DIA}"),
         ESPERADO_TOTAL)
     falhas += not checar(
         "adido nao entra no rollup da DGP",
         valor(cur, """
             SELECT count(*) FROM core.fato_efetivo_diario f
             JOIN core.dim_ome_ancestral a ON a.sk_ome_descendente = f.sk_ome
-            WHERE a.sk_ome_ancestral = 25 AND f.adido
-        """),
+            WHERE a.sk_ome_ancestral = 25 AND f.adido AND f.sk_tempo = """ + HOJE),
         0)
 
     falhas += not checar(
         "DGP por rollup (organograma manda na hierarquia)",
-        valor(cur, "SELECT efetivo_total FROM marts.efetivo_por_ome WHERE sigla = 'DGP'"),
+        valor(cur, f"SELECT efetivo_total FROM marts.efetivo_por_ome WHERE sigla = 'DGP' AND data_referencia = {DIA}"),
         ESPERADO_DGP)
 
     # O organograma e a autoridade sobre quem pende de quem (decisao de
@@ -100,17 +107,82 @@ def main():
     print("  senao alguem esta contado duas vezes ou de menos):")
     falhas += not checar(
         "soma de efetivo_proprio",
-        valor(cur, "SELECT sum(efetivo_proprio) FROM marts.efetivo_por_ome"),
+        valor(cur, f"SELECT sum(efetivo_proprio) FROM marts.efetivo_por_ome WHERE data_referencia = {DIA}"),
         ESPERADO_TOTAL)
 
     print("\nAdidos por orgao externo (top 5):")
     cur.execute("""
         SELECT orgao, militares FROM marts.adidos_por_orgao
+        WHERE data_referencia = (SELECT max(data_referencia) FROM marts.adidos_por_orgao)
         ORDER BY militares DESC LIMIT 5
     """)
     for orgao, n in cur.fetchall():
         print(f"    {n:>4}  {orgao}")
 
+    # -----------------------------------------------------------------------
+    # dim_viatura como SCD tipo 2 (2026-08-26)
+    # -----------------------------------------------------------------------
+    # Uma dimensao com vigencia so vale se as janelas forem coerentes. Estas
+    # quatro sao as invariantes: qualquer uma diferente de zero significa que
+    # a mesma viatura existe duas vezes no mesmo dia, ou nao existe em dia
+    # nenhum -- e o fato passa a casar com a viatura errada, em silencio.
+    print("\nSCD2 da dim_viatura -- invariantes (tem que dar zero):")
+    falhas += not checar(
+        "viaturas sem versao atual",
+        valor(cur, """
+            SELECT count(*) FROM (
+                SELECT id_frota FROM core.dim_viatura
+                GROUP BY id_frota HAVING count(*) FILTER (WHERE versao_atual) <> 1
+            ) x
+        """), 0)
+    falhas += not checar(
+        "versoes com vigencia invertida",
+        valor(cur, """
+            SELECT count(*) FROM core.dim_viatura
+            WHERE valido_ate IS NOT NULL AND valido_ate < valido_de
+        """), 0)
+    falhas += not checar(
+        "versoes sobrepostas na mesma viatura",
+        valor(cur, """
+            SELECT count(*) FROM core.dim_viatura a
+            JOIN core.dim_viatura b
+              ON b.id_frota = a.id_frota AND b.sk_viatura <> a.sk_viatura
+             AND a.valido_de <= coalesce(b.valido_ate, DATE '9999-12-31')
+             AND b.valido_de <= coalesce(a.valido_ate, DATE '9999-12-31')
+        """), 0)
+    falhas += not checar(
+        "numeros de ordem com mais de uma viatura herdando o passado",
+        valor(cur, """
+            SELECT count(*) FROM (
+                SELECT numero_ordem_norm FROM core.dim_viatura
+                WHERE valido_de = DATE '1900-01-01' AND numero_ordem_norm IS NOT NULL
+                GROUP BY numero_ordem_norm HAVING count(*) > 1
+            ) x
+        """), 0)
+
+    cur.execute("""
+        SELECT count(DISTINCT id_frota), count(*),
+               count(*) FILTER (WHERE versao_atual)
+        FROM core.dim_viatura
+    """)
+    viaturas, versoes, atuais = cur.fetchone()
+    checar("viaturas x versoes x versoes atuais",
+           f"{viaturas} viaturas, {versoes} versoes, {atuais} atuais")
+
+    print("\n  O que o SCD2 comprou -- reconciliacao do mapa de forca:")
+    cur.execute("""
+        SELECT situacao, count(*), sum(lancamentos)
+        FROM stg.de_para_viatura GROUP BY 1 ORDER BY 3 DESC
+    """)
+    for situacao, pares, lancamentos in cur.fetchall():
+        print(f"    {situacao:<20} {pares:>5} pares  {lancamentos:>8} lancamentos")
+    cur.execute("""
+        SELECT count(*) FILTER (WHERE sk_viatura IS NOT NULL), count(*)
+        FROM core.fato_lancamento_viatura
+    """)
+    com, total = cur.fetchone()
+    checar("lancamentos de viatura com viatura identificada",
+           f"{com} de {total} ({100 * com / total:.1f}%)")
     print("\nEmprego operacional -- a pergunta que motivou a reconciliacao:")
     cur.execute("""
         SELECT placa, tipo_acronym, numero_ordem, dias_empregada,
