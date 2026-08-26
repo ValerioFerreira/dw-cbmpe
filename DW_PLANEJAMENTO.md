@@ -2683,6 +2683,50 @@ classe de erro já conhecida no `ovresc` (ano 22, 4202). Descartados em vez de
 adivinhados — chutar o ano de um evento de status não é trabalho de ETL — e
 contados na saída da carga.
 
+#### O painel entregue
+
+Rota `/atividades/:id/dashboard/mapa-forca`, ligada a partir do card de
+Atividades Específicas. O KPI do indicador **continua "Em construção"** — o
+número é mock, porque a fonte real (SGAT) não foi levantada. Só o módulo é
+real.
+
+Mecanismo novo no app: `public/dados/mapa-forca/{data}.json`, um arquivo por
+dia (~131 KB), buscado em runtime por `src/lib/mapaForca.js`. Verificado que
+o bundle não cresceu — `UNIDADE TÁTICA DE INCÊNDIO` aparece 0 vezes em
+`dist/assets/index-*.js` e 1 vez no arquivo do dia.
+
+Duas honestidades que ficaram na tela em vez de escondidas:
+
+- 97 dos 185 postos não têm coordenada própria e herdam a da OME. Esses
+  balões saem **tracejados**, e o tooltip diz "posição aproximada". É a
+  tabela que você está montando que fecha esse buraco — ela encaixa em
+  `core.dim_posto_servico`, que já tem as colunas `latitude`/`longitude`.
+- Viatura que o mapa de força lançou e a Frota não conhece (1,0%) aparece
+  como acrônimo-número, sem link, em vez de sumir do painel.
+
+O extrator corrige 5 postos de Fernando de Noronha que estavam com
+coordenada continental. Não é chute: é o valor que a própria fonte já dá em
+outros três postos do mesmo município. A regra é por município, e vale
+porque Noronha é o único município de PE que não encosta no continente — uma
+coordenada continental ali é provadamente errada.
+
+**Ressalva registrada:** são 12 MB de dado nominal (nome de guerra,
+matrícula, função, posto de serviço, por dia) no repositório, servidos sem
+autenticação enquanto o app estiver na Vercel — `public/` não passa por
+login. Foi a opção escolhida com essa consequência explícita. Nome completo
+não entra, e CPF nunca entrou no DW.
+
+**Ainda em aberto neste painel:**
+
+- O subfiltro de seção usa os postos de serviço do DW
+  (`1ºSBI / GBI (SEDE)`), não as seções do organograma
+  (`↳ 1ª SBI/GBI (Jaboatão dos Guararapes)`). São a mesma coisa com nomes
+  diferentes, e o de-para entre os dois ainda não existe.
+- Três OMEs extintas (`8º GB`, `10º GB`, `12º GB`) lançaram em 2021 e não
+  têm destino confirmado no organograma. Estão como `null` em
+  `etl/mapa_forca/mapeamento_unidades.json`, e o extrator **falha** se
+  alguma aparecer na janela pedida — não aparecem na de 90 dias.
+
 ## Roadmap por fases
 
 | Fase | Objetivo | Status |
