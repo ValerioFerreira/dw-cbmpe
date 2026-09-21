@@ -143,12 +143,24 @@ export function faixaParaIntervalo(faixa) {
 
 // Bucket de tempo em anos ("0-5"/"6-10"/"11-15"/"15+") -> intervalo em DIAS
 // (aproximação ano=365), porque a coluna real (tempoObmAtualDias) é em dias.
+//
+// O bucket do gráfico compara ANOS INTEIROS (trunc(dias/365)), então cada
+// faixa tem que cobrir os 365 dias de cada ano que ela nomeia — inclusive os
+// do último. A tabela anterior parava cada faixa no primeiro dia do ano que
+// ela nomeia no fim ("0-5" → 0..1825, "6-10" → 2190..3650), abrindo dois
+// vãos: 1826..2189 e 3651..4014. Medido nos 187 adidos do painel 04: **18
+// não apareciam na tabela ao clicar na barra que os contava** (caíam nos
+// vãos) e **9 abriam a tabela da faixa vizinha** (5476..5839 iam para "15+"
+// em vez de "11-15") — 27 de 187 errados, e as quatro faixas somavam 169.
+// Corrigido em 2026-09-21: o limite superior de cada faixa é o último dia do
+// ano seguinte ao que ela nomeia, menos 1. Depois da correção as faixas dão
+// 117/36/23/11 = 187, exatamente o print de referência do Igor.
 export function bucketTempoParaIntervaloDias(bucket) {
   const tabela = {
-    "0-5": { min: 0, max: 5 * 365 },
-    "6-10": { min: 6 * 365, max: 10 * 365 },
-    "11-15": { min: 11 * 365, max: 15 * 365 },
-    "15+": { min: 15 * 365 + 1, max: 365 * 100 },
+    "0-5": { min: 0, max: 6 * 365 - 1 },
+    "6-10": { min: 6 * 365, max: 11 * 365 - 1 },
+    "11-15": { min: 11 * 365, max: 16 * 365 - 1 },
+    "15+": { min: 16 * 365, max: 365 * 100 },
   };
   return tabela[bucket];
 }

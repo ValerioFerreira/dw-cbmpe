@@ -37,6 +37,15 @@ export default function ModuloMilitaresAdidos({ indId, militares, adidosExtra })
 
   const postoData = useMemo(() => paraSerie(groupCount(adidos, (r) => r.posto)), [adidos]);
 
+  // Este quadrante conta pela aproximação da planilha de Pecúlio
+  // (militares.json / tempoObmAnos): 116/36/23/11, um a menos que o print
+  // (117) porque 1 dos 187 adidos tem #NUM! na coluna "Tempo na OBM atual"
+  // da planilha. A coluna exata (tempoObmAtualDias, usada no drill-down
+  // abaixo) reproduz o print na íntegra — 117/36/23/11, 187 de 187, sem
+  // nulo — quando os anos são truncados para inteiro antes de entrar na
+  // faixa. Trocar a fonte deste gráfico muda um número de painel já
+  // validado, então fica como decisão para o Igor, registrada em
+  // dashboards/PENDENCIAS-PAINEIS-CORPORATIVOS.md, não resolvida aqui.
   const tempoData = useMemo(() => {
     const buckets = new Map(TEMPO_BUCKET_ORDER.map((k) => [k, 0]));
     adidos.forEach((r) => {
@@ -80,7 +89,10 @@ export default function ModuloMilitaresAdidos({ indId, militares, adidosExtra })
         <SectionCard titulo="Adidos por Posto/Graduação">
           <PanelGrafico tipo="bar" data={postoData} xKey="label" yKeys={["valor"]} altura={260} aoClicarBarra={(d) => irParaTabela({ postoGrad: d.label })} />
         </SectionCard>
-        <SectionCard titulo="Tempo na Unidade atual" subtitulo="Anos, em faixas">
+        <SectionCard
+          titulo="Tempo na Unidade atual"
+          subtitulo="Anos, em faixas. 1 dos 187 adidos fica fora do gráfico (#NUM! na planilha de Pecúlio) — a tabela que abre no clique usa a coluna exata em dias e traz os 187."
+        >
           <PanelGrafico
             tipo="bar" data={tempoData} xKey="label" yKeys={["valor"]} altura={260}
             aoClicarBarra={(d) => irParaTabela({ tempoObmAtualDias: bucketTempoParaIntervaloDias(d.label) })}

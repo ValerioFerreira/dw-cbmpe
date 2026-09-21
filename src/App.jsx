@@ -18,6 +18,7 @@ import ViaturaDetalhe from '@/pages/ViaturaDetalhe';
 import ViaturaFicha from '@/pages/ViaturaFicha';
 import ViaturasDashboard from '@/pages/viaturas/ViaturasDashboard';
 import AtividadesDashboard from '@/pages/atividades/AtividadesDashboard';
+import FinancasDashboard from '@/pages/financas/FinancasDashboard';
 import Administracao from "./pages/Administracao";
 import MilitarFicha from '@/pages/MilitarFicha';
 import Submodulo from '@/pages/Submodulo';
@@ -61,6 +62,7 @@ const AuthenticatedApp = () => {
           <Route path="/viaturas/:id" element={<ViaturaDetalhe />} />
           <Route path="/viaturas/:id/dashboard/:modulo" element={<ViaturasDashboard />} />
           <Route path="/atividades/:id/dashboard/:modulo" element={<AtividadesDashboard />} />
+          <Route path="/financas/:id/dashboard/:modulo" element={<FinancasDashboard />} />
           <Route path="/viatura/:placa" element={<ViaturaFicha />} />
           <Route path="/militar/:matricula" element={<MilitarFicha />} />
           <Route path="/submodulo/:id/:modulo" element={<Submodulo />} />

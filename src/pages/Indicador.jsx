@@ -12,6 +12,7 @@ import EmptyState from "@/components/ui/empty-state";
 import { MODULOS_EFETIVO_DASHBOARD } from "@/lib/efetivoDashboard";
 import { MODULOS_VIATURAS_DASHBOARD } from "@/lib/viaturasDashboard";
 import { MODULOS_ATIVIDADES_DASHBOARD } from "@/lib/mapaForca";
+import { MODULOS_FINANCAS_DASHBOARD } from "@/lib/financasDashboard";
 
 const QTD_MODULOS_PLACEHOLDER = 4;
 
@@ -26,6 +27,7 @@ const DASHBOARDS_REAIS = {
   "Efetivo": { rota: "efetivo", modulos: MODULOS_EFETIVO_DASHBOARD },
   "Viaturas": { rota: "viaturas", modulos: MODULOS_VIATURAS_DASHBOARD },
   "Atividades Específicas": { rota: "atividades", modulos: MODULOS_ATIVIDADES_DASHBOARD },
+  "Finanças": { rota: "financas", modulos: MODULOS_FINANCAS_DASHBOARD },
 };
 
 export default function Indicador() {

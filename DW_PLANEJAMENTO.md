@@ -20,7 +20,34 @@
   trabalhamos toda vez que uma nova fonte de dados é integrada ao DW.
   **Leitura obrigatória antes de propor qualquer integração de fonte.**
 
-## Estado atual — onde retomar (atualizado 2026-08-24)
+## Estado atual — onde retomar (atualizado 2026-09-21)
+
+> **2026-09-21 — painéis de BI, seis rodadas no mesmo dia: auditoria →
+> pacotes chegaram → VPN ativada → SQL do DF confirmado → DF integrado →
+> visuais do DF ajustados quadrante a quadrante.**
+> Os 9 painéis do Dashboard Pessoal estão completos (nada do handoff de Igor
+> ficou de fora). Os quatro painéis corporativos (PLAN DLOG, Dashboard DF,
+> Ocorrências, Vacinações) não estavam no repositório na primeira auditoria —
+> Igor os disponibilizou horas depois
+> (`dashboards/das.zip`, `dlog.zip`, `ocorrencias.zip`, `df.html`+`df.md`,
+> **ainda não commitados**). Com a VPN ativada e o SQL real de Suprimento
+> Individual/Despesas Diversas em mãos, **o Dashboard DF saiu do protótipo
+> estático e está no ar de verdade** — `/financas/:id/dashboard/:modulo`,
+> mesmo padrão de Efetivo/Viaturas, escopo por unidade testado. A sexta
+> rodada refinou o visual dos 3 módulos do DF (tipos de gráfico, formatação
+> de moeda, ordenação interna) e, no processo, corrigiu **dois bugs
+> pré-existentes em `PanelGrafico.jsx`** (margem que cortava o eixo Y em todo
+> o sistema; eixo de categoria do `hbar` que descartava metade dos rótulos
+> quando havia muitas categorias) — ambos afetavam Efetivo/Viaturas também,
+> não só o DF. Os outros três painéis (DLOG, DAS, Ocorrências) seguem só
+> como protótipo: DAS e Ocorrências têm host de banco identificado mas sem
+> credencial que funcione; DLOG não é nem banco, é planilha, ainda sem saber
+> onde ela mora. As perguntas pendentes (revisadas para refletir o que os
+> `status_*.md` de Igor e a integração do DF já resolveram) estão
+> consolidadas em
+> [`dashboards/PENDENCIAS-PAINEIS-CORPORATIVOS.md`](dashboards/PENDENCIAS-PAINEIS-CORPORATIVOS.md).
+> Ver as entradas **2026-09-21** no fim do log de decisões.
+
 
 > **2026-08-24 — o projeto voltou o foco para o DW em si.** Até aqui o
 > esforço era demonstrar potencial aos gestores via app. A partir de agora o
@@ -2437,8 +2464,12 @@ Em ordem de urgência:
   matrícula? O excedente é inativo, dependente, ou outra coisa?
 - **Datas impossíveis no `ovresc`** (ano 22, 4202, 62025): a camada `raw`
   engole como texto; o `stg` precisa de uma regra de descarte ou correção.
-- **Onde as ocorrências vivem hoje**, agora que `ovrsgo` e `ovrroe` estão
-  fora de uso.
+- ~~**Onde as ocorrências vivem hoje**, agora que `ovrsgo` e `ovrroe` estão
+  fora de uso.~~ **Respondido em 2026-09-21**: `public.roe_basico_ocorrencias`
+  + tabelas de detalhe por natureza, no mesmo schema `public` do
+  `10.193.1.252:54301` que hospeda `peculio_metabase_v1`/`cim_*`/`fin_*`.
+  Veio do painel de Ocorrências do Igor; **nenhuma coluna verificada** — o
+  host não é alcançável da máquina atual. Ver `DW_CATALOGO_FONTES.md`.
 
 - **Painéis 07/09 — 2 agregações inferidas, a confirmar com Igor**: "Distribuição
   das solicitações" (painel 09, hoje agrupada por `motivo`) e "Origem das
@@ -3043,3 +3074,483 @@ CPF **sem** máscara, para o dia em que o login por CPF existir de fato.
 **3. Documentação de deploy e de continuidade.** Ver `DEPLOY_SERVIDOR_INTERNO.md`
 (documento para entregar à equipe de TI) e o `README.md` reescrito (como
 retomar o trabalho em outra máquina).
+
+
+### 2026-09-21 — Auditoria dos painéis de BI: o Dashboard Pessoal já está completo; os quatro painéis corporativos não chegaram
+
+**O pedido.** Integrar ao sistema real os painéis novos que Igor produziu no
+Claude Cowork, seguindo o mesmo procedimento das rodadas anteriores: inserir o
+que já está validado, deixar quadrante bloqueado marcado como "aguardando
+dado", e consolidar as perguntas em aberto.
+
+**O achado que mudou a sessão: o pedido partia de um estado antigo do
+repositório.** O enunciado pedia para inserir os painéis 05 e 06, inserir 4 de
+6 quadrantes do 07, 3 de 4 do 08, e nada do 09. Os nove módulos já estão em
+`src/pages/efetivo/` desde 2026-08-19 — painel 07 com **6/6** (os dois cards
+foram destravados com o SQL original do Metabase contra `inativos_metabase`/
+`peculio_metabase_v1`), painel 08 com **4/4** (a tabela nominal foi liberada
+pela decisão de PII do mesmo dia) e painel 09 inteiro. **Não havia nada do
+Dashboard Pessoal para inserir.**
+
+Conferido também o `handoff-paineis-05-a-09.zip` (estava em `~/Downloads`):
+os 8 arquivos estão commitados em `dashboards/01-efetivo-geral/` e são
+**byte-idênticos** ao zip. A pergunta "Igor subiu ou está só com ele?" está
+respondida.
+
+**Os quatro painéis corporativos não existem aqui.** PLAN DLOG, Dashboard DF,
+Dashboard de Ocorrências e Dashboard de Vacinações (DAS): varredura por nome e
+por conteúdo no repositório, e nas pastas Desktop/Downloads/Documents da
+máquina — nenhum HTML, spec, `status_*.md` ou SQL. `roe_*` não aparece em
+lugar nenhum do repositório. Nada foi construído para eles: sem a lista de
+abas conferida, os títulos dos cards e os números de referência, montar
+esqueleto "aguardando dado" seria inventar a estrutura do painel, não
+sinalizar um bloqueio.
+
+**Segundo bloqueio, independente dos arquivos: a rede.** `DATABASE_URL_DW`
+(`10.193.1.252:54301`) dá **timeout** desta máquina, e o mesmo vale para os
+outros três hosts internos (`10.193.0.20` do `DATABASE_URL_OPS`, onde vive
+`vaccine_control_production`; `10.193.0.16` do SGP; `10.193.1.252:54329` da
+Frota). Só os três Neon respondem, e nenhum tem ocorrência ou vacinação. Isso
+decide o caminho de integração dos quatro painéis: rodar os extratores da
+máquina que está na rede da corporação, ou pedir os exports ao Igor.
+
+**Uma pergunta antiga respondida de graça.** "Onde as ocorrências vivem hoje,
+agora que `ovrsgo` e `ovrroe` estão fora de uso" estava aberta desde
+2026-08-24. O painel do Igor revela: `public.roe_basico_ocorrencias` mais as
+tabelas de detalhe por natureza, **no mesmo schema `public` do
+`10.193.1.252:54301`** que já hospeda `peculio_metabase_v1`, `cim_*` e
+`fin_*`. Catalogado em `DW_CATALOGO_FONTES.md` com a ressalva de que nenhuma
+coluna foi verificada.
+
+**A divergência dos ADIDOs (painel 04) foi resolvida — e a hipótese
+registrada estava errada.** O `spec-04-militares-adidos.json` atribuía a
+diferença a "snapshot vivo, datas de referência diferentes". A causa real é
+aritmética: o painel 08 trunca os anos antes de escolher a faixa
+(`Math.floor`), o recálculo do painel 04 não truncava. Medido contra
+`carreira_extra.json`:
+
+| Agrupamento dos 187 adidos | Resultado |
+|---|---|
+| `tempoOmeAnos` fracionário direto na faixa | 104 / 44 / 19 / 20 |
+| `tempoOmeAnos` truncado para ano inteiro | **117 / 36 / 23 / 11** |
+| Print do Igor | **117 / 36 / 23 / 11** |
+| Aproximação do Pecúlio (o que o app mostra) | 116 / 36 / 23 / 11 |
+
+`tempoObmAtualDias` é confiável, inclusive para adidos, e não há data de
+referência divergente. O que existia era um erro de faixa.
+
+**Defeito corrigido, com impacto medido.** `bucketTempoParaIntervaloDias`
+(`src/lib/efetivoDashboard.js`) parava cada faixa no primeiro dia do ano que
+ela nomeia no fim (`"0-5"` → 0..1.825; `"6-10"` → 2.190..3.650), abrindo dois
+vãos: **1.826-2.189 e 3.651-4.014**. Consequência real no painel 04, medida
+nos 187 adidos: as quatro tabelas do drill-down somavam **169** em vez de 187
+— **18 adidos não apareciam em tabela nenhuma** e **9 abriam a tabela da faixa
+vizinha** (5.476-5.839 iam para "15+" em vez de "11-15"), 27 de 187 errados.
+Cada faixa agora cobre os 365 dias de cada ano que nomeia; depois da correção
+as tabelas dão 104→**117** / 31→**36** / 14→**23** / 20→**11** = 187, que é
+exatamente o print. Verificado no navegador (a tabela de "0-5" abre com
+"Filtrados: 117").
+
+**O que ficou como decisão, deliberadamente.** O gráfico do card continua
+contando pela aproximação do Pecúlio (116, porque 1 adido tem `#NUM!` naquela
+coluna da planilha). Trocar a fonte faria o card bater exatamente com o print,
+mas altera um número de painel já validado por Igor — fica como pergunta, não
+como mudança unilateral. O card passou a declarar a ressalva no próprio
+subtítulo, para a diferença não ficar silenciosa.
+
+**Entregável desta sessão:**
+[`dashboards/PENDENCIAS-PAINEIS-CORPORATIVOS.md`](dashboards/PENDENCIAS-PAINEIS-CORPORATIVOS.md)
+— auditoria dos 9 painéis, o que falta dos quatro corporativos, e a lista
+única de 18 perguntas separada por responsável (12 para Igor, dado e regra de
+negócio; 6 para Valério, acesso e governança).
+
+### 2026-09-21 (mesmo dia, segunda rodada) — Os quatro painéis corporativos chegaram: auditados, e o padrão de trabalho de Igor está mais rigoroso do que o presumido
+
+**Correção de premissa, feita pelo usuário.** Igor produz os painéis no
+Claude Cowork como **design/visualização**, não necessariamente dado
+validado — nosso trabalho é identificar as visualizações e checar se temos
+o dado real para sustentá-las, não presumir que todo card "pronto" já bate
+com um print. Registrado como memória de projeto
+(`project_igor-cowork-nao-e-dado-real`), porque muda a leitura de qualquer
+handoff futuro do Igor, inclusive os já commitados.
+
+**Só que, checando os quatro pacotes que chegaram nesta rodada, a premissa
+se confirma só em parte.** `das.zip`, `dlog.zip`, `ocorrencias.zip` e
+`df.html`+`df.md` apareceram em `dashboards/` (Igor os disponibilizou depois
+da primeira auditoria do dia, que ainda não os encontrava). Auditados por
+leitura de código e renderização ao vivo (DF e Vacinações renderizaram sem
+erro de console; DLOG e Ocorrências passaram nas mesmas checagens estáticas,
+sem render ao vivo só por um limite de tamanho do preview local da
+ferramenta — não defeito no arquivo). Achado principal: **Igor tem um
+prompt-padrão reutilizável** (o arquivo `df.md`, na verdade um template
+genérico, não um status do DF especificamente) que **exige** processo de
+validação rigoroso antes de qualquer HTML ser escrito — nunca inferir,
+validar por SQL/CSV/reconciliação de total, marcar confirmado vs. não
+confirmado, documentar divergência sem esconder, manter um
+`status_<projeto>.md` por painel. Os quatro pacotes seguem isso à risca, e
+os `status_*.md` de Ocorrências e Vacinações em particular são extensos e
+meticulosos — o de Ocorrências (338 linhas) já teve o bug do `UNION ALL` em
+"Situação das vítimas" encontrado, documentado com o SQL exato, e uma query
+de diagnóstico escrita (não rodada, deliberadamente, para não arriscar
+comando contra estrutura de banco não confirmada) para os 5.253 registros
+sem `data_recebimento` — dois achados que a primeira auditoria desta sessão
+tinha te feito reconstruir por inferência, sem saber que já existiam
+prontos, documentados, do lado de Igor.
+
+**Isso não invalida a correção de premissa — mostra a faixa real de
+variação.** Nem todo painel de Igor vem com esse nível de rigor (o handoff
+original dos painéis 05-09 tinha menos documentação por card), mas quando
+ele segue o próprio prompt-padrão, o resultado é auditável card a card sem
+precisar perguntar "isso é validado ou só ilustrativo?" — a resposta já está
+no `status`. A pergunta continua valendo por padrão para qualquer entrega
+futura que não venha com esse nível de documentação.
+
+**Nível de validação por painel** (dos `status_*.md` de Igor, não inferido):
+Ocorrências tem ~35 de 38 quadrantes confirmados por SQL/CSV, 2 por
+reconciliação de print, 1 pendente; Vacinações tem 0 confirmados por SQL
+(Igor está em modo só-leitura em todo o dashboard) mas 8 de 10 validados por
+reconciliação de total, 2 bloqueados; PLAN DLOG tem 5 itens com fórmula
+vista no editor do Looker Studio, 1 não confirmado (card "CONTRATAÇÃO") e 5
+pendências menores; Dashboard DF tem 3 blocos confirmados, 1 por
+reconciliação, e 2 com divergência documentada e não resolvida (R$
+1.273.530,74 entre "Total do empenho de diárias" e a soma do detalhamento
+por operação).
+
+**Um gap real, não presumido: falta o `status_dashboard_df.md`.** `df.html`
+referencia esse arquivo 4 vezes em comentário — é onde estaria o histórico
+de validação do SFI e o contexto completo da divergência de diárias. O que
+veio no lugar (`df.md`) é o prompt-padrão genérico de Igor, sem dado
+específico do DF. Pedido a Igor.
+
+**O que ainda falta, independente da qualidade dos pacotes:** os quatro
+continuam sendo protótipos HTML autônomos — a tradução para componente React
+consumindo `src/data/real/` (o padrão real dos painéis 01-09) ainda não foi
+feita, e depende do mesmo bloqueio de rede já registrado (os quatro hosts
+`10.193.*` continuam inalcançáveis desta máquina). Também não foram
+commitados nem organizados na convenção de pasta por painel
+(`dashboards/02-plan-dlog/` etc., no padrão de `01-efetivo-geral/`) — fica
+para quando o Valério decidir o próximo passo.
+
+`dashboards/PENDENCIAS-PAINEIS-CORPORATIVOS.md` foi revisado (Parte 2
+reescrita, Parte 3 com as perguntas já respondidas pelos `status_*.md`
+marcadas e reformuladas) para refletir tudo isso — não um documento novo.
+
+### 2026-09-21 (terceira rodada, mesmo dia) — VPN ativada: DF confirmado ao vivo, dois hosts com problema de credencial (não de rede), DLOG não é banco
+
+**Pedido do usuário:** com a VPN ativa, confirmar os hosts/bancos dos quatro
+painéis (DAS em `10.193.0.20:5432/vaccine_control_production`, Ocorrências
+em `10.193.1.252:15432/roe_api_production`, DF em
+`10.193.1.252:54301/postgres` com tabelas `fin_*`) e descobrir se a
+documentação do DLOG explica onde ele coleta dado — e subir o `npm run dev`.
+
+**Feito, com a instrução explícita de manter registro de onde cada dado
+está hoje** (para a fase futura de estruturar o DW de verdade). Resultado,
+testado com a VPN ligada, só `SELECT`/`information_schema`, nenhuma senha
+impressa:
+
+- **DF: confirmado 100%.** `DATABASE_URL_DW` conecta normalmente. As três
+  tabelas existem exatamente como o usuário descreveu — `fin_autorizacao`
+  (600 linhas), `fin_carnaval_2026` (24 linhas), `fin_sfi_ordinario` (306
+  linhas) — com schema completo levantado (ver `DW_CATALOGO_FONTES.md`).
+  Cobre a aba "SFI" do painel por inteiro. **Achado novo:** as abas
+  "Suprimento Individual" e "Despesas Diversas" do mesmo painel **não
+  correspondem a nenhuma das 21 tabelas visíveis nesse banco** — a fonte
+  real delas ainda não foi encontrada, não é só falta de SQL.
+- **DAS: rede ok, credencial quebrada.** `ctic@10.193.0.20` (var.
+  `DATABASE_URL_OPS`) parou de autenticar em **qualquer** banco desse
+  host — inclusive o `postgres`, que já estava documentado como acessível
+  em sessão anterior. Isolado como problema desse host específico: o mesmo
+  `ctic` autentica normalmente em `10.193.0.16` (SGP). O erro é rejeição de
+  senha (`FATAL: password authentication failed`), não timeout — a VPN e a
+  rede estão funcionando, só a credencial não. Precisa de senha atualizada
+  ou credencial nova para esse host.
+- **Ocorrências: host corrigido, credencial nova necessária.** A dedução
+  registrada horas antes nesta mesma sessão (que `roe_*` estaria no schema
+  `public` do banco do DW, 54301) **estava errada** — confirmado consultando
+  `information_schema.tables` nesse banco com a VPN ativa: 21 tabelas, zero
+  `roe_*`. O host/banco corretos, informados pelo usuário
+  (`10.193.1.252:15432/roe_api_production`), são uma instância Postgres
+  totalmente separada, mesmo servidor físico mas porta diferente. Testado
+  com as duas credenciais já disponíveis (`datawarehouse-user` e `ctic`) —
+  as duas rejeitadas. Como a rejeição também é de senha, não timeout, a
+  porta 15432 está alcançável pela VPN; falta só a credencial certa.
+- **PLAN DLOG: não é banco.** Nem `status_dlog.md` nem o HTML do painel
+  mencionam host, porta ou string de conexão Postgres em lugar nenhum. O
+  próprio `status_dlog.md` documenta a fonte real: export **"NOVO CONTROLE
+  - PLAN DLOG.xlsx"** (08/09/2026) alimentando o relatório Looker Studio
+  "Controle DLOG" (Igor tem acesso de editor). Ou seja, a pergunta certa
+  para Igor não é "qual host", é **onde essa planilha vive e como ela
+  chega no Looker Studio** — o pipeline de integração provavelmente se
+  parece mais com o de Finanças (planilha → Windmill → Postgres) do que
+  com os outros três painéis, que são todos bancos vivos.
+
+**`npm run dev` no ar**, `http://localhost:5173`, sem erros de servidor.
+
+`DW_CATALOGO_FONTES.md` corrigido (Ocorrências: host trocado de 54301 para
+15432, com o motivo do engano registrado; Vacinação: credencial quebrada
+documentada; Financeiro: schema real das 3 tabelas `fin_*` + o achado de que
+Suprimento Individual/Despesas Diversas não estão nelas + o esclarecimento
+de que DLOG é planilha, não banco). `dashboards/PENDENCIAS-PAINEIS-CORPORATIVOS.md`
+atualizado nos itens 6, 13 e 14 para o mesmo resultado.
+
+**Próximo passo, quando as credenciais chegarem:** com DF já 100% acessível,
+dá para começar a construir o componente React real da aba SFI do painel DF
+agora — é o único dos quatro sem nenhum bloqueio de acesso pendente.
+
+### 2026-09-21 (quarta rodada, mesmo dia) — DF completo: SQL real das 5 visualizações restantes, e a divergência de diárias explicada com prova matemática
+
+**Pedido do usuário:** priorizar DF entre os quatro painéis. Mandou o SQL
+real do Metabase para as 5 visualizações que faltavam (2 em Suprimento
+Individual, 3 em Despesas Diversas) e pediu para verificar se batia com o
+que Igor construiu, e se respondia as dúvidas em aberto.
+
+**Resultado: as 5 vêm de `fin_autorizacao`, filtradas por `enquadramento` —
+não de uma tabela separada como eu tinha concluído antes.** `'SI'` alimenta
+Suprimento Individual; `'DIÁRIAS'` e `'FUNERAL'` alimentam Despesas
+Diversas. Rodei as 5 queries ao vivo (VPN ativa) e comparei com
+`df.html`: as 5 visualizações que Igor construiu são exatamente as 5 do
+SQL — nem uma a mais, nem uma a menos. Os valores batem com drift normal
+de base viva (SI total: R$1.349.387,65 → R$1.446.867,65; 39 unidades nos
+dois momentos, soma exata nos dois). Um achado curioso: o donut de Auxílio
+Funeral por mês **não teve nenhum drift** — os 6 meses batem centavo a
+centavo com o snapshot do Igor.
+
+**A divergência de diárias (R$1.273.530,74, aberta desde 2026-08-19) está
+resolvida, com prova matemática, não suposição.** O card "Total do empenho
+de diárias" soma **todo** `fin_autorizacao` com `enquadramento='DIÁRIAS'
+AND situacao='EMPENHADO'`. A query original do Metabase para "Valores de
+diárias empenhadas por Operação" restringe isso com um `WHERE ficha_financ
+IN (...)` de **9 valores literais** — hoje existem **18** valores
+distintos de `ficha_financ` nessa combinação. Somei os 9 que ficam de fora
+da lista: **R$2.559.090,74 hoje**, **R$1.273.530,74 no snapshot do Igor**
+— bate exato com a divergência documentada, nos dois momentos no tempo,
+com precisão de centavo. Não é filtro errado nem fonte diferente: é uma
+lista hardcoded no Metabase que ficou incompleta conforme novas operações
+foram cadastradas.
+
+**Achado de qualidade de dado para a fase de estruturação real do DW:**
+pelo menos 2 dos 9 `ficha_financ` "de fora" parecem ser a mesma operação
+com grafia diferente de uma que já está na lista — `"EXECUTIVA - Diárias -
+Calendário Turístico"` (falta a palavra "Operação") vs. `"EXECUTIVA -
+Diárias - Operação Calendário Turístico"`; e `"EXECUTIVA - Diárias -
+Operação Pernambuco Meu País"` vs. `"Diárias - Operação Pernambuco Meu
+País"` (sem o prefixo "EXECUTIVA -"). Registrado em `DW_CATALOGO_FONTES.md`
+como candidato a dimensão normalizada quando o `core` for modelado de
+verdade — hoje `ficha_financ` é texto livre comparado por igualdade exata,
+o que já causou um bug de visualização real.
+
+**Também levantado, sem uso ainda:** `fin_autorizacao` tem 11 valores
+distintos de `enquadramento` no total — só 4 têm painel hoje (SFI, SI,
+DIÁRIAS, FUNERAL). Os outros 7 (`BOLSA FORMAÇÃO`, `CONTRATO`, `FOLHA DE
+PAGAMENTO`, `FORA DE ENQUADRAMENTO`, `INDENIZAÇÃO POR MORTE`, `OPERAÇÃO DE
+CRÉDITO`, `TRANSLADO`) são candidatos óbvios para o próximo recorte
+financeiro, quando chegar a hora.
+
+**Estado do DF agora: os 3 tabs têm SQL real confirmado, zero bloqueio de
+acesso.** Falta só formalizar como extrator
+(`etl/financas/extract_dashboard_df.py`, no padrão dos extratores
+existentes em `etl/financas/`) e construir o componente React real —
+próximo passo natural.
+
+### 2026-09-21 (quinta rodada, mesmo dia) — DF integrado ao sistema real: primeiro dos quatro painéis corporativos a sair do protótipo
+
+**Pedido do usuário:** tirar a lista fixa de `ficha_financ` do gráfico de
+diárias (decisão da rodada anterior) e, com isso feito, inserir cada painel
+no sistema real, seguindo a mesma lógica já usada em Efetivo e Viaturas.
+
+**Extrator novo: `etl/financas/extract_dashboard_df.py`.** Lê
+`fin_sfi_ordinario`/`fin_autorizacao` direto do Postgres do DW
+(`DATABASE_URL_DW`, VPN ativa) e escreve
+`src/data/real/financas_dashboard.json`. Reaproveita — não duplica — o
+de-para de unidades já validado em `etl/financas/mapeamento_unidades.json`
+(o mesmo arquivo que já alimenta o KPI de Finanças via
+`extract_financas.py`), confirmando por engenharia reversa três coisas que
+esse arquivo já sabia e que eu tinha descoberto de novo, do zero, nas
+rodadas anteriores desta sessão: **CPPA soma em DGP**, **DAFO/DPAFO não são
+unidades** (por isso Diárias não tem quebra por unidade) e **as variantes
+de "à mesma"/"aos mesmos" são pagamento à família, não a uma unidade** (por
+isso Funeral também não tem quebra por unidade). Três exceções novas
+adicionadas ao arquivo: `GBI/NORONHA`→GBI (destacamento em Fernando de
+Noronha, só aparece em `fin_sfi_ordinario`, não na planilha que o mapeamento
+cobria antes) e duas grafias do auxílio funeral que ainda não tinham
+aparecido ("Aos mesmo" singular, "Às mesmas").
+
+**Achado de qualidade de dado na `fin_sfi_ordinario`, resolvido no
+extrator:** a coluna `destino` tem duplicidade de grafia para a mesma
+unidade — `"1º GB"`/`"1ºGB"` (espaço), `"CMan"`/`"CMAN"` (maiúscula),
+`"GBMar"`/`"GBMAR"`, `"CAT ZM"`/`"CATZM"` — 34 valores brutos que colapsam
+para 21 unidades reais depois de normalizar (mesma função `normalizar()` já
+usada em `extract_financas.py`: maiúsculas, sem acento, sem espaço/º/barra).
+
+**Frontend, mesmo padrão de Efetivo/Viaturas:** indicador "Finanças"
+reaproveitado (já existia por unidade em `organograma.js`), rota
+`/financas/:id/dashboard/:modulo` registrada em `App.jsx`, entrada em
+`DASHBOARDS_REAIS` (`Indicador.jsx`). Três módulos:
+`ModuloSfi.jsx` (4 quadrantes: barras Consumo/Serviço por unidade, donut de
+totais, linha mensal, barras de SFI Extra por unidade), 
+`ModuloSuprimentoIndividual.jsx` (stat + barras por unidade),
+`ModuloDespesasDiversas.jsx` (card de diárias, donut de Auxílio Funeral,
+barras de diárias por operação — só na visão do Comando Geral).
+
+**Decisão da rodada anterior, verificada no navegador:** com a lista fixa
+removida, "Total do empenho de diárias em 2026" (R$9.091.759) bate exato
+com a soma de "Valores de diárias empenhadas por Operação" — a divergência
+de R$1,27M que abriu a pergunta 7 da Parte 3 não aparece mais.
+
+**Melhoria pontual em componente compartilhado:** `PanelGrafico.jsx` não
+tinha legenda no tipo `hbar` (só em `bar`) — necessário para o gráfico
+Consumo/Serviço de "Valores liquidados por Unidade" (21 unidades, melhor em
+barra horizontal). Adicionado seguindo exatamente o padrão já usado em
+`bar`; não afeta nenhuma página existente (nenhuma outra passava `legenda`
+com `hbar`).
+
+**Testado no navegador com dado real:** as 3 abas renderizam sem erro de
+console. Escopo por unidade confirmado em dois pontos: Comando Geral mostra
+os totais batendo com o que já validamos por SQL nas rodadas anteriores;
+GBI mostra só R$40.000 (seu próprio valor de SI, isolado do resto da
+corporação). O `EmptyState` de Despesas Diversas aparece corretamente fora
+do Comando Geral, com o motivo explicado na tela.
+
+**`npm run lint` limpo. `npm run typecheck`: 266 erros, 19 a mais que a
+baseline de 247** — mesmo ruído de prop opcional inferida já presente no
+projeto inteiro (não um bug real), concentrado nos arquivos novos de
+`src/pages/financas/`.
+
+**O que ainda falta para o DF:** commitar os 4 pacotes originais de Igor;
+organizar em pasta por painel; não existe tabela de detalhamento real de
+Finanças (equivalente a `EfetivoDetalhe.jsx`) — os gráficos não têm
+drill-down ainda. **DLOG, DAS e Ocorrências seguem no protótipo estático** —
+DF foi o único dos quatro com todas as três pré-condições resolvidas nesta
+sessão (arquivos em mãos, rede alcançável, credencial funcionando).
+
+### 2026-09-21 (sexta rodada, mesmo dia) — Ajustes visuais nos gráficos do DF, ditados quadrante a quadrante pelo usuário
+
+**Pedido do usuário:** uma lista extensa de correções visuais, título por
+título, para as 3 abas do Dashboard DF já integrado na rodada anterior —
+reposicionar KPIs, trocar tipos de gráfico, corrigir formatação de moeda e
+eixos cortados.
+
+**Mudanças em `ModuloSfi.jsx`:**
+- "Valores liquidados totais" (donut isolado) foi **removido** — seu
+  conteúdo (Consumo/Serviço com total) virou a legenda visual de "Valores
+  liquidados por Unidade" (donut ao lado da barra, vermelho/cinza).
+- "Valores liquidados por Unidade" virou **barra vertical** (era horizontal),
+  com **ordenação interna** (Soma/Consumo/Serviço × crescente/decrescente,
+  controle local no cabeçalho do card) e rótulos em milhar (`fmtMoedaMil`:
+  "R$ 70,294 mil", zero como "R$ 0,00" — convenção literal pedida pelo
+  usuário).
+- "Análise mensal": linha reta (`curva="linear"`, era `monotone`), meses
+  capitalizados (`capitalizar()`), valor acima de cada ponto, tooltip em
+  moeda cheia com centavos (`fmtMoedaCentavos`). Eixo Y deixou de cortar
+  valores (ver bug de margem abaixo).
+- "SFI Extra — Empenhado em 2026" e "SI Total Empenhado em 2026" viraram
+  cards sozinhos na própria linha (mesmo grid de "Valores Liquidados (SFI
+  Ordinário)"), com o gráfico correspondente abaixo, não mais ao lado.
+
+**Mudanças em `ModuloDespesasDiversas.jsx`:** "Total do empenho de diárias"
+também virou card isolado. "Empenho mensal do Auxílio Funeral" deixou de ser
+donut e virou **linha temporal** (mesmo tratamento da Análise mensal do
+SFI), com nome do mês por extenso (`MESES_COMPLETO_LABEL`, a fonte só grava
+sigla de 3-4 letras). Filtro de unidade no Auxílio Funeral foi **avaliado e
+descartado**: `destino` para `enquadramento='FUNERAL'` é majoritariamente
+texto livre não-organizacional (nome de família do militar falecido) — o
+extrator já evita ler esse campo por minimização de dado pessoal
+(LGPD, mesmo princípio de `extract_financas.py`); adicionar o filtro
+reintroduziria exatamente o risco que a decisão original evitava.
+
+**Dois bugs reais encontrados e corrigidos em `PanelGrafico.jsx`
+(componente compartilhado com Efetivo/Viaturas):**
+1. **Margem esquerda negativa (`left: -16`)** cortava os valores do eixo Y
+   em todo gráfico `bar`/`line`/`area` do sistema — não só no DF. Trocada
+   para `left: 4`. Bug pré-existente, não introduzido nesta sessão.
+2. **Eixo Y categórico do `hbar` sem `interval={0}`** — o Recharts decide
+   sozinho quantos rótulos cabem e descarta o resto quando a lista é longa;
+   com as 38 unidades de "SI Total Empenhado por Unidade" isso cortava
+   **metade** dos nomes (confirmado por contagem de nós no DOM: 19 rótulos
+   para 38 barras). Corrigido adicionando `interval={0}`, igual ao que o
+   eixo X (`eixoX`) já fazia. Testado depois em página de Efetivo
+   ("Ingresso de militares", Movimentação e Carreira) para garantir que a
+   mudança não quebrou nada fora do DF — os 38 anos ali continuam
+   aparecendo todos, como antes.
+3. **Bug do quadrado preto na legenda** (`<Bar>` sem `fill` próprio — o
+   Recharts usa esse `fill`, não as `<Cell>` internas, para colorir o
+   swatch da legenda) também corrigido, embora a "Valores liquidados por
+   Unidade" tenha deixado de usar `<Legend>` do Recharts nesta rodada (virou
+   donut). Afeta as 3 outras páginas que ainda usam `legenda` com `bar`
+   (Efetivo: Movimentação e Carreira, Situações Funcionais; Viaturas: Tipos
+   e Capacidade) — não testadas uma a uma, mas a mudança é estritamente
+   aditiva (só define uma cor que antes ficava undefined).
+4. Também nova: largura do eixo de categoria do `hbar` calculada
+   dinamicamente a partir do maior rótulo (era fixa em 56px, cortava nomes
+   longos como "DINTER II").
+
+**Nota sobre o ano nos meses:** o usuário pediu "Março/2026" quando a fonte
+"possuir" o ano. Nem `fin_sfi_ordinario.mes` nem `fin_autorizacao.mes` têm
+coluna de ano — só o nome do mês. Não inventamos o ano; os eixos mostram só
+o nome do mês, sem sufixo de ano. Fica registrado aqui para a fase de
+reestruturação do DW: se o ano importa para série histórica de verdade
+(hoje os dados parecem ser só do exercício de 2026), a fonte real precisa
+gravar isso explicitamente.
+
+**Testado no navegador, um bug de layout encontrado e corrigido no
+processo:** o wrapper flex da "Valores liquidados por Unidade" usava
+`items-center` também no modo empilhado (mobile), o que colapsa a largura do
+filho `flex-1` a zero no eixo cruzado — o gráfico simplesmente não
+renderizava (`ResponsiveContainer` com 0 filhos, confirmado via DOM).
+Corrigido para `items-center` só a partir de `lg:`. `npm run lint` limpo;
+`npm run typecheck` seguiu em 266 erros (mesma baseline da rodada anterior,
+nenhum erro novo).
+
+### 2026-09-21 (sétima rodada, mesmo dia) — Segunda leva de ajustes visuais do DF: ordenação com rótulo, rolagem horizontal, legenda sem donut, rótulos de linha sem sobrepor, espaçamento de eixo
+
+**"Valores liquidados por Unidade" (`ModuloSfi.jsx`):** rótulo "Ordenar por:"
+antes dos botões de ordenação; "Soma" renomeado para "Total" (label e
+chave interna). O gráfico agora fica dentro de um contêiner
+`overflow-x-auto` com largura mínima calculada (`porUnidadeData.length *
+110px`) — ~10 unidades cabem numa tela comum antes de precisar rolar, com a
+barra de rolagem nativa aparecendo embaixo do gráfico quando há mais que
+isso. O donut foi removido; a legenda virou um bloco de texto simples
+(Consumo em vermelho, Serviço em cinza, Total sem cor, abaixo dos dois).
+
+**Dois bugs genéricos corrigidos em `PanelGrafico.jsx` (não específicos do
+DF):**
+1. **Rótulos de ponto de linha sobrepondo a própria linha** — antes todo
+   rótulo ficava `position="top"`, o que em vales (mínimos locais) cai bem
+   em cima do "V" formado pelos dois segmentos. Substituído por um
+   renderizador customizado (`criarRotuloLinha`) que decide acima/abaixo
+   ponto a ponto: acima num pico (valor ≥ os dois vizinhos existentes),
+   abaixo num vale — exceto no mínimo global da série, que fica sempre
+   acima (não há espaço abaixo; coincidiria com o eixo X). Testado nos dois
+   gráficos de linha do DF (Análise mensal do SFI, Auxílio Funeral) — picos e
+   vales alternando corretamente, R$ 0 em Setembro (mínimo global) ficou
+   acima como esperado.
+2. **Pontos nas bordas do eixo X cortados** — novo prop `paddingEixoX`
+   (repassado para o `padding` do `<XAxis>` do Recharts), usado com
+   `{left: 24, right: 24}` nos dois gráficos de linha do DF.
+3. Também: margem direita do `hbar` passou a ser calculada dinamicamente a
+   partir do maior rótulo formatado (mesma técnica já usada pra largura do
+   eixo Y) — corrige corte de valores grandes como "R$ 3.884.760" em
+   "Valores de diárias empenhadas por Operação", cujo espaçamento vertical
+   também foi ampliado (26px→42px por linha, mínimo 320→400) porque os
+   nomes das 18 operações estavam quase se sobrepondo.
+
+**Testado no navegador:** rolagem horizontal confirmada via DOM
+(`scrollWidth > clientWidth`); rótulos de linha acima/abaixo conferidos
+visualmente nos dois gráficos; valores grandes de diárias não cortam mais.
+`npm run lint` limpo; `npm run typecheck`: 265 erros (1 a menos que a
+rodada anterior — a remoção do `DonutChart` de `ModuloSfi.jsx` tirou uma
+das inferências de prop opcional).
+
+### 2026-09-21 (oitava rodada, mesmo dia) — Auxílio Funeral: grid estava esticando a altura do card para bater com o vizinho
+
+**Bug real, não visto antes por não ter sido comparado lado a lado:** o
+grid `lg:grid-cols-2` da aba Despesas Diversas estica os dois cards da
+linha pra mesma altura por padrão (`align-items: stretch` do CSS Grid). O
+card "Valores de diárias" é alto de verdade (756px, 18 operações). O
+"Empenho mensal do Auxílio Funeral" tinha gráfico de 320px só, mas o card
+inteiro esticava para acompanhar o vizinho, sobrando bastante espaço em
+branco abaixo do gráfico. Corrigido com `lg:items-start` no grid (cada
+card fica só do tamanho do seu próprio conteúdo) e a altura interna do
+gráfico reduzida de 320 para 220 (6 meses não precisam de tanto espaço
+vertical). Por pedido do usuário, os dois cards ficam desalinhados na
+base — aceitável, a prioridade era eliminar o espaço em branco.

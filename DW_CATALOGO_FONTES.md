@@ -404,6 +404,93 @@ Defeitos confirmados na fonte, corrigidos na leitura (nunca no SGP):
 | Postgres interno (`10.193.1.252:54301`, banco `postgres`) — tabelas `fin_autorizacao`, `fin_carnaval_2026`, `fin_sfi_ordinario` | Sistema interno | Acesso direto a banco (rede interna, alcançável pelo Windmill) | A LEVANTAR | Já existente, alimentado pelo script Windmill da planilha | Não-PII para o que é extraído (colunas com PII — ofício, SEI, descrição, observação — nunca saem daqui para o Neon) | Confirmado como fonte para o novo `windmill-financas-sync.py` |
 | Neon (Postgres gerenciado, mesmo banco de Viaturas) — tabela `FinancaLancamento` | Sistema interno (mantido pelo usuário) | Acesso direto a banco (connection string própria, fora da rede interna/VPN) | A LEVANTAR | Alimentado pelo Windmill a cada rodada manual do `windmill-financas-sync.py` | 1 linha por lançamento financeiro (origem, destino, enquadramento, situação, valores, mês) — sem ofício/SEI/descrição/observação | Confirmado — agregação por unidade fica no script local (`etl/financas/extract_financas.py`) |
 
+### Dois painéis de Finanças/Logística — DF confirmado ao vivo em 2026-09-21, DLOG sem host
+
+Igor construiu, em sessões separadas, o **Dashboard DF** (Diretoria de
+Finanças) e o **PLAN DLOG**, no mesmo padrão técnico do Dashboard Pessoal.
+Os dois chegaram ao repositório em 2026-09-21 (`dashboards/df.html` e
+`dashboards/dlog.zip`) — ver `dashboards/PENDENCIAS-PAINEIS-CORPORATIVOS.md`
+para a auditoria completa.
+
+**DF — confirmado ao vivo, VPN ativa, mesmo dia.** As três tabelas
+`fin_autorizacao` (600 linhas), `fin_carnaval_2026` (24 linhas) e
+`fin_sfi_ordinario` (306 linhas) existem exatamente como catalogado, em
+`10.193.1.252:54301`/`public`, com `DATABASE_URL_DW` já funcional. Schema
+real, colunas confirmadas por `information_schema.columns`:
+
+| Tabela | Colunas |
+|---|---|
+| `fin_autorizacao` | `numero_oficio`, `item`, `sei`, `fonte`, `acao`, `nd`, `ficha_financ`, `valor`, `descricao`, `destino`, `enquadramento`, `situacao`, `mes`, `empenho`, `valor_liquidado`, `valor_pago`, `re_data`, `observacao` |
+| `fin_carnaval_2026` | mesmas colunas de `fin_autorizacao` |
+| `fin_sfi_ordinario` | `fonte`, `acao`, `nd`, `natureza`, `ficha_financ`, `valor`, `destino`, `situacao`, `mes`, `empenho`, `valor_liquidado`, `valor_pago`, `re_data`, `observacao` (sem `numero_oficio`/`item`/`sei`/`descricao`) |
+
+Isso cobre a aba "SFI" do painel DF por completo.
+
+**As abas "Suprimento Individual" e "Despesas Diversas" — resolvido em
+2026-09-21, mesmo dia: são a mesma tabela `fin_autorizacao`, só filtrada por
+`enquadramento`.** A dedução registrada aqui horas antes ("não aparecem em
+nenhuma das 21 tabelas") estava certa em dizer que não existe uma tabela
+dedicada, mas incompleta — não tinha cruzado a coluna `enquadramento`.
+Valério trouxe o SQL real do Metabase (5 queries, confirmadas rodando ao
+vivo contra o banco):
+
+| Enquadramento (coluna `fin_autorizacao.enquadramento`) | Alimenta |
+|---|---|
+| `'SI'` | Aba Suprimento Individual — card de total + barras por unidade |
+| `'DIÁRIAS'` | Aba Despesas Diversas — card de total + barras horizontais por operação |
+| `'FUNERAL'` | Aba Despesas Diversas — donut mensal |
+
+Valores distintos de `enquadramento` na tabela toda (24 combinações
+`enquadramento`×`situacao`, levantadas ao vivo): `BOLSA FORMAÇÃO`,
+`CONTRATO`, `DIÁRIAS`, `FOLHA DE PAGAMENTO`, `FORA DE ENQUADRAMENTO`,
+`FUNERAL`, `INDENIZAÇÃO POR MORTE`, `OPERAÇÃO DE CRÉDITO`, `SFI`, `SI`,
+`TRANSLADO` — mais enquadramentos do que os 3 usados até agora nos
+dashboards (SFI Ordinário/Extra, SI, DIÁRIAS, FUNERAL); os demais
+(indenização por morte, translado, folha de pagamento, operação de
+crédito, bolsa formação) ainda não têm painel nenhum e são candidatos
+óbvios para o próximo domínio financeiro a mapear.
+
+**Achado de qualidade de dado, relevante para a fase de estruturação real
+do DW:** a coluna `ficha_financ` tem grafias inconsistentes para a mesma
+operação. Medido no recorte `enquadramento='DIÁRIAS' AND
+situacao='EMPENHADO'` (18 valores distintos de `ficha_financ` hoje): pelo
+menos 2 pares parecem ser a mesma operação escrita de formas diferentes —
+`"EXECUTIVA - Diárias - Calendário Turístico"` (sem a palavra "Operação")
+vs. `"EXECUTIVA - Diárias - Operação Calendário Turístico"`; e
+`"EXECUTIVA - Diárias - Operação Pernambuco Meu País"` vs. `"Diárias -
+Operação Pernambuco Meu País"` (sem o prefixo "EXECUTIVA -"). Isso já
+causou um efeito prático real: a query original do Metabase para "Valores
+de diárias empenhadas por Operação" filtra por uma lista fixa de 9 valores
+literais de `ficha_financ`, que não inclui essas variantes nem outras 7
+operações que só existem hoje (a lista provavelmente foi escrita quando só
+9 existiam) — isso é o que causava a divergência entre esse gráfico e o
+card de total, documentada e resolvida em
+`dashboards/PENDENCIAS-PAINEIS-CORPORATIVOS.md` (pergunta 7). Vale
+considerar, na modelagem real do `core`, uma dimensão `ficha_financ`
+normalizada em vez de comparar texto livre.
+
+**PLAN DLOG — sem host documentado em lugar nenhum, aparenta não ser banco
+de dados.** Verificado em 2026-09-21: nem `status_dlog.md` nem o HTML do
+painel (`dlog-dashboard-embutido.html`) mencionam Postgres, host interno ou
+qualquer string de conexão. O próprio `status_dlog.md` é explícito sobre a
+fonte: *"Fonte de dado usada para popular o protótipo: export 'NOVO CONTROLE
+- PLAN DLOG.xlsx' de 08/09/2026. Fonte de verdade do relatório original:
+Looker Studio 'Controle DLOG' (Igor tem acesso de editor)."* Ou seja, a
+fonte real do DLOG é uma **planilha** (Google Sheets ou Excel, alimentando
+um relatório Looker Studio) — não um Postgres com host/porta para
+descobrir. Perguntar a Igor onde essa planilha vive (Google Sheets
+compartilhado? Arquivo local? Outro sistema alimenta ela?) antes de
+desenhar qualquer extração — o padrão aqui deve ser mais parecido com o
+pipeline de Finanças (planilha → Windmill → Postgres) do que com os outros
+três painéis, que são todos bancos vivos.
+
+| Painel | Quadrante | O que falta | De quem depende |
+|---|---|---|---|
+| DF | Todas as 3 abas (SFI, Suprimento Individual, Despesas Diversas) | ~~SQL de origem~~ **Resolvido 2026-09-21** — as 3 vêm de `fin_autorizacao`/`fin_sfi_ordinario`/`fin_carnaval_2026`, filtradas por `enquadramento`. Falta só formalizar como extrator (`etl/financas/extract_dashboard_df.py`) | Nós |
+| DF | Grafia inconsistente em `ficha_financ` (ver achado acima) | Decidir normalizar na origem ou só documentar como está | Igor (se quiser corrigir na planilha/fonte) |
+| PLAN DLOG | Toda a integração | Fonte é planilha, não banco — precisa saber onde a planilha vive e como chega no Looker Studio antes de desenhar a extração | Igor |
+| PLAN DLOG | Card "CONTRATAÇÃO" | Fórmula exata do Looker Studio. A hipótese atual (Valor Real DGC dos itens contratados) diverge ~3,5% do print | Igor |
+
 ## Atividades Operacionais — Mapa de Força e Escala
 
 Fonte mais rica levantada até agora, e a única que liga militar, viatura,
@@ -477,11 +564,73 @@ Ver `DW_MODELO_DADOS.md`, seção `dim_viatura`, para as duas regras que só
 apareceram medindo (quem herda o passado, e por que vigência sozinha não
 basta).
 
+## Ocorrências (ROE) — host corrigido em 2026-09-21 (segunda vez); ainda sem credencial
+
+Responde a pergunta que estava aberta desde 2026-08-24 ("onde as ocorrências
+vivem hoje, agora que `ovrsgo` e `ovrroe` estão fora de uso") — mas a
+primeira resposta registrada aqui (mesma sessão, horas antes) **estava
+errada** e foi corrigida por teste direto: as tabelas `roe_*` **não** estão
+no Postgres do "data warehouse" compartilhado (`10.193.1.252:54301`, var.
+`DATABASE_URL_DW`) — confirmado consultando `information_schema.tables` lá
+com a VPN ativa: 21 tabelas visíveis, nenhuma com prefixo `roe_`. É **um
+banco totalmente separado**: `roe_api_production`, mesmo host
+(`10.193.1.252`) mas **porta diferente, `15432`** (não `54301`). Informado
+pelo usuário, corrigido no catálogo.
+
+**Sem credencial ainda.** Com a VPN ativa, a porta 15432 responde (o
+handshake TCP/Postgres chega e rejeita a autenticação — não é timeout), mas
+nenhuma das credenciais já em `.env.local` (nem `datawarehouse-user`, nem
+`ctic`) autentica nesse banco. Precisa de uma credencial nova, própria desse
+serviço — provavelmente do mesmo dono do `mapa_forca_api_development` e do
+`vaccine_control_production` (sufixo `_production`, o mesmo padrão de nome
+de app Rails já visto em `DATABASE_URL_OPS`), o que sugere que pode estar no
+mesmo servidor de aplicações Rails, só numa porta diferente — a confirmar
+com quem administra esse host.
+
+| Sistema/Fonte | Tipo | Formato de acesso | Responsável | Frequência | Sensibilidade | Status |
+|---|---|---|---|---|---|---|
+| `roe_api_production`, tabelas `roe_basico_ocorrencias` + detalhe por natureza | Sistema interno | Postgres em `10.193.1.252:15432` — **credencial nova necessária**, nenhuma var. de ambiente aponta pra cá ainda | Igor (mantém as cargas) | A LEVANTAR | **Misto — inclui perfil de vítima (dado de saúde, LGPD art. 11)** | Host/porta confirmados pelo usuário em 2026-09-21; **nenhuma coluna verificada** — falta credencial |
+
+| Tabela | Papel declarado |
+|---|---|
+| `roe_basico_ocorrencias` | Cabeçalho da ocorrência — tem `data_recebimento`, usada como eixo temporal |
+| `roe_aph_ocorrencias` | Detalhe de APH (inclui situação das vítimas) |
+| `roe_incendio_ocorrencias` | Detalhe de incêndio |
+| `roe_salvamento_ocorrencias` | Detalhe de salvamento |
+| `roe_prod_perigosos_ocorrencias` | Detalhe de produtos perigosos |
+| `roe_prevencao_ocorrencias` | Prevenção — **consultada à parte, sem filtro de natureza** |
+
+**Três problemas de qualidade já medidos por Igor, a confirmar antes de usar:**
+
+1. `roe_prod_perigosos_ocorrencias` — "Total por produto" traz 656 de 672
+   produtos com contagem exatamente 20, a maioria com rótulo no formato
+   `X (ver Y)`. Tem cara de lista de referência/sinônimo carregada junto com
+   o dado de incidente, não de ocorrência real.
+2. Mesma tabela — 38% dos registros (5.253 de 13.658) ficam sem
+   `data_recebimento` após o `LEFT JOIN` com `roe_basico_ocorrencias`. Falta
+   separar órfão (sem par no cabeçalho) de par com data nula.
+3. `roe_aph_ocorrencias` — a query original de "Situação das vítimas" tem um
+   `UNION ALL` de 4 ramos com `WHERE status_relatorio = 'Finalizado'` só
+   depois do último `FROM`, então o filtro pega **só** o ramo "Desaparecidas".
+   É bug de verdade, e o número que a gestão vê hoje no Metabase carrega ele.
+
 ## Vacinação
 
 | Sistema/Fonte | Tipo | Formato de acesso | Responsável | Frequência | Sensibilidade | Status |
 |---|---|---|---|---|---|---|
-| `vaccine_control_production` | Sistema interno | `DATABASE_URL_OPS` | A LEVANTAR | Por campanha | **Dado de saúde — sensível, LGPD art. 11** | Estrutura listada em 2026-08-24; integração não desenhada |
+| `vaccine_control_production` | Sistema interno | `DATABASE_URL_OPS`, banco `vaccine_control_production` (não `postgres`) — **credencial `ctic` quebrada, ver abaixo** | A LEVANTAR | Por campanha | **Dado de saúde — sensível, LGPD art. 11** | Estrutura listada em 2026-08-24; **2026-09-21: testado com VPN ativa, autenticação falhou** |
+
+**2026-09-21 — a credencial `ctic` de `DATABASE_URL_OPS` (host
+`10.193.0.20:5432`) parou de autenticar, em qualquer banco desse host —
+inclusive o `postgres` que estava documentado como acessível.** Com a VPN
+ativa: `ctic@10.193.0.20/postgres` e `ctic@10.193.0.20/vaccine_control_production`
+falham as duas com `FATAL: password authentication failed`. Isolado como
+problema **desse host específico**, não da VPN nem da credencial `ctic` em
+geral — o mesmo usuário/senha `ctic` autentica normalmente em
+`10.193.0.16:5432` (`DATABASE_URL_SGP`). Também descartado problema de rede:
+o erro é rejeição de autenticação (a conexão TCP chega e o Postgres
+responde), não timeout. **Precisa de senha atualizada para `ctic@10.193.0.20`,
+ou de uma credencial nova — pedir a Valério/quem administra esse host.**
 
 4.138 militares, 3.030 vacinações, 12 campanhas, 20 vacinas, 8 marcas, 24
 aplicadores, 1.643 medições de sinais vitais, 414 registros, 91 OMEs. Tem
@@ -490,6 +639,23 @@ seja, histórico de graça.
 
 A levantar: por que são 4.138 militares contra 2.658 ativos (inclui
 inativo? civil? histórico acumulado?), e se a chave é matrícula.
+
+**2026-09-21 — existe um painel de Vacinações (DAS) prototipado por Igor**, 4
+abas, seguindo o mesmo padrão técnico do Dashboard Pessoal. Não está no
+repositório (ver `dashboards/PENDENCIAS-PAINEIS-CORPORATIVOS.md`). Dois
+gráficos dele estão bloqueados por falta de export, e uma aba inteira roda
+com dado de exemplo:
+
+| Quadrante | O que falta |
+|---|---|
+| "Vacinações mensais" (Visão geral) | Export/CSV — não há SQL disponível |
+| "Vacinações mensais por vacina" (Linha do tempo, ~20 séries) | Export/CSV — não há SQL disponível |
+| Aba "Indicador de participação" | Dado granular militar × vacina × OME. Hoje é dado de exemplo estático |
+
+Como a base é dado de saúde (LGPD art. 11), o grão militar × vacina **não
+deve** sair para nenhum JSON servido ao navegador: o indicador de
+participação precisa ser agregado na origem (por OME/campanha), não no
+cliente.
 
 ## Materiais / Patrimônio — Fase 2, fora do escopo atual
 

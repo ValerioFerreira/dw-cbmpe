@@ -8,12 +8,16 @@
   "CPPA": "DGP",
   "_comentario_cppa": "CPPA é extinta e soma em DGP — mesma regra já confirmada com o usuário na integração de Viaturas (ver DW_PLANEJAMENTO.md).",
   "AOMESMO": null,
+  "AOSMESMO": null,
   "AOSMESMOS": null,
   "AMESMA": null,
-  "_comentario_pessoa": "Ao mesmo/Aos mesmos/À mesma = auxílio funeral pago à família do militar falecido, não a uma unidade. Na prática já ficam fora do escopo (enquadramento FUNERAL, não SI), mas mapeados para null por segurança.",
+  "ASMESMAS": null,
+  "_comentario_pessoa": "Ao mesmo/Aos mesmo/Aos mesmos/À mesma/Às mesmas = auxílio funeral pago à família do militar falecido, não a uma unidade — grafia inconsistente na origem (singular/plural, com/sem acento). Confirmado em 2026-09-21 rodando direto contra fin_autorizacao (enquadramento='FUNERAL'): são 4 das 5 variantes que aparecem na coluna destino desse enquadramento (a 5ª é 'DAS', unidade real). Na prática já ficam fora do escopo de qualquer view por unidade, mas mapeados para null por segurança.",
   "DAFO": null,
   "DPAFO": null,
   "SEGI": null,
   "SGD": null,
-  "_comentario_institucional": "DAFO/DPAFO/SEGI/SGD são rubricas/setores centrais (ex.: folha de pagamento em DPAFO) que não correspondem a nenhuma unidade do organograma atual — confirmado por não aparecerem em nenhuma linha com enquadramento SI, só em rubricas institucionais (FOLHA DE PAGAMENTO, CONTRATO, OPERAÇÃO DE CRÉDITO). Mapeados para null para nunca virarem erro caso apareçam de novo com SI no futuro."
+  "_comentario_institucional": "DAFO/DPAFO/SEGI/SGD são rubricas/setores centrais (ex.: folha de pagamento em DPAFO) que não correspondem a nenhuma unidade do organograma atual — confirmado por não aparecerem em nenhuma linha com enquadramento SI, só em rubricas institucionais (FOLHA DE PAGAMENTO, CONTRATO, OPERAÇÃO DE CRÉDITO). Mapeados para null para nunca virarem erro caso apareçam de novo com SI no futuro. Confirmado em 2026-09-21: DAFO e DPAFO são os únicos 2 valores de destino em enquadramento='DIÁRIAS' — ou seja, diárias empenhadas nunca são atribuídas a uma unidade requisitante real, só ao órgão pagador central. Por isso o painel de Despesas Diversas não tem quebra por unidade, mesmo a UI do Metabase original mostrando um filtro de Unidade (o filtro existe na tela, mas não afeta essas duas visualizações).",
+  "GBINORONHA": "GBI",
+  "_comentario_noronha": "GBI/NORONHA é o destacamento do GBI em Fernando de Noronha, não uma unidade própria do organograma — soma dentro de GBI. Aparece só em fin_sfi_ordinario (34 valores brutos de destino), não na planilha de Finanças sincronizada para o Neon que este mapeamento cobria originalmente — adicionado em 2026-09-21 ao reaproveitar este arquivo para o Dashboard DF (etl/financas/extract_dashboard_df.py)."
 }
