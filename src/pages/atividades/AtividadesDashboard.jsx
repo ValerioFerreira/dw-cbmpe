@@ -6,16 +6,33 @@ import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import { getCaminho } from "@/lib/cbmpe";
 import { siglasPermitidas } from "@/lib/dashboardHelpers";
 import { MODULOS_ATIVIDADES_DASHBOARD } from "@/lib/mapaForca";
+import { MODULOS_VACINACAO_DASHBOARD } from "@/lib/vacinacaoDashboard";
 import EmptyState from "@/components/ui/empty-state";
+import vacinacaoDashboardReal from "@/data/real/vacinacao_dashboard.json";
 
 import ModuloMapaForca from "./ModuloMapaForca";
+import ModuloVacinacaoVisaoGeral from "./ModuloVacinacaoVisaoGeral";
+import ModuloVacinacaoExecucao from "./ModuloVacinacaoExecucao";
+import ModuloVacinacaoLinhaTempo from "./ModuloVacinacaoLinhaTempo";
+import ModuloVacinacaoParticipacao from "./ModuloVacinacaoParticipacao";
 
 // Casca do dashboard de Atividades Específicas — mesma estrutura de
 // EfetivoDashboard/ViaturasDashboard: breadcrumb, checagem de acesso, escopo
 // por unidade, e o módulo dentro.
+//
+// Guarda-chuva de módulos sem KPI próprio no organograma: Mapa de Força
+// (real desde antes) e, agora, Vacinação (DAS) — mesmo indicador
+// "Atividades Específicas", abas somadas na mesma lista. Vacinação não usa
+// siglasPermitidas (é painel exclusivo da DAS, não filtrado por unidade —
+// ver ModuloVacinacaoVisaoGeral.jsx).
+const TODOS_MODULOS = [...MODULOS_ATIVIDADES_DASHBOARD, ...MODULOS_VACINACAO_DASHBOARD];
 
 const COMPONENTES = {
   "mapa-forca": ModuloMapaForca,
+  "vacinacao-visao-geral": ModuloVacinacaoVisaoGeral,
+  "vacinacao-execucao": ModuloVacinacaoExecucao,
+  "vacinacao-linha-tempo": ModuloVacinacaoLinhaTempo,
+  "vacinacao-participacao": ModuloVacinacaoParticipacao,
 };
 
 export default function AtividadesDashboard() {
@@ -26,7 +43,7 @@ export default function AtividadesDashboard() {
   const ind = indicadores.find((i) => i.id === id);
   const unidade = ind ? porId[ind.unidade_id] : null;
   const caminho = ind ? getCaminho(unidades, ind.unidade_id) : [];
-  const moduloInfo = MODULOS_ATIVIDADES_DASHBOARD.find((m) => m.key === modulo);
+  const moduloInfo = TODOS_MODULOS.find((m) => m.key === modulo);
 
   // Escopo por unidade — mesma regra dos outros Dashboards Pessoais: o painel
   // é o mesmo em toda a subárvore, mostrando só o que pende da unidade que
@@ -87,7 +104,26 @@ export default function AtividadesDashboard() {
         </Link>
       </div>
 
-      <Conteudo permitidas={permitidas} unidade={unidade} />
+      {/* Módulos (abas) */}
+      <div className="flex flex-wrap gap-2">
+        {TODOS_MODULOS.map((m) => (
+          <Link
+            key={m.key}
+            to={`/atividades/${ind.id}/dashboard/${m.key}`}
+            replace
+            className={`rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors ${
+              m.key === moduloInfo.key ? "border-primary/30 bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
+          >
+            {m.nome}
+          </Link>
+        ))}
+      </div>
+
+      <Conteudo
+        permitidas={permitidas} unidade={unidade}
+        eventos={vacinacaoDashboardReal.eventos} participacao={vacinacaoDashboardReal.participacao}
+      />
     </div>
   );
 }

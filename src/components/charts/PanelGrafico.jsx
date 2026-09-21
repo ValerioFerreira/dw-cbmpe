@@ -163,9 +163,10 @@ export default function PanelGrafico({
           {eixoX}
           <YAxis tick={{ fontSize: 11, fill: COR_TEXTO }} tickLine={false} axisLine={false} />
           <Tooltip content={<TooltipCustom unidade={unidade} formatador={formatarTooltip} />} />
+          {legenda && <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: 12 }} />}
           {yKeys.map((k, i) => (
             <Line key={k} type={curva} dataKey={k} stroke={palette[i % palette.length]} strokeWidth={2} dot={false} activeDot={{ r: 4 }}>
-              <LabelList dataKey={k} content={criarRotuloLinha(data, k, formatarRotulo)} />
+              {yKeys.length === 1 && <LabelList dataKey={k} content={criarRotuloLinha(data, k, formatarRotulo)} />}
             </Line>
           ))}
         </LineChart>

@@ -287,16 +287,17 @@ um pedido a fazer a Igor.
    ocorrência real (o SQL bate com o donut original, então a suspeita é na
    qualidade da tabela `roe_prod_perigosos_ocorrencias`, não no cálculo).
    Confirmar com quem administra a base.
-4. **Vacinações — export/CSV, não mais SQL.** `status_dashboard_vacinacoes.md`
-   já confirma que Igor está em modo só-leitura, sem SQL de nenhum
-   quadrante — o pedido correto é **export/CSV** de "Vacinações mensais"
-   (Visão geral) e "Vacinações mensais por vacina" (~20 séries, Linha do
-   tempo), e do dado granular militar × vacina × OME para "Indicador de
-   participação" (hoje roda com o exemplo congelado do print: Covid-19 D1 →
-   35/4.178/0,84%). **Ressalva que segue valendo:** vacinação é dado de
-   saúde (LGPD art. 11) — o grão militar × vacina não pode sair para um JSON
-   servido ao navegador; agregação por OME/campanha precisa acontecer na
-   origem.
+4. ~~**Vacinações — export/CSV, não mais SQL.**~~ **Resolvido em 2026-09-21
+   — acesso direto ao banco liberado (ver item 13 acima), sem precisar do
+   Igor/Looker.** `vw_vaccinations_dashboard` deu SQL real de verdade, grão
+   por evento — "Vacinações mensais" e "Vacinações mensais por vacina"
+   saíram do bloqueio, e o "Indicador de participação" recalcula de fato
+   (não mais o exemplo congelado do print). **A ressalva de LGPD continua
+   valendo, e foi respeitada:** o grão militar × vacina nunca saiu do
+   extrator — o JSON servido ao navegador só tem eventos sem identificador
+   individual (nem CPF, nem nome, nem matrícula) e uma matriz já agregada
+   (vacina × OME → contagem de militares distintos) pro Indicador de
+   Participação. Ver `DW_PLANEJAMENTO.md`, nona rodada de 2026-09-21.
 5. **PLAN DLOG, card "CONTRATAÇÃO" — próximo passo já sugerido por você
    mesmo no `status_dlog.md`.** A hipótese atual (Valor Real DGC dos itens
    contratados) diverge ~3,5% do print. Você mesmo registrou o próximo
@@ -373,12 +374,13 @@ um pedido a fazer a Igor.
     confirmadas com schema completo (ver `DW_CATALOGO_FONTES.md`). **Mas
     apareceram dois problemas novos, de credencial, não de rede** — a
     conexão TCP chega nos dois casos, o Postgres só rejeita a senha:
-    - `ctic@10.193.0.20` (`DATABASE_URL_OPS`) **parou de autenticar em
-      qualquer banco desse host**, inclusive o `postgres` que já estava
-      documentado como acessível. O mesmo usuário/senha `ctic` funciona
-      normalmente em `10.193.0.16` (SGP) — o problema é específico desse
-      host. Bloqueia Vacinações (DAS). **Preciso de senha atualizada ou
-      credencial nova para esse host.**
+    - ~~`ctic@10.193.0.20` (`DATABASE_URL_OPS`) parou de autenticar~~
+      **Resolvido em 2026-09-21 (mesmo dia, rodada seguinte) — o usuário
+      passou uma senha nova direto no chat** (não persistida em
+      `.env.local` nem em nenhum arquivo do repositório). Conecta normal em
+      `vaccine_control_production`; Dashboard de Vacinações (DAS) integrado
+      com dado real nas 4 abas — ver `DW_PLANEJAMENTO.md`, nona rodada de
+      2026-09-21.
     - `roe_api_production` em `10.193.1.252:15432` (host confirmado por
       você) é um banco que nenhuma credencial em `.env.local` alcança —
       nem `datawarehouse-user` nem `ctic`. Bloqueia Ocorrências.

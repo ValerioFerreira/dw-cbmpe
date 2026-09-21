@@ -1,0 +1,14 @@
+{
+  "_comentario": "De-para de ome_acronym (vaccine_control_production) para a sigla canônica do organograma (organograma.js / efetivo.json). Levantado em 2026-09-21 comparando os 51 valores normalizados de ome_acronym contra as 44 unidades de efetivo.json (por_unidade) + ADIDO (nao_lotados) por chave normalizada (maiúsculas, sem acento, sem espaço/º/barra). 36 já batiam direto (ex. 'CAT / RMR' -> 'CATRMR' == 'CAT/RMR' -> 'CATRMR'). Este arquivo cobre as 7 EXCEÇÕES que são a MESMA unidade com grafia/abreviação diferente (confirmadas por análise, não achismo) — não confundir com as 6 categorias que ficam de fora por não terem correspondência real em efetivo.json (10º GB, COINTER / 1, COM, DAT, INATIVOS, LIC / DGP — reportadas ao usuário, não mapeadas aqui).",
+  "CG": "GCG",
+  "SCG": "GSG",
+  "_comentario_cg_scg": "Corrigido em 2026-09-21 (pedido do usuário, que conhece a rotina real): na origem da Vacinação, 'CG'/'SCG' referem-se ao efetivo do GABINETE (GCG/GSG), não ao Comandante/Subcomandante Geral em pessoa — condiz com o volume (6 e 1 vacinações, mais gente que só o titular). 'COMANDO GERAL'/'SUBCOMANDO GERAL' existem como siglas PRÓPRIAS e DIFERENTES em efetivo.json (o titular sozinho) — nunca usadas como alvo deste mapeamento.",
+  "DINTER / 1": "DINTER I",
+  "DINTER / 2": "DINTER II",
+  "_comentario_dinter": "Mesma unidade, numeral arábico (origem) vs. romano (organograma) — já era o padrão resolvido em etl/financas/mapeamento_unidades.json (DINTER1/DINTER2).",
+  "CAT / AGRESTE": "CAT/AG",
+  "CAT / SERTÃO": "CAT/SE",
+  "_comentario_cat": "Nome por extenso na origem, sigla abreviada no organograma — mesma unidade (Centro de Atividades Técnicas do Agreste/Sertão).",
+  "ADIDOS / DGP": "ADIDO",
+  "_comentario_adidos": "Categoria de militares sem OME própria, hoje adidos a órgão externo — 'ADIDO' é a chave usada em efetivo.json (nao_lotados) e em siglasPermitidas() (dashboardHelpers.js); a origem da Vacinação escreve 'ADIDOS / DGP' (plural, com a unidade que processa a folha)."
+}

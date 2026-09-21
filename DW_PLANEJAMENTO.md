@@ -22,31 +22,31 @@
 
 ## Estado atual — onde retomar (atualizado 2026-09-21)
 
-> **2026-09-21 — painéis de BI, seis rodadas no mesmo dia: auditoria →
+> **2026-09-21 — painéis de BI, nove rodadas no mesmo dia: auditoria →
 > pacotes chegaram → VPN ativada → SQL do DF confirmado → DF integrado →
-> visuais do DF ajustados quadrante a quadrante.**
-> Os 9 painéis do Dashboard Pessoal estão completos (nada do handoff de Igor
-> ficou de fora). Os quatro painéis corporativos (PLAN DLOG, Dashboard DF,
-> Ocorrências, Vacinações) não estavam no repositório na primeira auditoria —
-> Igor os disponibilizou horas depois
-> (`dashboards/das.zip`, `dlog.zip`, `ocorrencias.zip`, `df.html`+`df.md`,
-> **ainda não commitados**). Com a VPN ativada e o SQL real de Suprimento
-> Individual/Despesas Diversas em mãos, **o Dashboard DF saiu do protótipo
-> estático e está no ar de verdade** — `/financas/:id/dashboard/:modulo`,
-> mesmo padrão de Efetivo/Viaturas, escopo por unidade testado. A sexta
-> rodada refinou o visual dos 3 módulos do DF (tipos de gráfico, formatação
-> de moeda, ordenação interna) e, no processo, corrigiu **dois bugs
-> pré-existentes em `PanelGrafico.jsx`** (margem que cortava o eixo Y em todo
-> o sistema; eixo de categoria do `hbar` que descartava metade dos rótulos
-> quando havia muitas categorias) — ambos afetavam Efetivo/Viaturas também,
-> não só o DF. Os outros três painéis (DLOG, DAS, Ocorrências) seguem só
-> como protótipo: DAS e Ocorrências têm host de banco identificado mas sem
-> credencial que funcione; DLOG não é nem banco, é planilha, ainda sem saber
-> onde ela mora. As perguntas pendentes (revisadas para refletir o que os
-> `status_*.md` de Igor e a integração do DF já resolveram) estão
-> consolidadas em
-> [`dashboards/PENDENCIAS-PAINEIS-CORPORATIVOS.md`](dashboards/PENDENCIAS-PAINEIS-CORPORATIVOS.md).
-> Ver as entradas **2026-09-21** no fim do log de decisões.
+> visuais do DF ajustados → credencial de Vacinação recebida → Dashboard de
+> Vacinações (DAS) integrado, 4 abas.**
+> Os 9 painéis do Dashboard Pessoal estão completos. Dos quatro painéis
+> corporativos, **dois já estão no ar com dado real**: Dashboard DF
+> (`/financas/:id/dashboard/:modulo`) e agora **Dashboard de Vacinações**,
+> dentro de Atividades Específicas da DAS
+> (`/atividades/:id/dashboard/vacinacao-*`, 4 abas). Diferente do DF (que é
+> visível em toda unidade, escopado por `permitidas`), o de Vacinações é
+> **painel exclusivo da DAS** — decisão do usuário: só quem tem visibilidade
+> sobre a DAS (Comando Geral, Subcomando Geral, DGA, a própria DAS) o acessa,
+> e não há filtro por unidade de quem está vendo. Fonte:
+> `vaccine_control_production` (Postgres interno, 10.193.0.20 — credencial
+> read-only fornecida pelo usuário em chat, nunca persistida em `.env.local`
+> nesta sessão), view `vw_vaccinations_dashboard`, grão por evento (3.030
+> vacinações) — validado batendo exato contra 6 números do protótipo
+> (`status_dashboard_vacinacoes.md`). Isso desbloqueou 2 quadrantes que
+> dependiam de leitura de imagem no protótipo (Vacinações mensais, Linha do
+> tempo por vacina) e viabilizou o Indicador de Participação com dado real
+> (antes só tinha 1 exemplo estático congelado). Os outros dois painéis
+> (DLOG, Ocorrências) seguem só como protótipo. Ver a entrada **2026-09-21
+> (nona rodada)** abaixo para o detalhamento técnico, e
+> [`dashboards/PENDENCIAS-PAINEIS-CORPORATIVOS.md`](dashboards/PENDENCIAS-PAINEIS-CORPORATIVOS.md)
+> pro estado dos demais.
 
 
 > **2026-08-24 — o projeto voltou o foco para o DW em si.** Até aqui o
@@ -3554,3 +3554,294 @@ card fica só do tamanho do seu próprio conteúdo) e a altura interna do
 gráfico reduzida de 320 para 220 (6 meses não precisam de tanto espaço
 vertical). Por pedido do usuário, os dois cards ficam desalinhados na
 base — aceitável, a prioridade era eliminar o espaço em branco.
+
+### 2026-09-21 (nona rodada, mesmo dia) — Dashboard de Vacinações (DAS) integrado ao sistema real, 4 abas
+
+**Credencial:** o usuário colou no chat uma connection string read-only
+para `vaccine_control_production` (10.193.0.20:5432, usuário `ctic`) —
+usada só nesta sessão (via `DATABASE_URL_OPS` inline no comando de
+extração), nunca gravada em `.env.local`. Rede interna, precisa de VPN
+conectada na máquina que roda o extrator.
+
+**Fonte:** view `public.vw_vaccinations_dashboard` (join pronto de
+vaccinations/campaigns/vaccines/vaccine_brands/militaries/omes/
+applicators), grão por evento de vacinação — 3.030 linhas. Validado
+rodando 6 agregados reais contra os números já confirmados por print do
+Metabase em `status_dashboard_vacinacoes.md`: total geral (3.030), top10
+OME (soma 1.884), top8 vacinas (soma 2.254), top7 postos (soma 2.333),
+top7 aplicadores (soma 2.662), 5 marcas (Butantan 1.019/Serum 294/Fiocruz
+174/Pfizer 112/Biofarma 100) — todos bateram exato. Novo extrator:
+`etl/das/extract_dashboard_vacinacoes.py` → `src/data/real/
+vacinacao_dashboard.json`.
+
+**Decisão de arquitetura (perguntado ao usuário, não presumido):** o
+painel entra como 4 novos módulos do indicador "Atividades Específicas" da
+DAS (mesmo guarda-chuva que já tinha só "Mapa de Força" — `src/lib/
+vacinacaoDashboard.js`, mesclado em `AtividadesDashboard.jsx` e
+`Indicador.jsx`). Diferente de Efetivo/Viaturas/Finanças, **não há filtro
+por unidade de quem está vendo** — é painel exclusivo da DAS (cada um dos 4
+módulos checa `unidade.sigla !== "DAS"` e mostra `EmptyState` fora dela).
+O acesso de fato (Comando Geral, Subcomando Geral, DGA, DAS) já sai de
+graça do sistema de `useAcessoUsuario` existente (um nível de acesso
+atribuído a qualquer ancestral de DAS já enxerga DAS via `getSubordinados`
+— nada novo precisou ser escrito).
+
+**Minimização (LGPD):** a view expõe `military_cpf`/`applicator_cpf` em
+texto puro — nunca extraídos (mesma regra de `extract_financas.py`).
+`military_name` também fica de fora por padrão (mesmo princípio de
+`efetivo.json`: nome só sai numa lista explicitamente aprovada pelo
+usuário, e não há pedido de tela de detalhe de militar vacinado aqui). O
+evento carrega só data/posto/campanha/vacina/marca/OME/aplicador — nenhum
+identificador individual. Para a Aba 4 (participação), o numerador
+("militares distintos vacinados" por vacina×OME) é pré-agregado no
+extrator com `count` sobre um `set()` em Python — nunca expõe
+`military_id`.
+
+**4 abas, uma de cada vez, cada uma testada no navegador antes da
+próxima:**
+
+1. **Visão Geral** — total de vacinas, total de campanhas, por campanha,
+   por OME, vacinas mais aplicadas (todos com a distribuição COMPLETA, não
+   top-N como no protótipo — mesma decisão já tomada em Efetivo/Finanças) e
+   **"Vacinações mensais"**, quadrante que estava 🔴 bloqueado no
+   levantamento original (print só mostrava a forma da curva, sem valor por
+   mês) — desbloqueado com dado real por evento.
+2. **Execução e Logística** — postos, aplicadores (hbar completo) e
+   "Representatividade das marcas" (donut). `DonutChart` só tinha paleta de
+   5 cores pra até 9 categorias (8 marcas + "sem marca") — passada uma
+   paleta de 6 cores explícita (`--chart-5`, não usada em nenhum outro
+   donut do app) pra reduzir repetição.
+3. **Linha do Tempo** — outro quadrante bloqueado no protótipo (~20 séries
+   de vacina sobrepostas em 96 meses, "rótulos numéricos densos" demais
+   pra ler com segurança). Virou um filtro "Vacina" (pré-selecionado com as
+   5 mais aplicadas) sobre um `PanelGrafico` multi-série — que ganhou 2
+   capacidades novas, genéricas (não específicas de Vacinação):
+   `<Legend>` no tipo `"line"` (só bar/hbar tinham) e supressão dos rótulos
+   numéricos por ponto quando há mais de 1 série (`yKeys.length === 1`),
+   pra não reproduzir a poluição visual do protótipo.
+4. **Indicador de Participação** — no protótipo era só a casca com 1
+   exemplo estático congelado (filtros não recalculavam nada, faltava dado
+   bruto). Agora recalcula de verdade: numerador do banco de Vacinação,
+   denominador ("Efetivo total") de `efetivo.json` real (fonte SGP, já
+   usado no resto do app) — **decisão do usuário**, preferindo o efetivo
+   oficial à tabela `militaries` do próprio banco de Vacinação (que mistura
+   INATIVOS/licenciados como se fossem "OME" e infla o denominador).
+   Filtros são `<select>` de escolha única (não `MultiSelectFiltro`): somar
+   "militares distintos" de vacinas ou OMEs diferentes poderia contar a
+   mesma pessoa duas vezes.
+
+**Reconciliação OME Vacinação × efetivo.json (pedida explicitamente pelo
+usuário antes de prosseguir, "usar técnicas de análise" para não perder
+unidade por grafia diferente):** comparação por chave normalizada (maiúsc.,
+sem acento/espaço/pontuação) entre as 51 OMEs da Vacinação e as 44 de
+`efetivo.json` — 36 bateram direto. As outras 7 eram a MESMA unidade com
+grafia diferente, agora em `etl/das/mapeamento_unidades.json`: `CG`→
+`COMANDO GERAL`, `SCG`→`SUBCOMANDO GERAL`, `DINTER / 1`→`DINTER I`,
+`DINTER / 2`→`DINTER II`, `CAT / AGRESTE`→`CAT/AG`, `CAT / SERTÃO`→
+`CAT/SE`, `ADIDOS / DGP`→`ADIDO`. Sobraram 6 categorias sem
+correspondência real (não mapeadas — ficam com "Efetivo total
+indisponível" na Aba 4, mas o numerador continua exato): **`INATIVOS`**
+(517 vacinações) e **`LIC / DGP`** (2) são categoria de situação
+funcional, não unidade — corretamente sem efetivo ativo; **`10º GB`** (4),
+**`COINTER / 1`** (4), **`COM`** (2) e **`DAT`** (3) são unidades reais que
+a fonte da Vacinação já conhece e o organograma ainda não modela (mesmo
+gap documentado em `DW_CATALOGO_FONTES.md`, "Quantas unidades cada sistema
+conhece" — Vacinação tem 91 OMEs na origem contra ~46 do organograma;
+reconciliar tudo continua fora de escopo deste painel).
+
+**Também corrigido, na origem, não só normalizado na exibição:** o campo
+`vaccination_post` tinha duplicatas reais por sujeira de maiúscula/
+minúscula e sinal de grau vs. ordinal ("GBMAR"/"Gbmar "/"GBMar" contando
+como 3 postos separados no protótipo do gráfico) — `normalizar_posto()` no
+extrator funde antes de qualquer agregação, não só cosmético no front.
+
+**Testado no navegador, aba por aba** (via navegação por clique — busca
+"DAS" → Diretoria → Atividades Específicas — evitando o `navigate()` direto
+por URL, que corre risco do "Módulo não encontrado" transitório já
+documentado nas rodadas anteriores). `npm run lint` limpo; `npm run
+typecheck` subiu de 265 para 293 erros — os 28 novos são o mesmo ruído de
+baseline já aceito nas rodadas anteriores (props opcionais de
+`SectionCard`/`KpiCard`/`PanelGrafico`/`DonutChart`/`EmptyState` omitidas,
+sem tipos JSDoc explícitos), proporcional aos 4 componentes novos — nenhum
+é um erro de lógica real.
+
+### 2026-09-21 (décima rodada, mesmo dia) — Vacinação: correções pedidas pelo usuário após revisar as 4 abas
+
+**GCG/GSG corrigido.** O usuário, que conhece a rotina real, apontou que
+"CG"/"SCG" na origem da Vacinação são o efetivo do GABINETE (GCG/GSG), não
+o Comandante/Subcomandante Geral em pessoa — `mapeamento_unidades.json`
+corrigido (antes mapeava pra "COMANDO GERAL"/"SUBCOMANDO GERAL", que são
+siglas PRÓPRIAS e diferentes em efetivo.json/efetivo_lista.json, contendo
+os adidos — ver comentário em `EfetivoDetalhe.jsx`). Bate com o volume: 6
+vacinações em "CG" é mais gente que só o titular.
+
+**Ordenação de OME por antiguidade — novo helper, escopo combinado com o
+usuário.** Pedido original era "em QUALQUER gráfico/tabela do sistema" —
+dado o alcance (dezenas de arquivos em Efetivo/Viaturas/Finanças/Mapa de
+Força), perguntado e confirmado: só onde NÃO há uma ordenação por valor já
+explícita (um gráfico ordenado pelo que ele mede, ex. "Total por OME" do
+maior pro menor, mantém isso — só listas sem critério, tipo opção de
+filtro, ganham a regra nova). `src/lib/antiguidadeOme.js`: antiguidade de
+uma OME = menor `ordem` (ordemHierarquica real, mesmo campo que
+`EfetivoDetalhe.jsx` já usa pra ordenar MILITARES desde 2026-08-19) entre
+os militares hoje lotados nela em `efetivo_lista.json` — na prática, quem
+tem o `ordem` mais baixo numa unidade é quem a comanda. Aplicado agora só
+nos filtros de OME da Vacinação; o resto do sistema fica pra uma rodada
+dedicada, por decisão do usuário (risco de regressão em painel já
+validado).
+
+**4 abas ajustadas, uma por vez:**
+
+1. **Visão Geral** ganhou filtros de OME/Campanha/Vacina (`MultiSelectFiltro`,
+   OME ordenada por antiguidade) e Período (mês/ano, dois `<select>` De/Até,
+   `filtrarPorPeriodo`/`mesesDisponiveis` novos em `vacinacaoDashboard.js`).
+   "Total de aplicações por OME" (51 categorias) e "Vacinas mais aplicadas"
+   (~20) agora dividem a MESMA altura visível — a menor das duas — com o
+   gráfico de OME ganhando rolagem vertical interna (`overflow-y-auto` num
+   wrapper de altura fixa) em vez de esticar o card.
+2. **Execução e Logística**: "Postos" e "Profissionais com maior número de
+   aplicações" (renomeado de "Maiores aplicadores") ficam com a MESMA
+   altura (a maior das duas contagens decide). Nomes de aplicador
+   capitalizados no extrator (`capitalizar_nome` — a origem misturava TUDO
+   MAIÚSCULO com Title Case). Donut de marcas ganhou um `max-w-md mx-auto`
+   — sem isso ficava centralizado mas com muito espaço em branco lateral
+   num card tão largo quanto os de cima.
+3. **Linha do Tempo**: as 20 vacinas vêm todas pré-selecionadas por padrão
+   agora (antes eram só as 5 mais aplicadas); ganhou o mesmo filtro de
+   Período das outras abas.
+4. **Indicador de Participação — lógica reconstruída.** O usuário pediu pra
+   verificar se a OME da Vacinação reflete "onde o militar estava quando
+   tomou a vacina" — **não reflete**: `vaccinations` não tem NENHUMA coluna
+   de OME, o campo vem 100% de `militaries.ome_id` (1 valor por pessoa,
+   igual em TODOS os eventos dela — confirmado consultando 5 militares com
+   vacinações de 2021 a 2026, sempre a mesma OME nas 9-11 linhas de cada
+   um). Corrigido pra cruzar por MATRÍCULA com `efetivo_lista.json` (fonte
+   SGP, atual de verdade): "Militares que tomaram" = quem está na OME
+   selecionada HOJE e já tomou a vacina em qualquer momento/OME;
+   "Efetivo Atual (OME)" = quantos a OME tem hoje. O cruzamento roda no
+   EXTRATOR (`extrair_participacao_atual`), nunca no navegador — formatos de
+   matrícula batem removendo o traço de efetivo_lista.json ("798009-4" →
+   "7980094"), 907 dos 1.196 militares vacinados encontrados (o resto é
+   inativo/licenciado, sem linha no efetivo ativo, corretamente fora). O
+   card de percentual virou um "acelerômetro" (`GaugeKpi.jsx`, semicírculo
+   SVG animado 0→valor, cor `--primary`) — já recebe uma prop `valorAlvo`
+   pra uma meta de vacinação futura (não implementada agora, só o gancho:
+   sem UI pra definir meta, sem persistência, mas o traço no arco já sabe
+   se desenhar quando o valor chegar).
+
+**Bug real encontrado testando, não só nas 4 abas em si:** a animação do
+`GaugeKpi` ficava travada em 0% — usava `requestAnimationFrame`, que
+simplesmente não dispara numa aba que não está compositando frames (o
+Browser pane desta sessão, no momento do teste, não estava visível —
+confirmado pelo próprio erro do `screenshot`). Trocado por `setTimeout`
+(só depende do event loop, não de haver um frame pra pintar) — mesmo risco
+existiria em produção se a página abrir numa aba em segundo plano.
+Confirmado via DOM (`stroke-dashoffset` do arco preenchido, antes travado
+no valor "0% cheio", depois batendo exato com a fração esperada).
+
+**Testado no navegador, cada mudança conferida via DOM/texto da página**
+(inclusive a ordem do dropdown de OME, pra confirmar antiguidade e não
+alfabética). `npm run lint` limpo.
+
+### 2026-09-21 (décima primeira rodada, mesmo dia) — Vacinação: donut mais estreito e Indicador de Participação com velocímetro de verdade
+
+**Donut de marcas — a rodada anterior tinha corrigido o lugar errado.**
+`max-w-md` estava só em volta do `<DonutChart>`, dentro do `SectionCard`
+— o card (fundo branco + borda) continuava com a largura cheia da grade
+acima, só o conteúdo interno é que ficava centralizado com espaço em
+branco visível nas laterais. Corrigido movendo o `max-w-md mx-auto` pra
+fora do `SectionCard` inteiro — confirmado numa viewport de 1400px: o card
+de marcas ficou com 560px (a app roda com `zoom: 1.25`, então 28rem vira
+560px de tela) contra 613px dos cards vizinhos ("Postos"/"Profissionais"),
+visivelmente mais estreito e centralizado.
+
+**`GaugeKpi.jsx` reconstruído como velocímetro de verdade** (o pedido
+anterior tinha só um arco preenchido, sem ponteiro): agora tem ponteiro
+saindo do centro do semicírculo até a borda do arco, ângulo proporcional a
+`valor/máximo`, igual um medidor de velocidade — "0" numa ponta da base,
+o efetivo total na outra, o valor bruto centralizado (desenhado por
+último no SVG, por cima do ponteiro — literalmente "nasce atrás" do
+número, pedido do usuário), e o percentual posicionado logo acima da
+ponta do ponteiro (calculado no mesmo ângulo, num raio maior que o arco).
+`valorAlvo` continua só o gancho pra meta futura, sem UI ainda.
+
+**Layout da Aba 4 reorganizado:** 3 KpiCards iguais lado a lado
+(Vacina Selecionada / Efetivo Atual da OME / Militares que tomaram),
+centralizados num container `max-w-2xl mx-auto`; o velocímetro abaixo,
+num card próprio `max-w-md mx-auto` com título "Proporção de vacinados" e
+subtítulo dinâmico ("Porcentagem do efetivo atual da OME {OME} que já se
+vacinou com a vacina {vacina}") — exatamente como pedido, nenhum dos dois
+ocupa mais largura que o necessário.
+
+**Testado no navegador via DOM**, inclusive a matemática do ponteiro (a
+40% preenchido, ângulo 108°, ponta em (81,46; 42,94) — bate exato com
+`100 + 60·cos(108°)`, `100 − 60·sin(108°)`) e o `stroke-dashoffset` do
+arco preenchido (continua animando certo depois da troca pra
+`setTimeout` da rodada anterior). `npm run lint` limpo.
+
+### 2026-09-21 (décima segunda rodada, mesmo dia) — Velocímetro: 4 ajustes finos pedidos depois de ver o resultado
+
+1. **Valor bruto sobrepunha o ponteiro.** Estava centralizado no meio do
+   semicírculo (y=94), exatamente onde o ponteiro passa perto de 50%.
+   Movido pra ABAIXO da base do arco (y=148, depois das legendas "0"/
+   efetivo total), sem disputar espaço com o ponteiro em nenhum ângulo.
+2. **Percentual cortado no topo perto de 50%.** `viewBox` começava em
+   y=0, mas o rótulo de percentual (raio 98, fora do arco) chega a y≈2
+   quando o ponteiro está quase vertical — a ascendente do texto passava
+   de y=0 e cortava. `viewBox` mudado de `0 0 200 130` pra `0 -18 200 168`
+   (18px de folga acima, mais altura embaixo pro valor bruto).
+3. **Card do velocímetro na largura dos 3 cards de cima.** Trocado
+   `max-w-md` por `max-w-2xl` no wrapper (mesma classe da grade dos 3
+   `KpiCard`), e removido o teto próprio de `max-w-[280px]` que o SVG
+   tinha — sem isso o `max-w-2xl` do card não tinha efeito nenhum no
+   tamanho real do gráfico. Confirmado via DOM: 431px de SVG contra 475px
+   do card (a diferença é o padding do `SectionCard`).
+4. **Filtros de Vacina/OME reposicionados.** Viraram uma faixa centralizada
+   (`justify-center`) logo acima dos 3 cards, com destaque visual (fundo
+   `bg-primary/5`, borda `border-primary/20`) e texto "Selecione uma
+   vacina:"/"Selecione uma OME:" no lugar de "Vacina"/"OME".
+
+**Testado no navegador via DOM** (posição y de cada rótulo, incluindo o
+percentual não mais negativo/cortado; largura do SVG vs. largura da grade
+de cards). `npm run lint` limpo.
+
+### 2026-09-21 (décima terceira rodada, mesmo dia) — Velocímetro: fontes menores, e COMANDO GERAL/SUBCOMANDO GERAL fundidos em GCG/GSG
+
+**Fontes reduzidas e rótulo de percentual travado numa faixa segura.**
+Perto de 0% ou 100% o ponteiro fica quase deitado nas pontas do arco
+(x≈2 ou x≈198), e o rótulo de percentual — centralizado exatamente ali —
+estourava a borda esquerda/direita do `viewBox`. Fontes: percentual e
+rótulos da base (0/efetivo total) de 13px/11px para 10px; valor bruto de
+30px para 20px (estava grande demais, pedido do usuário). E o x do rótulo
+de percentual agora é travado entre 18 e 182 (`Math.min(182, Math.max(18,
+...))`) — o ângulo real do ponteiro continua exato, só a posição do texto
+não sai mais do `viewBox`. Confirmado em 0,0% (x caiu pro piso do
+grampo, 18, em vez de 2) e em 40% (sem mudança, já estava dentro da
+faixa seguro).
+
+**COMANDO GERAL/SUBCOMANDO GERAL fundidos em GCG/GSG — a ORDEM estava
+certa, a UNIDADE estava errada.** O usuário apontou: esses dois nomes em
+`efetivo_lista.json` são o TITULAR sozinho (1 militar cada), não uma OME
+própria — o efetivo dele conta dentro do GABINETE (GCG/GSG), mesma lógica
+já usada no de-para da Vacinação (CG/SCG → GCG/GSG). A rodada anterior já
+posicionava GCG/GSG corretamente bem no topo da antiguidade (o titular tem
+o `ordem` mais baixo da corporação), mas isso acontecia porque "COMANDO
+GERAL"/"SUBCOMANDO GERAL" apareciam como OMEs PRÓPRIAS de 1 pessoa — 3
+lugares corrigidos pra fundir de verdade:
+1. `src/lib/antiguidadeOme.js` — novo `DOBRA_GABINETE` (`{"COMANDO GERAL":
+   "GCG", "SUBCOMANDO GERAL": "GSG"}`), aplicado antes de calcular o
+   `ordem` mínimo por OME — GCG herda a posição de COMANDO GERAL em vez de
+   COMANDO GERAL competir por uma posição própria.
+2. `ModuloVacinacaoParticipacao.jsx` — o `<select>` de OME não lista mais
+   "COMANDO GERAL"/"SUBCOMANDO GERAL" (fundidos antes de montar a lista);
+   nova `efetivoAtualDe(sigla)` soma o efetivo do titular ao de GCG/GSG.
+3. `extract_dashboard_vacinacoes.py` — mesmo `DOBRA_GABINETE` em Python,
+   aplicado em `carregar_ome_atual_por_matricula()`: o titular já entra
+   pré-fundido na matriz `participacao`, então "Militares que tomaram"
+   também conta com ele. Reextraído: 462 pares (vacina, OME) — GCG some
+   como chave própria "COMANDO GERAL", passa a ter as duas contagens
+   somadas (ex. Meningocócica C: 34 → 38).
+
+**Testado no navegador**: `<select>` de OME confirmado sem "COMANDO
+GERAL"/"SUBCOMANDO GERAL" na lista, com GCG/GSG nas duas primeiras
+posições (onde os titulares apareciam antes). `npm run lint` limpo.
