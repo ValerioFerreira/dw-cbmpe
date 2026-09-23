@@ -37,12 +37,11 @@ const SQL_OME_POR_MATRICULA = `
   limit 1
 `;
 
-export async function resolverMatriculaEOmePorCpf(cpf) {
-  const cpfLimpo = (cpf || "").replace(/\D/g, "");
-  if (cpfLimpo.length !== 11) return { matricula: null, ome: null, adido: false };
-
-  const sgp = await getPoolSgp().query(SQL_MATRICULA_POR_CPF, [cpfLimpo]);
-  const matricula = normalizarMatricula(sgp.rows[0]?.nr_matr_pess);
+// Só o passo 2 (matrícula -> OME) — usada por /adm quando o administrador
+// já tem a matrícula (ex.: devolvida por resolverMatriculaEOmePorCpf) e só
+// quer conferir a OME atual, sem repetir a consulta ao SGP.
+export async function resolverOmePorMatricula(matriculaBruta) {
+  const matricula = normalizarMatricula(matriculaBruta);
   if (!matricula) return { matricula: null, ome: null, adido: false };
 
   const dw = await getPoolDw().query(SQL_OME_POR_MATRICULA, [matricula]);
@@ -52,4 +51,15 @@ export async function resolverMatriculaEOmePorCpf(cpf) {
   return { matricula, ome: linha.sigla, adido: !!linha.adido };
 }
 
-export default { resolverMatriculaEOmePorCpf };
+export async function resolverMatriculaEOmePorCpf(cpf) {
+  const cpfLimpo = (cpf || "").replace(/\D/g, "");
+  if (cpfLimpo.length !== 11) return { matricula: null, ome: null, adido: false };
+
+  const sgp = await getPoolSgp().query(SQL_MATRICULA_POR_CPF, [cpfLimpo]);
+  const matricula = normalizarMatricula(sgp.rows[0]?.nr_matr_pess);
+  if (!matricula) return { matricula: null, ome: null, adido: false };
+
+  return resolverOmePorMatricula(matricula);
+}
+
+export default { resolverMatriculaEOmePorCpf, resolverOmePorMatricula };
