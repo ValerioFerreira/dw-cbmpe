@@ -7,25 +7,39 @@ import { getCaminho } from "@/lib/cbmpe";
 import { siglasPermitidas } from "@/lib/dashboardHelpers";
 import { MODULOS_ATIVIDADES_DASHBOARD } from "@/lib/mapaForca";
 import { MODULOS_VACINACAO_DASHBOARD } from "@/lib/vacinacaoDashboard";
+import { MODULOS_OCORRENCIAS_DASHBOARD, estaNaSubarvoreDgo } from "@/lib/ocorrenciasDashboard";
 import EmptyState from "@/components/ui/empty-state";
 import vacinacaoDashboardReal from "@/data/real/vacinacao_dashboard.json";
+import ocorrenciasDashboardReal from "@/data/real/ocorrencias_dashboard.json";
 
 import ModuloMapaForca from "./ModuloMapaForca";
 import ModuloVacinacaoVisaoGeral from "./ModuloVacinacaoVisaoGeral";
 import ModuloVacinacaoExecucao from "./ModuloVacinacaoExecucao";
 import ModuloVacinacaoLinhaTempo from "./ModuloVacinacaoLinhaTempo";
 import ModuloVacinacaoParticipacao from "./ModuloVacinacaoParticipacao";
+import ModuloVisaoGeral from "@/pages/ocorrencias/ModuloVisaoGeral";
+import ModuloAph from "@/pages/ocorrencias/ModuloAph";
+import ModuloIncendio from "@/pages/ocorrencias/ModuloIncendio";
+import ModuloSalvamento from "@/pages/ocorrencias/ModuloSalvamento";
+import ModuloPrevencao from "@/pages/ocorrencias/ModuloPrevencao";
+import ModuloProdutosPerigosos from "@/pages/ocorrencias/ModuloProdutosPerigosos";
+import ModuloGeolocalizacao from "@/pages/ocorrencias/ModuloGeolocalizacao";
+import ModuloPerfilVitimas from "@/pages/ocorrencias/ModuloPerfilVitimas";
 
 // Casca do dashboard de Atividades Específicas — mesma estrutura de
 // EfetivoDashboard/ViaturasDashboard: breadcrumb, checagem de acesso, escopo
 // por unidade, e o módulo dentro.
 //
 // Guarda-chuva de módulos sem KPI próprio no organograma: Mapa de Força
-// (real desde antes) e, agora, Vacinação (DAS) — mesmo indicador
-// "Atividades Específicas", abas somadas na mesma lista. Vacinação não usa
-// siglasPermitidas (é painel exclusivo da DAS, não filtrado por unidade —
-// ver ModuloVacinacaoVisaoGeral.jsx).
-const TODOS_MODULOS = [...MODULOS_ATIVIDADES_DASHBOARD, ...MODULOS_VACINACAO_DASHBOARD];
+// (real desde antes), Vacinação (DAS) e, agora, Ocorrências (DGO + toda a
+// sua subárvore) — mesmo indicador "Atividades Específicas", abas somadas
+// na mesma lista. Vacinação não usa siglasPermitidas (é painel exclusivo da
+// DAS, não filtrado por unidade — ver ModuloVacinacaoVisaoGeral.jsx).
+// Ocorrências é o oposto: reusa siglasPermitidas (mesmo mecanismo de
+// Efetivo/Viaturas/Finanças) e, além disso, só existe de fato dentro da
+// subárvore da DGO — fora dela, os 8 módulos caem no EmptyState de escopo
+// abaixo, sem tentar mostrar dado de outra diretoria.
+const TODOS_MODULOS = [...MODULOS_ATIVIDADES_DASHBOARD, ...MODULOS_VACINACAO_DASHBOARD, ...MODULOS_OCORRENCIAS_DASHBOARD];
 
 const COMPONENTES = {
   "mapa-forca": ModuloMapaForca,
@@ -33,7 +47,17 @@ const COMPONENTES = {
   "vacinacao-execucao": ModuloVacinacaoExecucao,
   "vacinacao-linha-tempo": ModuloVacinacaoLinhaTempo,
   "vacinacao-participacao": ModuloVacinacaoParticipacao,
+  "ocorrencias-visao-geral": ModuloVisaoGeral,
+  "ocorrencias-aph": ModuloAph,
+  "ocorrencias-incendio": ModuloIncendio,
+  "ocorrencias-salvamento": ModuloSalvamento,
+  "ocorrencias-prevencao": ModuloPrevencao,
+  "ocorrencias-produtos-perigosos": ModuloProdutosPerigosos,
+  "ocorrencias-geolocalizacao": ModuloGeolocalizacao,
+  "ocorrencias-perfil-vitimas": ModuloPerfilVitimas,
 };
+
+const CHAVES_OCORRENCIAS = new Set(MODULOS_OCORRENCIAS_DASHBOARD.map((m) => m.key));
 
 export default function AtividadesDashboard() {
   const { id, modulo } = useParams();
@@ -71,7 +95,23 @@ export default function AtividadesDashboard() {
     );
   }
 
+  // Ocorrências só existe sob a DGO + subárvore (pedido do usuário) —
+  // diferente de Vacinação, que é exclusiva da DAS mas sem checagem de
+  // subárvore (não precisa, DAS não tem subordinada). Mesmo princípio de
+  // "Despesas Diversas" em Financas (aba só aparece no Comando Geral).
+  if (CHAVES_OCORRENCIAS.has(moduloInfo.key) && !estaNaSubarvoreDgo(unidade, unidades)) {
+    return (
+      <EmptyState
+        icon={ShieldAlert}
+        titulo="Disponível apenas na DGO e sua subárvore"
+        descricao="O Dashboard de Ocorrências fica sob tutela da Diretoria Geral de Operações (DGO) — DIM, DINTER I, DINTER II, DIESP e os batalhões/CATs abaixo delas. Fora dessa cadeia, esta aba não se aplica."
+        acao={<Link to={`/indicador/${ind.id}`} className="text-[13px] font-medium text-primary hover:underline">Voltar</Link>}
+      />
+    );
+  }
+
   const Conteudo = COMPONENTES[moduloInfo.key];
+  const ocorrenciasBloqueado = !ocorrenciasDashboardReal.ocorrencias?.length;
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -123,6 +163,9 @@ export default function AtividadesDashboard() {
       <Conteudo
         permitidas={permitidas} unidade={unidade}
         eventos={vacinacaoDashboardReal.eventos} participacao={vacinacaoDashboardReal.participacao}
+        ocorrencias={ocorrenciasDashboardReal.ocorrencias} aphEstatistica={ocorrenciasDashboardReal.aphEstatistica}
+        produtosPerigososDiagnostico={ocorrenciasDashboardReal.produtosPerigososDiagnostico}
+        pendencias={ocorrenciasDashboardReal.pendenciasSemSql} bloqueado={ocorrenciasBloqueado}
       />
     </div>
   );

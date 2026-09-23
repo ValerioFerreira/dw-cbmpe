@@ -3845,3 +3845,130 @@ lugares corrigidos pra fundir de verdade:
 **Testado no navegador**: `<select>` de OME confirmado sem "COMANDO
 GERAL"/"SUBCOMANDO GERAL" na lista, com GCG/GSG nas duas primeiras
 posições (onde os titulares apareciam antes). `npm run lint` limpo.
+
+### 2026-09-23 — Dashboard de Ocorrências: scaffold completo, dado real bloqueado por credencial
+
+Segundo painel corporativo do lote de Igor (ver Parte 2 de
+`dashboards/PENDENCIAS-PAINEIS-CORPORATIVOS.md`) a sair do protótipo
+estático — mas, DIFERENTE de DF e Vacinação, **ainda sem dado real**: a
+credencial de `roe_api_production` (10.193.1.252:15432) continua sem
+funcionar (nem `datawarehouse-user`, nem `ctic` autenticam — ver
+`DW_CATALOGO_FONTES.md`, seção Ocorrências). Esta rodada entrega tudo que
+NÃO depende do banco, pronto para rodar assim que a credencial existir.
+
+**Decisão de escopo (diferente de Vacinação, de propósito):** o usuário
+pediu explicitamente que Ocorrências fique "sob tutela geral da DGO...
+e também em todos os subordinados desta diretoria, observando o filtro
+da OME" — ou seja, o padrão de Efetivo/Viaturas/Finanças (dado filtrado
+por unidade + subárvore via `siglasPermitidas`, mesmo mecanismo de
+`accessControl.js`), não o padrão exclusivo-DAS da Vacinação (sem filtro
+de unidade). Implementado:
+- `src/lib/ocorrenciasDashboard.js` — `subarvoreDgo()`/`estaNaSubarvoreDgo()`
+  calculam a subárvore de DGO (DIM/DINTER I/DINTER II/DIESP e tudo abaixo,
+  recursivamente, via `getSubordinados`); fora dela, os 8 módulos caem num
+  `EmptyState` de escopo (mesmo princípio de "Despesas Diversas" em
+  Finanças, restrita ao Comando Geral).
+- `filtrarPorEscopoOcorrencias()` reusa a MESMA convenção de
+  `siglasPermitidas` (campo `ome`) — nenhum mecanismo de acesso novo, só
+  consumo do que já existe, como pedido.
+
+**Onde encaixou na navegação:** dentro do indicador "Atividades
+Específicas" (o mesmo guarda-chuva que já hospeda Mapa de Força e
+Vacinação — ver `Indicador.jsx`/`DASHBOARDS_REAIS`), roteado por
+`/atividades/:id/dashboard/:modulo` junto com os módulos de Vacinação
+(`AtividadesDashboard.jsx` ganhou os 8 `ocorrencias-*` no `COMPONENTES` e
+a checagem de subárvore antes de renderizar). Alternativa considerada e
+descartada: indicador novo "Ocorrências" — exigiria mexer em
+`organograma.js` (KPI mock por unidade, meta, `KPI_UNIDADE_MEDIDA`) só
+para hospedar 8 abas que já cabem no guarda-chuva existente. **Sinalizado
+para confirmação do usuário**: se "Atividades Específicas" não for o lugar
+certo a médio prazo (o card de KPI desse indicador segue "Em construção"
+por ser outro domínio, SGAT), a mudança de rota é pontual.
+
+**Extrator (`etl/ocorrencias/extract_dashboard_ocorrencias.py`) — grão por
+OCORRÊNCIA, não pré-agregado por card.** Diferente da abordagem "uma query
+por card" do `status_ocorrencias.md`, a extração real é uma linha por
+`roe_basico_ocorrencias` (mesmo padrão de grão-de-evento de
+`extract_dashboard_vacinacoes.py`) — é o que permite ao frontend recalcular
+qualquer quadrante filtrado pela OME sendo vista, em vez de fixar o filtro
+só no card "Ocorrências por OME". SQL verificado contra os textos EXATOS
+que Igor colou em `status_ocorrencias.md` (seção 1b — Visão Geral + APH).
+Cobertura honesta, sem inventar coluna:
+- **Real e completo:** Visão Geral (7/7 cards, incluindo "Natureza" — que
+  deixa de ser 🔴 print do protótipo porque o SQL exato já veio, só faltava
+  rodar) + a maior parte de APH (Finalizadas/Aguardando/Cidade/Subgrupo/
+  Situação das vítimas, esta última com os DOIS números lado a lado: o bug
+  de `WHERE` no `UNION ALL` original do Metabase, e a versão corrigida —
+  ver `situacaoVitimas()`).
+- **Inferido, não confirmado:** a chave do JOIN com `roe_aph_ocorrencias`
+  ("Atendimentos a CVI"/"Vítimas entregues com vida"/parte de Perfil de
+  Vítimas) — usei `roe_basico_id = roe_id` por analogia com a query de
+  diagnóstico de Produtos Perigosos (essa sim literal), documentado como
+  inferência no docstring, não como SQL recebido.
+- **Bloqueado por falta de SQL/schema, não por credencial:** Incêndio
+  (Duração média e 5 outros cards não nomeados), Salvamento (Tipo
+  Predominante), Prevenção inteira (tabela `roe_prevencao_ocorrencias`,
+  zero coluna verificada), Produtos Perigosos ("Perfil dos Botijões de
+  GLP"), Perfil de Vítimas (sexo/faixa etária). `status_ocorrencias.md`
+  confirma que Igor validou esses cards no Metabase, mas não colou o TEXTO
+  da query nem o schema da tabela de detalhe veio verificado em
+  `DW_CATALOGO_FONTES.md` — nomear coluna seria adivinhar.
+- **Bloqueado por qualidade de dado, não por credencial nem SQL:** "Total
+  por produto" (Produtos Perigosos) — o próprio Igor marcou 🟠 pending (656
+  de 672 produtos com contagem exatamente 20, cara de lista de referência).
+  O extrator NUNCA extrai esse card, mesmo depois de a credencial existir,
+  até confirmar com quem administra `roe_prod_perigosos_ocorrencias`.
+
+**`etl/ocorrencias/mapeamento_unidades.json` — scaffold, não de-para real.**
+Diferente de `etl/das/mapeamento_unidades.json` (construído comparando
+valores DISTINTOS reais da origem), este só tem as 2 convenções já
+confirmadas em nível de DW inteiro (ADIDO, dobra DINTER numeral→romano
+como aposta de baixo risco) — sem credencial não há `SELECT DISTINCT ome`
+pra comparar contra o organograma. Reportado como pendência explícita, não
+escondido.
+
+**Frontend — 8 módulos em `src/pages/ocorrencias/`** (`ModuloVisaoGeral`,
+`ModuloAph`, `ModuloIncendio`, `ModuloSalvamento`, `ModuloPrevencao`,
+`ModuloProdutosPerigosos`, `ModuloGeolocalizacao`, `ModuloPerfilVitimas`),
+mais `AguardandoCredencial.jsx` (banner compartilhado, mostrado enquanto
+`src/data/real/ocorrencias_dashboard.json` ficar com os arrays vazios) e
+`CardPendente.jsx` (por card específico sem SQL/schema, texto vindo de
+`pendenciasSemSql` no JSON — não hardcoded). `src/data/real/
+ocorrencias_dashboard.json` está vazio de propósito, com `_placeholder:
+true` e `_motivo` explicando o bloqueio — nunca preenchido com número
+inventado. Copiado também `dashboards/08-ocorrencias/geojs-26-mun.json`
+para `src/data/real/ocorrencias_municipios.json` (geometria real dos 185
+municípios de PE que Igor forneceu) — o mapa coroplético em si (aba
+Geolocalização) NÃO foi desenhado nesta rodada (ranking por cidade em
+hbar cobre o essencial com dado real; reconciliar grafia cidade↔geoJSON e
+montar um SVG coroplético é trabalho de UI maior, sinalizado como próximo
+passo, não fingido como pronto).
+
+**Protótipo organizado:** `dashboards/ocorrencias.zip` descompactado em
+`dashboards/08-ocorrencias/` (`dashboard-ocorrencias.html`,
+`status_ocorrencias.md`, `geojs-26-mun.json`), seguindo a convenção de
+`01-efetivo-geral/` — o zip original foi removido do working tree (estava
+commitado desde `f693591`, redundante com a pasta).
+
+**Verificado:** `npm run build` (ok, mesmo warning de chunk >500kB já
+presente antes) e `npm run lint` (limpo). `npm run typecheck`: 349 erros
+contra 266 da rodada anterior (+83) — mesmo padrão de ruído sistêmico já
+documentado nas rodadas de Finanças/DF (TS infere prop de `SectionCard`/
+`KpiCard`/`PanelGrafico`/`DonutChart`/`EmptyState` como obrigatória a
+partir do uso, não erro real); confirmado comparando com o padrão
+idêntico já pré-existente em `vacinacaoDashboard.js` (`serieCampo`,
+`serieMensalPorCampo`) antes desta sessão.
+
+**Pendente (nenhum resolvido nesta rodada, todos fora do meu alcance sem
+mais informação):**
+1. Credencial de `roe_api_production` (10.193.1.252:15432) — bloqueia
+   TODO dado real do painel, o mesmo tipo de bloqueio que Vacinação teve
+   até o usuário passar a credencial no chat.
+2. SQL/schema de Incêndio (5 cards sem nome), Salvamento (Tipo
+   Predominante), Prevenção inteira, Produtos Perigosos (Perfil dos
+   Botijões de GLP), Perfil de Vítimas (sexo/faixa etária).
+3. Chave real do JOIN com `roe_aph_ocorrencias` (hoje inferida).
+4. De-para de OME real (`mapeamento_unidades.json` é scaffold).
+5. Mapa coroplético da aba Geolocalização (hoje só ranking em hbar).
+6. Confirmar com o usuário se "Atividades Específicas" é o lugar
+   definitivo na navegação, ou se merece indicador próprio no futuro.
