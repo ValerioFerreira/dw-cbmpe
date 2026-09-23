@@ -4287,3 +4287,58 @@ CPF. **Não testei contra o SGU de verdade** (sem rede pra
 config` — **Docker não está instalado neste ambiente** (`docker: command
 not found`); os `Dockerfile`s seguem o padrão já validado no `forms-bm` mas
 não foram construídos aqui.
+
+### 2026-09-23 (quarta rodada) — CPF resolve OME de verdade: achado o bug do banco errado, pipeline implementado e validado
+
+Pedido do usuário: implementar de vez a resolução CPF -> OME (estava com
+`nivelAcesso` sempre nulo, ver rodada anterior). Ao investigar por que
+`core.fato_efetivo_diario` "não existia" (relatado horas antes, mesmo dia),
+achei o bug: **`DATABASE_URL_DW` em `.env.local` apontava pro banco
+`postgres`** (o banco padrão do servidor `10.193.1.252:54301`, onde vivem
+as tabelas ad hoc do Igor — `fin_autorizacao`, `inativos_metabase` etc., já
+lidas por Efetivo/Financas) — **não pro banco `dw`**, onde
+`carga_core.py` de fato carregou o schema `core` em 2026-08-24. Os dois
+bancos coexistem no mesmo servidor com a mesma credencial. Os scripts de
+`etl/dw/*.py` já tratam isso corretamente (derivam `/dw` a partir de
+`DATABASE_URL_DW` trocando só o nome do banco, nunca leem `/postgres`
+como se fosse o DW) — só a minha suposição anterior estava errada, não o
+código. `backend/config/db.js` (novo) reproduz a mesma derivação em vez de
+introduzir uma env var nova.
+
+**Pipeline implementado e testado de ponta a ponta** (`backend/services/
+omeResolver.js`, usando `pg` — dependência nova em `backend/package.json`):
+CPF -> `ovrsgp.tb_pess` (SGP) -> matrícula -> `core.dim_militar` +
+`core.fato_efetivo_diario` (linha mais recente POR MILITAR, não um
+`sk_tempo` global) -> `core.dim_ome.sigla`. Testado com um par CPF/matrícula
+real do próprio banco (nunca logado nem impresso o CPF): resolveu `6º GB`
+corretamente. Cobertura: 2.658 de 2.658 militares em `dim_militar` resolvem
+OME (100%) — mas só 57,7% das matrículas do SGP inteiro (4.598) batem com
+`dim_militar`, porque `dim_militar` é só o efetivo ATIVO (fonte Peculio) —
+gente inativa/licenciada no SGP não resolve, o que é o comportamento
+correto (falha fechada), não um bug.
+
+**Achado que ainda não foi resolvido**: `core.fato_efetivo_diario` foi
+carregado pela última vez em **2026-08-26** — quase 1 mês desatualizado.
+Rodar `etl/dw/carga_core.py` de novo traria isso pro dia. Não rodei nesta
+sessão: descobri, checando o script, que ele faz PARSE DIRETO de
+`const ARVORE = {...}` em `src/data/organograma.js` via regex (e falha alto
+se não achar) — e a worktree do editor de organograma (ainda não mesclada
+nesta sessão) troca exatamente essa constante por `NODES_PADRAO` +
+`montarOrganograma()`. Rodar `carga_core.py` com essa mudança mesclada
+quebraria o parse. Antes de mesclar o editor de organograma OU rodar a
+carga de novo, decidir: (a) manter um `const ARVORE = {...}` literal
+derivado de `NODES_PADRAO` só para o parser do Python continuar
+funcionando, ou (b) trocar `carga_core.py` para ler
+`backend/data/organograma.json` (o novo armazenamento do editor) direto
+como JSON em vez de regex sobre um arquivo JS — a opção (b) é mais robusta
+e faz o DW refletir edições do admin automaticamente, mas é mudança no
+próprio pipeline do DW, não decidi sozinho ainda.
+
+**Ainda não implementado**: o mapeamento matrícula/OME resolvida -> PERFIL
+de acesso em `accessControl.js`. Hoje `ATRIBUICOES` é indexado por um
+"usuarioChave" de texto livre escolhido no `/adm` (ex. "DGO", "4GB") — não
+por matrícula. Pra um login CPF real ganhar algum perfil, `/adm` precisa
+passar a cadastrar atribuições por matrícula. Falta decidir o
+comportamento PADRÃO de um militar real que ainda não foi cadastrado no
+`/adm` — pergunta feita ao usuário na mesma rodada, ver resposta abaixo
+quando houver.
