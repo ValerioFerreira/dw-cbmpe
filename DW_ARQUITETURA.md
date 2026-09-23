@@ -147,9 +147,21 @@ quer poder fazer sobre *qualquer* dado da corporação — não passam pelo
 
 ## Camada de API (proposta em aberto)
 
-O app React hoje é uma SPA estática sem backend — não pode se conectar
-diretamente ao Postgres a partir do navegador (nem por segurança, nem
-tecnicamente). É necessária uma API intermediária.
+**Atualização de 2026-09-23 — não confundir com o backend que já existe.**
+Desde 2026-09-23 há um backend Node/Express pequeno em `backend/`: autentica
+via SGU, e serve/edita o estado administrativo do app (organograma,
+atribuições de perfil — `backend/data/*.json`, sem banco próprio). Ele
+**não** é a API descrita nesta seção — não consulta `marts` nem qualquer
+schema do DW, só arquivos JSON locais ao próprio backend. A pergunta em
+aberto abaixo (API que consulta `marts` pra servir `fetchUnidades()` etc.
+com dado real, em vez dos mocks de `src/data/organograma.js`) continua sem
+resposta — o app React continua uma SPA que não se conecta ao Postgres
+diretamente, só que agora tem esse backend auxiliar para autenticação e
+estado editável.
+
+O app React hoje é uma SPA estática sem backend de dados — não pode se
+conectar diretamente ao Postgres a partir do navegador (nem por segurança,
+nem tecnicamente). É necessária uma API intermediária.
 
 **Proposta inicial**: Python/FastAPI.
 - Motivo: mesmo stack do ETL (Python), permite reaproveitar modelos de dados

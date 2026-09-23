@@ -260,11 +260,15 @@ esconder isso:
 A coluna `no_organograma` (46 unidades verdadeiras) responde diretamente
 "esta OME é reconhecida pelo organograma oficial?".
 
-**O organograma vive em `src/data/organograma.js`**, não numa tabela. O
-`carga_core.py` lê a constante `ARVORE` desse arquivo e falha alto se o
-parse render menos de 5 nós — assim uma refatoração no front não degrada a
-hierarquia do DW em silêncio. Se o organograma virar tabela algum dia, é
-esse leitor que muda, e mais nada.
+**O organograma vive em `backend/data/organograma.json`** (não numa tabela
+do DW) desde 2026-09-23, quando virou editável por um administrador em
+`/adm` (antes disso vivia hardcoded em `src/data/organograma.js`, que
+agora é só o fallback estático usado quando o backend está fora do ar —
+ver `src/data/organograma.js` > `NODES_PADRAO`). `carga_core.py` >
+`arvore_do_organograma()` lê esse JSON direto e falha alto se render menos
+de 5 nós com filho — assim uma edição no admin (ou o backend fora do ar)
+não degrada a hierarquia do DW em silêncio. Se o organograma virar tabela
+algum dia, é esse leitor que muda, e mais nada.
 
 ### Estado das unidades resolvido com o usuário (2026-08-24)
 

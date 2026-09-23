@@ -4,9 +4,12 @@ Painel de Business Intelligence do Corpo de Bombeiros Militar de Pernambuco:
 organograma interativo, indicadores por unidade, dashboards de Efetivo,
 Viaturas, Finanças e o Mapa de Força.
 
-Aplicação **React + Vite, estática** — sem backend próprio. Os números vêm de
-arquivos JSON gerados por scripts Python (`etl/`) que leem o data warehouse
-interno e as demais fontes da corporação.
+Aplicação **React + Vite**. Os números vêm de arquivos JSON gerados por
+scripts Python (`etl/`) que leem o data warehouse interno e as demais fontes
+da corporação — isso continua estático, sem servidor no caminho. Desde
+2026-09-23 existe também um backend próprio pequeno (`backend/`, Node/
+Express): autenticação real via SGU, e o estado editável pelo administrador
+(organograma, atribuição de perfis) — ver seção "Autenticação" abaixo.
 
 ---
 
@@ -163,16 +166,26 @@ os Neon direto.
 arquivo): o usuário administrador fixo (`VITE_ADMIN_USUARIO`/
 `VITE_ADMIN_SENHA`, controle de acesso casual, não segredo de servidor — as
 vars `VITE_*` vão em texto claro no bundle), o protótipo de níveis de acesso
-de `src/lib/accessControl.js`, e agora (2026-09-23) o **SGU real**: login por
-CPF vai para o backend próprio em `backend/`, que autentica contra o SGU da
-corporação (98,4% do efetivo já tem conta lá).
+de `src/lib/accessControl.js` (login de demonstração, sem CPF, nunca fala
+com o backend), e o **SGU real**: login por CPF vai para o backend próprio
+em `backend/`, que autentica contra o SGU da corporação (98,4% do efetivo já
+tem conta lá).
 
-O que falta é o mapeamento SGU → perfil/OME: o SGU só devolve identidade, não
-autorização, e resolver a matrícula/unidade a partir do CPF autenticado ainda
-não está ligado (`backend/services/omeResolver.js`) — é uma pergunta em
-aberto registrada em `DW_PLANEJAMENTO.md` (entrada 2026-09-23). Até lá, todo
-login por CPF entra autenticado mas sem nenhuma unidade liberada, até que
-`/adm` atribua um perfil manualmente.
+O mapeamento CPF → matrícula → OME está **ligado** (`backend/services/
+omeResolver.js`, desde 2026-09-23): a matrícula do militar autenticado vira
+`nivelAcesso`, e é por ela que `/adm` atribui um perfil (`ADMINISTRADOR`,
+`TITULAR` etc.) — até `/adm` atribuir, o login entra autenticado mas sem
+nenhuma unidade liberada (falha fechada).
+
+As atribuições de perfil (`/adm`) e o organograma editável vivem no backend
+(`backend/data/*.json`), não em `localStorage` — uma atribuição feita por um
+admin é visível para o usuário atribuído no navegador *dele*, não só no de
+quem atribuiu. Consequência direta: um usuário SGU cujo próprio perfil é
+`ADMINISTRADOR` consegue editar organograma e outras atribuições a partir do
+próprio login (com CPF real), não só o login administrativo fixo — ver
+`backend/middlewares/requireAdmin.js`. Isso só vale pra quem loga com CPF
+real: o login de demonstração nunca tem um token de backend, então nunca
+passa por essas rotas de escrita, mesmo se atribuído como `ADMINISTRADOR`.
 
 A tela de login já aceita CPF com máscara; o valor enviado ao autenticador vai
 sem máscara.

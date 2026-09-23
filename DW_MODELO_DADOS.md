@@ -364,14 +364,18 @@ com "o SGP diz" ao ler um número de rollup.
 
 ### Onde o organograma mora
 
-Na constante `ARVORE` de `src/data/organograma.js` — arquivo de front-end,
-não tabela. O `carga_core.py` faz o parse direto dele e **falha alto** se o
-resultado tiver menos de 5 nós, para que uma refatoração no app não degrade a
-hierarquia do DW em silêncio.
+Em `backend/data/organograma.json` (desde 2026-09-23 — antes vivia na
+constante `ARVORE` de `src/data/organograma.js`, que agora é só o fallback
+estático). É o arquivo que a tela `/adm` edita (mudar subordinação,
+renomear, criar/excluir OME), servido também ao app via `GET /organograma`.
+`carga_core.py` > `arvore_do_organograma()` lê esse JSON direto e **falha
+alto** se o resultado tiver menos de 5 nós com filho, para que uma edição
+no admin (ou o backend fora do ar) não degrade a hierarquia do DW em
+silêncio.
 
 É dívida técnica consciente: a autoridade da hierarquia da corporação está
-num arquivo `.js`. Quando ela virar tabela (ou vier do SGP corrigido), só o
-leitor muda.
+num arquivo `.json` de aplicação, não numa tabela do DW. Quando ela virar
+tabela (ou vier do SGP corrigido), só o leitor muda.
 
 ### Regras de estado das unidades (2026-08-24)
 

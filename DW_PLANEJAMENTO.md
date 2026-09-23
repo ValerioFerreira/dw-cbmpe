@@ -4342,3 +4342,175 @@ passar a cadastrar atribuições por matrícula. Falta decidir o
 comportamento PADRÃO de um militar real que ainda não foi cadastrado no
 `/adm` — pergunta feita ao usuário na mesma rodada, ver resposta abaixo
 quando houver.
+
+**Resposta do usuário às duas perguntas em aberto acima:**
+
+1. *Um militar loga pela primeira vez com CPF real, sem atribuição em
+   `/adm` — o que ele deve ver?* "Nada, até o admin cadastrar (Recomendado)"
+   — confirma o comportamento que `calcularAcesso(null/matrícula-sem-
+   atribuição, ...)` já tinha por padrão (falha fechada): nenhuma unidade
+   liberada, sem tela própria de "aguardando atribuição". Não precisou de
+   código novo, só a confirmação de que o padrão já estava certo.
+2. *Como reconciliar o editor de organograma (worktree separada, ainda não
+   mesclada) com `carga_core.py`, que faz parse por regex de `const ARVORE`
+   em `src/data/organograma.js`?* "Trocar `carga_core.py` pra ler o JSON do
+   backend (Recomendado)" — feito (ver entrada seguinte).
+
+### 2026-09-23 (quinta rodada) — Organograma editável mesclado, CPF liga direto a matrícula em `/adm`, e Atividades Específicas reagrupadas por família
+
+**Organograma editável pelo administrador** (worktree isolada, mesclada
+nesta rodada): `backend/data/organograma.json` passa a ser a fonte de
+verdade da hierarquia (sigla/nível/pai/`ordem`), servida por
+`GET /organograma` (público — o app inteiro precisa da árvore) e editável
+por `POST/PUT/DELETE /organograma` (token de admin). `src/data/
+organograma.js` trocou o antigo `ARVORE` estático por `NODES_PADRAO`
+(mesmo conteúdo, agora só o FALLBACK) + `montarOrganograma(nodes)`, que
+reconstrói unidades/indicadores/dashboards/alertas a partir de qualquer
+árvore — visualização, controle de acesso e Atividades Específicas ficam
+consistentes automaticamente quando o admin move/renomeia/cria uma OME.
+Níveis hierárquicos (1 Comando Geral, 2 Subcomando Geral, 3 Estado Maior —
+reservado, ainda sem unidade —, 4 Diretoria Geral, 5 Diretoria
+Especialista, 6 OME Subordinada) explícitos em cada nó — deixou de ser "1 +
+profundidade na árvore", porque GCG/CI/CPO/AECI/CCS/GSG/AJG/CPP são filhas
+DIRETAS do Comando/Subcomando (profundidade 2) mas continuam nível 6
+(gabinetes/comissões, confirmado pelo usuário), aparecendo no organograma
+AO LADO do balão do pai, não abaixo.
+
+Reconciliado com `etl/dw/carga_core.py` conforme a decisão do usuário
+(ver acima): `arvore_do_organograma()` passou a ler
+`backend/data/organograma.json` direto como JSON em vez de regex sobre
+`organograma.js` — mais robusto, e uma edição do admin passa a valer
+automaticamente na próxima carga do DW, sem precisar sincronizar os dois
+lados manualmente.
+
+**CPF resolve matrícula direto no formulário de `/adm`**: novo endpoint
+`POST /pessoas/resolver-cpf` (admin-protegido, CPF só no corpo da
+requisição, nunca em URL/log) chama o pipeline CPF → matrícula → OME da
+rodada anterior e devolve `{matricula, ome, adido}`. `Administracao.jsx`
+ganhou um botão "Resolver" que preenche a matrícula sozinho a partir do
+CPF digitado — o admin não precisa mais saber a matrícula de cor pra
+cadastrar alguém em `/adm`.
+
+**Atividades Específicas reagrupadas por família** (`src/data/
+atividadesEspecificas.js`, `src/pages/atividades/AtividadesDashboard.jsx`):
+dashboards da mesma família (4 módulos de Vacinação, 9 de Ocorrências)
+passam a ser UM balão/tile só na página de Atividades Específicas de uma
+OME, não um módulo por dashboard misturado com os demais — clicar abre o
+primeiro módulo (Visão Geral) com links pros módulos irmãos no topo.
+Escopo por família:
+- **Vacinação**: só aparece em unidades da DAS.
+- **Mapa de Força / Ocorrências**: só em DGO e subordinadas — **exceto
+  DIESP**, que não participa de Ocorrências apesar de ser subordinada da
+  DGO (regra explícita do usuário).
+- **Sem herança pro superior**: um painel que aparece na Atividades
+  Específicas de uma OME subordinada NÃO aparece na do superior direto —
+  só na página da subordinada onde o dado de fato existe. O superior
+  continua navegando pra lá normalmente (visitando a OME subordinada
+  direto), a regra é só sobre o que fica LISTADO na página dele, não sobre
+  permissão de acesso.
+
+Também nesta rodada: botão "Metabase — Faça seus próprios painéis" ao lado
+do alternador de tema (link para `https://estatistica.bombeiros.pe.gov.br/`,
+colapsa pra só ícone no mobile).
+
+### 2026-09-23 (sexta rodada) — Organograma: arrastar-e-soltar com modo de edição, atribuições de perfil migradas pro backend, e três ajustes de layout
+
+**Atribuições de perfil migradas de `localStorage` pro backend** — o
+problema que isso resolve: `/adm` atribuía perfil (`ADMINISTRADOR`,
+`TITULAR`...) só no `localStorage` do navegador de quem atribuía. Um
+usuário SGU real, logando no PRÓPRIO navegador dele, nunca veria essa
+atribuição — estruturalmente impossível de um administrador atribuído
+conseguir fazer qualquer alteração, porque o backend não tinha visibilidade
+nenhuma de quem tinha qual perfil. Corrigido com o mesmo padrão do
+organograma editável: `backend/data/atribuicoes.json` +
+`atribuicoesService.js` (`listar`/`definir`/`remover`, e
+`perfilConcedeAdmin(matricula)` — consulta o arquivo a cada chamada, sem
+cache, então um perfil revogado em `/adm` vale na próxima requisição, não
+só no próximo login) + rotas `GET/PUT/DELETE /atribuicoes` (GET público,
+mesma lógica do organograma). `backend/middlewares/requireAdmin.js` agora
+libera as rotas de escrita (organograma E atribuições) tanto pro login
+administrativo fixo quanto pra **qualquer usuário SGU real (token com
+`matricula`) cujo próprio perfil seja `ADMINISTRADOR`** — validado ponta a
+ponta contra o backend local, forjando um token de um usuário
+`ADMINISTRADOR` e um `TITULAR`: o primeiro passou (200 no
+`PUT /organograma/:id`), o segundo foi barrado (403). `Administracao.jsx`
+trocou `lerAtribuicoes()`/`salvarAtribuicoes()` (localStorage) pelas
+chamadas ao backend + `recarregar()` do `CbmpeProvider`, mesmo padrão já
+usado em `OrganogramaEditor.jsx`.
+
+**Por que o usuário `AGGD@GSG` (perfil ADMINISTRADOR) não tem o botão de
+edição habilitado, mesmo depois dessa migração**: `AGGD` é um login do
+protótipo de demonstração de `accessControl.js` (usuário + senha
+`USUARIO@GSG`, sem CPF, sem chamada nenhuma ao backend — ver `authClient.js`
+caminho 2). Esse caminho de login nunca teve, e continua sem ter, um token
+de backend (`user.token` fica `undefined`) — não existe credencial real pro
+backend validar, então não há como emitir um token pra ele mesmo que o
+perfil seja `ADMINISTRADOR`. **Só um login por CPF real via SGU (caminho 3)
+tem token de backend**, e é só esse caminho que `requireAdmin.js` consegue
+reconhecer. Não é bug: é a fronteira entre "protótipo de demonstração,
+sempre foi client-side" e "usuário real, autenticado de verdade" — estender
+acesso de escrita de servidor a um login sem credencial real seria abrir
+uma porta sem fechadura. Pra testar o fluxo de administrador atribuído de
+verdade, precisa de um CPF real autenticando contra o SGU (ainda não testado
+nesta sessão — falta a URL real do SGU, ver pendências).
+
+**Botão de edição do organograma** (`src/pages/Organograma.jsx`): o
+arrastar-e-soltar (implementado na rodada anterior, sempre ligado pra quem
+tinha token) passou a ficar atrás de um botão explícito — ícone de lápis no
+canto superior direito do card do organograma, visível só pra quem tem
+token de escrita. Ligar mostra o aviso de modo de edição e habilita os
+cards arrastáveis; desligar mostra um balão resumindo e confirmando tudo
+que foi movido/reordenado na sessão (cada arrastar já persiste na hora —
+o balão é só o resumo de confirmação, não um lote pendente de salvar).
+
+**Três ajustes de layout, todos verificados no navegador via
+`getBoundingClientRect`/DOM, não só visualmente:**
+1. Unidades nível 6 diretamente subordinadas ao Comando/Subcomando (GCG,
+   CI, CPO, AECI, CCS / GSG, AJG, CPP) numa ÚNICA linha ao lado do balão
+   (antes quebravam em várias linhas/colunas num grid 2 colunas) — `flex`
+   sem quebra a partir do breakpoint `lg`, continua podendo quebrar linha
+   no mobile (senão ficaria ilegível, estourando pros dois lados da tela).
+2. Balões de COMANDO GERAL/SUBCOMANDO GERAL centralizados de verdade na
+   página, com as subordinadas deslocando só pra direita — bug real de CSS
+   Grid: uma coluna `1fr` cresce até o tamanho MÍNIMO do conteúdo antes de
+   distribuir o espaço livre, então o painel largo de subordinadas fazia a
+   coluna vazia do outro lado encolher pra 0, descentralizando o balão.
+   Corrigido com `min-width: 0` na coluna das subordinadas, forçando as
+   duas colunas `1fr` a ficarem realmente iguais (confirmado:
+   `outerCenter === starCenter`, ambos 902.5px).
+3. **DPLAG "afastada", como se tivesse uma linha invisível acima** — bug
+   real, achado ao investigar o relato do usuário: a ordenação por `ordem`
+   (rodada anterior) fazia DPLAG (sem subordinada própria, "folha") virar
+   um pacote de 1 item SOZINHO no fim da lista de colunas da DGA (porque
+   vem depois de DLOG/DEIP, que têm subordinada, na ordem de exibição);
+   numa grade de 4 colunas, o 5º item quebra linha sozinho, alinhado à
+   esquerda embaixo dos outros 4 — exatamente o efeito relatado. Corrigido
+   voltando a agrupar TODAS as folhas de uma Diretoria Geral num bloco só
+   (mesma regra de antes do bug), com as que TÊM subordinada vindo primeiro
+   — funciona pros dois casos: a DGO só tem uma folha (DIESP), que cai
+   naturalmente por último (mesma ordem pedida: DIM, DINTER I, DINTER II,
+   DIESP); a DGA tem sete, que agora ficam empacotadas juntas sem nenhuma
+   sobrando sozinha.
+
+**Também nesta rodada**: removido o campo de CPF da tela de usuários em
+`Administracao.jsx` — nunca esteve de fato ligado a nada
+(`resolverOmePorCpf()` sempre foi um stub que devolve `null`) e, com
+atribuições agora persistidas em arquivo no servidor, mantê-lo teria
+introduzido CPF armazenado fora do navegador do admin, quebrando a
+disciplina de nunca persistir CPF mantida desde 2026-08-24.
+
+**Commit e push**: tudo desta rodada e da rodada anterior (organograma
+editável, CPF em `/adm`, Atividades Específicas por família — que ainda não
+tinham sido commitados) foram commitados e enviados a `origin/main`.
+
+**Em aberto, sem mudança desde a rodada anterior:**
+- SGU real ainda não testado (sem `SGU_URL` real — nenhuma URL real existe
+  em nenhum dos dois repositórios, só placeholder vazio de propósito).
+  Precisa que o usuário informe a URL real, em chat, só uso em sessão.
+- Docker segue não encontrado nesta máquina, apesar do usuário ter dito que
+  está instalado — sem confirmação do usuário sobre isso, `docker build`/
+  `docker compose config` continuam não testados aqui.
+- `core.fato_efetivo_diario` segue com a carga de 2026-08-26 (quase 1 mês
+  desatualizada) — rodar `etl/dw/carga_core.py` de novo (idempotente,
+  agora já lendo `backend/data/organograma.json`) deixaria em dia; não
+  rodei, por não ter sido pedido nesta rodada.

@@ -324,13 +324,36 @@ concreto — a resolução usuário → OME — e a recomendação é que essa c
 aconteça **no servidor, a cada login**, sem materializar CPF no DW nem em
 nenhum JSON servido ao navegador.
 
-### O limite continua o mesmo
+### O limite continua o mesmo (visualização), mas a ESCRITA já é real (2026-09-23)
 
-Isto é protótipo de **visualização**. A verificação roda no navegador e o dado
-que alimenta o app é servido junto com ele — quem abrir o DevTools lê tudo,
-independente do perfil. Organiza a interface, não protege o dado. Autorização
-real exige o backend, e é pré-requisito para o app sair da Vercel com dado
-nominal. A própria tela `/adm` diz isso.
+Isto é protótipo de **visualização**. A verificação de QUAIS cards/
+indicadores aparecem roda no navegador e o dado que alimenta o app é servido
+junto com ele — quem abrir o DevTools lê tudo, independente do perfil.
+Organiza a interface, não protege o dado. Autorização real de LEITURA exige
+o backend, e é pré-requisito para o app sair da Vercel com dado nominal. A
+própria tela `/adm` diz isso.
+
+O que mudou em 2026-09-23: as atribuições (`ATRIBUICOES`) deixaram de viver
+só em `localStorage` e passaram a viver no backend
+(`backend/services/atribuicoesService.js`, mesmo padrão do organograma
+editável). Antes disso, uma atribuição feita por um admin só existia no
+*navegador dele* — o usuário atribuído, logando no *próprio* navegador,
+nunca veria essa atribuição. Consequência prática: `backend/middlewares/
+requireAdmin.js` agora libera as rotas de escrita (organograma, atribuições)
+tanto para o login administrativo fixo quanto para **qualquer usuário SGU
+real cujo próprio perfil seja `ADMINISTRADOR`** — não é mais um privilégio
+exclusivo do login fixo. Essa parte (quem pode ESCREVER) já é controle de
+acesso real, aplicado no servidor, revalidado a cada requisição.
+
+Duas ressalvas que continuam de pé:
+- Só um login com CPF real (SGU) tem token de backend. O protótipo de
+  demonstração de `accessControl.js` (usuário/senha `USUARIO@GSG`, sem CPF)
+  nunca fala com o backend — atribuir `ADMINISTRADOR` a um desses usuários
+  não dá acesso de escrita nenhum, porque não há credencial real para o
+  backend validar.
+- A leitura (quais cards um usuário vê) continua sendo o protótipo de
+  visualização descrito acima — só a escrita das duas telas administrativas
+  (organograma, atribuições) virou controle de acesso de servidor.
 
 ## Contato de militar fica em tabela separada (2026-08-24)
 

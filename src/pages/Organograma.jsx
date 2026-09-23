@@ -262,35 +262,32 @@ export default function Organograma() {
       return filhosDe(unidade.id).filter((u) => u.nivel === 6).sort(ordenarPorOrdem);
     }
 
-    // Colunas da Diretoria Geral, na ORDEM real de `ordem` (não mais
-    // "primeiro todas as folhas empilhadas, depois todos os grupos com
-    // filhos", que jogava qualquer folha (ex.: DIESP) pro início da grade
-    // não importa sua posição — bug reportado 2026-09-23: DGO devia mostrar
-    // DIM, DINTER I, DINTER II, DIESP nessa ordem, e DIESP (sem
-    // subordinada própria) aparecia primeiro). Uma unidade nível 5 com
-    // filhos vira sua própria coluna (GrupoDiretoria); uma "folha" (sem
-    // filho) entra num pacote com as folhas VIZINHAS na mesma posição
-    // (splitEmColunas em até 2 sub-colunas) — mantém o empilhamento
-    // compacto da DGA sem quebrar a ordem pedida pra DGO.
+    // Colunas da Diretoria Geral: unidades nível 5 COM subordinada própria
+    // primeiro (uma coluna cada, na ordem de `ordem` — é o que garante DIM,
+    // DINTER I, DINTER II antes de DIESP na DGO), depois as "folha" (sem
+    // subordinada) TODAS JUNTAS num bloco compacto (splitEmColunas em até 2
+    // sub-colunas, ordenadas entre si por `ordem`).
+    //
+    // Até 2026-09-23 isto respeitava a ordem intercalada estrita (ver
+    // histórico do arquivo) — quebrava a DGA: como DPLAG (folha) vem DEPOIS
+    // de DLOG/DEIP (com subordinada) na ordem, virava um pacote de 1 item
+    // sozinho no fim da lista de colunas; numa grade de 4 colunas isso
+    // jogava o pacote pra uma 5ª posição, que quebra linha sozinha —
+    // exatamente o "afastada, como se tivesse uma linha invisível acima"
+    // reportado. Juntar as folhas sempre no mesmo bloco evita qualquer
+    // pacote de 1 item isolado, sem violar a ordem pedida pra DGO (lá só
+    // existe UMA folha — DIESP —, que já cai naturalmente por último).
     function gruposDaDiretoriaGeral(dg) {
       const nivel5 = filhosDe(dg.id).filter((u) => u.nivel === 5).sort(ordenarPorOrdem);
-      const colunas = [];
-      let bufferFolhas = [];
-      function fecharBuffer() {
-        if (bufferFolhas.length === 0) return;
-        splitEmColunas(bufferFolhas, 2).forEach((pacote) => colunas.push({ tipo: "pacote", unidades: pacote }));
-        bufferFolhas = [];
-      }
+      const comFilhos = [];
+      const folhas = [];
       nivel5.forEach((u) => {
         const filhos = filhosDe(u.id).filter((f) => f.nivel === 6).sort(ordenarPorOrdem);
-        if (filhos.length > 0) {
-          fecharBuffer();
-          colunas.push({ tipo: "grupo", unidade: u, filhos });
-        } else {
-          bufferFolhas.push(u);
-        }
+        if (filhos.length > 0) comFilhos.push({ unidade: u, filhos });
+        else folhas.push(u);
       });
-      fecharBuffer();
+      const colunas = comFilhos.map(({ unidade, filhos }) => ({ tipo: "grupo", unidade, filhos }));
+      splitEmColunas(folhas, 2).forEach((pacote) => colunas.push({ tipo: "pacote", unidades: pacote }));
       return colunas;
     }
 
