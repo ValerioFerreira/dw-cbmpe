@@ -530,6 +530,24 @@ por unidade em `organograma.js`), rota `/financas/:id/dashboard/:modulo`,
 
 ## Ocorrências: scaffold completo, dado real bloqueado (2026-09-23)
 
+**Atualização, mesmo dia, rodada seguinte: credencial resolvida.** O
+usuário passou usuário/senha de `roe_api_production` no chat (mesmo
+tratamento da de Vacinação — só em `.env.local`, nunca commitada) e
+confirmou a VPN ativa. Extrator rodado com dado real completo (35.866
+ocorrências); schema real das 7 tabelas `roe_*` lido via
+`information_schema`, 5 das 9 abas que dependiam de schema saíram do
+pendente (Incêndio, Salvamento, Prevenção, Produtos Perigosos — parcial,
+Perfil de Vítimas), e 3 bugs reais de UI corrigidos (rótulo booleano
+invisível em 2 gráficos de APH, "Vítimas com deficiência" mostrando 100%
+por tratar campo categórico como booleano, KPI row cortando título por
+grade com célula vazia). Ver `DW_PLANEJAMENTO.md`, entrada "terceira
+rodada" de 2026-09-23, para o relato completo — inclusive a lista do que
+ainda fica pendente (Incêndio/Salvamento têm mais 5+6 quadrantes sem nome
+confirmado por Igor; "Total por produto" retido por qualidade de dado,
+não por schema).
+
+Texto original desta seção (antes da credencial), mantido como histórico:
+
 Terceiro painel do lote a sair do HTML autônomo — mas, diferente de DF e
 Vacinação, **sem nenhum número real ainda**: `roe_api_production`
 (10.193.1.252:15432) continua sem credencial que autentique (ver
@@ -566,3 +584,21 @@ para o relato completo desta rodada. Resumo do que mudou:
   qualidade de dado, não recalculada por este scaffold).
 - Mapa coroplético da aba Geolocalização não foi desenhado (ranking por
   cidade em hbar cobre o essencial com dado real quando houver).
+
+## Ocorrências: 9ª aba (Atividade Comunitária) e defesa de overflow (2026-09-23, mesmo dia, segunda rodada)
+
+O protótipo original do Igor (`dashboard-ocorrencias.html`, 8 abas — ver
+tabela no topo desta seção) nunca teve aba para "Atividade Comunitária",
+apesar de `status_ocorrencias.md` confirmar que é uma das 6 naturezas
+exatas de `roe_basico_ocorrencias`. Adicionada como 9ª aba
+(`ModuloAtividadeComunitaria.jsx`), só com cards do nível básico
+(Finalizadas/Aguardando finalização/Ocorrências diárias/Cidade/Subgrupo/
+Grupo) — natureza sem nenhuma tabela de detalhe no
+`DW_CATALOGO_FONTES.md`, então não tem `CardPendente` nenhum. Frontend
+passa de 8 para 9 módulos em `src/pages/ocorrencias/`. Também corrigidos
+dois bugs reais de overflow em `src/components/charts/PanelGrafico.jsx`
+(rótulo de valor empilhado em gráfico `line`/`bar` com muitas
+categorias/pontos, e eixo X sem afinamento de tick) — achados com dataset
+sintético local, descartado depois, e confirmados já com dado real assim
+que a VPN voltou nesta mesma rodada. Detalhe completo em
+`DW_PLANEJAMENTO.md`, seção "9ª aba: Atividade Comunitária".

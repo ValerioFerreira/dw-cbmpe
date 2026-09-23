@@ -11,7 +11,7 @@ import DonutChart from "@/components/charts/DonutChart";
 import MultiSelectFiltro from "@/components/ui/multi-select-filtro";
 import AguardandoCredencial from "./AguardandoCredencial";
 
-// Aba "Visão Geral" (1ª de 8) — ver dashboards/08-ocorrencias/status_ocorrencias.md,
+// Aba "Visão Geral" (1ª de 9) — ver dashboards/08-ocorrencias/status_ocorrencias.md,
 // seção "Visão Geral": 🟢 confirmed em tudo, exceto "Natureza" (🔴 print no
 // protótipo, por falta de export com valores absolutos). Aqui "Natureza"
 // deixa de ser print: o SQL exato já veio em status_ocorrencias.md (seção

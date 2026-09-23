@@ -27,6 +27,7 @@ export const MODULOS_OCORRENCIAS_DASHBOARD = [
   { n: 6, key: "ocorrencias-produtos-perigosos", nome: "Ocorrências — Produtos Perigosos" },
   { n: 7, key: "ocorrencias-geolocalizacao", nome: "Ocorrências — Geolocalização" },
   { n: 8, key: "ocorrencias-perfil-vitimas", nome: "Ocorrências — Perfil de Vítimas" },
+  { n: 9, key: "ocorrencias-atividade-comunitaria", nome: "Ocorrências — Atividade Comunitária" },
 ];
 
 // Siglas da subarvore da DGO (DGO + tudo abaixo dela, recursivamente) - o
@@ -85,6 +86,25 @@ export function serieCampoOcorrencias(ocorrencias, campo, { rotuloNulo } = {}) {
   const base = rotuloNulo ? ocorrencias : ocorrencias.filter((o) => o[campo]);
   return paraSerie(groupCount(base, (o) => o[campo] || rotuloNulo));
 }
+
+// Faixa etária de vítima (aba Perfil de Vítimas) — bucket feito aqui (não
+// veio pronto de nenhum SQL de Igor) a partir de `idade`/`idadeEmMeses`
+// crus do extrator. `idadeEmMeses=true` já é sinal de bebê (<1 ano) direto
+// da origem, não precisa de limiar arbitrário.
+export function faixaEtaria(idade, idadeEmMeses) {
+  if (idadeEmMeses) return "Menor de 1 ano";
+  if (idade == null) return null;
+  if (idade < 12) return "0 a 11 anos";
+  if (idade < 18) return "12 a 17 anos";
+  if (idade < 30) return "18 a 29 anos";
+  if (idade < 45) return "30 a 44 anos";
+  if (idade < 60) return "45 a 59 anos";
+  return "60 anos ou mais";
+}
+
+export const ORDEM_FAIXA_ETARIA = [
+  "Menor de 1 ano", "0 a 11 anos", "12 a 17 anos", "18 a 29 anos", "30 a 44 anos", "45 a 59 anos", "60 anos ou mais",
+];
 
 // Série cronológica por DIA (chave "AAAA-MM-DD"), não por mês — usada em
 // "Ocorrências diárias" (aba Salvamento), o único card diário confirmado

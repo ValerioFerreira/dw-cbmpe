@@ -16,7 +16,7 @@ const NATUREZA_APH = "Atendimento Pré-Hospitalar";
 // seção 1b) fixa esse corte — não é o "desde sempre" da base.
 const DATA_CORTE_APH = "2025-11-01";
 
-// Aba "APH" (2ª de 8) — status_ocorrencias.md: 🟢 confirmed nos 10
+// Aba "APH" (2ª de 9) — status_ocorrencias.md: 🟢 confirmed nos 10
 // quadrantes, com 2 ressalvas documentadas (não bloqueantes):
 //   1. "Vítimas entregues com vida" não filtra `protocolo IS NOT NULL` como
 //      "Finalizadas" filtra — por isso o total fica 2 acima (17.233 vs
@@ -60,14 +60,21 @@ export default function ModuloAph({ ocorrencias, aphEstatistica, permitidas, blo
     () => serieCampoOcorrencias(finalizadas.filter((o) => o.subgrupo !== "Outro" && o.subgrupo !== "Diversos"), "subgrupo").slice(0, 5),
     [finalizadas]
   );
+  // `cvi`/`entregueVivo` são booleanos — precisam virar rótulo em texto
+  // antes de ir pro gráfico (React não desenha `true`/`false` como filho de
+  // JSX, então usar o booleano cru como `label` deixava a categoria
+  // invisível no eixo/legenda, achado em 2026-09-23 ao revisar com dado
+  // real: "Atendimentos a CVI" só tinha 1 barra sem rótulo nenhum).
   const porCvi = useMemo(() => {
-    const m = new Map();
-    filtradosAph.forEach((a) => { if (a.cvi) m.set(a.cvi, (m.get(a.cvi) || 0) + 1); });
-    return [...m.entries()].map(([label, valor]) => ({ label, valor })).sort((a, b) => b.valor - a.valor);
+    const comCvi = filtradosAph.filter((a) => a.cvi).length;
+    return comCvi > 0 ? [{ label: "Com CVI confirmado", valor: comCvi }] : [];
   }, [filtradosAph]);
   const porEntregueVivo = useMemo(() => {
     const m = new Map();
-    vitimasEntreguesComVida.forEach((a) => m.set(a.entregueVivo, (m.get(a.entregueVivo) || 0) + 1));
+    vitimasEntreguesComVida.forEach((a) => {
+      const label = a.entregueVivo ? "Sim" : "Não";
+      m.set(label, (m.get(label) || 0) + 1);
+    });
     return [...m.entries()].map(([label, valor]) => ({ label, valor })).sort((a, b) => b.valor - a.valor);
   }, [vitimasEntreguesComVida]);
 
@@ -87,7 +94,11 @@ export default function ModuloAph({ ocorrencias, aphEstatistica, permitidas, blo
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* sm:grid-cols-3 (não -4): só 3 cards aqui — com 4 colunas sobrava uma
+          célula vazia E "Vítimas entregues com vida" cortava no título
+          (achado em 2026-09-23 revisando com dado real: scrollWidth 172px >
+          clientWidth 150px numa coluna de 184px). */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <KpiCard nome="Finalizadas" valor={fmtNumero(finalizadas.length)} destaque />
         <KpiCard nome="Aguardando finalização" valor={fmtNumero(aguardando.length)} />
         <KpiCard

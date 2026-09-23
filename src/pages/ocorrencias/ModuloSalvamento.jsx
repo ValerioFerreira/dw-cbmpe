@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { fmtNumero } from "@/lib/cbmpe";
-import { filtrarPorEscopoOcorrencias, passaMultiSelect, serieDiaria } from "@/lib/ocorrenciasDashboard";
+import { filtrarPorEscopoOcorrencias, passaMultiSelect, serieDiaria, serieCampoOcorrencias } from "@/lib/ocorrenciasDashboard";
 import { ordenarPorAntiguidadeOme } from "@/lib/antiguidadeOme";
 import SectionCard from "@/components/ui/section-card";
 import KpiCard from "@/components/ui/kpi-card";
@@ -11,13 +11,13 @@ import CardPendente from "./CardPendente";
 
 const NATUREZA_SALVAMENTO = "Salvamento";
 
-// Aba "Salvamento" (4ª de 8) — status_ocorrencias.md: 7/7 quadrantes
+// Aba "Salvamento" (4ª de 9) — status_ocorrencias.md: 7/7 quadrantes
 // confirmed, 2 nomeados por extenso: "Ocorrências diárias" (CSV de 236
 // dias, soma exata = Finalizadas + Aguardando finalização — reconstruível
 // aqui a partir de roe_basico_ocorrencias, sem depender da tabela de
 // detalhe) e "Tipo Predominante" (19 categorias — precisa de
 // roe_salvamento_ocorrencias, schema não verificado, fica pendente).
-export default function ModuloSalvamento({ ocorrencias, permitidas, bloqueado, pendencias }) {
+export default function ModuloSalvamento({ ocorrencias, salvamento, permitidas, bloqueado, pendencias }) {
   const [omes, setOmes] = useState(new Set());
   const doEscopo = useMemo(() => filtrarPorEscopoOcorrencias(ocorrencias, permitidas), [ocorrencias, permitidas]);
   const todasOmes = useMemo(() => ordenarPorAntiguidadeOme([...new Set(doEscopo.map((o) => o.ome).filter(Boolean))]), [doEscopo]);
@@ -28,6 +28,10 @@ export default function ModuloSalvamento({ ocorrencias, permitidas, bloqueado, p
   const finalizadas = useMemo(() => filtrados.filter((o) => o.finalizado), [filtrados]);
   const aguardando = useMemo(() => filtrados.filter((o) => !o.finalizado), [filtrados]);
   const diaria = useMemo(() => serieDiaria(filtrados), [filtrados]);
+
+  const salvamentoEscopo = useMemo(() => filtrarPorEscopoOcorrencias(salvamento || [], permitidas), [salvamento, permitidas]);
+  const salvamentoFiltrado = useMemo(() => salvamentoEscopo.filter((l) => passaMultiSelect(l.ome, omes)), [salvamentoEscopo, omes]);
+  const porTipo = useMemo(() => serieCampoOcorrencias(salvamentoFiltrado, "tipoPredominante"), [salvamentoFiltrado]);
 
   if (bloqueado) return <AguardandoCredencial />;
 
@@ -51,8 +55,12 @@ export default function ModuloSalvamento({ ocorrencias, permitidas, bloqueado, p
         <PanelGrafico tipo="line" curva="linear" data={diaria} xKey="label" yKeys={["valor"]} altura={280} anguloEixoX={-60} alturaEixoX={70} fontEixoX={8} />
       </SectionCard>
 
-      <SectionCard titulo="Tipo Predominante" subtitulo="19 categorias — confirmado por Igor no Metabase">
-        <CardPendente titulo="Aguardando SQL/schema" motivo={pendencias?.salvamento_tipo_predominante} />
+      <SectionCard titulo="Tipo Predominante">
+        {porTipo.length > 0 ? (
+          <PanelGrafico tipo="hbar" data={porTipo} xKey="label" yKeys={["valor"]} altura={Math.max(280, porTipo.length * 26)} />
+        ) : (
+          <CardPendente titulo="Sem registros no escopo" motivo="Nenhuma ocorrência de Salvamento com tipo predominante preenchido na OME/filtro selecionado." />
+        )}
       </SectionCard>
     </div>
   );

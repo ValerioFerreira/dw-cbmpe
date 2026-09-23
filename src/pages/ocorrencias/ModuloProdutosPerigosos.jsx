@@ -1,14 +1,15 @@
 import React, { useMemo } from "react";
 import { fmtNumero } from "@/lib/cbmpe";
-import { filtrarPorEscopoOcorrencias } from "@/lib/ocorrenciasDashboard";
+import { filtrarPorEscopoOcorrencias, serieCampoOcorrencias } from "@/lib/ocorrenciasDashboard";
 import SectionCard from "@/components/ui/section-card";
 import KpiCard from "@/components/ui/kpi-card";
+import DonutChart from "@/components/charts/DonutChart";
 import AguardandoCredencial from "./AguardandoCredencial";
 import CardPendente from "./CardPendente";
 
 const NATUREZA_PP = "Produtos Perigosos";
 
-// Aba "Produtos Perigosos" (6ª de 8) — a única com pendência 🟠 explícita
+// Aba "Produtos Perigosos" (6ª de 9) — a única com pendência 🟠 explícita
 // mesmo DEPOIS de resolvida a credencial: status_ocorrencias.md marca
 // "Total por produto" como suspeita de erro de qualidade de dado (656 de
 // 672 produtos com contagem exatamente 20, rótulos "X (ver Y)" — parece
@@ -23,7 +24,7 @@ const NATUREZA_PP = "Produtos Perigosos";
 // literal em extract_dashboard_ocorrencias.py) — mostrado aqui como as 3
 // contagens brutas, sem tentar decidir sozinho como plotar a linha do
 // tempo (essa decisão é do Valério com Igor, ver status_ocorrencias.md).
-export default function ModuloProdutosPerigosos({ ocorrencias, produtosPerigososDiagnostico, permitidas, bloqueado, pendencias }) {
+export default function ModuloProdutosPerigosos({ ocorrencias, produtosPerigosos, produtosPerigososDiagnostico, permitidas, bloqueado, pendencias }) {
   const doEscopo = useMemo(() => filtrarPorEscopoOcorrencias(ocorrencias, permitidas), [ocorrencias, permitidas]);
   const filtrados = useMemo(() => doEscopo.filter((o) => o.natureza === NATUREZA_PP), [doEscopo]);
   const finalizadas = useMemo(() => filtrados.filter((o) => o.finalizado), [filtrados]);
@@ -33,11 +34,19 @@ export default function ModuloProdutosPerigosos({ ocorrencias, produtosPerigosos
     [finalizadas]
   );
 
+  // Perfil dos Botijões de GLP: só as linhas que de fato são sobre GLP têm
+  // `perfilBotijaoGlp` preenchido (o campo vem nulo pra qualquer outro
+  // produto perigoso) — serieCampoOcorrencias já descarta nulo por padrão.
+  const ppEscopo = useMemo(() => filtrarPorEscopoOcorrencias(produtosPerigosos || [], permitidas), [produtosPerigosos, permitidas]);
+  const porPerfilGlp = useMemo(() => serieCampoOcorrencias(ppEscopo, "perfilBotijaoGlp"), [ppEscopo]);
+
   if (bloqueado) return <AguardandoCredencial />;
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* sm:grid-cols-3 (não -4): só 3 cards aqui — 4 colunas deixava a
+          última vazia (mesmo ajuste feito em ModuloAph.jsx). */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <KpiCard nome="Finalizadas" valor={fmtNumero(finalizadas.length)} destaque />
         <KpiCard nome="Aguardando finalização" valor={fmtNumero(aguardando.length)} />
         <KpiCard nome="Total de vítimas" valor={fmtNumero(totalVitimas)} />
@@ -62,8 +71,12 @@ export default function ModuloProdutosPerigosos({ ocorrencias, produtosPerigosos
         <CardPendente titulo="Bloqueado por qualidade de dado, não por credencial" motivo={pendencias?.produtos_perigosos_total_por_produto} />
       </SectionCard>
 
-      <SectionCard titulo="Perfil dos Botijões de GLP">
-        <CardPendente titulo="Aguardando SQL/schema" motivo={pendencias?.produtos_perigosos_perfil_botijoes_glp} />
+      <SectionCard titulo="Perfil dos Botijões de GLP" subtitulo="Só as ocorrências de vazamento/incidente com botijão GLP têm este campo preenchido">
+        {porPerfilGlp.length > 0 ? (
+          <DonutChart data={porPerfilGlp} rotuloTotal="Botijões" altura={200} />
+        ) : (
+          <CardPendente titulo="Sem registros no escopo" motivo="Nenhuma linha de Produtos Perigosos com perfil de botijão GLP preenchido na OME/filtro selecionado." />
+        )}
       </SectionCard>
     </div>
   );

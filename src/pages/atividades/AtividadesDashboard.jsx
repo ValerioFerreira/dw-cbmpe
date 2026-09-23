@@ -25,6 +25,7 @@ import ModuloPrevencao from "@/pages/ocorrencias/ModuloPrevencao";
 import ModuloProdutosPerigosos from "@/pages/ocorrencias/ModuloProdutosPerigosos";
 import ModuloGeolocalizacao from "@/pages/ocorrencias/ModuloGeolocalizacao";
 import ModuloPerfilVitimas from "@/pages/ocorrencias/ModuloPerfilVitimas";
+import ModuloAtividadeComunitaria from "@/pages/ocorrencias/ModuloAtividadeComunitaria";
 
 // Casca do dashboard de Atividades Específicas — mesma estrutura de
 // EfetivoDashboard/ViaturasDashboard: breadcrumb, checagem de acesso, escopo
@@ -37,7 +38,7 @@ import ModuloPerfilVitimas from "@/pages/ocorrencias/ModuloPerfilVitimas";
 // DAS, não filtrado por unidade — ver ModuloVacinacaoVisaoGeral.jsx).
 // Ocorrências é o oposto: reusa siglasPermitidas (mesmo mecanismo de
 // Efetivo/Viaturas/Finanças) e, além disso, só existe de fato dentro da
-// subárvore da DGO — fora dela, os 8 módulos caem no EmptyState de escopo
+// subárvore da DGO — fora dela, os 9 módulos caem no EmptyState de escopo
 // abaixo, sem tentar mostrar dado de outra diretoria.
 const TODOS_MODULOS = [...MODULOS_ATIVIDADES_DASHBOARD, ...MODULOS_VACINACAO_DASHBOARD, ...MODULOS_OCORRENCIAS_DASHBOARD];
 
@@ -55,6 +56,7 @@ const COMPONENTES = {
   "ocorrencias-produtos-perigosos": ModuloProdutosPerigosos,
   "ocorrencias-geolocalizacao": ModuloGeolocalizacao,
   "ocorrencias-perfil-vitimas": ModuloPerfilVitimas,
+  "ocorrencias-atividade-comunitaria": ModuloAtividadeComunitaria,
 };
 
 const CHAVES_OCORRENCIAS = new Set(MODULOS_OCORRENCIAS_DASHBOARD.map((m) => m.key));
@@ -164,6 +166,8 @@ export default function AtividadesDashboard() {
         permitidas={permitidas} unidade={unidade}
         eventos={vacinacaoDashboardReal.eventos} participacao={vacinacaoDashboardReal.participacao}
         ocorrencias={ocorrenciasDashboardReal.ocorrencias} aphEstatistica={ocorrenciasDashboardReal.aphEstatistica}
+        incendio={ocorrenciasDashboardReal.incendio} salvamento={ocorrenciasDashboardReal.salvamento}
+        prevencao={ocorrenciasDashboardReal.prevencao} produtosPerigosos={ocorrenciasDashboardReal.produtosPerigosos}
         produtosPerigososDiagnostico={ocorrenciasDashboardReal.produtosPerigososDiagnostico}
         pendencias={ocorrenciasDashboardReal.pendenciasSemSql} bloqueado={ocorrenciasBloqueado}
       />

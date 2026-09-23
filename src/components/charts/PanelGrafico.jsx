@@ -91,13 +91,25 @@ export default function PanelGrafico({
   const margemBase = { top: 8, right: legenda ? 96 : 8, bottom: 0, left: 4 };
   const propsComuns = { data, margin: margemBase };
 
+  // bar/line/area com muitas categorias no eixo X (ex. série diária de
+  // Ocorrências, ~270 dias, ou um ranking de OME sem corte tipo "Diretoria")
+  // colidiam: `interval={0}` forçava mostrar TODO tick, e o LabelList de
+  // valor em cima de cada ponto/barra virava uma pilha ilegível de números
+  // sobrepostos. Acima de 20 categorias, mostra só ~15 ticks (distribuídos)
+  // e some com os rótulos de valor — o dado exato continua no tooltip.
+  // hbar não entra aqui: já tem a própria defesa (altura dinâmica por
+  // Math.max(320, n*26), sem eixo de categoria compartilhado com bar/line).
+  const muitasCategoriasEixoX = tipo !== "hbar" && data.length > 20;
+  const intervaloEixoX = muitasCategoriasEixoX ? Math.ceil(data.length / 15) - 1 : 0;
+  const suprimirRotuloPonto = muitasCategoriasEixoX;
+
   const eixoX = (
     <XAxis
       dataKey={xKey}
       tick={{ fontSize: fontEixoX, fill: COR_TEXTO }}
       tickLine={false}
       axisLine={{ stroke: COR_GRID }}
-      interval={0}
+      interval={intervaloEixoX}
       angle={anguloEixoX}
       textAnchor="end"
       height={alturaEixoX}
@@ -127,7 +139,9 @@ export default function PanelGrafico({
               onClick={clicavel ? (pontoDado) => aoClicarBarra(pontoDado?.payload || pontoDado, k) : undefined}
             >
               {data.map((_, idx) => <Cell key={idx} fill={palette[i % palette.length]} />)}
-              <LabelList dataKey={k} position="top" formatter={formatarRotulo} style={{ fontSize: 10, fill: "hsl(var(--foreground))" }} />
+              {!suprimirRotuloPonto && (
+                <LabelList dataKey={k} position="top" formatter={formatarRotulo} style={{ fontSize: 10, fill: "hsl(var(--foreground))" }} />
+              )}
             </Bar>
           ))}
         </BarChart>
@@ -166,7 +180,7 @@ export default function PanelGrafico({
           {legenda && <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: 12 }} />}
           {yKeys.map((k, i) => (
             <Line key={k} type={curva} dataKey={k} stroke={palette[i % palette.length]} strokeWidth={2} dot={false} activeDot={{ r: 4 }}>
-              {yKeys.length === 1 && <LabelList dataKey={k} content={criarRotuloLinha(data, k, formatarRotulo)} />}
+              {yKeys.length === 1 && !suprimirRotuloPonto && <LabelList dataKey={k} content={criarRotuloLinha(data, k, formatarRotulo)} />}
             </Line>
           ))}
         </LineChart>

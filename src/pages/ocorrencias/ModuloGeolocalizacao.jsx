@@ -8,7 +8,7 @@ import PanelGrafico from "@/components/charts/PanelGrafico";
 import MultiSelectFiltro from "@/components/ui/multi-select-filtro";
 import AguardandoCredencial from "./AguardandoCredencial";
 
-// Aba "Geolocalização" (7ª de 8) — status_ocorrencias.md: 🟢 confirmed
+// Aba "Geolocalização" (7ª de 9) — status_ocorrencias.md: 🟢 confirmed
 // (stat + mapa coroplético, CSV de 189 cidades reconciliado com geoJSON de
 // 185 municípios de PE + Fernando de Noronha em mapa separado). O campo
 // `cidade` já sai confirmado de roe_basico_ocorrencias (mesma extração
@@ -21,7 +21,7 @@ import AguardandoCredencial from "./AguardandoCredencial";
 // cidade↔geoJSON (Belém do/de São Francisco, São Vicente Férrer/Ferrer etc.,
 // já decidida por Igor em 2026-08-25, ver status_ocorrencias.md seção 2) e
 // desenhar um choropleth de verdade é trabalho de UI maior que o resto das
-// 8 abas. O ranking por cidade abaixo já cobre o "quais cidades têm mais
+// 9 abas. O ranking por cidade abaixo já cobre o "quais cidades têm mais
 // ocorrências" com dado real; o mapa fica como próximo passo, sinalizado no
 // relatório desta sessão.
 export default function ModuloGeolocalizacao({ ocorrencias, permitidas, bloqueado }) {

@@ -2,12 +2,12 @@ import React from "react";
 import { DatabaseZap } from "lucide-react";
 import EmptyState from "@/components/ui/empty-state";
 
-// Banner compartilhado pelos 8 módulos de Ocorrências enquanto
+// Banner compartilhado pelos 9 módulos de Ocorrências enquanto
 // src/data/real/ocorrencias_dashboard.json seguir vazio (bloqueado por
 // credencial — ver etl/ocorrencias/extract_dashboard_ocorrencias.py e
 // DW_CATALOGO_FONTES.md, seção Ocorrências). Extraído num componente
 // próprio em vez de repetido em cada Modulo*.jsx porque o texto é idêntico
-// nos 8 — só evita duplicação, não é um padrão novo de acesso.
+// nos 9 — só evita duplicação, não é um padrão novo de acesso.
 export default function AguardandoCredencial() {
   return (
     <EmptyState

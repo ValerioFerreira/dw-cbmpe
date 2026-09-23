@@ -564,7 +564,7 @@ Ver `DW_MODELO_DADOS.md`, seção `dim_viatura`, para as duas regras que só
 apareceram medindo (quem herda o passado, e por que vigência sozinha não
 basta).
 
-## Ocorrências (ROE) — host corrigido em 2026-09-21 (segunda vez); ainda sem credencial
+## Ocorrências (ROE) — credencial obtida em 2026-09-23 (usuário `roe_api`, ver .env.local)
 
 Responde a pergunta que estava aberta desde 2026-08-24 ("onde as ocorrências
 vivem hoje, agora que `ovrsgo` e `ovrroe` estão fora de uso") — mas a
@@ -577,19 +577,20 @@ banco totalmente separado**: `roe_api_production`, mesmo host
 (`10.193.1.252`) mas **porta diferente, `15432`** (não `54301`). Informado
 pelo usuário, corrigido no catálogo.
 
-**Sem credencial ainda.** Com a VPN ativa, a porta 15432 responde (o
-handshake TCP/Postgres chega e rejeita a autenticação — não é timeout), mas
-nenhuma das credenciais já em `.env.local` (nem `datawarehouse-user`, nem
-`ctic`) autentica nesse banco. Precisa de uma credencial nova, própria desse
-serviço — provavelmente do mesmo dono do `mapa_forca_api_development` e do
-`vaccine_control_production` (sufixo `_production`, o mesmo padrão de nome
-de app Rails já visto em `DATABASE_URL_OPS`), o que sugere que pode estar no
-mesmo servidor de aplicações Rails, só numa porta diferente — a confirmar
-com quem administra esse host.
+**Credencial obtida em 2026-09-23.** Usuário passou usuário/senha
+(`roe_api`) direto no chat, mesmo tratamento já dado à de Vacinação — só
+em `.env.local` (`DATABASE_URL_ROE`), nunca commitada. Com a VPN ativa,
+autenticou de primeira. Schema real lido via `information_schema` (ver
+`DW_PLANEJAMENTO.md`, entrada "terceira rodada" de 2026-09-23) — a lista
+de tabelas abaixo foi atualizada com o que existe de verdade (2 a mais do
+que se supunha: `roe_basico_ocorrencias_nova`, idêntica em conteúdo a
+`roe_basico_ocorrencias`, e `roe_resumo_ocorrencias`, com 320 linhas a
+mais e pelo menos 1 ano corrompido no dado — nenhuma das duas trocou o
+extrator, que continua lendo `roe_basico_ocorrencias`).
 
 | Sistema/Fonte | Tipo | Formato de acesso | Responsável | Frequência | Sensibilidade | Status |
 |---|---|---|---|---|---|---|
-| `roe_api_production`, tabelas `roe_basico_ocorrencias` + detalhe por natureza | Sistema interno | Postgres em `10.193.1.252:15432` — **credencial nova necessária**, nenhuma var. de ambiente aponta pra cá ainda | Igor (mantém as cargas) | A LEVANTAR | **Misto — inclui perfil de vítima (dado de saúde, LGPD art. 11)** | Host/porta confirmados pelo usuário em 2026-09-21; **nenhuma coluna verificada** — falta credencial |
+| `roe_api_production`, tabelas `roe_basico_ocorrencias` + detalhe por natureza | Sistema interno | Postgres em `10.193.1.252:15432`, `DATABASE_URL_ROE` em `.env.local` | Igor (mantém as cargas) | Diário | **Misto — inclui perfil de vítima (dado de saúde, LGPD art. 11)** | Credencial e schema confirmados em 2026-09-23; extrator rodando com dado real |
 
 | Tabela | Papel declarado |
 |---|---|
@@ -599,6 +600,8 @@ com quem administra esse host.
 | `roe_salvamento_ocorrencias` | Detalhe de salvamento |
 | `roe_prod_perigosos_ocorrencias` | Detalhe de produtos perigosos |
 | `roe_prevencao_ocorrencias` | Prevenção — **consultada à parte, sem filtro de natureza** |
+| `roe_basico_ocorrencias_nova` | Idêntica a `roe_basico_ocorrencias` em conteúdo (0 linhas de diferença, mesmo intervalo de datas) — extrator continua usando a original, sem motivo pra trocar |
+| `roe_resumo_ocorrencias` | Variante com 320 linhas a mais que `roe_basico_ocorrencias_nova` e pelo menos 1 registro com ano corrompido (`202-08-25`) — não usada pelo extrator, achado registrado só como nota de qualidade |
 
 **Três problemas de qualidade já medidos por Igor, a confirmar antes de usar:**
 

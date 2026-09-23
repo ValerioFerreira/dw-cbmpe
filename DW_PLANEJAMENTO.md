@@ -3972,3 +3972,176 @@ mais informação):**
 5. Mapa coroplético da aba Geolocalização (hoje só ranking em hbar).
 6. Confirmar com o usuário se "Atividades Específicas" é o lugar
    definitivo na navegação, ou se merece indicador próprio no futuro.
+
+### 2026-09-23 (segunda rodada, mesmo dia) — 9ª aba: Atividade Comunitária, e defesa de overflow em PanelGrafico
+
+**Gap encontrado:** `status_ocorrencias.md` (linha ~107-108) confirma que a
+coluna `natureza` de `roe_basico_ocorrencias` tem EXATAMENTE 6 valores
+(Atendimento Pré-Hospitalar, Salvamento, Prevenção, Incêndio, Produtos
+Perigosos, Atividade Comunitária) — mas nem o protótipo do Igor nem a
+integração das 8 abas desta manhã tinham aba para "Atividade Comunitária".
+Confirmado por pedido explícito do usuário: verificar as 6 naturezas e
+criar a aba que faltava, seguindo a mesma lógica das que já existiam.
+
+**Implementado — `src/pages/ocorrencias/ModuloAtividadeComunitaria.jsx`
+(9ª aba):** não existe (e não foi inventada) uma
+`roe_atividade_comunitaria_ocorrencias` — `DW_CATALOGO_FONTES.md` só lista
+tabela de detalhe para APH/Incêndio/Salvamento/Produtos Perigosos/
+Prevenção. Por isso a aba nova fica só com o que `extrair_ocorrencias()`
+já cobre (grão de `roe_basico_ocorrencias`, sem mudança nenhuma no
+extrator para esta aba): Finalizadas/Aguardando finalização (mesmo padrão
+de Incêndio/Salvamento), Ocorrências diárias (mesmo padrão de Salvamento,
+via `serieDiaria`), e Cidade/Subgrupo/Grupo (mesmo padrão de APH/Visão
+Geral, via `serieCampoOcorrencias`) — todos reconstruíveis sem tabela de
+detalhe, então esta aba não tem NENHUM `CardPendente`, diferente das
+outras 5 abas que dependem de schema ainda não verificado. Registrada em
+`MODULOS_OCORRENCIAS_DASHBOARD` (`src/lib/ocorrenciasDashboard.js`) e no
+`COMPONENTES`/`TODOS_MODULOS` de `AtividadesDashboard.jsx`, mesmo padrão
+dos outros 8. Comentários "8 abas"/"Nª de 8" atualizados para 9 em todos
+os `Modulo*.jsx`, `AguardandoCredencial.jsx`,
+`extract_dashboard_ocorrencias.py` e `AtividadesDashboard.jsx`.
+
+**Auditoria defensiva de layout (pedido do usuário: gráficos "corretos e
+aparecendo por inteiro, sem ficar cortados"):** com o banco ainda
+bloqueado no início desta rodada, foi montado um dataset sintético local
+(nunca gravado em arquivo rastreado — só copiado temporariamente sobre
+`ocorrencias_dashboard.json` para teste visual via browser, e revertido
+depois) com OMEs/cidades/categorias de nome longo e ~270 dias de série
+diária. Dois bugs REAIS de overflow encontrados e corrigidos em
+`src/components/charts/PanelGrafico.jsx` (fix central, beneficia todo
+gráfico `bar`/`line` do app, não só Ocorrências):
+1. Gráfico `line` com muitos pontos (ex. "Ocorrências diárias", série por
+   DIA) mostrava um rótulo de valor em CIMA DE CADA PONTO — com 200+ dias
+   isso virava uma pilha ilegível de números sobrepostos.
+2. Gráfico `bar` (vertical) com muitas categorias no eixo X (ex.
+   "Diretoria" seria um problema se essa coluna algum dia tivesse mais que
+   um punhado de valores) sofria o mesmo problema, mais o eixo X inteiro
+   sobrepondo os rótulos de categoria (`interval={0}` forçava mostrar
+   todo tick).
+
+Correção: acima de 20 categorias, `PanelGrafico` agora afina o eixo X para
+~15 ticks (`interval` calculado) e some com o rótulo de valor por
+ponto/barra (o número exato continua no tooltip ao passar o mouse) — hbar
+não entra nessa regra, já tinha sua própria defesa (altura dinâmica). Esta
+correção foi validada depois com DADO REAL (a VPN voltou durante a
+sessão e o extrator rodou com schema confirmado — ver seção seguinte) na
+própria aba "Ocorrências diárias" da Atividade Comunitária: o gráfico
+renderizou limpo, sem os dois bugs acima.
+
+**Sinalizado, não implementado (fora do escopo desta rodada — ver
+recomendação priorizada no relatório da sessão):**
+- **Card "Vítimas com deficiência" (`ModuloPerfilVitimas.jsx`)**: mesmo
+  bug de "donut sobrando espaço lateral" já corrigido em
+  `ModuloVacinacaoExecucao.jsx` (`SectionCard` inteiro devia entrar em
+  `max-w-md mx-auto`, não só o gráfico) — encontrado durante a auditoria
+  sintética, mas NÃO corrigido nesta rodada porque o módulo está sendo
+  reescrito em paralelo com dado real (Perfil de Vítimas é uma das 5 abas
+  que dependiam de schema até a VPN voltar). Aplicar o mesmo fix de
+  `max-w-md mx-auto` quando esse módulo estabilizar.
+- **Mapa coroplético da Geolocalização**: continua como ranking em hbar
+  (185 cidades reais confirmadas com a VPN de volta, dynamic height
+  aguenta bem via scroll). Trocar por `GeoChoropleth.jsx` (já existe,
+  usado em Efetivo) é uma mudança de UI maior — avaliação registrada, não
+  implementada.
+
+### 2026-09-23 (terceira rodada, mesmo dia) — Schema real de todas as tabelas roe_*, 5 abas saem do pendente, 3 bugs reais corrigidos
+
+VPN confirmada ativa pelo usuário durante a sessão (depois de dois testes
+sem sucesso, via `Test-NetConnection` no PowerShell da própria máquina —
+`ipconfig`/`Get-VpnConnection` não mostravam adaptador nenhum na primeira
+tentativa). Com a credencial `roe_api` já em `.env.local` (nunca
+commitada, mesmo tratamento dado à de Vacinação), rodei
+`information_schema.columns` contra as 7 tabelas `roe_*` (a lista real:
+`roe_aph_ocorrencias`, `roe_basico_ocorrencias`, mais uma
+`roe_basico_ocorrencias_nova` idêntica byte-a-byte em conteúdo e período
+— mesmas 35.865 linhas, mesmo intervalo de datas —, `roe_incendio_ocorrencias`,
+`roe_prevencao_ocorrencias`, `roe_prod_perigosos_ocorrencias`,
+`roe_resumo_ocorrencias` — esta com 320 linhas a mais que as outras duas,
+inclusive uma com ano corrompido no dado, "202-08-25" — e
+`roe_salvamento_ocorrencias`). O extrator continua lendo
+`roe_basico_ocorrencias` (não há motivo pra trocar, é idêntica à "nova").
+
+**Colunas reais que eram só suposição no scaffold da manhã, agora
+confirmadas e corrigidas:**
+- `roe_aph_ocorrencias`: a SQL anterior supunha `entregue_vivo_texto`/
+  `deficiencia` — NENHUMA das duas existe. Os nomes reais são
+  `entregue_vivo` (boolean) e `status_deficiencia` (texto categórico:
+  "Não"/"Não identificado"/"Sim"/nulo — NÃO é booleano, ver bug #2
+  abaixo). `genero`/`idade`/`idade_em_meses` também confirmados —
+  "Divisão por gênero" e "Faixa etária" saem do pendente.
+- `roe_incendio_ocorrencias`: `duracao_combate_horas`/
+  `duracao_rescaldo_horas`/`duracao_total_horas` já vêm calculadas pela
+  origem (numeric, não `interval` pra fazer parse) — "Duração média" sai
+  do pendente, por OME.
+- `roe_salvamento_ocorrencias`: `tipo_predominante` confirmado —
+  "Tipo Predominante" sai do pendente (20 categorias reais, não 19 como o
+  status doc antigo contava — diferença provavelmente de uma categoria
+  nova desde o snapshot do Igor, não investigada a fundo).
+- `roe_prevencao_ocorrencias`: schema completo confirmado
+  (`duracao_evento_horas`, `publico_estimado`, `publico_presente`,
+  `situacao_avcb`, `area_estimada` — e a própria tabela já tem
+  ome/diretoria/cidade, sem precisar de join com o básico). Os 4
+  quadrantes saem do pendente juntos — inclusive "Área média dos
+  eventos", que no protótipo original era 🔴 print por falta de tabela.
+  Confirmado também que a coluna `natureza` desta tabela mistura os 6
+  valores do domínio inteiro (não é exclusiva de "Prevenção") — bate com
+  a nota já existente em status_ocorrencias.md ("consultada à parte, sem
+  filtro de natureza").
+- `roe_prod_perigosos_ocorrencias`: `nome_produto` (não "produto") e
+  `perfil_botijao_glp` confirmados — "Perfil dos Botijões de GLP" sai do
+  pendente. "Total por produto" continua retido de propósito: mesmo com
+  credencial, é a pendência 🟠 de qualidade de dado que Igor sinalizou
+  (656 de 672 produtos com contagem exatamente 20), decisão de produto
+  pendente com quem administra a base, não de schema.
+
+**De-para de OME corrigido:** as 12 OMEs distintas em `ome` já batiam 1:1
+com a subárvore da DGO, sem precisar de mapeamento. `diretoria` tinha UM
+valor genuinamente diferente da aposta registrada de manhã: a origem usa
+`DINTER/1`/`DINTER/2` (barra, numeral arábico) — a aposta anterior era
+`DINTER 1`/`DINTER 2` (espaço), então o de-para nunca disparava e o
+gráfico "Diretoria" mostrava "DINTER/1"/"DINTER/2" ao vivo. Corrigido em
+`etl/ocorrencias/mapeamento_unidades.json`.
+
+Extrator rodado com dado real completo: 35.866 ocorrências, 15.099 APH,
+3.969 incêndio, 4.935 salvamento, 5.318 prevenção, 11.805 produtos
+perigosos.
+
+**3 bugs reais de UI encontrados navegando com dado real (não visíveis
+antes, porque os módulos bloqueados só mostravam "Aguardando
+credencial"):**
+1. **`ModuloAph.jsx` — "Atendimentos a CVI"/"Divisão de entregas com
+   vida" sem rótulo nenhum.** `cvi`/`entregueVivo` são booleanos, e o
+   código usava o booleano cru como `label` do gráfico — React descarta
+   `true`/`false` como filho de JSX (não renderiza nem como texto), então
+   a categoria ficava literalmente invisível no eixo/legenda, só o número
+   aparecia. Corrigido: "Com CVI confirmado" como rótulo fixo (o card só
+   soma o caso truthy mesmo, sempre foi 1 categoria só) e "Sim"/"Não" para
+   entregue vivo.
+2. **`ModuloPerfilVitimas.jsx` — "Vítimas com deficiência" mostrando
+   100% "Com deficiência".** Herdado do scaffold da manhã, que assumia
+   `deficiencia` como booleano antes do schema real existir. Com
+   `status_deficiencia` sendo categórico (`"Não"` é a maioria, 11.582 de
+   15.882), o `? "Com deficiência" : "Sem deficiência"` tratava qualquer
+   valor não-nulo — inclusive `"Não"` — como truthy. Corrigido para
+   grupo categórico direto (Não/Não identificado/Sim), sem inventar um
+   booleano que a fonte não tem.
+3. **`ModuloAph.jsx`/`ModuloProdutosPerigosos.jsx` — KPI row com 4
+   colunas e só 3 cards.** `grid-cols-2 sm:grid-cols-4` com 3 `KpiCard`
+   deixava a 4ª célula vazia E espremia "Vítimas entregues com vida" a
+   ponto de cortar o título (`scrollWidth` 172px > `clientWidth` 150px
+   numa coluna de 184px, medido via DOM, não só "parece cortado" no
+   screenshot). Corrigido para `sm:grid-cols-3` nos dois módulos.
+
+Todos os outros cortes suspeitos verificados via screenshot/DOM
+(`scrollWidth > clientWidth` em toda folha, não só visual) nas 9 abas —
+nenhum outro achado. `npm run lint`/`npm run build` limpos.
+
+**Pendente, sinalizado no relatório da sessão, não desta rodada:**
+- Bundle de produção ~28MB (`ocorrencias_dashboard.json` real de ~30MB
+  importado estático) — considerar lazy-load/fetch numa rodada futura.
+- Fix de `max-w-md mx-auto` no card "Vítimas com deficiência"/"Divisão
+  por gênero" — já aplicado nesta rodada junto com a implementação real
+  dos dois cards.
+- Mapa coroplético real da Geolocalização, cruzamento natureza×diretoria,
+  série temporal por natureza, taxa de não-atendimento — sugestões
+  levantadas, não implementadas (ver relatório).
