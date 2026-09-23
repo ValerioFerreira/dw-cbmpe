@@ -80,18 +80,85 @@ const OFICIAIS = {
   'CEFD': { oficial: 'Maj BM Silva', cargo: 'Chefe' },
 };
 
-// ----- Hierarquia (quem é subordinado direto de quem) -----
-const ARVORE = {
-  'COMANDO GERAL': ['SUBCOMANDO GERAL', 'GCG', 'CI', 'CPO', 'AECI', 'CCS'],
-  'SUBCOMANDO GERAL': ['DGO', 'DGA', 'GSG', 'AJG', 'CPP'],
-  'DGO': ['DIM', 'DINTER I', 'DINTER II', 'DIESP'],
-  'DIM': ['GBI', 'GBAPH', 'GBS', 'GBMar', 'CAT/RMR'],
-  'DINTER I': ['1º GB', '2º GB', '6º GB', '7º GB', 'CAT/ZM', 'CAT/AG'],
-  'DINTER II': ['3º GB', '4º GB', '5º GB', '9º GB', 'CAT/SE'],
-  'DGA': ['DGP', 'DVP', 'DJD', 'DF', 'DAS', 'DTIC', 'DLOG', 'DEIP', 'DPLAG'],
-  'DLOG': ['CMAN', 'CINT', 'CEAO'],
-  'DEIP': ['ABMG', 'CEFD'],
-};
+// ----- Hierarquia (estrutura editável em /adm > Organograma) -----
+//
+// Até 2026-09-23 isto era um objeto ARVORE fixo (sigla -> array de siglas
+// subordinadas) hardcoded aqui. Agora a árvore fica no backend
+// (backend/data/organograma.json, servido por GET /organograma —
+// ver src/lib/organogramaClient.js) e o admin edita via /adm. O que fica
+// abaixo é só o ESTADO INICIAL/FALLBACK: a mesma estrutura migrada 1:1 do
+// ARVORE antigo (mesma contagem de unidades, mesmos pais — conferido na
+// migração), usada quando o backend está fora do ar ou não configurado
+// (VITE_AUTH_API_URL vazio), pra o app nunca ficar sem organograma nenhum.
+//
+// Cada nó carrega o `nivel` hierárquico (1 Comando Geral, 2 Subcomando
+// Geral, 3 Estado Maior — reservado, ainda sem unidade —, 4 Diretoria
+// Geral, 5 Diretoria Especialista, 6 OME Subordinada) explicitamente,
+// porque a partir da migração de 2026-09-23 o nível deixou de ser "1 +
+// profundidade na árvore a partir do Comando Geral": unidades de nível 6
+// como GCG/CI/CPO/AECI/CCS/GSG/AJG/CPP são filhas DIRETAS do Comando/
+// Subcomando Geral (profundidade 2), mas continuam nível 6 (gabinetes/
+// comissões, não diretorias de verdade — confirmado pelo usuário) e
+// aparecem no organograma AO LADO do balão do pai, não abaixo dele (ver
+// Organograma.jsx). `id` é estável (não recalculado a partir da sigla) —
+// sobrevive a uma renomeação, pra não quebrar referências existentes
+// (localStorage de "recentes", unidade_id de indicador/dashboard/alerta).
+const NODES_PADRAO = [
+  { id: 'comando-geral', sigla: 'COMANDO GERAL', nivel: 1, parentId: null, fixo: true },
+  { id: 'subcomando-geral', sigla: 'SUBCOMANDO GERAL', nivel: 2, parentId: 'comando-geral', fixo: true },
+  { id: 'gcg', sigla: 'GCG', nivel: 6, parentId: 'comando-geral' },
+  { id: 'ci', sigla: 'CI', nivel: 6, parentId: 'comando-geral' },
+  { id: 'cpo', sigla: 'CPO', nivel: 6, parentId: 'comando-geral' },
+  { id: 'aeci', sigla: 'AECI', nivel: 6, parentId: 'comando-geral' },
+  { id: 'ccs', sigla: 'CCS', nivel: 6, parentId: 'comando-geral' },
+  { id: 'gsg', sigla: 'GSG', nivel: 6, parentId: 'subcomando-geral' },
+  { id: 'ajg', sigla: 'AJG', nivel: 6, parentId: 'subcomando-geral' },
+  { id: 'cpp', sigla: 'CPP', nivel: 6, parentId: 'subcomando-geral' },
+  { id: 'dgo', sigla: 'DGO', nivel: 4, parentId: 'subcomando-geral' },
+  { id: 'dga', sigla: 'DGA', nivel: 4, parentId: 'subcomando-geral' },
+  { id: 'dim', sigla: 'DIM', nivel: 5, parentId: 'dgo' },
+  { id: 'dinter-i', sigla: 'DINTER I', nivel: 5, parentId: 'dgo' },
+  { id: 'dinter-ii', sigla: 'DINTER II', nivel: 5, parentId: 'dgo' },
+  { id: 'diesp', sigla: 'DIESP', nivel: 5, parentId: 'dgo' },
+  { id: 'gbi', sigla: 'GBI', nivel: 6, parentId: 'dim' },
+  { id: 'gbaph', sigla: 'GBAPH', nivel: 6, parentId: 'dim' },
+  { id: 'gbs', sigla: 'GBS', nivel: 6, parentId: 'dim' },
+  { id: 'gbmar', sigla: 'GBMar', nivel: 6, parentId: 'dim' },
+  { id: 'cat-rmr', sigla: 'CAT/RMR', nivel: 6, parentId: 'dim' },
+  { id: '1-gb', sigla: '1º GB', nivel: 6, parentId: 'dinter-i' },
+  { id: '2-gb', sigla: '2º GB', nivel: 6, parentId: 'dinter-i' },
+  { id: '6-gb', sigla: '6º GB', nivel: 6, parentId: 'dinter-i' },
+  { id: '7-gb', sigla: '7º GB', nivel: 6, parentId: 'dinter-i' },
+  { id: 'cat-zm', sigla: 'CAT/ZM', nivel: 6, parentId: 'dinter-i' },
+  { id: 'cat-ag', sigla: 'CAT/AG', nivel: 6, parentId: 'dinter-i' },
+  { id: '3-gb', sigla: '3º GB', nivel: 6, parentId: 'dinter-ii' },
+  { id: '4-gb', sigla: '4º GB', nivel: 6, parentId: 'dinter-ii' },
+  { id: '5-gb', sigla: '5º GB', nivel: 6, parentId: 'dinter-ii' },
+  { id: '9-gb', sigla: '9º GB', nivel: 6, parentId: 'dinter-ii' },
+  { id: 'cat-se', sigla: 'CAT/SE', nivel: 6, parentId: 'dinter-ii' },
+  { id: 'dgp', sigla: 'DGP', nivel: 5, parentId: 'dga' },
+  { id: 'dvp', sigla: 'DVP', nivel: 5, parentId: 'dga' },
+  { id: 'djd', sigla: 'DJD', nivel: 5, parentId: 'dga' },
+  { id: 'df', sigla: 'DF', nivel: 5, parentId: 'dga' },
+  { id: 'das', sigla: 'DAS', nivel: 5, parentId: 'dga' },
+  { id: 'dtic', sigla: 'DTIC', nivel: 5, parentId: 'dga' },
+  { id: 'dlog', sigla: 'DLOG', nivel: 5, parentId: 'dga' },
+  { id: 'deip', sigla: 'DEIP', nivel: 5, parentId: 'dga' },
+  { id: 'dplag', sigla: 'DPLAG', nivel: 5, parentId: 'dga' },
+  { id: 'cman', sigla: 'CMAN', nivel: 6, parentId: 'dlog' },
+  { id: 'cint', sigla: 'CINT', nivel: 6, parentId: 'dlog' },
+  { id: 'ceao', sigla: 'CEAO', nivel: 6, parentId: 'dlog' },
+  { id: 'abmg', sigla: 'ABMG', nivel: 6, parentId: 'deip' },
+  { id: 'cefd', sigla: 'CEFD', nivel: 6, parentId: 'deip' },
+];
+
+// Siglas subordinadas diretas de `sigla`, segundo a lista de nós `nodes`
+// (que pode ser o fallback estático acima ou a árvore vinda do backend).
+function filhosSiglas(nodes, sigla) {
+  const no = nodes.find((n) => n.sigla === sigla);
+  if (!no) return [];
+  return nodes.filter((n) => n.parentId === no.id).map((n) => n.sigla);
+}
 
 // ----- Métricas próprias (não agregadas) por unidade -----
 const METRICAS = {
@@ -272,8 +339,17 @@ const TIPO_POR_SIGLA = {
   'CMAN': 'departamento', 'CINT': 'departamento', 'CEAO': 'departamento', 'CEFD': 'departamento',
   'ABMG': 'escola',
 };
-function tipoDaSigla(sigla) {
-  return TIPO_POR_SIGLA[sigla] || 'grupamento';
+// `nivel` (1-6, ver NODES_PADRAO) só entra como fallback quando a sigla não
+// está no mapa fixo acima — cobre unidades novas criadas pelo admin, que
+// nunca vão ter uma entrada aqui (TIPO_POR_SIGLA é decoração visual estática,
+// fora do escopo do organograma editável).
+function tipoDaSigla(sigla, nivel) {
+  if (TIPO_POR_SIGLA[sigla]) return TIPO_POR_SIGLA[sigla];
+  if (nivel != null) {
+    if (nivel <= 3) return 'comando';
+    if (nivel === 4 || nivel === 5) return 'diretoria';
+  }
+  return 'grupamento';
 }
 
 // Categoria temática (para Indicador/Dashboard) por sigla — quando não
@@ -345,29 +421,25 @@ function statusPorAtingimento(valor, meta) {
 }
 
 // ----- Construção da árvore de unidades -----
-const SIGLAS = Object.keys(OFICIAIS);
 
-function calcularNivel(sigla, cache = {}) {
-  if (cache[sigla] != null) return cache[sigla];
-  const pai = Object.entries(ARVORE).find(([, filhos]) => filhos.includes(sigla))?.[0];
-  const nivel = pai ? calcularNivel(pai, cache) + 1 : 1;
-  cache[sigla] = nivel;
-  return nivel;
-}
+const METRICAS_PADRAO = { efetivo: 20, efetivoPrevisto: 22, viaturas: 2, materiaisPct: 88, financas: 40000, financaPct: 88, acoes: 40 };
 
 // Totais agregados (própria unidade + toda a descendência), replicando a
-// lógica do organograma de referência.
-const totaisCache = {};
-function totaisDaSigla(sigla) {
-  if (totaisCache[sigla]) return totaisCache[sigla];
-  const proprio = METRICAS[sigla] || { efetivo: 20, efetivoPrevisto: 22, viaturas: 2, materiaisPct: 88, financas: 40000, financaPct: 88, acoes: 40 };
-  const filhos = ARVORE[sigla] || [];
+// lógica do organograma de referência — segue os filhos da árvore ATIVA
+// (`nodes`: o fallback estático ou a árvore vinda do backend), então uma
+// unidade movida pelo admin recalcula corretamente quem soma no total de
+// quem. `cache` é por chamada de montarOrganograma() (nunca module-level),
+// pra não vazar total calculado com uma árvore antiga para a próxima.
+function totaisDaSigla(sigla, nodes, cache) {
+  if (cache[sigla]) return cache[sigla];
+  const proprio = METRICAS[sigla] || METRICAS_PADRAO;
+  const filhos = filhosSiglas(nodes, sigla);
   let total = { efetivo: proprio.efetivo, efetivoPrevisto: proprio.efetivoPrevisto, viaturas: proprio.viaturas, financas: proprio.financas, acoes: proprio.acoes };
   let pesoMat = proprio.materiaisPct * proprio.efetivo;
   let pesoFin = proprio.financaPct * proprio.efetivo;
   let pesoBase = proprio.efetivo;
   filhos.forEach((filho) => {
-    const ct = totaisDaSigla(filho);
+    const ct = totaisDaSigla(filho, nodes, cache);
     total.efetivo += ct.efetivo;
     total.efetivoPrevisto += ct.efetivoPrevisto;
     total.viaturas += ct.viaturas;
@@ -379,11 +451,9 @@ function totaisDaSigla(sigla) {
   });
   total.materiaisPct = pesoBase > 0 ? Math.round(pesoMat / pesoBase) : proprio.materiaisPct;
   total.financaPct = pesoBase > 0 ? Math.round(pesoFin / pesoBase) : proprio.financaPct;
-  totaisCache[sigla] = total;
+  cache[sigla] = total;
   return total;
 }
-
-const METRICAS_PADRAO = { efetivo: 20, efetivoPrevisto: 22, viaturas: 2, materiaisPct: 88, financas: 40000, financaPct: 88, acoes: 40 };
 
 // Métricas próprias (não agregadas com subordinadas) de uma unidade, por sigla.
 export function metricasProprias(sigla) {
@@ -406,8 +476,13 @@ export function metricasProprias(sigla) {
 // declarada em SUBSETORES — decisão registrada em DW_PLANEJAMENTO.md.
 const PADRAO_SECAO_OPERACIONAL = /\bSB(APH|SA|FN|I|S)?\b|\bSATec\b/i;
 
+// Usa sempre a árvore ESTÁTICA (NODES_PADRAO), não a árvore ao vivo vinda do
+// backend: SUBSETORES é dado cosmético fora do escopo do organograma
+// editável (não tem entrada pra unidade nova nenhuma, e só filtra
+// duplicidade de filhos das ~46 unidades originais) — ver cabeçalho de
+// NODES_PADRAO.
 function divisoesDaSigla(sigla) {
-  const filhos = ARVORE[sigla] || [];
+  const filhos = filhosSiglas(NODES_PADRAO, sigla);
   const divisoes = (SUBSETORES[sigla] || [])
     .filter((item) => !filhos.includes(item))
     .map((item) => item.replace(/^↳\s*/, ''));
@@ -453,21 +528,28 @@ export function metricasDivisoesProprias(sigla) {
   }));
 }
 
-function construirUnidades() {
-  const nivelCache = {};
-  return SIGLAS.map((sigla) => {
-    const { oficial, cargo } = OFICIAIS[sigla];
-    const tipo = tipoDaSigla(sigla);
-    const pai = Object.entries(ARVORE).find(([, filhos]) => filhos.includes(sigla))?.[0];
-    const totais = totaisDaSigla(sigla);
+// Monta o array de unidades (mesmo formato consumido pelo app inteiro via
+// src/lib/cbmpe.js) a partir de uma árvore de nós {id, sigla, nivel,
+// parentId, fixo?} — a estática (NODES_PADRAO) ou a vinda do backend
+// (ver src/lib/organogramaClient.js). `oficial`/`cargo`/divisões/efetivo
+// continuam vindo dos mocks estáticos (OFICIAIS/METRICAS/SUBSETORES, fora
+// do escopo do organograma editável) — com fallback pra unidade nova que o
+// admin cria, que não existe em nenhum desses mapas.
+function construirUnidades(nodes, totaisPorSigla) {
+  return nodes.map((no) => {
+    const sigla = no.sigla;
+    const { oficial, cargo } = OFICIAIS[sigla] || { oficial: '—', cargo: 'Titular' };
+    const tipo = tipoDaSigla(sigla, no.nivel);
+    const totais = totaisPorSigla.get(sigla) || METRICAS_PADRAO;
     const divisoes = divisoesDaSigla(sigla);
     return {
-      id: slugify(sigla),
+      id: no.id,
       nome: sigla,
       sigla,
       tipo,
-      parent_id: pai ? slugify(pai) : null,
-      nivel: calcularNivel(sigla, nivelCache),
+      parent_id: no.parentId,
+      nivel: no.nivel,
+      fixo: !!no.fixo,
       descricao: `${cargo}: ${oficial}.${divisoes.length ? ` Divisões internas: ${divisoes.join('; ')}.` : ''}`,
       responsavel: oficial,
       cargo,
@@ -477,8 +559,6 @@ function construirUnidades() {
     };
   });
 }
-
-export const UNIDADES = construirUnidades();
 
 const KPI_UNIDADE_MEDIDA = {
   Efetivo: 'militares',
@@ -491,10 +571,10 @@ const KPI_UNIDADE_MEDIDA = {
 // Indicadores sem meta estabelecida (não há valor de referência oficial).
 const KPI_SEM_META = new Set(['Materiais', 'Atividades Específicas']);
 
-function construirIndicadores() {
+function construirIndicadores(unidades, totaisPorSigla) {
   const indicadores = [];
-  UNIDADES.forEach((u) => {
-    const totais = totaisDaSigla(u.sigla);
+  unidades.forEach((u) => {
+    const totais = totaisPorSigla.get(u.sigla) || METRICAS_PADRAO;
     const specs = [
       { base: 'Efetivo', valor: totais.efetivo, max: null, metaReal: totais.efetivoPrevisto },
       { base: 'Viaturas', valor: totais.viaturas, max: null },
@@ -541,11 +621,9 @@ function construirIndicadores() {
   return indicadores;
 }
 
-export const INDICADORES = construirIndicadores();
-
-function construirDashboards() {
+function construirDashboards(unidades) {
   const agora = Date.now();
-  return UNIDADES.map((u) => {
+  return unidades.map((u) => {
     const rng = criarRng(`${u.id}:dashboard`);
     const diasAtras = Math.round(rng() * 45);
     return {
@@ -559,8 +637,6 @@ function construirDashboards() {
     };
   });
 }
-
-export const DASHBOARDS = construirDashboards();
 
 // ----- Alertas ilustrativos (fictícios, curadoria manual para variedade) -----
 const ALERTAS_BASE = [
@@ -582,10 +658,10 @@ const ALERTAS_BASE = [
   { sigla: 'CI', titulo: 'Atualização de análise de risco pendente', descricao: 'Relatório de análise de risco regional pendente de atualização trimestral.', severidade: 'media', status: 'em_andamento', diasAtras: 11 },
 ];
 
-function construirAlertas() {
+function construirAlertas(unidades) {
   const agora = Date.now();
   return ALERTAS_BASE.map((a, i) => {
-    const unidade = UNIDADES.find((u) => u.sigla === a.sigla);
+    const unidade = unidades.find((u) => u.sigla === a.sigla);
     return {
       id: `alerta-${i + 1}`,
       titulo: a.titulo,
@@ -598,4 +674,27 @@ function construirAlertas() {
   });
 }
 
-export const ALERTAS = construirAlertas();
+// ----- Ponto de entrada usado por src/lib/cbmpe.js -----
+//
+// Recebe uma árvore de nós {id, sigla, nivel, parentId, fixo?} (o fallback
+// NODES_PADRAO, exportado abaixo, ou a árvore vinda do backend via
+// src/lib/organogramaClient.js) e monta, num único passo consistente,
+// tudo que antes eram 4 constantes estáticas independentes (UNIDADES/
+// INDICADORES/DASHBOARDS/ALERTAS). Isso garante que um admin movendo/
+// renomeando/criando/excluindo uma OME em /adm se reflete em TODO o app —
+// organograma, controle de acesso (accessControl.js), Atividades
+// Específicas (atividadesEspecificas.js) — sem duplicar a lógica de
+// derivação em outro lugar.
+export function montarOrganograma(nodes) {
+  const cache = {};
+  const totaisPorSigla = new Map();
+  nodes.forEach((no) => totaisPorSigla.set(no.sigla, totaisDaSigla(no.sigla, nodes, cache)));
+
+  const unidades = construirUnidades(nodes, totaisPorSigla);
+  const indicadores = construirIndicadores(unidades, totaisPorSigla);
+  const dashboards = construirDashboards(unidades);
+  const alertas = construirAlertas(unidades);
+  return { unidades, indicadores, dashboards, alertas };
+}
+
+export { NODES_PADRAO };

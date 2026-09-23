@@ -1,7 +1,8 @@
 // Provedor de dados globais da plataforma CBMPE BI
 import React, { createContext, useContext, useEffect, useState } from "react";
 import {
-  fetchUnidades, fetchIndicadores, fetchDashboards, fetchAlertas, buildArvore
+  fetchUnidades, fetchIndicadores, fetchDashboards, fetchAlertas, buildArvore,
+  invalidarCacheOrganograma
 } from "@/lib/cbmpe";
 
 const CbmpeContext = createContext(null);
@@ -19,6 +20,10 @@ export function CbmpeProvider({ children }) {
 
   async function carregar() {
     setLoading(true);
+    // Sempre busca a árvore de novo — importante pra recarregar() (chamada
+    // depois de criar/editar/mover/excluir uma OME em /adm) não devolver o
+    // organograma antigo que ficou em cache (ver src/lib/cbmpe.js).
+    invalidarCacheOrganograma();
     try {
       const [u, i, d, a] = await Promise.all([
         fetchUnidades(), fetchIndicadores(), fetchDashboards(), fetchAlertas()

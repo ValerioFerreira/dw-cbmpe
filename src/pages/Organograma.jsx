@@ -4,29 +4,20 @@ import { Star, TrendingUp, Lock } from "lucide-react";
 import { useCbmpe } from "@/lib/cbmpe-context";
 import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 
-// Layout fixo do organograma — replica fielmente a árvore validada pelo
-// Comandante Geral no protótipo de referência (Power BI CBMPE - Organograma
-// Interativo). Os nomes/cargos vêm dos dados (src/data/organograma.js); só a
-// disposição visual dos blocos é fixa, pois reflete a estrutura oficial do CBMPE.
-const ASSESSORIAS_COMANDO = ["GCG", "AECI", "CPO", "CCS", "CI"];
-const ASSESSORIAS_SUBCOMANDO = ["GSG", "AJG", "CPP"];
-
-const DGO_GRUPOS = [
-  { diretoria: "DIM", filhos: ["GBAPH", "GBI", "GBS", "GBMar", "CAT/RMR"] },
-  { diretoria: "DINTER I", filhos: ["1º GB", "2º GB", "6º GB", "7º GB", "CAT/ZM", "CAT/AG"] },
-  { diretoria: "DINTER II", filhos: ["3º GB", "4º GB", "5º GB", "9º GB", "CAT/SE"] },
-  { diretoria: "DIESP", filhos: [] },
-];
-
-const DGA_COLUNAS_EMPILHADAS = [
-  ["DGP", "DVP", "DJD", "DPLAG"],
-  ["DF", "DAS", "DTIC"],
-];
-const DGA_GRUPOS = [
-  { diretoria: "DLOG", filhos: ["CMAN", "CINT", "CEAO"] },
-  { diretoria: "DEIP", filhos: ["ABMG", "CEFD"] },
-];
-
+// Layout do organograma — até 2026-09-23 isto era inteiramente hardcoded
+// (listas fixas de sigla por quadro, replicando o protótipo de referência
+// Power BI CBMPE - Organograma Interativo). Com a funcionalidade de
+// organograma editável (/adm > Organograma), a estrutura abaixo do
+// Comando/Subcomando Geral passa a ser CALCULADA a partir de `unidades`
+// (nivel/parent_id, vindos do backend) — senão uma unidade criada/movida/
+// renomeada pelo admin nunca apareceria aqui. Isso troca o agrupamento
+// manual e curado que a DGA tinha (colunas "empilhadas" sem moldura pra
+// DGP/DVP/DJD/DF/DAS/DTIC/DPLAG, moldura só para DLOG/DEIP) por uma regra
+// genérica (nível 5 sem subordinada nenhuma → coluna empilhada; com
+// subordinada → moldura), que reproduz o mesmo resultado visual pra quase
+// todas as unidades — só a ORDEM exata de DPLAG dentro da coluna
+// empilhada da DGA pode variar (documentado no relatório da
+// funcionalidade).
 const KPIS_ATALHO = ["Efetivo", "Viaturas", "Materiais", "Finanças"];
 
 // Protótipo de níveis de acesso (ver @/lib/accessControl). Quando o usuário
@@ -56,6 +47,22 @@ function CadeadoOverlay({ claro = false, posicao = "top-right" }) {
   );
 }
 
+// Divide uma lista em até `numColunas` colunas, o mais equilibrado possível,
+// preservando a ordem — usado pra empilhar as unidades de nível 6 "folha"
+// (sem subordinada própria) dentro do quadro de uma diretoria nível 4,
+// mesmo efeito visual do antigo DGA_COLUNAS_EMPILHADAS.
+function splitEmColunas(itens, numColunas) {
+  if (itens.length === 0) return [];
+  const porColuna = Math.ceil(itens.length / numColunas);
+  const colunas = [];
+  for (let i = 0; i < itens.length; i += porColuna) {
+    colunas.push(itens.slice(i, i + porColuna));
+  }
+  return colunas;
+}
+
+const ordenarPorSigla = (a, b) => a.sigla.localeCompare(b.sigla, "pt-BR");
+
 export default function Organograma() {
   const { unidades, indicadores, loading } = useCbmpe();
   const { restrito, acesso } = useAcessoUsuario();
@@ -67,13 +74,44 @@ export default function Organograma() {
     return map;
   }, [unidades]);
 
+  // Estrutura calculada a partir da árvore ao vivo (ver cabeçalho do
+  // arquivo) — nunca hardcoded por sigla.
+  const estrutura = useMemo(() => {
+    const filhosDe = (parentId) => unidades.filter((u) => u.parent_id === parentId);
+    const comandoGeral = unidades.find((u) => u.nivel === 1) || null;
+    // Nível 2 (Subcomando Geral) e nível 3 (Estado Maior, reservado — ainda
+    // sem unidade) tratados igual: balão + subordinadas de nível 6 direto
+    // "ao lado". Hoje só existe o nível 2.
+    const demaisComando = unidades.filter((u) => u.nivel === 2 || u.nivel === 3).sort((a, b) => a.nivel - b.nivel);
+    const diretoriasGerais = unidades.filter((u) => u.nivel === 4).sort(ordenarPorSigla);
+
+    function aoLadoDe(unidade) {
+      return filhosDe(unidade.id).filter((u) => u.nivel === 6).sort(ordenarPorSigla);
+    }
+
+    function gruposDaDiretoriaGeral(dg) {
+      const nivel5 = filhosDe(dg.id).filter((u) => u.nivel === 5).sort(ordenarPorSigla);
+      const comFilhos = [];
+      const folhas = [];
+      nivel5.forEach((u) => {
+        const filhos = filhosDe(u.id).filter((f) => f.nivel === 6).sort(ordenarPorSigla);
+        if (filhos.length > 0) comFilhos.push({ unidade: u, filhos });
+        else folhas.push(u);
+      });
+      const colunasFolhas = splitEmColunas(folhas, 2);
+      return { comFilhos, colunasFolhas };
+    }
+
+    return { comandoGeral, demaisComando, diretoriasGerais, aoLadoDe, gruposDaDiretoriaGeral };
+  }, [unidades]);
+
   const kpisComandoGeral = useMemo(() => {
-    const cg = bySigla["COMANDO GERAL"];
+    const cg = estrutura.comandoGeral;
     if (!cg) return {};
     const mapa = {};
     indicadores.filter((i) => i.unidade_id === cg.id).forEach((i) => { mapa[i.nome] = i; });
     return mapa;
-  }, [indicadores, bySigla]);
+  }, [indicadores, estrutura.comandoGeral]);
 
   // Protótipo de níveis de acesso (2026-08-17, ver DW_PLANEJAMENTO.md e
   // @/lib/useAcessoUsuario): o login "adm" (role "admin") continua vendo o
@@ -116,85 +154,83 @@ export default function Organograma() {
       <div className="overflow-x-auto rounded-xl border border-border bg-card p-3 scrollbar-thin sm:p-6">
         <div className="mx-auto flex w-full max-w-[1520px] flex-col items-center gap-6 py-2 sm:gap-8">
           {/* ===== Comando Geral ===== */}
-          <div className="flex w-full flex-col items-center">
-            <div className={`relative w-full max-w-md rounded-xl rounded-b-none border-2 border-amber-300 bg-gradient-to-br from-amber-500 via-amber-600 to-orange-700 p-3 text-center shadow-[0_8px_30px_-6px_rgba(217,119,6,0.35)] ${cbmpeBloqueado ? "opacity-50 saturate-[0.4]" : ""}`}>
-              <p className="text-base font-black uppercase tracking-wider text-white">CBMPE - Geral</p>
-              {cbmpeBloqueado && <CadeadoOverlay claro />}
-            </div>
-            <div className="grid w-full max-w-md grid-cols-2 gap-2 rounded-xl rounded-t-none border border-t-0 border-border bg-background p-2 sm:grid-cols-4">
-              {KPIS_ATALHO.map((nome) => {
-                const kpi = kpisComandoGeral[nome];
-                const ok = acessoKpiDe(nome);
-                const base = `relative flex min-h-[2.75rem] items-center justify-center rounded-lg border bg-card px-2 text-center text-xs font-bold text-foreground transition-colors ${SOMBRA_CARD}`;
-                if (ok === "no") {
+          {estrutura.comandoGeral && (
+            <div className="flex w-full flex-col items-center">
+              <div className={`relative w-full max-w-md rounded-xl rounded-b-none border-2 border-amber-300 bg-gradient-to-br from-amber-500 via-amber-600 to-orange-700 p-3 text-center shadow-[0_8px_30px_-6px_rgba(217,119,6,0.35)] ${cbmpeBloqueado ? "opacity-50 saturate-[0.4]" : ""}`}>
+                <p className="text-base font-black uppercase tracking-wider text-white">CBMPE - Geral</p>
+                {cbmpeBloqueado && <CadeadoOverlay claro />}
+              </div>
+              <div className="grid w-full max-w-md grid-cols-2 gap-2 rounded-xl rounded-t-none border border-t-0 border-border bg-background p-2 sm:grid-cols-4">
+                {KPIS_ATALHO.map((nome) => {
+                  const kpi = kpisComandoGeral[nome];
+                  const ok = acessoKpiDe(nome);
+                  const base = `relative flex min-h-[2.75rem] items-center justify-center rounded-lg border bg-card px-2 text-center text-xs font-bold text-foreground transition-colors ${SOMBRA_CARD}`;
+                  if (ok === "no") {
+                    return (
+                      <span key={nome} className={`${base} border-border ${CADEADO_BLOQUEADO}`}>
+                        {nome}
+                        <CadeadoOverlay />
+                      </span>
+                    );
+                  }
                   return (
-                    <span key={nome} className={`${base} border-border ${CADEADO_BLOQUEADO}`}>
+                    <Link
+                      key={nome}
+                      to={kpi ? `/indicador/${kpi.id}` : "#"}
+                      className={`${base} ${ok === "ok" ? "border-amber-400" : "border-border hover:border-amber-500"}`}
+                    >
                       {nome}
-                      <CadeadoOverlay />
-                    </span>
+                    </Link>
                   );
-                }
-                return (
-                  <Link
-                    key={nome}
-                    to={kpi ? `/indicador/${kpi.id}` : "#"}
-                    className={`${base} ${ok === "ok" ? "border-amber-400" : "border-border hover:border-amber-500"}`}
-                  >
-                    {nome}
-                  </Link>
-                );
-              })}
+                })}
+              </div>
+
+              <NoEstrela unidade={estrutura.comandoGeral} tom="amber" onClick={() => goto(estrutura.comandoGeral.sigla)} acessoOk={acessoDe(estrutura.comandoGeral.sigla)} />
+
+              <LinhaAssessorias
+                unidades={estrutura.aoLadoDe(estrutura.comandoGeral)}
+                goto={goto}
+                gridCols="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
+                maxWidth="max-w-2xl"
+                accent="amber"
+                acessoDe={acessoDe}
+              />
             </div>
+          )}
 
-            <NoEstrela unidade={bySigla["COMANDO GERAL"]} tom="amber" onClick={() => goto("COMANDO GERAL")} acessoOk={acessoDe("COMANDO GERAL")} />
+          {/* ===== Subcomando Geral / Estado Maior (nível 2 e 3) ===== */}
+          {estrutura.demaisComando.map((unidade) => (
+            <div key={unidade.id} className="flex w-full flex-col items-center">
+              <NoEstrela unidade={unidade} tom="yellow" onClick={() => goto(unidade.sigla)} acessoOk={acessoDe(unidade.sigla)} />
+              <LinhaAssessorias
+                unidades={estrutura.aoLadoDe(unidade)}
+                goto={goto}
+                gridCols="grid-cols-3"
+                maxWidth="max-w-md"
+                accent="yellow"
+                acessoDe={acessoDe}
+              />
+            </div>
+          ))}
 
-            <LinhaAssessorias
-              siglas={ASSESSORIAS_COMANDO}
-              bySigla={bySigla}
-              goto={goto}
-              gridCols="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
-              maxWidth="max-w-2xl"
-              accent="amber"
-              acessoDe={acessoDe}
-            />
-          </div>
-
-          {/* ===== Subcomando Geral ===== */}
-          <div className="flex w-full flex-col items-center">
-            <NoEstrela unidade={bySigla["SUBCOMANDO GERAL"]} tom="yellow" onClick={() => goto("SUBCOMANDO GERAL")} acessoOk={acessoDe("SUBCOMANDO GERAL")} />
-            <LinhaAssessorias
-              siglas={ASSESSORIAS_SUBCOMANDO}
-              bySigla={bySigla}
-              goto={goto}
-              gridCols="grid-cols-3"
-              maxWidth="max-w-md"
-              accent="yellow"
-              acessoDe={acessoDe}
-            />
-          </div>
-
-          {/* ===== DGO x DGA ===== */}
+          {/* ===== Diretorias Gerais (nível 4) ===== */}
           <div className="grid w-full grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
-            <div className="flex flex-col items-center rounded-2xl border border-border bg-background p-3 sm:p-4">
-              <CardDiretoria unidade={bySigla["DGO"]} onClick={() => goto("DGO")} tamanho="lg" acessoOk={acessoDe("DGO")} />
-              <div className="mt-4 grid w-full grid-cols-2 gap-3 lg:grid-cols-4">
-                {DGO_GRUPOS.map((g) => (
-                  <GrupoDiretoria key={g.diretoria} grupo={g} bySigla={bySigla} goto={goto} acessoDe={acessoDe} />
-                ))}
-              </div>
-            </div>
-
-            <div className="flex flex-col items-center rounded-2xl border border-border bg-background p-3 sm:p-4">
-              <CardDiretoria unidade={bySigla["DGA"]} onClick={() => goto("DGA")} tamanho="lg" acessoOk={acessoDe("DGA")} />
-              <div className="mt-4 grid w-full grid-cols-2 gap-2 lg:grid-cols-4">
-                {DGA_COLUNAS_EMPILHADAS.map((col, idx) => (
-                  <ColunaEmpilhada key={idx} siglas={col} bySigla={bySigla} goto={goto} acessoDe={acessoDe} />
-                ))}
-                {DGA_GRUPOS.map((g) => (
-                  <GrupoDiretoria key={g.diretoria} grupo={g} bySigla={bySigla} goto={goto} acessoDe={acessoDe} />
-                ))}
-              </div>
-            </div>
+            {estrutura.diretoriasGerais.map((dg) => {
+              const { comFilhos, colunasFolhas } = estrutura.gruposDaDiretoriaGeral(dg);
+              return (
+                <div key={dg.id} className="flex flex-col items-center rounded-2xl border border-border bg-background p-3 sm:p-4">
+                  <CardDiretoria unidade={dg} onClick={() => goto(dg.sigla)} tamanho="lg" acessoOk={acessoDe(dg.sigla)} />
+                  <div className="mt-4 grid w-full grid-cols-2 gap-3 lg:grid-cols-4">
+                    {colunasFolhas.map((coluna, idx) => (
+                      <ColunaEmpilhada key={`col-${idx}`} unidades={coluna} goto={goto} acessoDe={acessoDe} />
+                    ))}
+                    {comFilhos.map(({ unidade, filhos }) => (
+                      <GrupoDiretoria key={unidade.id} unidade={unidade} filhos={filhos} goto={goto} acessoDe={acessoDe} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -232,27 +268,30 @@ function NoEstrela({ unidade, tom, onClick, acessoOk }) {
   );
 }
 
-function LinhaAssessorias({ siglas, bySigla, goto, gridCols, maxWidth, accent, acessoDe }) {
+// Unidades de nível 6 diretamente subordinadas ao Comando/Subcomando
+// Geral/Estado Maior (nível 1-3) — ficam AO LADO do balão do pai, não
+// abaixo dele numa fileira separada (pedido explícito do usuário,
+// 2026-09-23, corrigindo o comportamento anterior).
+function LinhaAssessorias({ unidades, goto, gridCols, maxWidth, accent, acessoDe }) {
+  if (unidades.length === 0) return null;
   const hoverBorder = accent === "yellow" ? "hover:border-yellow-500" : "hover:border-amber-500";
   // Div de agrupamento: fundo igual ao body (#F5F5F5 = bg-background), 4
   // cantos arredondados e borda em cima e embaixo (antes só embaixo).
   return (
     <div className={`mt-3 grid w-full ${maxWidth} ${gridCols} gap-2 rounded-xl border border-border bg-background p-2`}>
-      {siglas.map((sigla) => {
-        const u = bySigla[sigla];
-        if (!u) return null;
-        const ok = acessoDe(sigla);
+      {unidades.map((u) => {
+        const ok = acessoDe(u.sigla);
         const bloqueado = ok === "no";
         return (
           <button
-            key={sigla}
-            onClick={bloqueado ? undefined : () => goto(sigla)}
+            key={u.id}
+            onClick={bloqueado ? undefined : () => goto(u.sigla)}
             disabled={bloqueado}
             className={`relative rounded-lg border bg-card p-2 text-center transition-colors ${SOMBRA_CARD} ${
               bloqueado ? `border-border ${CADEADO_BLOQUEADO}` : ok === "ok" ? "border-amber-400" : `border-border ${hoverBorder}`
             }`}
           >
-            <p className="text-xs font-bold text-foreground">{sigla}</p>
+            <p className="text-xs font-bold text-foreground">{u.sigla}</p>
             <p className="text-[9px] text-muted-foreground">{u.responsavel} - {u.cargo}</p>
             {bloqueado && <CadeadoOverlay />}
           </button>
@@ -281,43 +320,40 @@ function CardDiretoria({ unidade, onClick, tamanho = "col", acessoOk }) {
   );
 }
 
-function ColunaEmpilhada({ siglas, bySigla, goto, acessoDe }) {
+// Unidades de nível 5 "folha" (sem subordinada própria) de uma Diretoria
+// Geral, empilhadas sem moldura — mesmo efeito visual do antigo
+// DGA_COLUNAS_EMPILHADAS, agora calculado (ver splitEmColunas).
+function ColunaEmpilhada({ unidades, goto, acessoDe }) {
   return (
     <div className="space-y-2">
-      {siglas.map((sigla) => {
-        const u = bySigla[sigla];
-        if (!u) return null;
-        return <CardDiretoria key={sigla} unidade={u} onClick={() => goto(sigla)} tamanho="col" acessoOk={acessoDe(sigla)} />;
-      })}
+      {unidades.map((u) => (
+        <CardDiretoria key={u.id} unidade={u} onClick={() => goto(u.sigla)} tamanho="col" acessoOk={acessoDe(u.sigla)} />
+      ))}
     </div>
   );
 }
 
-function GrupoDiretoria({ grupo, bySigla, goto, acessoDe }) {
-  const u = bySigla[grupo.diretoria];
-  if (!u) return null;
+function GrupoDiretoria({ unidade, filhos, goto, acessoDe }) {
   // Fundo um pouco mais escuro que o #F5F5F5 do container-pai, pra dar
   // contraste (pedido de 2026-08-19 — DIM, DINTER I/II, DLOG, DEIP).
   return (
     <div className="flex flex-col items-center rounded-xl border border-border bg-black/[0.05] p-2">
-      <CardDiretoria unidade={u} onClick={() => goto(grupo.diretoria)} tamanho="col" acessoOk={acessoDe(grupo.diretoria)} />
-      {grupo.filhos.length > 0 && (
+      <CardDiretoria unidade={unidade} onClick={() => goto(unidade.sigla)} tamanho="col" acessoOk={acessoDe(unidade.sigla)} />
+      {filhos.length > 0 && (
         <div className="mt-2 w-full space-y-1.5">
-          {grupo.filhos.map((sigla) => {
-            const f = bySigla[sigla];
-            if (!f) return null;
-            const ok = acessoDe(sigla);
+          {filhos.map((f) => {
+            const ok = acessoDe(f.sigla);
             const bloqueado = ok === "no";
             return (
               <button
-                key={sigla}
-                onClick={bloqueado ? undefined : () => goto(sigla)}
+                key={f.id}
+                onClick={bloqueado ? undefined : () => goto(f.sigla)}
                 disabled={bloqueado}
                 className={`relative w-full rounded border bg-card p-1.5 text-center transition-colors ${SOMBRA_CARD} ${
                   bloqueado ? `border-border ${CADEADO_BLOQUEADO}` : ok === "ok" ? "border-amber-400" : "border-border hover:border-yellow-400"
                 }`}
               >
-                <p className="text-[10px] font-bold text-foreground">{sigla}</p>
+                <p className="text-[10px] font-bold text-foreground">{f.sigla}</p>
                 <p className="text-[7px] text-muted-foreground">{f.responsavel} - {f.cargo}</p>
                 {bloqueado && <CadeadoOverlay />}
               </button>

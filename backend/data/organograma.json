@@ -1,0 +1,282 @@
+{
+  "unidades": [
+    {
+      "id": "comando-geral",
+      "sigla": "COMANDO GERAL",
+      "nivel": 1,
+      "parentId": null,
+      "fixo": true
+    },
+    {
+      "id": "subcomando-geral",
+      "sigla": "SUBCOMANDO GERAL",
+      "nivel": 2,
+      "parentId": "comando-geral",
+      "fixo": true
+    },
+    {
+      "id": "gcg",
+      "sigla": "GCG",
+      "nivel": 6,
+      "parentId": "comando-geral"
+    },
+    {
+      "id": "ci",
+      "sigla": "CI",
+      "nivel": 6,
+      "parentId": "comando-geral"
+    },
+    {
+      "id": "cpo",
+      "sigla": "CPO",
+      "nivel": 6,
+      "parentId": "comando-geral"
+    },
+    {
+      "id": "aeci",
+      "sigla": "AECI",
+      "nivel": 6,
+      "parentId": "comando-geral"
+    },
+    {
+      "id": "ccs",
+      "sigla": "CCS",
+      "nivel": 6,
+      "parentId": "comando-geral"
+    },
+    {
+      "id": "gsg",
+      "sigla": "GSG",
+      "nivel": 6,
+      "parentId": "subcomando-geral"
+    },
+    {
+      "id": "ajg",
+      "sigla": "AJG",
+      "nivel": 6,
+      "parentId": "subcomando-geral"
+    },
+    {
+      "id": "cpp",
+      "sigla": "CPP",
+      "nivel": 6,
+      "parentId": "subcomando-geral"
+    },
+    {
+      "id": "dgo",
+      "sigla": "DGO",
+      "nivel": 4,
+      "parentId": "subcomando-geral"
+    },
+    {
+      "id": "dga",
+      "sigla": "DGA",
+      "nivel": 4,
+      "parentId": "subcomando-geral"
+    },
+    {
+      "id": "dim",
+      "sigla": "DIM",
+      "nivel": 5,
+      "parentId": "dgo"
+    },
+    {
+      "id": "dinter-i",
+      "sigla": "DINTER I",
+      "nivel": 5,
+      "parentId": "dgo"
+    },
+    {
+      "id": "dinter-ii",
+      "sigla": "DINTER II",
+      "nivel": 5,
+      "parentId": "dgo"
+    },
+    {
+      "id": "diesp",
+      "sigla": "DIESP",
+      "nivel": 5,
+      "parentId": "dgo"
+    },
+    {
+      "id": "gbi",
+      "sigla": "GBI",
+      "nivel": 6,
+      "parentId": "dim"
+    },
+    {
+      "id": "gbaph",
+      "sigla": "GBAPH",
+      "nivel": 6,
+      "parentId": "dim"
+    },
+    {
+      "id": "gbs",
+      "sigla": "GBS",
+      "nivel": 6,
+      "parentId": "dim"
+    },
+    {
+      "id": "gbmar",
+      "sigla": "GBMar",
+      "nivel": 6,
+      "parentId": "dim"
+    },
+    {
+      "id": "cat-rmr",
+      "sigla": "CAT/RMR",
+      "nivel": 6,
+      "parentId": "dim"
+    },
+    {
+      "id": "1-gb",
+      "sigla": "1º GB",
+      "nivel": 6,
+      "parentId": "dinter-i"
+    },
+    {
+      "id": "2-gb",
+      "sigla": "2º GB",
+      "nivel": 6,
+      "parentId": "dinter-i"
+    },
+    {
+      "id": "6-gb",
+      "sigla": "6º GB",
+      "nivel": 6,
+      "parentId": "dinter-i"
+    },
+    {
+      "id": "7-gb",
+      "sigla": "7º GB",
+      "nivel": 6,
+      "parentId": "dinter-i"
+    },
+    {
+      "id": "cat-zm",
+      "sigla": "CAT/ZM",
+      "nivel": 6,
+      "parentId": "dinter-i"
+    },
+    {
+      "id": "cat-ag",
+      "sigla": "CAT/AG",
+      "nivel": 6,
+      "parentId": "dinter-i"
+    },
+    {
+      "id": "3-gb",
+      "sigla": "3º GB",
+      "nivel": 6,
+      "parentId": "dinter-ii"
+    },
+    {
+      "id": "4-gb",
+      "sigla": "4º GB",
+      "nivel": 6,
+      "parentId": "dinter-ii"
+    },
+    {
+      "id": "5-gb",
+      "sigla": "5º GB",
+      "nivel": 6,
+      "parentId": "dinter-ii"
+    },
+    {
+      "id": "9-gb",
+      "sigla": "9º GB",
+      "nivel": 6,
+      "parentId": "dinter-ii"
+    },
+    {
+      "id": "cat-se",
+      "sigla": "CAT/SE",
+      "nivel": 6,
+      "parentId": "dinter-ii"
+    },
+    {
+      "id": "dgp",
+      "sigla": "DGP",
+      "nivel": 5,
+      "parentId": "dga"
+    },
+    {
+      "id": "dvp",
+      "sigla": "DVP",
+      "nivel": 5,
+      "parentId": "dga"
+    },
+    {
+      "id": "djd",
+      "sigla": "DJD",
+      "nivel": 5,
+      "parentId": "dga"
+    },
+    {
+      "id": "df",
+      "sigla": "DF",
+      "nivel": 5,
+      "parentId": "dga"
+    },
+    {
+      "id": "das",
+      "sigla": "DAS",
+      "nivel": 5,
+      "parentId": "dga"
+    },
+    {
+      "id": "dtic",
+      "sigla": "DTIC",
+      "nivel": 5,
+      "parentId": "dga"
+    },
+    {
+      "id": "dlog",
+      "sigla": "DLOG",
+      "nivel": 5,
+      "parentId": "dga"
+    },
+    {
+      "id": "deip",
+      "sigla": "DEIP",
+      "nivel": 5,
+      "parentId": "dga"
+    },
+    {
+      "id": "dplag",
+      "sigla": "DPLAG",
+      "nivel": 5,
+      "parentId": "dga"
+    },
+    {
+      "id": "cman",
+      "sigla": "CMAN",
+      "nivel": 6,
+      "parentId": "dlog"
+    },
+    {
+      "id": "cint",
+      "sigla": "CINT",
+      "nivel": 6,
+      "parentId": "dlog"
+    },
+    {
+      "id": "ceao",
+      "sigla": "CEAO",
+      "nivel": 6,
+      "parentId": "dlog"
+    },
+    {
+      "id": "abmg",
+      "sigla": "ABMG",
+      "nivel": 6,
+      "parentId": "deip"
+    },
+    {
+      "id": "cefd",
+      "sigla": "CEFD",
+      "nivel": 6,
+      "parentId": "deip"
+    }
+  ]
+}

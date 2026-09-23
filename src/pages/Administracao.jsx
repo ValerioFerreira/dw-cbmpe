@@ -1,13 +1,16 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
-import { ShieldCheck, Plus, Trash2, Check, AlertTriangle } from "lucide-react";
+import { ShieldCheck, Plus, Trash2, Check, AlertTriangle, Search } from "lucide-react";
 import { useCbmpe } from "@/lib/cbmpe-context";
+import { useAuth } from "@/lib/AuthContext";
 import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import {
   PERFIS, lerAtribuicoes, salvarAtribuicoes, senhaEsperada,
   unidadeDoUsuario, vinculoDoAssessor, resolverOmePorCpf,
 } from "@/lib/accessControl";
+import { resolverPorCpf } from "@/lib/pessoasClient";
 import SectionCard from "@/components/ui/section-card";
+import OrganogramaEditor from "@/components/admin/OrganogramaEditor";
 
 // Página /adm — atribuição de perfis de acesso.
 //
@@ -22,12 +25,46 @@ const CLASSE_CAMPO =
 
 export default function Administracao() {
   const { unidades } = useCbmpe();
+  const { user } = useAuth();
   const { ehAdministrador } = useAcessoUsuario();
+  // Mesmo padrão de OrganogramaEditor.jsx: só o admin fixo tem token de
+  // admin do backend hoje (ver requireAdmin.js) — resolver-cpf exige esse
+  // token, então não adianta mandar o token de um login SGU comum.
+  const tokenAdmin = user?.role === "admin" ? user?.token : undefined;
 
   const [atribuicoes, setAtribuicoes] = React.useState(() => lerAtribuicoes());
   const [novoUsuario, setNovoUsuario] = React.useState("");
   const [novoCpf, setNovoCpf] = React.useState("");
+  const [resolvendo, setResolvendo] = React.useState(false);
+  const [erroResolucao, setErroResolucao] = React.useState(null);
   const [salvo, setSalvo] = React.useState(false);
+
+  // Preenche "Usuário" com a matrícula resolvida pelo CPF — o admin não
+  // precisa já saber a matrícula de cor. A chave da atribuição PRECISA ser
+  // a matrícula (não um apelido): é o que useAcessoUsuario.js usa como
+  // `usuarioChave` pra buscar o perfil de um login SGU real (nivelAcesso =
+  // matrícula, ver authClient.js).
+  async function resolverUsuarioPorCpf() {
+    const cpfLimpo = novoCpf.trim();
+    if (!cpfLimpo) return;
+    setResolvendo(true);
+    setErroResolucao(null);
+    try {
+      const { matricula, ome } = await resolverPorCpf(cpfLimpo, tokenAdmin);
+      if (!matricula) {
+        setErroResolucao("CPF não encontrado no SGP.");
+        return;
+      }
+      setNovoUsuario(matricula);
+      if (!ome) {
+        setErroResolucao(`Matrícula ${matricula} resolvida, mas sem OME atual no DW (efetivo inativo ou não carregado).`);
+      }
+    } catch (erro) {
+      setErroResolucao(erro.message);
+    } finally {
+      setResolvendo(false);
+    }
+  }
 
   const siglas = React.useMemo(
     () => unidades.map((u) => u.sigla).sort((a, b) => a.localeCompare(b, "pt-BR")),
@@ -125,31 +162,47 @@ export default function Administracao() {
         )}
       </header>
 
+      <OrganogramaEditor />
+
       <SectionCard
         titulo="Usuários"
         subtitulo="A unidade vem da OME do usuário, resolvida pelo CPF"
         acoes={
-          <form onSubmit={adicionar} className="flex flex-wrap items-center gap-2">
-            <input
-              value={novoUsuario}
-              onChange={(e) => setNovoUsuario(e.target.value)}
-              placeholder="Usuário"
-              className={`${CLASSE_CAMPO} w-32`}
-            />
-            <input
-              value={novoCpf}
-              onChange={(e) => setNovoCpf(e.target.value)}
-              placeholder="CPF"
-              inputMode="numeric"
-              className={`${CLASSE_CAMPO} w-36`}
-            />
-            <button
-              type="submit"
-              className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-3 text-[13px] font-medium text-primary-foreground transition-opacity hover:opacity-90"
-            >
-              <Plus className="h-4 w-4" /> Adicionar
-            </button>
-          </form>
+          <div className="space-y-1.5">
+            <form onSubmit={adicionar} className="flex flex-wrap items-center gap-2">
+              <input
+                value={novoCpf}
+                onChange={(e) => setNovoCpf(e.target.value)}
+                placeholder="CPF"
+                inputMode="numeric"
+                className={`${CLASSE_CAMPO} w-36`}
+              />
+              <button
+                type="button"
+                onClick={resolverUsuarioPorCpf}
+                disabled={resolvendo || !novoCpf.trim()}
+                title="Resolver matrícula e OME a partir do CPF"
+                className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+              >
+                <Search className="h-3.5 w-3.5" /> {resolvendo ? "Resolvendo…" : "Resolver"}
+              </button>
+              <input
+                value={novoUsuario}
+                onChange={(e) => setNovoUsuario(e.target.value)}
+                placeholder="Matrícula (usuário)"
+                className={`${CLASSE_CAMPO} w-36`}
+              />
+              <button
+                type="submit"
+                className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-3 text-[13px] font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                <Plus className="h-4 w-4" /> Adicionar
+              </button>
+            </form>
+            {erroResolucao && (
+              <p className="text-[11px] text-muted-foreground">{erroResolucao}</p>
+            )}
+          </div>
         }
         semPadding
       >
