@@ -1,0 +1,15 @@
+{
+  "_placeholder": true,
+  "_motivo": "etl/ocorrencias/extract_dashboard_ocorrencias.py esta pronto mas bloqueado: nenhuma credencial em .env.local autentica em roe_api_production (10.193.1.252:15432). Ver DW_CATALOGO_FONTES.md (secao Ocorrencias) e dashboards/PENDENCIAS-PAINEIS-CORPORATIVOS.md. Estes arrays ficam vazios de proposito - nao ha numero real aqui ainda, nunca deve ser tratado como dado de producao.",
+  "ocorrencias": [],
+  "aphEstatistica": [],
+  "produtosPerigososDiagnostico": null,
+  "pendenciasSemSql": {
+    "incendio_duracao_media": "roe_incendio_ocorrencias - schema nao verificado.",
+    "salvamento_tipo_predominante": "roe_salvamento_ocorrencias - schema nao verificado.",
+    "prevencao_todos_os_cards": "roe_prevencao_ocorrencias - schema nao verificado.",
+    "produtos_perigosos_total_por_produto": "pending mesmo com credencial - suspeita de erro de qualidade de dado, ver status_ocorrencias.md.",
+    "produtos_perigosos_perfil_botijoes_glp": "roe_prod_perigosos_ocorrencias - colunas do perfil nao confirmadas.",
+    "perfil_vitimas_sexo_idade": "roe_aph_ocorrencias - colunas de sexo/faixa etaria nao confirmadas."
+  }
+}

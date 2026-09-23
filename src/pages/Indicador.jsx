@@ -14,6 +14,7 @@ import { MODULOS_VIATURAS_DASHBOARD } from "@/lib/viaturasDashboard";
 import { MODULOS_ATIVIDADES_DASHBOARD } from "@/lib/mapaForca";
 import { MODULOS_VACINACAO_DASHBOARD } from "@/lib/vacinacaoDashboard";
 import { MODULOS_FINANCAS_DASHBOARD } from "@/lib/financasDashboard";
+import { MODULOS_OCORRENCIAS_DASHBOARD } from "@/lib/ocorrenciasDashboard";
 
 const QTD_MODULOS_PLACEHOLDER = 4;
 
@@ -27,7 +28,7 @@ const QTD_MODULOS_PLACEHOLDER = 4;
 const DASHBOARDS_REAIS = {
   "Efetivo": { rota: "efetivo", modulos: MODULOS_EFETIVO_DASHBOARD },
   "Viaturas": { rota: "viaturas", modulos: MODULOS_VIATURAS_DASHBOARD },
-  "Atividades Específicas": { rota: "atividades", modulos: [...MODULOS_ATIVIDADES_DASHBOARD, ...MODULOS_VACINACAO_DASHBOARD] },
+  "Atividades Específicas": { rota: "atividades", modulos: [...MODULOS_ATIVIDADES_DASHBOARD, ...MODULOS_VACINACAO_DASHBOARD, ...MODULOS_OCORRENCIAS_DASHBOARD] },
   "Finanças": { rota: "financas", modulos: MODULOS_FINANCAS_DASHBOARD },
 };
 

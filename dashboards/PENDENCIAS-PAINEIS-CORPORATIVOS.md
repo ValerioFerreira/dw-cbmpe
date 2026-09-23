@@ -527,3 +527,42 @@ por unidade em `organograma.js`), rota `/financas/:id/dashboard/:modulo`,
   `01-efetivo-geral/`); não existe ainda uma tabela de detalhamento real de
   Finanças (equivalente a `EfetivoDetalhe.jsx`/`ViaturaDetalhe.jsx`) — os
   gráficos deste painel não têm drill-down por enquanto.
+
+## Ocorrências: scaffold completo, dado real bloqueado (2026-09-23)
+
+Terceiro painel do lote a sair do HTML autônomo — mas, diferente de DF e
+Vacinação, **sem nenhum número real ainda**: `roe_api_production`
+(10.193.1.252:15432) continua sem credencial que autentique (ver
+`DW_CATALOGO_FONTES.md`). Ver `DW_PLANEJAMENTO.md`, entrada de 2026-09-23,
+para o relato completo desta rodada. Resumo do que mudou:
+
+- `dashboards/ocorrencias.zip` → organizado em `dashboards/08-ocorrencias/`
+  (`dashboard-ocorrencias.html`, `status_ocorrencias.md`,
+  `geojs-26-mun.json`), seguindo a convenção de `01-efetivo-geral/`. O zip
+  original foi removido (redundante com a pasta).
+- `etl/ocorrencias/extract_dashboard_ocorrencias.py` — completo e pronto
+  pra rodar para Visão Geral (7/7 cards) e a maior parte de APH, grão por
+  ocorrência (não pré-agregado por card, ao contrário do padrão "uma query
+  por card" deste documento — decisão registrada em `DW_PLANEJAMENTO.md`,
+  necessária pra suportar o filtro por OME que Vacinação não precisava).
+  Incêndio/Salvamento/Prevenção/parte de Produtos Perigosos/Perfil de
+  Vítimas ficam com função-esqueleto, SEM coluna inventada, porque este
+  documento não colou o texto da query nem `DW_CATALOGO_FONTES.md` tem o
+  schema dessas tabelas de detalhe verificado — só os nomes das tabelas.
+- `etl/ocorrencias/mapeamento_unidades.json` — scaffold (não um de-para
+  real): sem credencial, não há `SELECT DISTINCT ome` pra comparar contra
+  o organograma. Só as 2 convenções já confirmadas em nível de DW inteiro
+  foram aplicadas.
+- Frontend: 8 módulos em `src/pages/ocorrencias/`, dentro do indicador
+  "Atividades Específicas" (mesmo guarda-chuva de Mapa de Força/Vacinação),
+  mas com filtro de OME real (`siglasPermitidas`, mesmo mecanismo de
+  Efetivo/Viaturas/Finanças) e restrito à subárvore da DGO — diferente do
+  painel exclusivo-DAS da Vacinação, por pedido explícito do usuário.
+  `src/data/real/ocorrencias_dashboard.json` fica vazio, com
+  `_placeholder: true`, até a credencial existir.
+- Pendência "Total por produto" (linha acima nesta tabela) **continua
+  igual** — nem quando a credencial existir esse card será extraído
+  automaticamente, por decisão já registrada (suspeita de erro de
+  qualidade de dado, não recalculada por este scaffold).
+- Mapa coroplético da aba Geolocalização não foi desenhado (ranking por
+  cidade em hbar cobre o essencial com dado real quando houver).
