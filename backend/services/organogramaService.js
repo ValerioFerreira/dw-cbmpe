@@ -39,6 +39,15 @@ function porId(unidades, id) {
   return unidades.find((u) => u.id === id);
 }
 
+// Próxima ordem disponível dentro de um grupo de irmãos (mesmo parentId) —
+// usada tanto pra criar uma unidade nova (sempre por último) quanto pra
+// reparentar via drag-and-drop sem pai escolhido (ver organogramaController).
+function proximaOrdem(unidades, parentId) {
+  const irmaos = unidades.filter((u) => u.parentId === parentId);
+  if (irmaos.length === 0) return 10;
+  return Math.max(...irmaos.map((u) => u.ordem ?? 0)) + 10;
+}
+
 function porSigla(unidades, sigla, { ignorarId } = {}) {
   const alvo = normalizarSigla(sigla).toLowerCase();
   return unidades.find((u) => u.sigla.toLowerCase() === alvo && u.id !== ignorarId);
@@ -110,18 +119,20 @@ export async function criar({ sigla, nivel, parentId }) {
     sigla: siglaLimpa,
     nivel: nivelNum,
     parentId: paiFinal.id,
+    ordem: proximaOrdem(unidades, paiFinal.id),
   };
   const proximas = [...unidades, novaUnidade];
   await salvarOrganograma(proximas);
   return novaUnidade;
 }
 
-export async function atualizar(id, { sigla, parentId }) {
+export async function atualizar(id, { sigla, parentId, ordem }) {
   const unidades = await lerOrganograma();
   const unidade = porId(unidades, id);
   if (!unidade) throw new NotFoundError("Unidade não encontrada.");
 
   const proxima = { ...unidade };
+  let parentMudou = false;
 
   if (sigla !== undefined) {
     const siglaLimpa = normalizarSigla(sigla);
@@ -145,6 +156,19 @@ export async function atualizar(id, { sigla, parentId }) {
     }
     validarRelacaoNivel(unidade.nivel, novoPai);
     proxima.parentId = novoPai.id;
+    parentMudou = true;
+  }
+
+  // `ordem` (posição entre irmãos) — ver cabeçalho de src/data/organograma.js.
+  // Explícita (arrastar-e-soltar já calcula o valor certo no cliente) ou,
+  // na falta dela quando o pai mudou (ex.: o <select> do editor em /adm,
+  // que não manda ordem), joga pro fim do novo grupo de irmãos.
+  if (ordem !== undefined) {
+    const ordemNum = Number(ordem);
+    if (!Number.isFinite(ordemNum)) throw new ValidationError("Ordem inválida.");
+    proxima.ordem = ordemNum;
+  } else if (parentMudou) {
+    proxima.ordem = proximaOrdem(unidades.filter((u) => u.id !== id), proxima.parentId);
   }
 
   const proximas = unidades.map((u) => (u.id === id ? proxima : u));

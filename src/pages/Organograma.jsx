@@ -1,8 +1,9 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Star, TrendingUp, Lock } from "lucide-react";
+import { Star, TrendingUp, Lock, Pencil, Move, AlertTriangle, Check, X } from "lucide-react";
 import { useCbmpe } from "@/lib/cbmpe-context";
 import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
+import { atualizarUnidade } from "@/lib/organogramaClient";
 
 // Layout do organograma — até 2026-09-23 isto era inteiramente hardcoded
 // (listas fixas de sigla por quadro, replicando o protótipo de referência
@@ -63,10 +64,182 @@ function splitEmColunas(itens, numColunas) {
 
 const ordenarPorSigla = (a, b) => a.sigla.localeCompare(b.sigla, "pt-BR");
 
+// Ordem de exibição entre irmãos (mesmo parent_id) — ver `ordem` em
+// src/data/organograma.js. Substituiu ordenarPorSigla em todo agrupamento
+// estrutural em 2026-09-23: a ordenação alfabética embaralhava arranjos
+// intencionais (DGO antes de DGA; DIM, DINTER I, DINTER II, DIESP nessa
+// ordem) sempre que o admin editava o organograma. Sigla só entra como
+// desempate — não deveria acontecer em uso normal (ordem é sempre única o
+// bastante), mas evita empate instável se algum dia dois nós colidirem.
+const ordenarPorOrdem = (a, b) => (a.ordem ?? 0) - (b.ordem ?? 0) || ordenarPorSigla(a, b);
+
+// Arrastar-e-soltar do organograma (admin) — 2026-09-23.
+//
+// Regra única pra decidir o que um drop significa, sem precisar de zonas de
+// drop diferentes por tipo de card: se o nível da unidade arrastada É
+// compatível como FILHA do card onde ela caiu (mesma regra de
+// backend/services/organogramaService.js > validarRelacaoNivel), o drop
+// REPARENTEIA (unidade arrastada vira filha do card-alvo, vai pro fim do
+// grupo). Senão, o drop REORDENA (unidade arrastada vira irmã do card-alvo,
+// no mesmo pai dele, logo depois dele). O backend sempre revalida a
+// operação (mesma regra) — se a heurística abaixo escolher errado (ex.:
+// nível incompatível com o pai calculado), a pior consequência é um drop
+// rejeitado com mensagem de erro, nunca dado corrompido.
+//
+// `ordem` novo é sempre a MÉDIA entre o vizinho anterior e o de depois (ou
+// vizinho+10 se não houver próximo) — nunca precisa renumerar o resto do
+// grupo pra abrir espaço (ver espaçamento de 10 em 10 no dado de origem).
+function nivelCompativelComoFilho(nivelArrastado, pai) {
+  if (nivelArrastado === 5) return pai.nivel === 4;
+  if (nivelArrastado === 6) return pai.nivel === 5 || pai.nivel <= 3;
+  if (nivelArrastado === 4) return pai.nivel === 2 || pai.nivel === 3;
+  return false;
+}
+
+function useArrastarOrganograma({ podeEditar, token, unidades, recarregar }) {
+  const [arrastandoId, setArrastandoId] = useState(null);
+  const [sobreId, setSobreId] = useState(null);
+  const [ocupado, setOcupado] = useState(false);
+  const [aviso, setAviso] = useState(null); // { tipo: "erro" | "ok", texto }
+  // Log da sessão de edição atual — cada drop bem-sucedido some empilhado
+  // aqui, pra virar o resumo do balão de confirmação quando o admin sai do
+  // modo de edição (ver alternarModoEdicao no componente principal). Cada
+  // drop já persiste na hora (não é um lote pendente) — isto é só o
+  // registro do que já foi salvo, pra mostrar de uma vez no final.
+  const [alteracoes, setAlteracoes] = useState([]);
+
+  const iniciar = useCallback((e, unidade) => {
+    if (!podeEditar || ocupado || unidade.nivel <= 3) { e.preventDefault(); return; }
+    setArrastandoId(unidade.id);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", unidade.id);
+  }, [podeEditar, ocupado]);
+
+  const terminar = useCallback(() => {
+    setArrastandoId(null);
+    setSobreId(null);
+  }, []);
+
+  const sobre = useCallback((e, unidade) => {
+    if (!arrastandoId || arrastandoId === unidade.id) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setSobreId(unidade.id);
+  }, [arrastandoId]);
+
+  const saiDeCima = useCallback((unidade) => {
+    setSobreId((atual) => (atual === unidade.id ? null : atual));
+  }, []);
+
+  const soltar = useCallback(async (e, alvo) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const idArrastado = arrastandoId;
+    setSobreId(null);
+    setArrastandoId(null);
+    if (!idArrastado || idArrastado === alvo.id || ocupado) return;
+    const arrastada = unidades.find((u) => u.id === idArrastado);
+    if (!arrastada) return;
+
+    const comoFilho = nivelCompativelComoFilho(arrastada.nivel, alvo);
+    const novoParentId = comoFilho ? alvo.id : alvo.parent_id;
+    // Só acontece se o alvo for COMANDO GERAL (sem pai) e o nível arrastado
+    // não puder ficar diretamente sob ele — não há "irmão de COMANDO GERAL"
+    // pra reordenar. Mensagem própria em vez de mandar parentId nulo pro
+    // backend.
+    if (!comoFilho && novoParentId === null) {
+      setAviso({ tipo: "erro", texto: `Nível de "${arrastada.sigla}" não pode ficar diretamente sob "${alvo.sigla}".` });
+      window.setTimeout(() => setAviso(null), 4000);
+      return;
+    }
+
+    let novaOrdem;
+    if (comoFilho) {
+      const irmaos = unidades.filter((u) => u.parent_id === novoParentId && u.id !== idArrastado);
+      novaOrdem = irmaos.length ? Math.max(...irmaos.map((u) => u.ordem ?? 0)) + 10 : 10;
+    } else {
+      const irmaos = unidades
+        .filter((u) => u.parent_id === novoParentId && u.id !== idArrastado)
+        .sort(ordenarPorOrdem);
+      const idxAlvo = irmaos.findIndex((u) => u.id === alvo.id);
+      const alvoOrdem = alvo.ordem ?? 0;
+      const proximo = irmaos[idxAlvo + 1];
+      novaOrdem = proximo ? (alvoOrdem + (proximo.ordem ?? alvoOrdem + 20)) / 2 : alvoOrdem + 10;
+    }
+
+    const payload = { ordem: novaOrdem };
+    if (novoParentId !== arrastada.parent_id) payload.parentId = novoParentId;
+
+    setOcupado(true);
+    try {
+      await atualizarUnidade(idArrastado, payload, token);
+      await recarregar();
+      const texto = comoFilho
+        ? `"${arrastada.sigla}" movida para dentro de "${alvo.sigla}"`
+        : `"${arrastada.sigla}" reposicionada ao lado de "${alvo.sigla}"`;
+      setAviso({ tipo: "ok", texto: `${texto}.` });
+      setAlteracoes((lista) => [...lista, texto]);
+    } catch (erro) {
+      setAviso({ tipo: "erro", texto: erro.message });
+    } finally {
+      setOcupado(false);
+      window.setTimeout(() => setAviso(null), 4000);
+    }
+  }, [arrastandoId, ocupado, unidades, token, recarregar]);
+
+  const limparAviso = useCallback(() => setAviso(null), []);
+  const limparAlteracoes = useCallback(() => setAlteracoes([]), []);
+
+  // Props a espalhar num card pra torná-lo arrastável/soltável — nível<=3
+  // nunca é arrastável (fixo), mas continua podendo RECEBER um drop.
+  const propsDoCard = useCallback((unidade) => {
+    if (!podeEditar) return {};
+    const arrastavel = unidade.nivel > 3 && !ocupado;
+    const destacado = !!arrastandoId && arrastandoId !== unidade.id && sobreId === unidade.id;
+    const classes = [
+      arrastavel ? "cursor-grab active:cursor-grabbing" : "",
+      arrastandoId === unidade.id ? "opacity-40" : "",
+      destacado ? "ring-2 ring-primary ring-offset-1" : "",
+    ].filter(Boolean).join(" ");
+    return {
+      draggable: arrastavel,
+      onDragStart: (e) => iniciar(e, unidade),
+      onDragEnd: terminar,
+      onDragOver: (e) => sobre(e, unidade),
+      onDragLeave: () => saiDeCima(unidade),
+      onDrop: (e) => soltar(e, unidade),
+      dragClasses: classes,
+    };
+  }, [podeEditar, ocupado, arrastandoId, sobreId, iniciar, terminar, sobre, saiDeCima, soltar]);
+
+  return { podeEditar, ocupado, aviso, limparAviso, alteracoes, limparAlteracoes, propsDoCard };
+}
+
 export default function Organograma() {
-  const { unidades, indicadores, loading } = useCbmpe();
-  const { restrito, acesso } = useAcessoUsuario();
+  const { unidades, indicadores, loading, recarregar } = useCbmpe();
+  const { restrito, acesso, tokenAdmin } = useAcessoUsuario();
   const navigate = useNavigate();
+
+  // Modo de edição: o arrastar-e-soltar só fica habilitado depois que o
+  // admin liga explicitamente pelo botão de lápis no canto do organograma
+  // (pedido de 2026-09-23) — antes ficava sempre ligado pra quem tinha
+  // token, o que deixava qualquer card "puxável" sem aviso nenhum de que
+  // estava em modo de edição.
+  const [modoEdicao, setModoEdicao] = useState(false);
+  const [resumoSalvo, setResumoSalvo] = useState(null); // { itens: string[] } | null
+  const drag = useArrastarOrganograma({ podeEditar: !!tokenAdmin && modoEdicao, token: tokenAdmin, unidades, recarregar });
+
+  // Clicar de novo desliga o modo de edição — é o momento de "salvar": cada
+  // arrastar já persistiu na hora (ver useArrastarOrganograma), então não há
+  // nada pendente pra de fato gravar aqui; "salvar" é sair do modo de
+  // edição e mostrar o resumo do que já foi gravado durante a sessão.
+  function alternarModoEdicao() {
+    if (modoEdicao && drag.alteracoes.length > 0) {
+      setResumoSalvo({ itens: [...drag.alteracoes] });
+      drag.limparAlteracoes();
+    }
+    setModoEdicao((v) => !v);
+  }
 
   const bySigla = useMemo(() => {
     const map = {};
@@ -83,23 +256,42 @@ export default function Organograma() {
     // sem unidade) tratados igual: balão + subordinadas de nível 6 direto
     // "ao lado". Hoje só existe o nível 2.
     const demaisComando = unidades.filter((u) => u.nivel === 2 || u.nivel === 3).sort((a, b) => a.nivel - b.nivel);
-    const diretoriasGerais = unidades.filter((u) => u.nivel === 4).sort(ordenarPorSigla);
+    const diretoriasGerais = unidades.filter((u) => u.nivel === 4).sort(ordenarPorOrdem);
 
     function aoLadoDe(unidade) {
-      return filhosDe(unidade.id).filter((u) => u.nivel === 6).sort(ordenarPorSigla);
+      return filhosDe(unidade.id).filter((u) => u.nivel === 6).sort(ordenarPorOrdem);
     }
 
+    // Colunas da Diretoria Geral, na ORDEM real de `ordem` (não mais
+    // "primeiro todas as folhas empilhadas, depois todos os grupos com
+    // filhos", que jogava qualquer folha (ex.: DIESP) pro início da grade
+    // não importa sua posição — bug reportado 2026-09-23: DGO devia mostrar
+    // DIM, DINTER I, DINTER II, DIESP nessa ordem, e DIESP (sem
+    // subordinada própria) aparecia primeiro). Uma unidade nível 5 com
+    // filhos vira sua própria coluna (GrupoDiretoria); uma "folha" (sem
+    // filho) entra num pacote com as folhas VIZINHAS na mesma posição
+    // (splitEmColunas em até 2 sub-colunas) — mantém o empilhamento
+    // compacto da DGA sem quebrar a ordem pedida pra DGO.
     function gruposDaDiretoriaGeral(dg) {
-      const nivel5 = filhosDe(dg.id).filter((u) => u.nivel === 5).sort(ordenarPorSigla);
-      const comFilhos = [];
-      const folhas = [];
+      const nivel5 = filhosDe(dg.id).filter((u) => u.nivel === 5).sort(ordenarPorOrdem);
+      const colunas = [];
+      let bufferFolhas = [];
+      function fecharBuffer() {
+        if (bufferFolhas.length === 0) return;
+        splitEmColunas(bufferFolhas, 2).forEach((pacote) => colunas.push({ tipo: "pacote", unidades: pacote }));
+        bufferFolhas = [];
+      }
       nivel5.forEach((u) => {
-        const filhos = filhosDe(u.id).filter((f) => f.nivel === 6).sort(ordenarPorSigla);
-        if (filhos.length > 0) comFilhos.push({ unidade: u, filhos });
-        else folhas.push(u);
+        const filhos = filhosDe(u.id).filter((f) => f.nivel === 6).sort(ordenarPorOrdem);
+        if (filhos.length > 0) {
+          fecharBuffer();
+          colunas.push({ tipo: "grupo", unidade: u, filhos });
+        } else {
+          bufferFolhas.push(u);
+        }
       });
-      const colunasFolhas = splitEmColunas(folhas, 2);
-      return { comFilhos, colunasFolhas };
+      fecharBuffer();
+      return colunas;
     }
 
     return { comandoGeral, demaisComando, diretoriasGerais, aoLadoDe, gruposDaDiretoriaGeral };
@@ -147,11 +339,62 @@ export default function Organograma() {
   }
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-3 animate-fade-in">
+      {modoEdicao && (
+        <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3.5 py-2 text-[12px] text-foreground">
+          <Move className="h-3.5 w-3.5 shrink-0 text-primary" />
+          <span>Modo de edição: arraste uma unidade sobre outra pra reordenar, ou sobre um balão/quadro pra mudar de subordinação. Cada alteração é salva na hora.</span>
+        </div>
+      )}
+      {drag.aviso && (
+        <div className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-[12px] ${
+          drag.aviso.tipo === "erro" ? "border-destructive/30 bg-destructive/5 text-destructive" : "border-primary/30 bg-primary/5 text-foreground"
+        }`}>
+          {drag.aviso.tipo === "erro" ? <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> : <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
+          <span className="flex-1">{drag.aviso.texto}</span>
+          <button onClick={drag.limparAviso} className="text-muted-foreground hover:text-foreground">×</button>
+        </div>
+      )}
+      {/* Balão de confirmação ao sair do modo de edição (pedido de
+          2026-09-23) — resume tudo que foi arrastado e já salvo durante a
+          sessão. Fica até o admin fechar, sem timeout automático: é o
+          registro final da edição, diferente do aviso individual acima
+          (que já some sozinho). */}
+      {resumoSalvo && (
+        <div className="flex items-start gap-2.5 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-[12px] text-foreground">
+          <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+          <div className="flex-1 space-y-1">
+            <p className="font-semibold text-primary">
+              {resumoSalvo.itens.length === 1 ? "1 alteração salva" : `${resumoSalvo.itens.length} alterações salvas`}
+            </p>
+            <ul className="space-y-0.5 text-muted-foreground">
+              {resumoSalvo.itens.map((texto, idx) => (
+                <li key={idx}>• {texto}.</li>
+              ))}
+            </ul>
+          </div>
+          <button onClick={() => setResumoSalvo(null)} className="text-muted-foreground hover:text-foreground">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
       {/* Sem min-width forçado: o organograma empilha naturalmente no mobile,
           igual à referência (index.html). O scroll horizontal só existe como
           rede de segurança para telas muito estreitas. */}
-      <div className="overflow-x-auto rounded-xl border border-border bg-card p-3 scrollbar-thin sm:p-6">
+      <div className="relative overflow-x-auto rounded-xl border border-border bg-card p-3 scrollbar-thin sm:p-6">
+        {!!tokenAdmin && (
+          <button
+            onClick={alternarModoEdicao}
+            title={modoEdicao ? "Sair do modo de edição" : "Editar organograma"}
+            className={`absolute right-3 top-3 z-30 inline-flex h-9 w-9 items-center justify-center rounded-full border shadow-sm transition-colors ${
+              modoEdicao
+                ? "border-primary bg-primary text-primary-foreground hover:opacity-90"
+                : "border-border bg-card text-muted-foreground hover:border-primary hover:text-primary"
+            }`}
+          >
+            {modoEdicao ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+          </button>
+        )}
         <div className="mx-auto flex w-full max-w-[1520px] flex-col items-center gap-6 py-2 sm:gap-8">
           {/* ===== Comando Geral ===== */}
           {estrutura.comandoGeral && (
@@ -185,48 +428,54 @@ export default function Organograma() {
                 })}
               </div>
 
-              <NoEstrela unidade={estrutura.comandoGeral} tom="amber" onClick={() => goto(estrutura.comandoGeral.sigla)} acessoOk={acessoDe(estrutura.comandoGeral.sigla)} />
-
-              <LinhaAssessorias
-                unidades={estrutura.aoLadoDe(estrutura.comandoGeral)}
-                goto={goto}
-                gridCols="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
-                maxWidth="max-w-2xl"
-                accent="amber"
-                acessoDe={acessoDe}
-              />
+              {/* Balão + subordinadas de nível 6 diretas: o balão continua
+                  CENTRALIZADO na página (grid 1fr/auto/auto com a 1ª coluna
+                  vazia do mesmo tamanho da 3ª — pedido de 2026-09-23), e são
+                  as subordinadas que se deslocam pra direita, não o balão.
+                  Empilha centralizado em telas estreitas. */}
+              <div className="mt-8 grid w-full grid-cols-1 items-center justify-items-center gap-4 lg:grid-cols-[1fr_auto_1fr] lg:gap-6">
+                <div className="hidden lg:block" aria-hidden="true" />
+                <NoEstrela unidade={estrutura.comandoGeral} tom="amber" onClick={() => goto(estrutura.comandoGeral.sigla)} acessoOk={acessoDe(estrutura.comandoGeral.sigla)} drag={drag} />
+                {/* min-w-0: sem isso, a coluna 3 (grid "1fr") cresce pra
+                    caber o conteúdo do painel inteiro, e a 1ª coluna (vazia)
+                    encolhe pra 0 — quebrando a simetria que centraliza o
+                    balão. Com min-w-0 as duas colunas 1fr ficam realmente
+                    iguais; se o painel não couber, ele estoura visualmente
+                    pra direita (mesma rede de segurança de overflow-x-auto
+                    do container do organograma). */}
+                <div className="lg:min-w-0 lg:justify-self-start">
+                  <LinhaAssessorias unidades={estrutura.aoLadoDe(estrutura.comandoGeral)} goto={goto} accent="amber" acessoDe={acessoDe} drag={drag} />
+                </div>
+              </div>
             </div>
           )}
 
           {/* ===== Subcomando Geral / Estado Maior (nível 2 e 3) ===== */}
           {estrutura.demaisComando.map((unidade) => (
-            <div key={unidade.id} className="flex w-full flex-col items-center">
-              <NoEstrela unidade={unidade} tom="yellow" onClick={() => goto(unidade.sigla)} acessoOk={acessoDe(unidade.sigla)} />
-              <LinhaAssessorias
-                unidades={estrutura.aoLadoDe(unidade)}
-                goto={goto}
-                gridCols="grid-cols-3"
-                maxWidth="max-w-md"
-                accent="yellow"
-                acessoDe={acessoDe}
-              />
+            <div key={unidade.id} className="grid w-full grid-cols-1 items-center justify-items-center gap-4 lg:grid-cols-[1fr_auto_1fr] lg:gap-6">
+              <div className="hidden lg:block" aria-hidden="true" />
+              <NoEstrela unidade={unidade} tom="yellow" onClick={() => goto(unidade.sigla)} acessoOk={acessoDe(unidade.sigla)} drag={drag} />
+              <div className="lg:min-w-0 lg:justify-self-start">
+                <LinhaAssessorias unidades={estrutura.aoLadoDe(unidade)} goto={goto} accent="yellow" acessoDe={acessoDe} drag={drag} />
+              </div>
             </div>
           ))}
 
           {/* ===== Diretorias Gerais (nível 4) ===== */}
           <div className="grid w-full grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
             {estrutura.diretoriasGerais.map((dg) => {
-              const { comFilhos, colunasFolhas } = estrutura.gruposDaDiretoriaGeral(dg);
+              const colunas = estrutura.gruposDaDiretoriaGeral(dg);
               return (
                 <div key={dg.id} className="flex flex-col items-center rounded-2xl border border-border bg-background p-3 sm:p-4">
-                  <CardDiretoria unidade={dg} onClick={() => goto(dg.sigla)} tamanho="lg" acessoOk={acessoDe(dg.sigla)} />
+                  <CardDiretoria unidade={dg} onClick={() => goto(dg.sigla)} tamanho="lg" acessoOk={acessoDe(dg.sigla)} drag={drag} />
                   <div className="mt-4 grid w-full grid-cols-2 gap-3 lg:grid-cols-4">
-                    {colunasFolhas.map((coluna, idx) => (
-                      <ColunaEmpilhada key={`col-${idx}`} unidades={coluna} goto={goto} acessoDe={acessoDe} />
-                    ))}
-                    {comFilhos.map(({ unidade, filhos }) => (
-                      <GrupoDiretoria key={unidade.id} unidade={unidade} filhos={filhos} goto={goto} acessoDe={acessoDe} />
-                    ))}
+                    {colunas.map((coluna, idx) =>
+                      coluna.tipo === "pacote" ? (
+                        <ColunaEmpilhada key={`col-${idx}`} unidades={coluna.unidades} goto={goto} acessoDe={acessoDe} drag={drag} />
+                      ) : (
+                        <GrupoDiretoria key={coluna.unidade.id} unidade={coluna.unidade} filhos={coluna.filhos} goto={goto} acessoDe={acessoDe} drag={drag} />
+                      )
+                    )}
                   </div>
                 </div>
               );
@@ -238,21 +487,26 @@ export default function Organograma() {
   );
 }
 
-function NoEstrela({ unidade, tom, onClick, acessoOk }) {
+function NoEstrela({ unidade, tom, onClick, acessoOk, drag }) {
   if (!unidade) return null;
   const isAmber = tom === "amber";
   const bloqueado = acessoOk === "no";
+  // Nível 1-3 nunca é arrastável (ver useArrastarOrganograma), mas continua
+  // podendo RECEBER um drop — é assim que uma unidade nível 6 "ao lado" pode
+  // ser movida pra Comando/Subcomando via arrastar-e-soltar.
+  const { dragClasses, ...dragProps } = drag?.propsDoCard(unidade) || {};
   return (
     <button
       onClick={bloqueado ? undefined : onClick}
       disabled={bloqueado}
-      className={`relative z-10 mt-8 w-72 rounded-xl border-2 bg-gradient-to-br p-4 text-center transition-transform ${
+      {...dragProps}
+      className={`relative z-10 w-72 shrink-0 rounded-xl border-2 bg-gradient-to-br p-4 text-center transition-transform ${
         bloqueado ? CADEADO_BLOQUEADO : "hover:-translate-y-1 hover:scale-[1.02]"
       } ${
         isAmber
           ? "border-amber-300 from-amber-500 via-amber-600 to-orange-700 shadow-[0_8px_30px_-6px_rgba(217,119,6,0.35)]"
           : "border-yellow-300 from-yellow-500 via-yellow-600 to-amber-700 shadow-[0_8px_30px_-6px_rgba(202,138,4,0.35)]"
-      }`}
+      } ${dragClasses || ""}`}
     >
       <div className="flex items-center justify-center gap-2">
         <Star className={`h-4 w-4 fill-current ${isAmber ? "text-amber-200" : "text-yellow-200"}`} />
@@ -269,27 +523,33 @@ function NoEstrela({ unidade, tom, onClick, acessoOk }) {
 }
 
 // Unidades de nível 6 diretamente subordinadas ao Comando/Subcomando
-// Geral/Estado Maior (nível 1-3) — ficam AO LADO do balão do pai, não
-// abaixo dele numa fileira separada (pedido explícito do usuário,
-// 2026-09-23, corrigindo o comportamento anterior).
-function LinhaAssessorias({ unidades, goto, gridCols, maxWidth, accent, acessoDe }) {
+// Geral/Estado Maior (nível 1-3) — ficam AO LADO do balão do pai (mesmo
+// quadro 2 colunas de sempre), não abaixo dele numa fileira separada
+// (pedido explícito do usuário, 2026-09-23).
+function LinhaAssessorias({ unidades, goto, accent, acessoDe, drag }) {
   if (unidades.length === 0) return null;
   const hoverBorder = accent === "yellow" ? "hover:border-yellow-500" : "hover:border-amber-500";
   // Div de agrupamento: fundo igual ao body (#F5F5F5 = bg-background), 4
-  // cantos arredondados e borda em cima e embaixo (antes só embaixo).
+  // cantos arredondados e borda em cima e embaixo (antes só embaixo). Uma
+  // única LINHA sem quebra a partir de `lg` (pedido de 2026-09-23,
+  // corrigindo o grid de 2 colunas que empilhava em várias linhas/colunas
+  // no desktop) — no mobile continua podendo quebrar linha (`flex-wrap`),
+  // senão viraria uma fileira ilegível estourando pros dois lados da tela.
   return (
-    <div className={`mt-3 grid w-full ${maxWidth} ${gridCols} gap-2 rounded-xl border border-border bg-background p-2`}>
+    <div className="flex max-w-[280px] shrink-0 flex-wrap justify-center gap-2 rounded-xl border border-border bg-background p-2 sm:max-w-sm lg:max-w-none lg:flex-nowrap lg:justify-start">
       {unidades.map((u) => {
         const ok = acessoDe(u.sigla);
         const bloqueado = ok === "no";
+        const { dragClasses, ...dragProps } = drag?.propsDoCard(u) || {};
         return (
           <button
             key={u.id}
             onClick={bloqueado ? undefined : () => goto(u.sigla)}
             disabled={bloqueado}
-            className={`relative rounded-lg border bg-card p-2 text-center transition-colors ${SOMBRA_CARD} ${
+            {...dragProps}
+            className={`relative w-24 shrink-0 rounded-lg border bg-card p-2 text-center transition-colors sm:w-28 ${SOMBRA_CARD} ${
               bloqueado ? `border-border ${CADEADO_BLOQUEADO}` : ok === "ok" ? "border-amber-400" : `border-border ${hoverBorder}`
-            }`}
+            } ${dragClasses || ""}`}
           >
             <p className="text-xs font-bold text-foreground">{u.sigla}</p>
             <p className="text-[9px] text-muted-foreground">{u.responsavel} - {u.cargo}</p>
@@ -301,17 +561,19 @@ function LinhaAssessorias({ unidades, goto, gridCols, maxWidth, accent, acessoDe
   );
 }
 
-function CardDiretoria({ unidade, onClick, tamanho = "col", acessoOk }) {
+function CardDiretoria({ unidade, onClick, tamanho = "col", acessoOk, drag }) {
   if (!unidade) return null;
   const isLg = tamanho === "lg";
   const bloqueado = acessoOk === "no";
+  const { dragClasses, ...dragProps } = drag?.propsDoCard(unidade) || {};
   return (
     <button
       onClick={bloqueado ? undefined : onClick}
       disabled={bloqueado}
+      {...dragProps}
       className={`relative ${isLg ? "w-64 p-3" : "w-full p-2"} rounded-xl border-2 border-yellow-400 bg-yellow-600 text-center shadow-md transition-transform ${
         bloqueado ? CADEADO_BLOQUEADO : "hover:-translate-y-0.5"
-      }`}
+      } ${dragClasses || ""}`}
     >
       <p className={`font-black uppercase tracking-wider text-white ${isLg ? "text-base" : "text-xs"}`}>{unidade.sigla}</p>
       <p className={`text-yellow-100 ${isLg ? "mt-0.5 text-[10px] tracking-widest" : "text-[8px]"}`}>{unidade.responsavel} - {unidade.cargo}</p>
@@ -323,35 +585,37 @@ function CardDiretoria({ unidade, onClick, tamanho = "col", acessoOk }) {
 // Unidades de nível 5 "folha" (sem subordinada própria) de uma Diretoria
 // Geral, empilhadas sem moldura — mesmo efeito visual do antigo
 // DGA_COLUNAS_EMPILHADAS, agora calculado (ver splitEmColunas).
-function ColunaEmpilhada({ unidades, goto, acessoDe }) {
+function ColunaEmpilhada({ unidades, goto, acessoDe, drag }) {
   return (
     <div className="space-y-2">
       {unidades.map((u) => (
-        <CardDiretoria key={u.id} unidade={u} onClick={() => goto(u.sigla)} tamanho="col" acessoOk={acessoDe(u.sigla)} />
+        <CardDiretoria key={u.id} unidade={u} onClick={() => goto(u.sigla)} tamanho="col" acessoOk={acessoDe(u.sigla)} drag={drag} />
       ))}
     </div>
   );
 }
 
-function GrupoDiretoria({ unidade, filhos, goto, acessoDe }) {
+function GrupoDiretoria({ unidade, filhos, goto, acessoDe, drag }) {
   // Fundo um pouco mais escuro que o #F5F5F5 do container-pai, pra dar
   // contraste (pedido de 2026-08-19 — DIM, DINTER I/II, DLOG, DEIP).
   return (
     <div className="flex flex-col items-center rounded-xl border border-border bg-black/[0.05] p-2">
-      <CardDiretoria unidade={unidade} onClick={() => goto(unidade.sigla)} tamanho="col" acessoOk={acessoDe(unidade.sigla)} />
+      <CardDiretoria unidade={unidade} onClick={() => goto(unidade.sigla)} tamanho="col" acessoOk={acessoDe(unidade.sigla)} drag={drag} />
       {filhos.length > 0 && (
         <div className="mt-2 w-full space-y-1.5">
           {filhos.map((f) => {
             const ok = acessoDe(f.sigla);
             const bloqueado = ok === "no";
+            const { dragClasses, ...dragProps } = drag?.propsDoCard(f) || {};
             return (
               <button
                 key={f.id}
                 onClick={bloqueado ? undefined : () => goto(f.sigla)}
                 disabled={bloqueado}
+                {...dragProps}
                 className={`relative w-full rounded border bg-card p-1.5 text-center transition-colors ${SOMBRA_CARD} ${
                   bloqueado ? `border-border ${CADEADO_BLOQUEADO}` : ok === "ok" ? "border-amber-400" : "border-border hover:border-yellow-400"
-                }`}
+                } ${dragClasses || ""}`}
               >
                 <p className="text-[10px] font-bold text-foreground">{f.sigla}</p>
                 <p className="text-[7px] text-muted-foreground">{f.responsavel} - {f.cargo}</p>

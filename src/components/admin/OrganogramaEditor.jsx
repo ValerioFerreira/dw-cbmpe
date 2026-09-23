@@ -1,7 +1,7 @@
 import React from "react";
 import { Plus, Trash2, AlertTriangle, Check } from "lucide-react";
 import { useCbmpe } from "@/lib/cbmpe-context";
-import { useAuth } from "@/lib/AuthContext";
+import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import { getSubordinados } from "@/lib/cbmpe";
 import { criarUnidade, atualizarUnidade, removerUnidade } from "@/lib/organogramaClient";
 import SectionCard from "@/components/ui/section-card";
@@ -36,13 +36,11 @@ function paisValidos(nivel, unidades) {
 
 export default function OrganogramaEditor() {
   const { unidades, recarregar } = useCbmpe();
-  const { user } = useAuth();
-  // Só o admin fixo (VITE_ADMIN_USUARIO) tem token de admin do backend hoje
-  // — ver comentário no topo de src/lib/authClient.js. Um usuário "nivel"
-  // com perfil ADMINISTRADOR (accessControl.js) enxerga esta tela mas não
-  // tem esse token, então nem tenta mandar o token errado (SGU) pras rotas
-  // de escrita do organograma.
-  const token = user?.role === "admin" ? user?.token : undefined;
+  // Admin fixo OU usuário SGU com perfil ADMINISTRADOR (ver
+  // useAcessoUsuario.js e backend/middlewares/requireAdmin.js) — desde
+  // 2026-09-23 a atribuição de perfil vive no backend, não só em
+  // localStorage, então o backend consegue validar os dois casos.
+  const { tokenAdmin: token, restrito } = useAcessoUsuario();
 
   const [erro, setErro] = React.useState("");
   const [ok, setOk] = React.useState("");
@@ -153,9 +151,9 @@ export default function OrganogramaEditor() {
         <div className="flex items-start gap-2 border-b border-border bg-destructive/5 px-5 py-3 text-[12px] text-destructive">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span>
-            {user?.role === "admin"
-              ? "Sessão sem token de administrador do backend — confira se o backend está no ar e se VITE_AUTH_API_URL está configurado, depois saia e entre novamente."
-              : "A edição do organograma só funciona logado com o usuário administrador fixo (VITE_ADMIN_USUARIO) — o backend ainda não reconhece perfis atribuídos em /adm como administradores."}
+            {restrito
+              ? "Sessão sem token de administrador do backend — a edição só funciona logado com CPF real (SGU), não com o login de demonstração. Confira também se o backend está no ar e se VITE_AUTH_API_URL está configurado."
+              : "Sessão sem token de administrador do backend — confira se o backend está no ar e se VITE_AUTH_API_URL está configurado, depois saia e entre novamente."}
           </span>
         </div>
       )}

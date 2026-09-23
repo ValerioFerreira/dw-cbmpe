@@ -48,11 +48,12 @@ export async function criarUnidade({ sigla, nivel, parentId }, token) {
   return corpo.unidade;
 }
 
-export async function atualizarUnidade(id, { sigla, parentId }, token) {
+export async function atualizarUnidade(id, { sigla, parentId, ordem }, token) {
   precisaBackend();
   const payload = {};
   if (sigla !== undefined) payload.sigla = sigla;
   if (parentId !== undefined) payload.parentId = parentId;
+  if (ordem !== undefined) payload.ordem = ordem;
   const response = await fetch(`${AUTH_API_URL}/organograma/${encodeURIComponent(id)}`, {
     method: "PUT",
     headers: cabecalhos(token),

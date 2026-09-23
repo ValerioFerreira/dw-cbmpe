@@ -1,6 +1,8 @@
 // CBMPE BI — Núcleo de dados e helpers de hierarquia
 import { NODES_PADRAO, montarOrganograma, metricasProprias, metricasDivisoesProprias } from "@/data/organograma";
 import { fetchOrganogramaRemoto } from "@/lib/organogramaClient";
+import { fetchAtribuicoesRemoto } from "@/lib/atribuicoesClient";
+import { lerAtribuicoes as lerAtribuicoesLocal } from "@/lib/accessControl";
 
 export { metricasProprias, metricasDivisoesProprias };
 
@@ -87,6 +89,34 @@ export async function fetchDashboards() {
 export async function fetchAlertas() {
   const { alertas } = await carregarOrganograma();
   return [...alertas].sort((a, b) => (b.data || "").localeCompare(a.data || ""));
+}
+
+// Atribuições de perfil (quem é ADMINISTRADOR, TITULAR de qual unidade
+// etc.) — migradas de localStorage pro backend em 2026-09-23 (ver
+// backend/services/atribuicoesService.js): sem isso, uma atribuição feita
+// pelo admin no PRÓPRIO navegador dele nunca apareceria quando o usuário
+// atribuído logasse no navegador DELE. Mesmo padrão de cache/invalidação de
+// carregarOrganograma() acima — fallback pro accessControl.js local
+// (localStorage/ATRIBUICOES_PADRAO) só quando o backend está fora do ar ou
+// não configurado.
+let atribuicoesCache = null;
+
+export async function fetchAtribuicoes() {
+  if (atribuicoesCache) return atribuicoesCache;
+  atribuicoesCache = (async () => {
+    try {
+      const remoto = await fetchAtribuicoesRemoto();
+      if (remoto) return remoto;
+    } catch (e) {
+      console.warn("Atribuições: usando fallback local (backend indisponível)", e);
+    }
+    return lerAtribuicoesLocal();
+  })();
+  return atribuicoesCache;
+}
+
+export function invalidarCacheAtribuicoes() {
+  atribuicoesCache = null;
 }
 
 // ----- Árvore -----

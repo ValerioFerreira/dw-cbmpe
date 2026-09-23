@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import {
   fetchUnidades, fetchIndicadores, fetchDashboards, fetchAlertas, buildArvore,
-  invalidarCacheOrganograma
+  invalidarCacheOrganograma, fetchAtribuicoes, invalidarCacheAtribuicoes
 } from "@/lib/cbmpe";
 
 const CbmpeContext = createContext(null);
@@ -12,6 +12,7 @@ export function CbmpeProvider({ children }) {
   const [indicadores, setIndicadores] = useState([]);
   const [dashboards, setDashboards] = useState([]);
   const [alertas, setAlertas] = useState([]);
+  const [atribuicoes, setAtribuicoes] = useState({});
   const [loading, setLoading] = useState(true);
   const [recentes, setRecentes] = useState(() => {
     try { return JSON.parse(localStorage.getItem("cbmpe_recentes") || "[]"); }
@@ -24,14 +25,16 @@ export function CbmpeProvider({ children }) {
     // depois de criar/editar/mover/excluir uma OME em /adm) não devolver o
     // organograma antigo que ficou em cache (ver src/lib/cbmpe.js).
     invalidarCacheOrganograma();
+    invalidarCacheAtribuicoes();
     try {
-      const [u, i, d, a] = await Promise.all([
-        fetchUnidades(), fetchIndicadores(), fetchDashboards(), fetchAlertas()
+      const [u, i, d, a, atr] = await Promise.all([
+        fetchUnidades(), fetchIndicadores(), fetchDashboards(), fetchAlertas(), fetchAtribuicoes()
       ]);
       setUnidades(u);
       setIndicadores(i);
       setDashboards(d);
       setAlertas(a);
+      setAtribuicoes(atr);
     } catch (e) {
       console.error("Falha ao carregar dados CBMPE", e);
     } finally {
@@ -53,7 +56,7 @@ export function CbmpeProvider({ children }) {
 
   return (
     <CbmpeContext.Provider value={{
-      unidades, indicadores, dashboards, alertas,
+      unidades, indicadores, dashboards, alertas, atribuicoes,
       raizes, porId, loading, recarregar: carregar,
       recentes, registrarRecente
     }}>

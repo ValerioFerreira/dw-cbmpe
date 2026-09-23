@@ -4,6 +4,7 @@ import helmet from "helmet";
 import authRoutes from "./routes/authRoutes.js";
 import organogramaRoutes from "./routes/organogramaRoutes.js";
 import pessoasRoutes from "./routes/pessoasRoutes.js";
+import atribuicoesRoutes from "./routes/atribuicoesRoutes.js";
 import errorHandler from "./middlewares/errorHandler.js";
 
 const app = express();
@@ -28,6 +29,7 @@ app.get("/", (req, res) => {
 app.use("/auth", authRoutes);
 app.use("/organograma", organogramaRoutes);
 app.use("/pessoas", pessoasRoutes);
+app.use("/atribuicoes", atribuicoesRoutes);
 
 // Precisa ser o ultimo app.use - so recebe o erro se algo acima chamar
 // next(err) ou um handler async encapsulado rejeitar.

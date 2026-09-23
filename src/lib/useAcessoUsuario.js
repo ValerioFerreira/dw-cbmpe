@@ -14,12 +14,12 @@ import { calcularAcesso } from "./accessControl";
 
 export function useAcessoUsuario() {
   const { user } = useAuth();
-  const { unidades } = useCbmpe();
+  const { unidades, atribuicoes } = useCbmpe();
 
   const restrito = user?.role === "nivel";
   const acesso = useMemo(
-    () => (restrito ? calcularAcesso(user.nivelAcesso, unidades, getSubordinados) : null),
-    [restrito, user, unidades]
+    () => (restrito ? calcularAcesso(user.nivelAcesso, unidades, getSubordinados, atribuicoes) : null),
+    [restrito, user, unidades, atribuicoes]
   );
 
   // true/false — já resolve o caso "sem restrição" (admin) como permitido.
@@ -53,5 +53,16 @@ export function useAcessoUsuario() {
 
   const ehAdministrador = !restrito || !!acesso?.admin;
 
-  return { restrito, acesso, permiteSigla, permiteIndicador, permiteKpiTopo, ehAdministrador };
+  // Token pra rotas de escrita do backend (organograma, atribuições — ver
+  // requireAdmin.js): o login admin fixo sempre serve; um usuário SGU
+  // (role "nivel") só serve quando o PRÓPRIO perfil dele é ADMINISTRADOR —
+  // o backend revalida isso de qualquer forma, mas evitar mandar o token
+  // à toa poupa uma chamada que vai dar 403. Um login de demonstração
+  // (authClient.js caminho 2) nunca tem `user.token` (nunca falou com o
+  // backend), então isto já sai `undefined` sozinho pra ele, mesmo
+  // atribuído como ADMINISTRADOR — não há credencial real pro backend
+  // confiar nesse caminho.
+  const tokenAdmin = (user?.role === "admin" || (restrito && acesso?.admin)) ? user?.token : undefined;
+
+  return { restrito, acesso, permiteSigla, permiteIndicador, permiteKpiTopo, ehAdministrador, tokenAdmin };
 }

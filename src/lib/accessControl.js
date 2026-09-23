@@ -204,12 +204,19 @@ export function perfilDoUsuario(usuarioChave) {
 }
 
 // getSubordinados vem de @/lib/cbmpe — passado por parâmetro pra não criar
-// dependência circular (cbmpe.js não depende deste módulo).
-export function calcularAcesso(usuarioChave, unidades, getSubordinados) {
+// dependência circular (cbmpe.js não depende deste módulo). `atribuicoesOverride`
+// (2026-09-23): quando quem chama já tem a árvore de atribuições vinda do
+// backend (ver useAcessoUsuario.js, que a busca via CbmpeProvider), passa
+// ela aqui em vez de deixar cair no fallback local — é o que faz uma
+// atribuição feita por outro admin, noutro navegador, valer para este
+// usuário. Sem override, cai em lerAtribuicoes() (localStorage), usado só
+// pelo login de demonstração (authClient.js caminho 2), que nunca teve
+// backend mesmo.
+export function calcularAcesso(usuarioChave, unidades, getSubordinados, atribuicoesOverride) {
   const vazio = { siglas: new Set(), indicadores: new Set(), total: false, admin: false };
   if (!usuarioChave) return vazio;
 
-  const atribuicoes = lerAtribuicoes();
+  const atribuicoes = atribuicoesOverride || lerAtribuicoes();
   const atribuicao = atribuicoes[usuarioChave];
   if (!atribuicao) return vazio;
   const perfil = PERFIS[atribuicao.perfil];
