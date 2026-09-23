@@ -5,9 +5,7 @@ import { useCbmpe } from "@/lib/cbmpe-context";
 import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import { getCaminho } from "@/lib/cbmpe";
 import { siglasPermitidas } from "@/lib/dashboardHelpers";
-import { MODULOS_ATIVIDADES_DASHBOARD } from "@/lib/mapaForca";
-import { MODULOS_VACINACAO_DASHBOARD } from "@/lib/vacinacaoDashboard";
-import { MODULOS_OCORRENCIAS_DASHBOARD, estaNaSubarvoreDgo } from "@/lib/ocorrenciasDashboard";
+import { TODOS_MODULOS_ATIVIDADES, familiaDoModulo } from "@/lib/atividadesEspecificas";
 import EmptyState from "@/components/ui/empty-state";
 import vacinacaoDashboardReal from "@/data/real/vacinacao_dashboard.json";
 import ocorrenciasDashboardReal from "@/data/real/ocorrencias_dashboard.json";
@@ -31,17 +29,20 @@ import ModuloAtividadeComunitaria from "@/pages/ocorrencias/ModuloAtividadeComun
 // EfetivoDashboard/ViaturasDashboard: breadcrumb, checagem de acesso, escopo
 // por unidade, e o módulo dentro.
 //
-// Guarda-chuva de módulos sem KPI próprio no organograma: Mapa de Força
-// (real desde antes), Vacinação (DAS) e, agora, Ocorrências (DGO + toda a
-// sua subárvore) — mesmo indicador "Atividades Específicas", abas somadas
-// na mesma lista. Vacinação não usa siglasPermitidas (é painel exclusivo da
-// DAS, não filtrado por unidade — ver ModuloVacinacaoVisaoGeral.jsx).
-// Ocorrências é o oposto: reusa siglasPermitidas (mesmo mecanismo de
-// Efetivo/Viaturas/Finanças) e, além disso, só existe de fato dentro da
-// subárvore da DGO — fora dela, os 9 módulos caem no EmptyState de escopo
-// abaixo, sem tentar mostrar dado de outra diretoria.
-const TODOS_MODULOS = [...MODULOS_ATIVIDADES_DASHBOARD, ...MODULOS_VACINACAO_DASHBOARD, ...MODULOS_OCORRENCIAS_DASHBOARD];
-
+// Guarda-chuva de 3 famílias sem KPI próprio no organograma: Mapa de Força,
+// Vacinação (DAS) e Ocorrências (DGO + subárvore, exceto DIESP) — mesmo
+// indicador "Atividades Específicas". A barra de abas (mais abaixo) mostra
+// só os módulos da MESMA família do módulo aberto, não as 14 juntas — ver
+// FAMILIAS_ATIVIDADES em atividadesEspecificas.js, fonte única de verdade
+// compartilhada com a grade de balões de Indicador.jsx.
+//
+// Vacinação não usa siglasPermitidas (é painel exclusivo da DAS, não
+// filtrado por unidade — ver ModuloVacinacaoVisaoGeral.jsx) nem o gate de
+// escopo abaixo (cada um dos 4 módulos já resolve o próprio EmptyState).
+// Mapa de Força e Ocorrências reusam siglasPermitidas (mesmo mecanismo de
+// Efetivo/Viaturas/Finanças) e, além disso, só existem de fato dentro da
+// subárvore da DGO (Ocorrências também exclui a DIESP) — fora do escopo,
+// caem no EmptyState de `restricao` da família.
 const COMPONENTES = {
   "mapa-forca": ModuloMapaForca,
   "vacinacao-visao-geral": ModuloVacinacaoVisaoGeral,
@@ -59,8 +60,6 @@ const COMPONENTES = {
   "ocorrencias-atividade-comunitaria": ModuloAtividadeComunitaria,
 };
 
-const CHAVES_OCORRENCIAS = new Set(MODULOS_OCORRENCIAS_DASHBOARD.map((m) => m.key));
-
 export default function AtividadesDashboard() {
   const { id, modulo } = useParams();
   const { indicadores, unidades, porId } = useCbmpe();
@@ -69,7 +68,8 @@ export default function AtividadesDashboard() {
   const ind = indicadores.find((i) => i.id === id);
   const unidade = ind ? porId[ind.unidade_id] : null;
   const caminho = ind ? getCaminho(unidades, ind.unidade_id) : [];
-  const moduloInfo = TODOS_MODULOS.find((m) => m.key === modulo);
+  const moduloInfo = TODOS_MODULOS_ATIVIDADES.find((m) => m.key === modulo);
+  const familiaAtual = moduloInfo ? familiaDoModulo(moduloInfo.key) : null;
 
   // Escopo por unidade — mesma regra dos outros Dashboards Pessoais: o painel
   // é o mesmo em toda a subárvore, mostrando só o que pende da unidade que
@@ -97,16 +97,18 @@ export default function AtividadesDashboard() {
     );
   }
 
-  // Ocorrências só existe sob a DGO + subárvore (pedido do usuário) —
-  // diferente de Vacinação, que é exclusiva da DAS mas sem checagem de
-  // subárvore (não precisa, DAS não tem subordinada). Mesmo princípio de
-  // "Despesas Diversas" em Financas (aba só aparece no Comando Geral).
-  if (CHAVES_OCORRENCIAS.has(moduloInfo.key) && !estaNaSubarvoreDgo(unidade, unidades)) {
+  // Mapa de Força e Ocorrências só existem dentro do escopo da própria
+  // família (subárvore da DGO, exceto DIESP em Ocorrências) — pedido do
+  // usuário. Vacinação não tem `restricao` (ver atividadesEspecificas.js):
+  // cada um dos 4 módulos já resolve o próprio EmptyState internamente.
+  // Mesmo princípio de "Despesas Diversas" em Finanças (aba só aparece no
+  // Comando Geral).
+  if (familiaAtual?.restricao && !familiaAtual.escopo(unidade, unidades)) {
     return (
       <EmptyState
         icon={ShieldAlert}
-        titulo="Disponível apenas na DGO e sua subárvore"
-        descricao="O Dashboard de Ocorrências fica sob tutela da Diretoria Geral de Operações (DGO) — DIM, DINTER I, DINTER II, DIESP e os batalhões/CATs abaixo delas. Fora dessa cadeia, esta aba não se aplica."
+        titulo={familiaAtual.restricao.titulo}
+        descricao={familiaAtual.restricao.descricao}
         acao={<Link to={`/indicador/${ind.id}`} className="text-[13px] font-medium text-primary hover:underline">Voltar</Link>}
       />
     );
@@ -146,9 +148,10 @@ export default function AtividadesDashboard() {
         </Link>
       </div>
 
-      {/* Módulos (abas) */}
+      {/* Módulos (abas) — só os da mesma família do módulo aberto, não os
+          14 juntos (ver familiaAtual acima). */}
       <div className="flex flex-wrap gap-2">
-        {TODOS_MODULOS.map((m) => (
+        {familiaAtual.modulos.map((m) => (
           <Link
             key={m.key}
             to={`/atividades/${ind.id}/dashboard/${m.key}`}

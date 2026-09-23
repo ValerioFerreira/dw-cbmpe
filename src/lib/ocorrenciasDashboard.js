@@ -1,4 +1,3 @@
-import { getSubordinados } from "@/lib/cbmpe";
 import { groupCount, paraSerie, siglasPermitidas } from "@/lib/dashboardHelpers";
 
 export { groupCount, paraSerie, passaMultiSelect, siglasPermitidas } from "@/lib/dashboardHelpers";
@@ -30,24 +29,9 @@ export const MODULOS_OCORRENCIAS_DASHBOARD = [
   { n: 9, key: "ocorrencias-atividade-comunitaria", nome: "Ocorrências — Atividade Comunitária" },
 ];
 
-// Siglas da subarvore da DGO (DGO + tudo abaixo dela, recursivamente) - o
-// escopo pedido pelo usuario para o painel inteiro ("sob tutela geral da
-// DGO... e tambem em todos os subordinados desta diretoria"). Unidades fora
-// dessa subarvore tecnicamente tem acesso a "Atividades Especificas" (o
-// indicador e construido pra toda UNIDADE, ver organograma.js), mas o
-// painel de Ocorrencias nao faz sentido fora da cadeia operacional da DGO -
-// mesmo principio de "Despesas Diversas" em Financas, que so aparece no
-// Comando Geral (ver ModuloDespesasDiversas.jsx).
-export function subarvoreDgo(unidades) {
-  const dgo = unidades.find((u) => u.sigla === "DGO");
-  if (!dgo) return new Set();
-  return new Set(["DGO", ...getSubordinados(unidades, dgo.id).map((u) => u.sigla)]);
-}
-
-export function estaNaSubarvoreDgo(unidade, unidades) {
-  if (!unidade) return false;
-  return subarvoreDgo(unidades).has(unidade.sigla);
-}
+// A checagem de escopo por subárvore da DGO (e a exclusão da DIESP) mora em
+// atividadesEspecificas.js — Mapa de Força usa o mesmo cálculo, então não
+// duplicar aqui (ver FAMILIAS_ATIVIDADES/estaNaSubarvoreDgo lá).
 
 // Restringe `ocorrencias`/`aphEstatistica` (campo `ome`) as siglas
 // permitidas - mesmo principio de filtrarPorEscopoFinancas, mas mantendo o

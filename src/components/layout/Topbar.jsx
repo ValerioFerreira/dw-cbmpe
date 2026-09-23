@@ -1,6 +1,8 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, ChevronRight, Home, FileDown, Menu, Network, LogOut, UserRound } from "lucide-react";
+import { Search, ChevronRight, Home, FileDown, Menu, Network, LogOut, UserRound, ArrowUpRight, Table2 } from "lucide-react";
+
+const METABASE_URL = "https://estatistica.bombeiros.pe.gov.br/";
 import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "@/lib/AuthContext";
 
@@ -79,6 +81,18 @@ export default function Topbar({ caminho = [], onOpenSearch, onOpenMobileNav, ti
         {/* Direita: ações */}
         <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
           {titulo && <span className="hidden truncate text-[13px] font-medium text-muted-foreground 2xl:inline">{titulo}</span>}
+          <a
+            href={METABASE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Metabase — Faça seus próprios painéis"
+            title="Metabase — Faça seus próprios painéis"
+            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <ArrowUpRight className="h-3.5 w-3.5 shrink-0" />
+            <Table2 className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden whitespace-nowrap xl:inline">Metabase — Faça seus próprios painéis</span>
+          </a>
           <ThemeToggle />
           <button
             onClick={() => window.print()}
@@ -127,6 +141,18 @@ export default function Topbar({ caminho = [], onOpenSearch, onOpenMobileNav, ti
           </Link>
 
           <ThemeToggle />
+
+          <a
+            href={METABASE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Metabase — Faça seus próprios painéis"
+            title="Metabase — Faça seus próprios painéis"
+            className="flex h-9 w-9 shrink-0 items-center justify-center gap-0.5 rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <ArrowUpRight className="h-3.5 w-3.5 shrink-0" />
+            <Table2 className="h-3.5 w-3.5 shrink-0" />
+          </a>
 
           <button
             onClick={() => window.print()}

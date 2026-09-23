@@ -11,10 +11,8 @@ import {
 import EmptyState from "@/components/ui/empty-state";
 import { MODULOS_EFETIVO_DASHBOARD } from "@/lib/efetivoDashboard";
 import { MODULOS_VIATURAS_DASHBOARD } from "@/lib/viaturasDashboard";
-import { MODULOS_ATIVIDADES_DASHBOARD } from "@/lib/mapaForca";
-import { MODULOS_VACINACAO_DASHBOARD } from "@/lib/vacinacaoDashboard";
 import { MODULOS_FINANCAS_DASHBOARD } from "@/lib/financasDashboard";
-import { MODULOS_OCORRENCIAS_DASHBOARD } from "@/lib/ocorrenciasDashboard";
+import { familiasVisiveis } from "@/lib/atividadesEspecificas";
 
 const QTD_MODULOS_PLACEHOLDER = 4;
 
@@ -22,13 +20,17 @@ const QTD_MODULOS_PLACEHOLDER = 4;
 // cards "em construção".
 //
 // Atividades Específicas é um caso misto, de propósito: o NÚMERO do indicador
-// continua sendo mock (a fonte real, o SGAT, ainda não foi levantada), mas o
-// Mapa de Força já é dado real do DW. Por isso o card de valor segue dizendo
-// "Em construção" enquanto o módulo abaixo funciona.
+// continua sendo mock (a fonte real, o SGAT, ainda não foi levantada), mas
+// Mapa de Força/Vacinação/Ocorrências já são dado real do DW. Por isso o card
+// de valor segue dizendo "Em construção" enquanto os módulos abaixo
+// funcionam. Diferente dos outros indicadores, ela não lista `modulos` aqui
+// — cada família vira 1 balão só, calculado por `familiasVisiveis` mais
+// abaixo (ver atividadesEspecificas.js), porque quais famílias aparecem
+// depende da unidade sendo vista (sem herança pro superior).
 const DASHBOARDS_REAIS = {
   "Efetivo": { rota: "efetivo", modulos: MODULOS_EFETIVO_DASHBOARD },
   "Viaturas": { rota: "viaturas", modulos: MODULOS_VIATURAS_DASHBOARD },
-  "Atividades Específicas": { rota: "atividades", modulos: [...MODULOS_ATIVIDADES_DASHBOARD, ...MODULOS_VACINACAO_DASHBOARD, ...MODULOS_OCORRENCIAS_DASHBOARD] },
+  "Atividades Específicas": { rota: "atividades" },
   "Finanças": { rota: "financas", modulos: MODULOS_FINANCAS_DASHBOARD },
 };
 
@@ -65,6 +67,14 @@ export default function Indicador() {
   }
 
   const cat = CATEGORIAS[ind.categoria];
+
+  // Balões de família de Atividades Específicas visíveis NESTA unidade —
+  // filtrado aqui, antes da grade renderizar, pra que um superior
+  // hierárquico (ex. Subcomando Geral sobre a DGO) não veja o balão de uma
+  // família fora do seu próprio escopo. Não é uma checagem de PERMISSÃO: se
+  // o usuário navegar até a unidade da família (DGO, DAS, ...), o balão
+  // aparece normalmente lá.
+  const familiasAtividades = ind.nome === "Atividades Específicas" ? familiasVisiveis(unidade, unidades) : [];
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -157,9 +167,24 @@ export default function Indicador() {
         )}
       </div>
 
-      {/* Módulos deste indicador — ver DASHBOARDS_REAIS no topo. */}
+      {/* Módulos deste indicador — ver DASHBOARDS_REAIS no topo. Atividades
+          Específicas é o único caso agrupado por família (1 balão por
+          família, não por módulo) — ver familiasAtividades abaixo. */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {DASHBOARDS_REAIS[ind.nome]
+        {ind.nome === "Atividades Específicas"
+          ? familiasAtividades.map((f) => (
+              <Link
+                key={f.id}
+                to={`/${DASHBOARDS_REAIS[ind.nome].rota}/${ind.id}/dashboard/${f.modulos[0].key}`}
+                className="group flex flex-col items-center justify-center gap-2 rounded-xl border border-border bg-card p-4 text-center transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm"
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary">
+                  <BarChart3 className="h-4 w-4" />
+                </div>
+                <p className="text-[13px] font-semibold text-foreground">{f.nome}</p>
+              </Link>
+            ))
+          : DASHBOARDS_REAIS[ind.nome]
           ? DASHBOARDS_REAIS[ind.nome].modulos.map((m) => (
               <Link
                 key={m.key}
