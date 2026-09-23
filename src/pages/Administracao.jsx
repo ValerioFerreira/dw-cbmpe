@@ -2,12 +2,14 @@ import React from "react";
 import { Navigate } from "react-router-dom";
 import { ShieldCheck, Plus, Trash2, Check, AlertTriangle } from "lucide-react";
 import { useCbmpe } from "@/lib/cbmpe-context";
+import { useAuth } from "@/lib/AuthContext";
 import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import {
   PERFIS, lerAtribuicoes, salvarAtribuicoes, senhaEsperada,
   unidadeDoUsuario, vinculoDoAssessor, resolverOmePorCpf,
 } from "@/lib/accessControl";
 import SectionCard from "@/components/ui/section-card";
+import OrganogramaEditor from "@/components/admin/OrganogramaEditor";
 
 // Página /adm — atribuição de perfis de acesso.
 //
@@ -22,6 +24,7 @@ const CLASSE_CAMPO =
 
 export default function Administracao() {
   const { unidades } = useCbmpe();
+  const { user } = useAuth();
   const { ehAdministrador } = useAcessoUsuario();
 
   const [atribuicoes, setAtribuicoes] = React.useState(() => lerAtribuicoes());
@@ -124,6 +127,8 @@ export default function Administracao() {
           </span>
         )}
       </header>
+
+      <OrganogramaEditor />
 
       <SectionCard
         titulo="Usuários"

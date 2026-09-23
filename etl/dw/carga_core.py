@@ -128,33 +128,38 @@ EXTINTAS_CONFIRMADAS = {"CAC", "CPA", "CPTO", "CTA", "CEMET II", "DFEA"}
 
 
 def arvore_do_organograma():
-    """Le a ARVORE de src/data/organograma.js.
+    """Le a hierarquia de backend/data/organograma.json.
 
     O organograma e a autoridade sobre QUEM PENDE DE QUEM (decisao do usuario,
     2026-08-24); a tb_ome do SGP continua sendo o registro do QUE EXISTE. As
     duas divergem em pontos reais: o SGP pendura DAS e CEFD na DGP, o
     organograma as coloca sob DGA e DEIP.
 
-    Le direto do JS em vez de manter uma copia, para nao existirem duas
-    versoes da mesma verdade. Falha alto se o parse nao render nada, que e o
+    Ate 2026-09-23 isto lia direto `const ARVORE` de src/data/organograma.js
+    via regex. Trocado porque o organograma passou a ser editavel pelo
+    administrador (ver src/components/admin/OrganogramaEditor.jsx) e
+    persistido em backend/data/organograma.json -- ler esse JSON em vez de
+    regex sobre um arquivo JS e mais robusto E faz a proxima carga do DW
+    refletir edicoes do admin automaticamente, sem precisar sincronizar as
+    duas fontes manualmente. Falha alto se o parse nao render nada, que e o
     unico modo de falha silenciosa que essa abordagem tem.
     """
-    caminho = RAIZ / "src" / "data" / "organograma.js"
-    texto = caminho.read_text(encoding="utf-8")
-    bloco = re.search(r"const ARVORE\s*=\s*\{(.*?)\n\};", texto, re.S)
-    if not bloco:
-        raise SystemExit("Nao achei a ARVORE em organograma.js -- o formato mudou?")
+    caminho = RAIZ / "backend" / "data" / "organograma.json"
+    dado = json.loads(caminho.read_text(encoding="utf-8"))
+    unidades = dado["unidades"]
 
+    por_id = {u["id"]: u for u in unidades}
     arvore = {}
-    for pai, filhos in re.findall(r"'([^']+)'\s*:\s*\[(.*?)\]", bloco.group(1), re.S):
-        arvore[pai] = re.findall(r"'([^']+)'", filhos)
-    if len(arvore) < 5:
-        raise SystemExit(f"ARVORE com so {len(arvore)} nos -- parse provavelmente quebrou.")
-
     pai_de_filho = {}
-    for pai, filhos in arvore.items():
-        for filho in filhos:
-            pai_de_filho[filho] = pai
+    for u in unidades:
+        if u.get("parentId") is None:
+            continue
+        pai_sigla = por_id[u["parentId"]]["sigla"]
+        arvore.setdefault(pai_sigla, []).append(u["sigla"])
+        pai_de_filho[u["sigla"]] = pai_sigla
+    if len(arvore) < 5:
+        raise SystemExit(f"organograma.json com so {len(arvore)} nos com filhos -- parse provavelmente quebrou.")
+
     return arvore, pai_de_filho
 
 

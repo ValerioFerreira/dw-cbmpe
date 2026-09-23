@@ -12,8 +12,15 @@ export default function validateToken(req, res, next) {
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     // Nunca inclui cpf no payload (ver services/authService.js) - so o que
-    // ja e seguro expor de volta ao navegador.
-    req.user = { nome: payload.nome, email: payload.email, matricula: payload.matricula ?? null };
+    // ja e seguro expor de volta ao navegador. `role` so existe pra
+    // distinguir o admin fixo (ver authService.issueAdminToken) - login SGU
+    // sempre carrega role "nivel", nunca "admin" (ver requireAdmin.js).
+    req.user = {
+      nome: payload.nome,
+      email: payload.email,
+      matricula: payload.matricula ?? null,
+      role: payload.role ?? "nivel",
+    };
     next();
   } catch {
     next(new UnauthorizedError());

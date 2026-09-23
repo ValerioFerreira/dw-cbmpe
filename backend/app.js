@@ -2,6 +2,7 @@ import express, { json } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import authRoutes from "./routes/authRoutes.js";
+import organogramaRoutes from "./routes/organogramaRoutes.js";
 import errorHandler from "./middlewares/errorHandler.js";
 
 const app = express();
@@ -13,7 +14,9 @@ const allowedOrigins = process.env.CORS_ORIGIN
   : "*";
 
 app.use(helmet());
-app.use(cors({ origin: allowedOrigins, methods: "GET,POST" }));
+// PUT/DELETE entraram com as rotas de escrita do organograma (ver
+// routes/organogramaRoutes.js) - antes o backend so tinha GET/POST de auth.
+app.use(cors({ origin: allowedOrigins, methods: "GET,POST,PUT,DELETE" }));
 app.use(json({ limit: "1mb" }));
 
 // Usado pelo HEALTHCHECK do Dockerfile e pelo depends_on do compose.
@@ -22,6 +25,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/auth", authRoutes);
+app.use("/organograma", organogramaRoutes);
 
 // Precisa ser o ultimo app.use - so recebe o erro se algo acima chamar
 // next(err) ou um handler async encapsulado rejeitar.

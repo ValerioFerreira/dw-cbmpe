@@ -1,5 +1,6 @@
 // CBMPE BI — Núcleo de dados e helpers de hierarquia
-import { UNIDADES, INDICADORES, DASHBOARDS, ALERTAS, metricasProprias, metricasDivisoesProprias } from "@/data/organograma";
+import { NODES_PADRAO, montarOrganograma, metricasProprias, metricasDivisoesProprias } from "@/data/organograma";
+import { fetchOrganogramaRemoto } from "@/lib/organogramaClient";
 
 export { metricasProprias, metricasDivisoesProprias };
 
@@ -31,23 +32,61 @@ export const SEVERIDADE = {
 };
 
 // ----- Fetchers -----
-// Dados locais (ver src/data/organograma.js). Troque por chamadas a uma
-// API/planilha real quando houver uma — basta manter o mesmo formato de
-// registro e assinatura async destas funções.
+// A estrutura (sigla/nível/pai) vem do backend de organograma quando
+// configurado (GET /organograma, ver src/lib/organogramaClient.js) — ela é
+// a única parte editável em /adm (ver src/pages/Administracao.jsx). Os
+// mocks de indicador/dashboard/alerta continuam vindo de
+// src/data/organograma.js (fora do escopo do organograma editável), mas
+// são remontados a partir de QUALQUER árvore ativa via montarOrganograma(),
+// pra uma unidade movida/renomeada aparecer consistente em todo o app.
+//
+// `organogramaCache` guarda a promise em memória pra Promise.all(4x) do
+// CbmpeProvider não disparar 4 GETs simultâneos nem remontar 4 vezes — ver
+// invalidarCacheOrganograma(), chamada pelo contexto sempre que
+// recarregar() roda de novo (ex. depois de uma edição em /adm).
+let organogramaCache = null;
+
+async function carregarOrganograma() {
+  if (organogramaCache) return organogramaCache;
+  organogramaCache = (async () => {
+    let nodes = NODES_PADRAO;
+    try {
+      const remoto = await fetchOrganogramaRemoto();
+      if (remoto && remoto.length) nodes = remoto;
+    } catch (e) {
+      // Backend fora do ar ou não configurado: cai no organograma padrão
+      // embutido no bundle — o app nunca fica sem estrutura nenhuma.
+      console.warn("Organograma: usando estrutura padrão local (backend indisponível)", e);
+    }
+    return montarOrganograma(nodes);
+  })();
+  return organogramaCache;
+}
+
+// Chamada depois de qualquer criação/edição/exclusão de unidade em /adm,
+// pra próxima leitura buscar a árvore atualizada em vez da cacheada.
+export function invalidarCacheOrganograma() {
+  organogramaCache = null;
+}
+
 export async function fetchUnidades() {
-  return [...UNIDADES].sort((a, b) => b.nivel - a.nivel);
+  const { unidades } = await carregarOrganograma();
+  return [...unidades].sort((a, b) => b.nivel - a.nivel);
 }
 
 export async function fetchIndicadores() {
-  return INDICADORES;
+  const { indicadores } = await carregarOrganograma();
+  return indicadores;
 }
 
 export async function fetchDashboards() {
-  return [...DASHBOARDS].sort((a, b) => (b.atualizado_em || "").localeCompare(a.atualizado_em || ""));
+  const { dashboards } = await carregarOrganograma();
+  return [...dashboards].sort((a, b) => (b.atualizado_em || "").localeCompare(a.atualizado_em || ""));
 }
 
 export async function fetchAlertas() {
-  return [...ALERTAS].sort((a, b) => (b.data || "").localeCompare(a.data || ""));
+  const { alertas } = await carregarOrganograma();
+  return [...alertas].sort((a, b) => (b.data || "").localeCompare(a.data || ""));
 }
 
 // ----- Árvore -----

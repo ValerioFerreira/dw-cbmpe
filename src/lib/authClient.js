@@ -25,6 +25,17 @@
 //     trata isso como "sem unidade" e não libera nada (falha fechada), não
 //     como acesso total. Precisa de /adm atribuir um perfil manualmente.
 //
+// Organograma editável (2026-09-23, ver backend/services/organogramaService.js
+// e src/pages/Administracao.jsx): as rotas de escrita do organograma
+// exigem um token real com role "admin". Só o caminho 1 (admin fixo)
+// consegue um hoje — busca em backend "/auth/admin-login" logo após validar
+// VITE_ADMIN_USUARIO/SENHA. Um usuário dos caminhos 2/3 com perfil
+// ADMINISTRADOR (accessControl.js) continua vendo a tela /adm (essa
+// atribuição de perfil é só do navegador), mas as chamadas de escrita do
+// organograma falham com 401/403 — limitação conhecida, documentada no
+// relatório da funcionalidade: o backend não tem visibilidade da
+// atribuição de perfil, que vive só em localStorage.
+//
 // A chave de storage mudou de "cbmpe_auth_user" para "cbmpe_auth_user_v2":
 // como não há sessão de servidor pra invalidar as sessões dos caminhos 1 e
 // 2, essa é a forma de forçar logout de qualquer sessão já aberta (qualquer
@@ -95,6 +106,29 @@ async function loginViaSgu(cpf, senha) {
   });
 }
 
+// Token do admin fixo pro backend (ver authService.loginAdmin) — só usado
+// pelas rotas de escrita do organograma. Falha em silêncio (retorna
+// undefined) quando o backend não está configurado ou está fora do ar: o
+// login local do admin fixo não pode depender de rede pra continuar
+// funcionando como sempre funcionou (ver caminho 1 no cabeçalho do
+// arquivo). Quem tentar editar o organograma sem token vê o erro na hora
+// de salvar (ver src/lib/organogramaClient.js).
+async function obterTokenAdminBackend() {
+  if (!AUTH_API_URL) return undefined;
+  try {
+    const response = await fetch(`${AUTH_API_URL}/auth/admin-login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ usuario: ADMIN_USUARIO, senha: ADMIN_SENHA }),
+    });
+    if (!response.ok) return undefined;
+    const body = await response.json().catch(() => null);
+    return body?.authToken;
+  } catch {
+    return undefined;
+  }
+}
+
 export const auth = {
   async me() {
     const user = readUser();
@@ -131,7 +165,12 @@ export const auth = {
     const usuarioLimpo = usuario.trim();
 
     if (usuarioLimpo.toLowerCase() === ADMIN_USUARIO && senha === ADMIN_SENHA) {
-      writeUser({ id: "adm", email: "adm", full_name: "Administrador", role: "admin", nivelAcesso: null });
+      // Token de admin do backend é OPCIONAL pro login em si (o app
+      // funciona sem backend, ver cabeçalho do arquivo) — só falta pra
+      // quem tentar editar o organograma em /adm, e o erro aparece lá, na
+      // hora de salvar, não aqui.
+      const token = await obterTokenAdminBackend();
+      writeUser({ id: "adm", email: "adm", full_name: "Administrador", role: "admin", nivelAcesso: null, token });
       return;
     }
 

@@ -22,4 +22,16 @@ export class UnauthorizedError extends AppError {
   }
 }
 
+export class ForbiddenError extends AppError {
+  constructor(message = "Acesso restrito a administradores") {
+    super(message, 403);
+  }
+}
+
+export class NotFoundError extends AppError {
+  constructor(message = "Recurso não encontrado") {
+    super(message, 404);
+  }
+}
+
 export default AppError;
