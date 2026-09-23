@@ -20,7 +20,21 @@
   trabalhamos toda vez que uma nova fonte de dados é integrada ao DW.
   **Leitura obrigatória antes de propor qualquer integração de fonte.**
 
-## Estado atual — onde retomar (atualizado 2026-09-21)
+## Estado atual — onde retomar (atualizado 2026-09-23)
+
+> **2026-09-23 — autenticação real via SGU e Docker completo, numa worktree
+> isolada, para revisão (nada commitado ainda).** `backend/` novo (Express,
+> segue a arquitetura do `forms-bm`) faz login via SGU (`POST /auth/login`)
+> e verificação de sessão (`GET /auth/me`); `src/lib/authClient.js` ganhou
+> esse terceiro caminho sem alterar a assinatura usada por Login/Auth
+> Context/etc. `docker-compose.yml` cobre os dois serviços (`app` +
+> `backend`), com `Dockerfile`s de produção pro CapRover. **Em aberto**: o
+> mapeamento CPF → matrícula → OME (`backend/services/omeResolver.js`) tem
+> o pipeline já decidido em 2026-08-24 mas não ligado — falta confirmar
+> contra o banco real que a OME "de hoje" vem de `core.fato_efetivo_diario`
+> (não de `dim_militar`) e decidir a chave que `/adm` passa a usar pra
+> atribuir perfil a militar real. Detalhe completo na entrada **2026-09-23**
+> no log de decisões abaixo.
 
 > **2026-09-21 — painéis de BI, nove rodadas no mesmo dia: auditoria →
 > pacotes chegaram → VPN ativada → SQL do DF confirmado → DF integrado →
@@ -3845,3 +3859,131 @@ lugares corrigidos pra fundir de verdade:
 **Testado no navegador**: `<select>` de OME confirmado sem "COMANDO
 GERAL"/"SUBCOMANDO GERAL" na lista, com GCG/GSG nas duas primeiras
 posições (onde os titulares apareciam antes). `npm run lint` limpo.
+
+### 2026-09-23 — Backend de autenticação via SGU e empacotamento Docker completo (worktree isolada, para revisão)
+
+Pedido: preparar a troca do stub de `authClient.js` por autenticação real via
+SGU e deixar o Docker pronto para o servidor do CBMPE (CapRover em
+`caprover-01`). Trabalho feito numa worktree separada — nada commitado, fica
+para o usuário revisar.
+
+**O que foi implementado, e é tecnicamente inequívoco:**
+
+- **`backend/`** — serviço Express novo e pequeno, seguindo a mesma
+  arquitetura do `forms-bm` (projeto irmão): `config/sguClient.js` chama
+  `SGU_URL/auth/sign_in` com `{username: cpf, password}`, igual ao
+  `forms-bm/forms/backend/config/sguClient.js`, confirmado que a resposta de
+  sucesso já traz o perfil (`data.name`, `data.email`) sem lookup separado.
+  `POST /auth/login` valida CPF/senha, chama o SGU, emite um JWT próprio
+  (`JWT_SECRET`, expira em 8h). `GET /auth/me` verifica esse JWT — permite
+  `authClient.js` confirmar que a sessão local ainda é válida sem duplicar
+  lógica de expiração no navegador.
+- **`src/lib/authClient.js`** ganhou um terceiro caminho (os dois antigos —
+  admin fixo e protótipo de níveis — continuam, sem alteração de
+  comportamento): quando o usuário digitado é um CPF de 11 dígitos, a senha
+  vai para `backend/`, nunca direto ao SGU pelo navegador (CORS e exposição
+  da lógica de auth do lado cliente descartadas, como o pedido antecipava).
+  Mesma assinatura de funções — `Login.jsx`, `AuthContext.jsx`,
+  `Register.jsx`, `ForgotPassword.jsx`, `ResetPassword.jsx` não mudaram.
+- **Regra de segurança seguida à risca**: o CPF nunca sai do escopo da
+  função que autentica — não vai no JWT, não vai na resposta HTTP, não fica
+  em `localStorage`. É a mesma regra já registrada na entrada de 2026-08-24
+  abaixo ("mantém o CPF fora do DW: usado na consulta, descartado em
+  seguida"), estendida aqui para o próprio backend de auth.
+- **Docker completo**: `backend/Dockerfile` (multi-stage dev/production,
+  usuário não-root, healthcheck, no padrão do `forms-bm/forms/backend/
+  Dockerfile`), `backend/captain-definition` (segundo app no CapRover),
+  `backend/.env.example`. `Dockerfile` da raiz ganhou `ARG`/`ENV` para
+  `VITE_ADMIN_USUARIO`/`VITE_ADMIN_SENHA`/`VITE_AUTH_API_URL` (antes não
+  existiam — o build Docker sempre caía no fallback `adm`/`adm`, mesmo que
+  Vercel já configurasse essas vars via env de plataforma, não de build
+  arg). `docker-compose.yml` ganhou o serviço `backend` (rede própria
+  `dw-cbmpe`, `restart: unless-stopped`, `depends_on`). `.env.example` da
+  raiz ganhou `VITE_AUTH_API_URL`.
+
+**Sobre o mapeamento SGU → perfil/OME — a pergunta que o pedido antecipava
+como provavelmente em aberto, e o que descobri ao investigar:**
+
+Essa pergunta **já tinha decisão de rumo registrada** na entrada
+**2026-08-24** abaixo ("Decisão sobre `resolverOmePorCpf()`"): preferir
+CPF → `ovrsgp.tb_pess` → matrícula → DW em vez do campo `military` que o
+próprio SGU devolve, porque cobre 99,9% e faz a OME sair da `dim_ome` do DW
+(hierarquia do organograma e CPPA/ADIDOS já resolvidos), mantendo o CPF fora
+de tudo que é persistido ou servido ao navegador. Não é uma decisão nova
+minha — é a que já estava tomada, e o backend novo (`backend/services/
+omeResolver.js`) está escrito pra seguir exatamente esse pipeline quando for
+ligado.
+
+**O que NÃO liguei, e por quê**: ao conferir o schema real (`etl/dw/ddl/
+02_core_dimensoes.sql`, `03_core_fatos.sql`) descobri que a decisão de 2026-
+08-24 é direcional, não uma consulta pronta — faltam duas coisas que só dá
+pra confirmar contra o banco de verdade (que não tenho acesso nesta sessão):
+
+1. `core.dim_militar` **não tem coluna de OME** — só cadastro fixo do
+   militar (matrícula, nome, posto...). A OME mora em
+   `core.fato_efetivo_diario`, 1 linha por militar **por dia**, com
+   `sk_ome` referenciando `dim_ome`. Resolver "a OME de hoje" de um
+   militar exige pegar o `sk_tempo` mais recente daquele `sk_militar` — e
+   o próprio DDL documenta um caso especial (ADIDOS aponta `sk_ome` pro
+   COMANDO GERAL, não pra DGP) que a consulta final precisa decidir se
+   replica aqui.
+2. Isso exige o backend abrir uma segunda conexão de banco em runtime
+   (`DATABASE_URL_SGP` pra achar a matrícula, `DATABASE_URL_DW` pra achar
+   a OME) a cada login — hoje essas strings só são usadas por scripts de
+   ETL rodados manualmente, nunca por um serviço que fica no ar. Não achei
+   isso arriscado por si só, mas é uma peça nova (mais uma dependência de
+   rede/infra no caminho crítico do login) que preferi não introduzir sem
+   confirmar as duas colunas acima direto no banco.
+
+Em vez de adivinhar a query, deixei o seam pronto e documentado
+(`backend/services/omeResolver.js`, com o pipeline inteiro escrito em
+comentário) devolvendo sempre `{ matricula: null, ome: null }`. Efeito
+prático, e deliberadamente seguro: **hoje, todo login por CPF autentica de
+verdade contra o SGU, mas entra com `nivelAcesso` nulo** —
+`calcularAcesso(null, ...)` em `accessControl.js` já trata isso como "sem
+unidade liberada" (falha fechada), não acesso total. `role` fica sempre
+`"nivel"` no login por SGU (nunca outro valor) porque é o único que
+`useAcessoUsuario.js` trata como restrito — usar qualquer outro role teria
+liberado acesso total por acidente.
+
+**O que falta decidir, pra mim ligar o resto (não é só a SQL):**
+
+1. **Rodar a query contra o banco real** pra confirmar a coluna de OME em
+   `fato_efetivo_diario`/`dim_ome` e a regra de "vigência" (data mais
+   recente? existe uma flag de "atual"?) — não tenho acesso a
+   `DATABASE_URL_SGP`/`DATABASE_URL_DW` nesta sessão pra testar.
+2. **`/adm` hoje atribui perfil por uma sigla digitada** (`AGGD`, `DGP`...).
+   Pra um militar autenticado por CPF, a chave natural vira a matrícula
+   (mesma lógica de todo o resto do DW, nunca CPF) — isso muda a tela
+   `/adm` (passa a precisar de um campo "matrícula" em vez de aceitar
+   qualquer sigla) e não fiz essa mudança, porque não foi pedida e mexe em
+   uma tela usada hoje pelo protótipo de demonstração.
+3. **UX de "autenticado mas sem perfil ainda"**: hoje esse usuário loga e
+   vê um dashboard vazio (nenhuma sigla liberada), sem nenhuma mensagem
+   explicando por quê. Se isso deve virar uma tela própria ("aguardando
+   atribuição de acesso") é decisão de produto, não fiz.
+4. Se a resposta for "ligar por matrícula é caro/arriscado demais pra cada
+   login", a alternativa mais simples é o administrador atribuir o CPF
+   (não a matrícula) direto em `/adm`, igual ao campo `cpf` que
+   `unidadeDoUsuario()` já lê em `accessControl.js` hoje — mais simples de
+   implementar, mas reintroduz CPF do lado do cliente (a lista de
+   `ATRIBUICOES` em `localStorage`, visível a quem abrir o DevTools),
+   exatamente o que a decisão de 2026-08-24 evitou. Precisa decisão
+   explícita antes de eu escrever isso.
+
+**Validação rodada nesta sessão** (detalhe pro usuário conferir): `npm run
+build` limpo (bundle de 6,5 MB, aviso de chunk grande já existia antes,
+não é desta mudança). `npm run lint` limpo — não cobre `src/lib/**` nem
+`backend/` (já excluídos do `eslint.config.js` da raiz; não criei config
+próprio pro backend pra não expandir escopo). `node --check` em todo
+arquivo de `backend/`. Subi o backend localmente (`SGU_URL` apontando pra
+um host inexistente, de propósito) e testei com `curl`: `GET /` → 200;
+`POST /auth/login` sem campos → 400; com CPF/senha válidos mas SGU
+inalcançável → **503** (tratado à parte, não vazava 500 genérico até eu
+corrigir `sguClient.js`/`authService.js` nesta sessão); `GET /auth/me` sem
+token → 401, com token assinado manualmente → 200 devolvendo o payload sem
+CPF. **Não testei contra o SGU de verdade** (sem rede pra
+`10.193.0.20`/intranet nesta sessão) nem `docker build`/`docker compose
+config` — **Docker não está instalado neste ambiente** (`docker: command
+not found`); os `Dockerfile`s seguem o padrão já validado no `forms-bm` mas
+não foram construídos aqui.

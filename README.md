@@ -159,25 +159,30 @@ os Neon direto.
 
 ## Autenticação
 
-`src/lib/authClient.js` é um **stub local**: valida contra
-`VITE_ADMIN_USUARIO`/`VITE_ADMIN_SENHA` (embutidas no pacote em texto claro) e
-contra as siglas de nível de acesso de `src/lib/accessControl.js`. Não é
-autenticação de verdade — é controle de acesso casual.
+`src/lib/authClient.js` tem três caminhos (ver comentário no topo do
+arquivo): o usuário administrador fixo (`VITE_ADMIN_USUARIO`/
+`VITE_ADMIN_SENHA`, controle de acesso casual, não segredo de servidor — as
+vars `VITE_*` vão em texto claro no bundle), o protótipo de níveis de acesso
+de `src/lib/accessControl.js`, e agora (2026-09-23) o **SGU real**: login por
+CPF vai para o backend próprio em `backend/`, que autentica contra o SGU da
+corporação (98,4% do efetivo já tem conta lá).
 
-O caminho definitivo é o **SGU** da corporação, desenhado e medido (98,4% do
-efetivo já tem conta), mas ainda não implementado: depende de uma camada de
-servidor que não existe. Ver `DW_GOVERNANCA.md` e
-`docs/deploy-solicitacao-ti.md`.
+O que falta é o mapeamento SGU → perfil/OME: o SGU só devolve identidade, não
+autorização, e resolver a matrícula/unidade a partir do CPF autenticado ainda
+não está ligado (`backend/services/omeResolver.js`) — é uma pergunta em
+aberto registrada em `DW_PLANEJAMENTO.md` (entrada 2026-09-23). Até lá, todo
+login por CPF entra autenticado mas sem nenhuma unidade liberada, até que
+`/adm` atribua um perfil manualmente.
 
 A tela de login já aceita CPF com máscara; o valor enviado ao autenticador vai
-sem máscara, para o dia em que o SGU entrar.
+sem máscara.
 
 ## Deploy
 
 | Destino | Estado |
 |---|---|
 | Vercel (hoje) | funcionando — projeto Vite padrão, `vercel.json` cuida do fallback de rotas |
-| CapRover interno (`10.193.1.252`) | `Dockerfile`, `nginx.conf` e `captain-definition` prontos; **imagem nunca construída** |
+| CapRover interno (`10.193.1.252`) | `Dockerfile`, `nginx.conf` e `captain-definition` prontos, agora com `backend/` como segundo app (auth SGU) e `docker-compose.yml` cobrindo os dois; **imagem nunca construída** |
 
 Passo a passo, decisões pendentes do TI e a ressalva de segurança:
 [`docs/deploy-solicitacao-ti.md`](docs/deploy-solicitacao-ti.md).

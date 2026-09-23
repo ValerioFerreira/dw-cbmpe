@@ -1,38 +1,47 @@
-// Autenticação local (stub) — sem backend real. Antes aceitava qualquer
-// email/senha não vazios; agora exige um usuário administrador fixo
-// (decisão do usuário, 2026-08-12) — login social e autocadastro foram
-// desativados (eram bypass desse controle).
+// Autenticação com três caminhos, dos mais antigos (stub) ao real:
 //
-// Usuário/senha do admin vêm de variáveis de ambiente (VITE_ADMIN_USUARIO/
-// VITE_ADMIN_SENHA — ver .env.example), não hardcoded, pra poder ser
-// configurado por ambiente (local via .env.local, produção via variáveis
-// de ambiente da Vercel) sem tocar no código. IMPORTANTE: variáveis
-// VITE_* são embutidas em texto plano no bundle JS de produção — o Vite
-// as substitui em tempo de build (ver https://vite.dev/guide/env-and-mode),
-// não são segredo de servidor. Qualquer pessoa que abrir o DevTools ou
-// inspecionar o bundle final consegue ler o valor — funciona como um
-// controle de acesso mínimo (afasta acesso casual), não como
-// autenticação real; ver ressalva em DW_GOVERNANCA.md.
-//
-// Além do admin, existe um protótipo de níveis de acesso (2026-08-17,
-// ver DW_PLANEJAMENTO.md e @/lib/accessControl): usuários de demonstração
-// com senha = USUARIO em maiúsculo + "@GSG" (regra definida pelo usuário),
-// hardcoded aqui de propósito — é um protótipo interno de UI, não uma
-// credencial real de produção.
+//  1. Usuário administrador fixo (decisão do usuário, 2026-08-12) — vem de
+//     VITE_ADMIN_USUARIO/VITE_ADMIN_SENHA (ver .env.example), não hardcoded.
+//     IMPORTANTE: variáveis VITE_* são embutidas em texto plano no bundle JS
+//     de produção — o Vite as substitui em tempo de build (ver
+//     https://vite.dev/guide/env-and-mode), não são segredo de servidor.
+//     Funciona como controle de acesso mínimo (afasta acesso casual), não
+//     como autenticação real; ver ressalva em DW_GOVERNANCA.md. Mantido como
+//     porta de entrada pro administrador atribuir perfis em /adm antes de
+//     qualquer militar real ter um (ver ponto 3).
+//  2. Protótipo de níveis de acesso (2026-08-17, ver DW_PLANEJAMENTO.md e
+//     @/lib/accessControl): usuários de demonstração com senha = USUARIO em
+//     maiúsculo + "@GSG" (regra definida pelo usuário), hardcoded de
+//     propósito — é um protótipo interno de UI, não credencial de produção.
+//  3. SGU real (2026-09-23, ver DW_PLANEJAMENTO.md): quando o usuário
+//     digitado é um CPF de 11 dígitos, a senha vai para o backend próprio em
+//     backend/ (nunca direto ao SGU do navegador — CORS e exposição da
+//     lógica de auth do lado cliente), que autentica contra o SGU do CBMPE.
+//     O que o SGU devolve é só identidade (nome/e-mail) — ele NÃO faz
+//     autorização. O mapeamento pra um perfil/OME real (accessControl.js)
+//     ainda depende de resolver a matrícula do CPF, que é a pergunta em
+//     aberto registrada em DW_PLANEJAMENTO.md (entrada 2026-09-23): até lá,
+//     todo login por CPF entra com nivelAcesso nulo — calcularAcesso() já
+//     trata isso como "sem unidade" e não libera nada (falha fechada), não
+//     como acesso total. Precisa de /adm atribuir um perfil manualmente.
 //
 // A chave de storage mudou de "cbmpe_auth_user" para "cbmpe_auth_user_v2":
-// como não há sessão de servidor pra invalidar, essa é a forma de forçar
-// logout de qualquer sessão já aberta (qualquer navegador com a chave
-// antiga deixa de ser reconhecido como autenticado assim que carregar esta
-// versão do app) — troque este módulo por um backend/BaaS real (Supabase,
-// Firebase, API própria etc.) quando houver um; mantenha a mesma
-// assinatura de funções para não precisar tocar nas telas que a consomem.
+// como não há sessão de servidor pra invalidar as sessões dos caminhos 1 e
+// 2, essa é a forma de forçar logout de qualquer sessão já aberta (qualquer
+// navegador com a chave antiga deixa de ser reconhecido como autenticado
+// assim que carregar esta versão do app). O caminho 3 tem um JWT de verdade,
+// com expiração própria (ver backend/services/authService.js).
+//
+// Mantém a mesma assinatura de funções nos três caminhos, pra não precisar
+// tocar nas telas que consomem este módulo (Login.jsx, AuthContext.jsx...).
 
 import { perfilDoUsuario, senhaEsperada } from "./accessControl";
 
 const STORAGE_KEY = "cbmpe_auth_user_v2";
 const ADMIN_USUARIO = (import.meta.env.VITE_ADMIN_USUARIO || "adm").trim().toLowerCase();
 const ADMIN_SENHA = import.meta.env.VITE_ADMIN_SENHA || "adm";
+const AUTH_API_URL = (import.meta.env.VITE_AUTH_API_URL || "").replace(/\/$/, "");
+const CPF_REGEX = /^\d{11}$/;
 
 function readUser() {
   try {
@@ -47,6 +56,45 @@ function writeUser(user) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
 }
 
+// Caminho 3 (SGU real) — ver cabeçalho do arquivo. Isolado em função própria
+// porque é o único caminho com chamada de rede e com token de verdade.
+async function loginViaSgu(cpf, senha) {
+  if (!AUTH_API_URL) {
+    throw new Error("Login por CPF ainda não está configurado nesta instância.");
+  }
+
+  let response;
+  try {
+    response = await fetch(`${AUTH_API_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cpf, senha }),
+    });
+  } catch {
+    throw new Error("Não foi possível contatar o servidor de autenticação. Tente novamente.");
+  }
+
+  const body = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(body?.message || "Usuário ou senha inválidos");
+  }
+
+  const { authToken, user: sguUser } = body;
+  // nivelAcesso = matrícula, que ainda vem nula do backend (ver
+  // backend/services/omeResolver.js) — calcularAcesso(null, ...) já devolve
+  // "sem unidade liberada", não acesso total. role fica "nivel" sempre,
+  // nunca algo diferente: é só esse valor que o hook useAcessoUsuario trata
+  // como restrito (ver src/lib/useAcessoUsuario.js).
+  writeUser({
+    id: sguUser.email || sguUser.nome,
+    email: sguUser.email,
+    full_name: sguUser.nome,
+    role: "nivel",
+    nivelAcesso: sguUser.matricula ?? null,
+    token: authToken,
+  });
+}
+
 export const auth = {
   async me() {
     const user = readUser();
@@ -55,18 +103,39 @@ export const auth = {
       err.status = 401;
       throw err;
     }
+
+    if (user.token) {
+      try {
+        const response = await fetch(`${AUTH_API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        if (response.status === 401) {
+          localStorage.removeItem(STORAGE_KEY);
+          const err = new Error("Sessão expirada");
+          err.status = 401;
+          throw err;
+        }
+      } catch (err) {
+        if (err?.status === 401) throw err;
+        // Backend fora do ar / rede instável: este controle já é só de UI
+        // (ver cabeçalho do arquivo) — prioriza manter a sessão local a
+        // derrubar todo mundo por uma instabilidade momentânea.
+      }
+    }
+
     return user;
   },
 
   async loginViaEmailPassword(usuario, senha) {
     if (!usuario || !senha) throw new Error("Informe usuário e senha");
+    const usuarioLimpo = usuario.trim();
 
-    if (usuario.trim().toLowerCase() === ADMIN_USUARIO && senha === ADMIN_SENHA) {
+    if (usuarioLimpo.toLowerCase() === ADMIN_USUARIO && senha === ADMIN_SENHA) {
       writeUser({ id: "adm", email: "adm", full_name: "Administrador", role: "admin", nivelAcesso: null });
       return;
     }
 
-    const chave = usuario.trim().toUpperCase();
+    const chave = usuarioLimpo.toUpperCase();
     const perfil = perfilDoUsuario(chave);
     if (perfil && senha === senhaEsperada(chave)) {
       writeUser({
@@ -74,6 +143,11 @@ export const auth = {
         full_name: perfil.unidade ? `${perfil.nome} — ${perfil.unidade}` : perfil.nome,
         role: "nivel", nivelAcesso: chave,
       });
+      return;
+    }
+
+    if (CPF_REGEX.test(usuarioLimpo)) {
+      await loginViaSgu(usuarioLimpo, senha);
       return;
     }
 
