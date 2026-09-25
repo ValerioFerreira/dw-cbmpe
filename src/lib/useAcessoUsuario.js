@@ -60,8 +60,9 @@ export function useAcessoUsuario() {
   // Token pra rotas de escrita do backend (organograma, atribuições — ver
   // requireAdmin.js): só quando o PRÓPRIO perfil do usuário SGU é
   // ADMINISTRADOR — o backend revalida isso de qualquer forma, mas evitar
-  // mandar o token à toa poupa uma chamada que vai dar 403. (O admin fixo
-  // com role "admin" foi removido em 2026-09-25 — ver authClient.js.)
+  // mandar o token à toa poupa uma chamada que vai dar 403. O login local
+  // AGGD (role "admin", ver authClient.js) vê tudo mas não tem token — fica
+  // só na visualização.
   const tokenAdmin = restrito && acesso?.admin ? user?.token : undefined;
 
   return { restrito, acesso, permiteSigla, permiteIndicador, permiteKpiTopo, ehAdministrador, tokenAdmin };

@@ -285,7 +285,7 @@ export default function UsuariosEditor() {
         <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-[12px] text-destructive">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span>
-            Sessão sem token de administrador do backend — confira se o backend está no ar, depois saia e entre novamente com seu CPF.
+            Sessão sem token de administrador do backend — só visualização. Para editar, entre com seu CPF (SGU) num usuário com perfil Administrador; o login AGGD não grava alterações.
           </span>
         </div>
       )}

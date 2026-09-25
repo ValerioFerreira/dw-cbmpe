@@ -77,6 +77,12 @@ regulares.
 > perfil `ADMINISTRADOR` em `backend/data/atribuicoes.json`. O histórico
 > abaixo fica como registro.
 >
+> **Exceção provisória, mesmo dia**: o login local `AGGD` / `AGGD@GSG` voltou
+> (só ele), a pedido do usuário, porque o app na Vercel não alcança o SGU. É
+> só do navegador (senha em texto claro no bundle), vê tudo e abre `/adm`,
+> mas não tem token de backend — **não grava nada**. Remover quando o app sair
+> da Vercel.
+>
 > **Exceção consciente à regra "CPF nunca volta ao cliente"** (mesma data,
 > pedido do usuário): a lista de usuários do modal de `/adm` mostra nome e
 > CPF de cada matrícula atribuída. Limites: só administrador chega à rota

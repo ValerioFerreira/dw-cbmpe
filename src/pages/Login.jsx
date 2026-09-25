@@ -7,11 +7,9 @@ import { LogIn, User, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import { safeReturnTo } from "@/lib/authReturnTo";
 
-// Máscara de CPF. Desde 2026-09-25 o login é SÓ por CPF (SGU) — o admin
-// fixo e os usuários de demonstração foram removidos (ver authClient.js).
-// SO_CPF continua deixando passar texto não numérico sem reescrever (quem
-// digitar letras recebe o erro de CPF inválido do authClient, em vez de ver
-// o campo "comer" o que digitou).
+// Máscara de CPF. O login é por CPF (SGU), mais o login local provisório
+// AGGD (ver authClient.js) — por isso SO_CPF deixa passar texto não numérico
+// sem reescrever.
 const SO_CPF = /^[\d.\s-]*$/;
 
 export function mascararCpf(valor) {
@@ -66,14 +64,13 @@ export default function Login() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="usuario">CPF</Label>
+          <Label htmlFor="usuario">Usuário</Label>
           <div className="relative">
             <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input
               id="usuario"
               type="text"
               autoComplete="username"
-              inputMode="numeric"
               autoFocus
               placeholder="Insira seu CPF"
               value={usuario}

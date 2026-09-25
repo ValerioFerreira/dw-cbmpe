@@ -29,7 +29,9 @@ Start with `README.md` for local setup and deploy notes.
 - `src/lib/authClient.js`: SGU login only (CPF + password → `backend/` →
   SGU), since 2026-09-25 — the fixed admin login and the demo logins were
   removed. Admin = SGU user whose matrícula has profile `ADMINISTRADOR` in
-  `backend/data/atribuicoes.json`.
+  the `app` schema of the `dw` database. Provisional exception: local login
+  `AGGD`/`AGGD@GSG` (browser-only, role "admin", no backend token → can view
+  everything but never write), kept while the app is on Vercel.
 - `src/lib/accessControl.js`: view-level access control (perfil/atribuição/
   unidade model). Still a **visualization-only prototype** — see
   `DW_GOVERNANCA.md`. Profile assignments (`ATRIBUICOES`) are persisted by

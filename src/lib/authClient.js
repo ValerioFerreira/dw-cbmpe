@@ -10,11 +10,24 @@
 // SGU e resolve a matrícula (ver backend/services/omeResolver.js). O que o
 // SGU devolve é só identidade; a AUTORIZAÇÃO é o perfil atribuído em /adm à
 // matrícula (backend/data/atribuicoes.json). Administrador = usuário SGU cujo
-// perfil é ADMINISTRADOR (ver backend/middlewares/requireAdmin.js) — não
-// existe mais nenhuma credencial administrativa fora do SGU.
+// perfil é ADMINISTRADOR (ver backend/middlewares/requireAdmin.js).
+//
+// EXCEÇÃO PROVISÓRIA (pedido do usuário, 2026-09-25, mesmo dia da remoção):
+// o login local AGGD / AGGD@GSG volta, com visão de administrador, porque o
+// app na Vercel não alcança o SGU (rede interna) e sem ele ninguém entrava
+// lá. Limites, de propósito:
+//  - é só do navegador: não tem token de backend, então vê tudo e abre /adm,
+//    mas NÃO grava nada (organograma/perfis exigem login SGU de um
+//    ADMINISTRADOR — requireAdmin.js continua sem nenhuma exceção);
+//  - a senha está em texto claro no bundle JS — é controle de acesso casual,
+//    não segurança. Remover quando o app sair da Vercel (CapRover interno).
 //
 // A chave de storage "cbmpe_auth_user_v2" continua a mesma; sessões antigas
-// dos caminhos removidos (sem `token`) são descartadas em auth.me().
+// sem `token` (o admin fixo adm/adm removido) são descartadas em auth.me() —
+// exceto a do AGGD.
+const LOGIN_LOCAL_USUARIO = "AGGD";
+const LOGIN_LOCAL_SENHA = "AGGD@GSG";
+const LOGIN_LOCAL_ID = "login-local-aggd";
 
 const STORAGE_KEY = "cbmpe_auth_user_v2";
 const AUTH_API_URL = (import.meta.env.VITE_AUTH_API_URL || "").replace(/\/$/, "");
@@ -81,8 +94,11 @@ export const auth = {
       throw err;
     }
 
-    // Sessão sem token = resquício do admin fixo/login de demonstração
-    // (removidos em 2026-09-25) — derruba, força login via SGU.
+    // Login local AGGD (ver cabeçalho): sessão só do navegador, sem backend.
+    if (user.id === LOGIN_LOCAL_ID) return user;
+
+    // Sessão sem token = resquício do admin fixo adm/adm (removido em
+    // 2026-09-25) — derruba, força novo login.
     if (!user.token) {
       localStorage.removeItem(STORAGE_KEY);
       const err = new Error("Sessão expirada");
@@ -112,6 +128,11 @@ export const auth = {
 
   async loginViaEmailPassword(usuario, senha) {
     if (!usuario || !senha) throw new Error("Informe CPF e senha");
+    if (usuario.trim().toUpperCase() === LOGIN_LOCAL_USUARIO) {
+      if (senha !== LOGIN_LOCAL_SENHA) throw new Error("Usuário ou senha inválidos");
+      writeUser({ id: LOGIN_LOCAL_ID, email: LOGIN_LOCAL_USUARIO, full_name: "Administrador (AGGD)", role: "admin", nivelAcesso: null });
+      return;
+    }
     const cpf = usuario.replace(/\D/g, "");
     if (!CPF_REGEX.test(cpf)) throw new Error("Informe um CPF válido (11 dígitos)");
     await loginViaSgu(cpf, senha);
