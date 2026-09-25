@@ -57,7 +57,7 @@ export default function OrganogramaEditor() {
   // useAcessoUsuario.js e backend/middlewares/requireAdmin.js) — desde
   // 2026-09-23 a atribuição de perfil vive no backend, não só em
   // localStorage, então o backend consegue validar os dois casos.
-  const { tokenAdmin: token, restrito } = useAcessoUsuario();
+  const { tokenAdmin: token } = useAcessoUsuario();
 
   const [erro, setErro] = React.useState("");
   const [ok, setOk] = React.useState("");
@@ -194,9 +194,7 @@ export default function OrganogramaEditor() {
         <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-[12px] text-destructive">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span>
-            {restrito
-              ? "Sessão sem token de administrador do backend — a edição só funciona logado com CPF real (SGU), não com o login de demonstração."
-              : "Sessão sem token de administrador do backend — confira se o backend está no ar e se VITE_AUTH_API_URL está configurado, depois saia e entre novamente."}
+            Sessão sem token de administrador do backend — confira se o backend está no ar, depois saia e entre novamente com seu CPF.
           </span>
         </div>
       )}

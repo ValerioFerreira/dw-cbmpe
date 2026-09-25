@@ -9,9 +9,7 @@ const router = express.Router();
 // calcular controle de acesso (accessControl.js) e montar a UI.
 router.get("/", listar);
 
-// Escrita - so o admin fixo tem token com role "admin" hoje (ver
-// requireAdmin.js pra saber por que um usuario SGU com perfil ADMINISTRADOR
-// nao passa por aqui ainda).
+// Escrita - usuario SGU com perfil ADMINISTRADOR (ver requireAdmin.js).
 router.post("/", validateToken, requireAdmin, criar);
 router.put("/:id", validateToken, requireAdmin, atualizar);
 router.delete("/:id", validateToken, requireAdmin, remover);

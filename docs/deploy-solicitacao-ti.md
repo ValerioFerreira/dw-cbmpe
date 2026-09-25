@@ -208,7 +208,7 @@ do SGU.
 
 | Variável | Para que serve |
 |---|---|
-| `VITE_ADMIN_USUARIO`, `VITE_ADMIN_SENHA` | Login administrativo provisório — **substituído pelo SGU** quando a integração entrar |
+| `VITE_AUTH_API_URL` | Endereço público do backend (login pelo SGU). Não há mais login administrativo fixo desde 2026-09-25 |
 | `DATABASE_URL_DW` | Conexão de leitura do data warehouse |
 
 > ⚠️ Variáveis `VITE_*` são embutidas em texto claro no pacote gerado. Não são

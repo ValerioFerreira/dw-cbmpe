@@ -32,6 +32,50 @@ function SeletorCard({ icone: Icone, titulo, subtitulo, onClick }) {
   );
 }
 
+// Modal de edição com título fixo e corpo rolável. Duas garantias (pedido de
+// 2026-09-25 — "o modal cresce muito verticalmente [...] fique do mesmo
+// tamanho que fica quando não tem nenhum perfil estendido"):
+//  - teto de 85% da janela DE VERDADE: o html tem zoom (ver index.css), e
+//    em Chrome `85vh` dentro dele vira 85vh × zoom — o antigo max-h-[85vh]
+//    já passava da janela. Dividir por --app-zoom corrige.
+//  - altura TRAVADA no tamanho com que o modal abre (tudo recolhido): o
+//    corpo é medido logo depois de montar e fixado nessa altura; expandir
+//    um grupo só rola o corpo, nunca estica o modal.
+function ModalEdicao({ aberto, onFechar, titulo, descricao, children }) {
+  const corpoRef = React.useRef(null);
+  const [alturaCorpo, setAlturaCorpo] = React.useState(null);
+
+  React.useLayoutEffect(() => {
+    if (!aberto) {
+      setAlturaCorpo(null);
+      return undefined;
+    }
+    // rAF: espera o Radix montar o portal e o conteúdo inicial pintar.
+    const id = window.requestAnimationFrame(() => {
+      if (corpoRef.current) setAlturaCorpo(corpoRef.current.offsetHeight);
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [aberto]);
+
+  return (
+    <Dialog open={aberto} onOpenChange={(v) => { if (!v) onFechar(); }}>
+      <DialogContent className="flex max-h-[calc(85vh/var(--app-zoom))] w-full max-w-3xl flex-col gap-0 overflow-hidden p-0">
+        <DialogHeader className="shrink-0 border-b border-border px-6 py-4">
+          <DialogTitle>{titulo}</DialogTitle>
+          {descricao && <DialogDescription>{descricao}</DialogDescription>}
+        </DialogHeader>
+        <div
+          ref={corpoRef}
+          style={alturaCorpo ? { height: alturaCorpo } : undefined}
+          className="min-h-0 overflow-y-auto px-6 py-4"
+        >
+          {children}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function Administracao() {
   const { ehAdministrador } = useAcessoUsuario();
   const [modalAberto, setModalAberto] = React.useState(null); // "organograma" | "usuarios" | null
@@ -69,33 +113,22 @@ export default function Administracao() {
         />
       </div>
 
-      {/* Título fixo (não rola com o conteúdo) + corpo com scroll próprio —
-          pedido de 2026-09-25: com header+corpo na mesma caixa rolável
-          (overflow-y-auto direto no DialogContent), o título e o X de
-          fechar rolavam pra fora da vista assim que um nível era expandido
-          e o conteúdo passava de max-h-[85vh]. */}
-      <Dialog open={modalAberto === "organograma"} onOpenChange={(v) => setModalAberto(v ? "organograma" : null)}>
-        <DialogContent className="flex max-h-[85vh] w-full max-w-3xl flex-col gap-0 overflow-hidden p-0">
-          <DialogHeader className="shrink-0 border-b border-border px-6 py-4">
-            <DialogTitle>Editar Organograma</DialogTitle>
-          </DialogHeader>
-          <div className="overflow-y-auto px-6 py-4">
-            <OrganogramaEditor />
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ModalEdicao
+        aberto={modalAberto === "organograma"}
+        onFechar={() => setModalAberto(null)}
+        titulo="Editar Organograma"
+      >
+        <OrganogramaEditor />
+      </ModalEdicao>
 
-      <Dialog open={modalAberto === "usuarios"} onOpenChange={(v) => setModalAberto(v ? "usuarios" : null)}>
-        <DialogContent className="flex max-h-[85vh] w-full max-w-3xl flex-col gap-0 overflow-hidden p-0">
-          <DialogHeader className="shrink-0 border-b border-border px-6 py-4">
-            <DialogTitle>Usuários</DialogTitle>
-            <DialogDescription>A unidade vem da OME do usuário, resolvida pela matrícula.</DialogDescription>
-          </DialogHeader>
-          <div className="overflow-y-auto px-6 py-4">
-            <UsuariosEditor />
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ModalEdicao
+        aberto={modalAberto === "usuarios"}
+        onFechar={() => setModalAberto(null)}
+        titulo="Usuários"
+        descricao="A unidade vem da OME do usuário, resolvida pela matrícula."
+      >
+        <UsuariosEditor />
+      </ModalEdicao>
     </div>
   );
 }

@@ -1,37 +1,28 @@
 {
   "atribuicoes": {
+    "7074182": {
+      "perfil": "ADMINISTRADOR"
+    },
     "7180462": {
       "perfil": "ADMINISTRADOR"
     },
-    "AGGD": {
+    "7250118": {
       "perfil": "ADMINISTRADOR"
     },
-    "CMTGERAL": {
+    "7980078": {
       "perfil": "COMANDANTE_GERAL"
     },
-    "SUBCMT": {
-      "perfil": "SUBCOMANDANTE_GERAL"
-    },
-    "DGP": {
+    "7980205": {
       "perfil": "DGP"
     },
-    "DLOG": {
-      "perfil": "DLOG"
-    },
-    "DF": {
+    "9507221": {
       "perfil": "DF"
     },
-    "DGO": {
-      "perfil": "TITULAR",
-      "unidade": "DGO"
+    "9700056": {
+      "perfil": "SUBCOMANDANTE_GERAL"
     },
-    "DINTER2": {
-      "perfil": "TITULAR",
-      "unidade": "DINTER II"
-    },
-    "4GB": {
-      "perfil": "TITULAR",
-      "unidade": "4º GB"
+    "9700110": {
+      "perfil": "DLOG"
     }
   }
 }

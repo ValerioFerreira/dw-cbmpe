@@ -58,15 +58,11 @@ export function useAcessoUsuario() {
   const ehAdministrador = !restrito || !!acesso?.admin;
 
   // Token pra rotas de escrita do backend (organograma, atribuições — ver
-  // requireAdmin.js): o login admin fixo sempre serve; um usuário SGU
-  // (role "nivel") só serve quando o PRÓPRIO perfil dele é ADMINISTRADOR —
-  // o backend revalida isso de qualquer forma, mas evitar mandar o token
-  // à toa poupa uma chamada que vai dar 403. Um login de demonstração
-  // (authClient.js caminho 2) nunca tem `user.token` (nunca falou com o
-  // backend), então isto já sai `undefined` sozinho pra ele, mesmo
-  // atribuído como ADMINISTRADOR — não há credencial real pro backend
-  // confiar nesse caminho.
-  const tokenAdmin = (user?.role === "admin" || (restrito && acesso?.admin)) ? user?.token : undefined;
+  // requireAdmin.js): só quando o PRÓPRIO perfil do usuário SGU é
+  // ADMINISTRADOR — o backend revalida isso de qualquer forma, mas evitar
+  // mandar o token à toa poupa uma chamada que vai dar 403. (O admin fixo
+  // com role "admin" foi removido em 2026-09-25 — ver authClient.js.)
+  const tokenAdmin = restrito && acesso?.admin ? user?.token : undefined;
 
   return { restrito, acesso, permiteSigla, permiteIndicador, permiteKpiTopo, ehAdministrador, tokenAdmin };
 }

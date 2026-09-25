@@ -52,7 +52,7 @@ preencha. Os valores estão no cofre `cofre-sistemas.kdbx` (ver
 
 | Variável | Quem usa | Sem ela |
 |---|---|---|
-| `VITE_ADMIN_USUARIO`, `VITE_ADMIN_SENHA` | login do app | cai no padrão `adm`/`adm` |
+| `VITE_AUTH_API_URL` | login do app (SGU, via `backend/`) | ninguém consegue entrar |
 | `DATABASE_URL_DW` | `etl/dw/`, `etl/mapa_forca/` | não dá para regerar o Mapa de Força |
 | `DATABASE_URL_SGP`, `DATABASE_URL_OPS`, `DATABASE_URL_FROTA` | camada `raw` do DW | não dá para recarregar o DW |
 | `DATABASE_URL_EFETIVO`, `DATABASE_URL_VIATURAS`, `DATABASE_URL_FINANCAS`, `DATABASE_URL_RESERVA` | extratores dos Neon | não dá para regerar Efetivo/Viaturas/Finanças |
@@ -162,14 +162,10 @@ os Neon direto.
 
 ## Autenticação
 
-`src/lib/authClient.js` tem três caminhos (ver comentário no topo do
-arquivo): o usuário administrador fixo (`VITE_ADMIN_USUARIO`/
-`VITE_ADMIN_SENHA`, controle de acesso casual, não segredo de servidor — as
-vars `VITE_*` vão em texto claro no bundle), o protótipo de níveis de acesso
-de `src/lib/accessControl.js` (login de demonstração, sem CPF, nunca fala
-com o backend), e o **SGU real**: login por CPF vai para o backend próprio
-em `backend/`, que autentica contra o SGU da corporação (98,4% do efetivo já
-tem conta lá).
+**Só existe login pelo SGU** (desde 2026-09-25 — o administrador fixo
+`adm`/`adm` e os usuários de demonstração `SIGLA@GSG` foram removidos): o CPF
+e a senha vão para o backend próprio em `backend/`, que autentica contra o
+SGU da corporação (98,4% do efetivo já tem conta lá).
 
 O mapeamento CPF → matrícula → OME está **ligado** (`backend/services/
 omeResolver.js`, desde 2026-09-23): a matrícula do militar autenticado vira
@@ -182,10 +178,26 @@ As atribuições de perfil (`/adm`) e o organograma editável vivem no backend
 admin é visível para o usuário atribuído no navegador *dele*, não só no de
 quem atribuiu. Consequência direta: um usuário SGU cujo próprio perfil é
 `ADMINISTRADOR` consegue editar organograma e outras atribuições a partir do
-próprio login (com CPF real), não só o login administrativo fixo — ver
-`backend/middlewares/requireAdmin.js`. Isso só vale pra quem loga com CPF
-real: o login de demonstração nunca tem um token de backend, então nunca
-passa por essas rotas de escrita, mesmo se atribuído como `ADMINISTRADOR`.
+próprio login — é a **única** forma de ser administrador (ver
+`backend/middlewares/requireAdmin.js`).
+
+### Primeiro administrador
+
+Organograma e perfis ficam no banco `dw`, schema `app` (desde 2026-09-25).
+Numa instalação nova, a semente `backend/data/atribuicoes.json` precisa ter
+pelo menos uma matrícula com `"perfil": "ADMINISTRADOR"` — senão ninguém
+consegue entrar em `/adm` para atribuir os demais:
+
+```json
+{ "atribuicoes": { "1234567": { "perfil": "ADMINISTRADOR" } } }
+```
+
+Depois, uma vez só, de dentro de `backend/` (lê `DATABASE_URL_DW` do
+`backend/.env`; não sobrescreve nada que já esteja no banco):
+
+```bash
+node scripts/semear_estado_app.js
+```
 
 A tela de login já aceita CPF com máscara; o valor enviado ao autenticador vai
 sem máscara.

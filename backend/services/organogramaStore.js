@@ -1,39 +1,62 @@
-import { promises as fs } from "fs";
-import { fileURLToPath } from "url";
-import path from "path";
+import { getPoolDw } from "../config/db.js";
 
-// Persistencia em arquivo JSON — decisao registrada no relatorio da
-// funcionalidade (organograma editavel): nao ha banco de aplicacao ainda
-// (so os bancos do DW/SGP/ROE, de outros sistemas), entao um arquivo no
-// servidor e o primeiro corte mais simples possivel. lerOrganograma()/
-// salvarOrganograma() sao a UNICA fronteira com o disco — trocar para
-// Postgres/SQLite depois significa reescrever so este arquivo, mantendo
-// organogramaService.js (as regras de negocio) intocado.
-const ARQUIVO = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data", "organograma.json");
+// Persistência do organograma editável — desde 2026-09-25 na tabela
+// app.organograma_unidade do banco `dw` (DDL em etl/dw/ddl/06_app.sql;
+// decisão do usuário, ver DW_INGESTAO.md seção 6). Antes era
+// backend/data/organograma.json, que hoje só serve de semente pra uma
+// instalação nova (ver scripts/semear_estado_app.js).
+//
+// lerOrganograma()/salvarOrganograma() continuam sendo a ÚNICA fronteira
+// com o armazenamento, com a mesma interface de antes (árvore inteira como
+// array de nós) — organogramaService.js (as regras de negócio) não mudou.
 
-// Serializa escritas concorrentes (duas chamadas PUT/POST quase simultaneas
-// nao podem interlear leitura+escrita do mesmo arquivo e uma pisar na
-// outra). Fila simples em memoria — suficiente pro volume de uso (edicao
-// administrativa esporadica, nao um endpoint de alto trafego).
+// Serializa escritas concorrentes deste processo (a transação abaixo já
+// garante atomicidade no banco; a fila evita que duas edições quase
+// simultâneas se sobrescrevam a partir da mesma leitura).
 let filaEscrita = Promise.resolve();
 
+const SQL_LER = `
+  select id, sigla, nivel, parent_id, fixo, ordem::float8 as ordem, funcao_coronel
+  from app.organograma_unidade
+  order by nivel, ordem, sigla
+`;
+
 export async function lerOrganograma() {
-  const bruto = await fs.readFile(ARQUIVO, "utf-8");
-  const dados = JSON.parse(bruto);
-  if (!Array.isArray(dados.unidades)) {
-    throw new Error(`Arquivo de organograma corrompido: ${ARQUIVO}`);
+  const { rows } = await getPoolDw().query(SQL_LER);
+  if (rows.length === 0) {
+    throw new Error("Organograma vazio no banco (app.organograma_unidade) — rode backend/scripts/semear_estado_app.js.");
   }
-  return dados.unidades;
+  return rows.map((r) => {
+    const no = { id: r.id, sigla: r.sigla, nivel: r.nivel, parentId: r.parent_id, ordem: r.ordem };
+    if (r.fixo) no.fixo = true;
+    if (r.funcao_coronel) no.funcaoCoronel = true;
+    return no;
+  });
 }
 
+// Regrava a árvore inteira numa transação (são ~50 nós — mais simples e
+// mais seguro que calcular diff; a FK pai→filho é DEFERRABLE, então a
+// ordem de inserção não importa).
 export function salvarOrganograma(unidades) {
   const tarefa = filaEscrita.then(async () => {
-    const conteudo = JSON.stringify({ unidades }, null, 2) + "\n";
-    // Escreve em arquivo temporario e renomeia (atomico no mesmo volume) —
-    // uma escrita que falhar no meio nunca deixa organograma.json truncado.
-    const tmp = `${ARQUIVO}.tmp-${process.pid}-${Date.now()}`;
-    await fs.writeFile(tmp, conteudo, "utf-8");
-    await fs.rename(tmp, ARQUIVO);
+    const cliente = await getPoolDw().connect();
+    try {
+      await cliente.query("begin");
+      await cliente.query("delete from app.organograma_unidade");
+      for (const u of unidades) {
+        await cliente.query(
+          `insert into app.organograma_unidade (id, sigla, nivel, parent_id, fixo, ordem, funcao_coronel, atualizado_em)
+           values ($1, $2, $3, $4, $5, $6, $7, now())`,
+          [u.id, u.sigla, u.nivel, u.parentId ?? null, !!u.fixo, u.ordem ?? 0, !!u.funcaoCoronel],
+        );
+      }
+      await cliente.query("commit");
+    } catch (err) {
+      await cliente.query("rollback").catch(() => {});
+      throw err;
+    } finally {
+      cliente.release();
+    }
   });
   filaEscrita = tarefa.catch(() => {});
   return tarefa;

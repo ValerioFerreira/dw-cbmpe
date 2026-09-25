@@ -351,7 +351,8 @@
       "sigla": "AECI",
       "nivel": 6,
       "parentId": "comando-geral",
-      "ordem": 80
+      "ordem": 80,
+      "funcaoCoronel": true
     }
   ]
 }

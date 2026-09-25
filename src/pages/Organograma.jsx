@@ -362,9 +362,9 @@ export default function Organograma() {
   }, [indicadores, estrutura.comandoGeral]);
 
   // Protótipo de níveis de acesso (2026-08-17, ver DW_PLANEJAMENTO.md e
-  // @/lib/useAcessoUsuario): o login "adm" (role "admin") continua vendo o
-  // organograma sem nenhuma restrição visual. Usuários de nível ("role"
-  // nivel) veem tudo, mas só os cards liberados ficam clicáveis/destacados —
+  // @/lib/useAcessoUsuario): perfis de acesso total (Administrador,
+  // Comandante/Subcomandante Geral) veem o organograma sem nenhuma restrição
+  // visual. Os demais veem tudo, mas só os cards liberados ficam clicáveis/destacados —
   // o resto fica com cor e contraste reduzidos, sem efeito de hover. A mesma
   // regra de acesso (calcularAcesso) também bloqueia a navegação direta nas
   // páginas de detalhe — ver useAcessoUsuario.

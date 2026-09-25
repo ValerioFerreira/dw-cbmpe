@@ -19,7 +19,7 @@ function normalizarMatricula(bruta) {
 }
 
 const SQL_MATRICULA_POR_CPF = `
-  select nr_matr_pess
+  select nr_matr_pess, nm_pess
   from ovrsgp.tb_pess
   where nr_cpf_pess = $1
   limit 1
@@ -51,15 +51,47 @@ export async function resolverOmePorMatricula(matriculaBruta) {
   return { matricula, ome: linha.sigla, adido: !!linha.adido };
 }
 
+// `nome` (nm_pess do SGP) desde 2026-09-25 — o formulário de /adm mostra de
+// quem é a matrícula encontrada antes do admin confirmar a atribuição.
 export async function resolverMatriculaEOmePorCpf(cpf) {
   const cpfLimpo = (cpf || "").replace(/\D/g, "");
-  if (cpfLimpo.length !== 11) return { matricula: null, ome: null, adido: false };
+  if (cpfLimpo.length !== 11) return { matricula: null, nome: null, ome: null, adido: false };
 
   const sgp = await getPoolSgp().query(SQL_MATRICULA_POR_CPF, [cpfLimpo]);
   const matricula = normalizarMatricula(sgp.rows[0]?.nr_matr_pess);
-  if (!matricula) return { matricula: null, ome: null, adido: false };
+  if (!matricula) return { matricula: null, nome: null, ome: null, adido: false };
 
-  return resolverOmePorMatricula(matricula);
+  const nome = sgp.rows[0].nm_pess?.trim() || null;
+  return { ...(await resolverOmePorMatricula(matricula)), nome };
 }
 
-export default { resolverMatriculaEOmePorCpf, resolverOmePorMatricula };
+// Identificação (nome + CPF) de várias matrículas de uma vez — só pra lista
+// de usuários do modal de /adm (pedido de 2026-09-25: "mostre o nome do
+// usuário com o CPF ao lado, e não somente a matrícula"). Consultado AO VIVO
+// no SGP a cada abertura do modal, nunca persistido: o arquivo de
+// atribuições continua guardando só a matrícula (ver
+// atribuicoesService.js), e a rota que chama isto é exclusiva de
+// administrador (ver pessoasRoutes.js). Compara pela matrícula normalizada
+// (só dígitos) — no SGP ela aparece com e sem dígito verificador separado
+// por hífen.
+const SQL_IDENTIFICAR_MATRICULAS = `
+  select regexp_replace(nr_matr_pess, '[^0-9]', '', 'g') as matricula, nm_pess, nr_cpf_pess
+  from ovrsgp.tb_pess
+  where regexp_replace(nr_matr_pess, '[^0-9]', '', 'g') = any($1)
+`;
+
+export async function identificarMatriculas(matriculasBrutas) {
+  const matriculas = [...new Set((matriculasBrutas || []).map(normalizarMatricula).filter(Boolean))];
+  if (matriculas.length === 0) return {};
+  const { rows } = await getPoolSgp().query(SQL_IDENTIFICAR_MATRICULAS, [matriculas]);
+  const resultado = {};
+  for (const linha of rows) {
+    resultado[linha.matricula] = {
+      nome: linha.nm_pess?.trim() || null,
+      cpf: (linha.nr_cpf_pess || "").replace(/\D/g, "") || null,
+    };
+  }
+  return resultado;
+}
+
+export default { resolverMatriculaEOmePorCpf, resolverOmePorMatricula, identificarMatriculas };

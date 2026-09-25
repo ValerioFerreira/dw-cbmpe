@@ -83,12 +83,17 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* --app-zoom espelha o zoom do html: em Chrome, `vh` dentro de um
+     elemento com zoom também é multiplicado pelo zoom (85vh virava ~106%
+     da janela) — quem precisa de altura relativa à janela divide por ele,
+     ex. max-h-[calc(85vh/var(--app-zoom))] (ver Administracao.jsx). */
   html {
-    zoom: 1.25;
+    --app-zoom: 1.25;
+    zoom: var(--app-zoom);
   }
   @media (max-width: 767px) {
     html {
-      zoom: 1.05;
+      --app-zoom: 1.05;
     }
   }
   body {
@@ -106,6 +111,7 @@
     display: none !important;
   }
   html {
+    --app-zoom: 1 !important;
     zoom: 1 !important;
   }
   main {

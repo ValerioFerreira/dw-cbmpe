@@ -3,8 +3,6 @@ services:
     build:
       context: .
       args:
-        VITE_ADMIN_USUARIO: ${VITE_ADMIN_USUARIO}
-        VITE_ADMIN_SENHA: ${VITE_ADMIN_SENHA}
         # Origem publica do backend abaixo — sem isto o front nao sabe pra
         # onde mandar o login por CPF (ver src/lib/authClient.js).
         VITE_AUTH_API_URL: ${VITE_AUTH_API_URL}
@@ -15,8 +13,8 @@ services:
       - backend
 
   # Backend: autenticacao contra o SGU, mais o estado editavel pelo admin
-  # (organograma, atribuicoes de perfil -- backend/data/*.json, ver
-  # backend/app.js e DW_PLANEJAMENTO.md). O front continua estatico,
+  # (organograma, atribuicoes de perfil -- no banco `dw`, schema `app`,
+  # desde 2026-09-25; ver DW_INGESTAO.md). O front continua estatico,
   # servido pelo nginx do servico "app" acima.
   backend:
     build:
@@ -27,18 +25,8 @@ services:
     ports:
       - "4000:4000"
     restart: unless-stopped
-    volumes:
-      # SEM ISTO, qualquer edicao em /adm (organograma, atribuicoes) some
-      # no proximo `docker compose up --build`/redeploy -- backend/data/
-      # vira parte da imagem (COPY no Dockerfile), que e sempre substituida
-      # do zero. O volume nomeado sobrevive a recriacao do container (some
-      # so com `docker compose down -v`, explicito). Achado testando o
-      # build real em 2026-09-25 -- ver nota equivalente pro CapRover em
-      # backend/.env.example.
-      - backend-data:/app/data
-
-volumes:
-  backend-data:
+    # Sem volume: o estado editavel fica no banco (DATABASE_URL_DW), nao
+    # no container -- redeploy nao perde nada.
 
 networks:
   default:

@@ -12,7 +12,7 @@ const router = express.Router();
 // vínculo de assessor/flag de pendência.
 router.get("/", listar);
 
-// Escrita — admin fixo (role "admin") OU um usuário SGU cujo próprio
+// Escrita — usuário SGU cujo próprio
 // perfil, hoje, é ADMINISTRADOR (requireAdmin.js consulta este mesmo
 // arquivo pra decidir, então um perfil revogado aqui derruba o acesso de
 // escrita na próxima requisição, não só no próximo login).

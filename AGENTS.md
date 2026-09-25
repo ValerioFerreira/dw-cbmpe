@@ -26,10 +26,10 @@ Start with `README.md` for local setup and deploy notes.
   cache layer for the org chart and user-profile assignments coming from
   the backend (falls back to `src/data/organograma.js`/`accessControl.js`
   local data when the backend is down or unconfigured).
-- `src/lib/authClient.js`: three auth paths (see file header) — a fixed
-  admin login, a client-only demo login (`accessControl.js`, never talks to
-  the backend), and real SGU login via `backend/`. Only the SGU path gets a
-  backend JWT.
+- `src/lib/authClient.js`: SGU login only (CPF + password → `backend/` →
+  SGU), since 2026-09-25 — the fixed admin login and the demo logins were
+  removed. Admin = SGU user whose matrícula has profile `ADMINISTRADOR` in
+  `backend/data/atribuicoes.json`.
 - `src/lib/accessControl.js`: view-level access control (perfil/atribuição/
   unidade model). Still a **visualization-only prototype** — see
   `DW_GOVERNANCA.md`. Profile assignments (`ATRIBUICOES`) are persisted by
@@ -57,11 +57,9 @@ Small Node/Express service — see its own `.env.example`. Routes:
 `/auth` (SGU login + fixed admin login), `/organograma` (org-chart CRUD),
 `/atribuicoes` (user-profile-assignment CRUD), `/pessoas` (CPF → matrícula/
 OME resolution, admin-only). Write routes require a JWT via
-`middlewares/requireAdmin.js`, which accepts either the fixed admin login
-or any real SGU-authenticated user whose own profile (checked live against
-`backend/data/atribuicoes.json`) is `ADMINISTRADOR` — never the
-localStorage-only demo login (`accessControl.js`), which has no backend
-credential to validate. State lives in `backend/data/*.json` (no database
+`middlewares/requireAdmin.js`, which accepts only a real SGU-authenticated
+user whose own profile (checked live against `backend/data/atribuicoes.json`)
+is `ADMINISTRADOR`. State lives in `backend/data/*.json` (no database
 of its own) — see `services/*Store.js` for the file-write pattern (atomic
 rename, serialized writes) if adding another editable resource.
 
@@ -89,6 +87,10 @@ raiz do projeto:
   acesso.
 - [`DW_PROCESSO_INTEGRACAO.md`](DW_PROCESSO_INTEGRACAO.md) — como agir
   quando o usuário envia uma nova fonte de dados.
+- [`DW_INGESTAO.md`](DW_INGESTAO.md) — inventário de como cada dado chega
+  hoje ao app, as diretrizes (D1–D10) para tudo passar pelo DW, e o plano de
+  conexão do app ao DW. **Leia antes de criar ou alterar qualquer
+  extrator/JSON de dado.**
 
 Qualquer trabalho relacionado a dados reais, ETL, schema de banco ou
 integração com o DW deve começar lendo `DW_PLANEJAMENTO.md` primeiro.

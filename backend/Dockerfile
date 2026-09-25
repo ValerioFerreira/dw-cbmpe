@@ -31,15 +31,13 @@ COPY middlewares ./middlewares
 COPY routes ./routes
 COPY services ./services
 COPY utils ./utils
-# data/*.json (organograma.json, atribuicoes.json) e o armazenamento de
-# estado editavel do backend (ver services/organogramaStore.js,
-# atribuicoesStore.js) -- faltava aqui desde que esses arquivos foram
-# criados, entao POST/PUT/DELETE em /organograma e /atribuicoes sempre
-# falhavam com ENOENT em qualquer imagem construida (achado ao testar o
-# build real em 2026-09-25). --chown pro dono do processo poder escrever
-# (as duas stores gravam em arquivo temporario no mesmo diretorio e
-# renomeiam, pra escrita atomica).
-COPY --chown=appuser:appgroup data ./data
+# Estado editavel (organograma, perfis) vive no banco `dw`, schema `app`,
+# desde 2026-09-25 (ver services/*Store.js). data/*.json e scripts/ vao na
+# imagem so como SEMENTE de instalacao nova:
+#   docker compose exec backend node scripts/semear_estado_app.js
+# (so importa se as tabelas estiverem vazias -- nunca sobrescreve).
+COPY data ./data
+COPY scripts ./scripts
 
 USER appuser
 

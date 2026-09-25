@@ -34,13 +34,8 @@ function slugify(s) {
 const OFICIAIS = {
   'COMANDO GERAL': { oficial: 'Cel Araripe', cargo: 'Comandante Geral' },
   'SUBCOMANDO GERAL': { oficial: 'Cel Curvêlo', cargo: 'Subcomandante Geral' },
-  // Estado-Maior Geral e suas 3 subordinadas diretas (1º/2º/3º EMG) — mesmo
-  // placeholder "Cel XXXX" já usado pra DGA (chefe ainda não definido,
-  // pedido de 2026-09-25).
-  'ESTADO-MAIOR GERAL': { oficial: 'Cel XXXX', cargo: 'Chefe' },
-  '1º EMG': { oficial: 'Cel XXXX', cargo: 'Chefe' },
-  '2º EMG': { oficial: 'Cel XXXX', cargo: 'Chefe' },
-  '3º EMG': { oficial: 'Cel XXXX', cargo: 'Chefe' },
+  // Estado-Maior Geral (e 1º/2º/3º EMG) NÃO entram aqui — ver
+  // RAIZES_EM_CONSTRUCAO abaixo.
   'GCG': { oficial: 'Maj Rafael', cargo: 'Chefe' },
   'AECI': { oficial: 'Cel Jailton', cargo: 'Assessor Especial' },
   'CPO': { oficial: 'Maj França', cargo: 'Chefe' },
@@ -453,6 +448,27 @@ function statusPorAtingimento(valor, meta) {
 
 // ----- Construção da árvore de unidades -----
 
+// Unidades "em construção" (pedido de 2026-09-25: "remova os dados
+// fictícios do ESTADO-MAIOR GERAL, deixe tudo 'Em construção'"). Vale pra
+// raiz E toda a descendência dela na árvore ativa (inclusive uma OME que o
+// admin venha a criar debaixo do Estado-Maior em /adm): sem chefe, sem
+// indicador, sem painel, e métricas ZERADAS — não METRICAS_PADRAO, que é
+// fictício e, antes disto, somava no total do Subcomando Geral. Por `id`
+// (estável), não por sigla, pra sobreviver a uma renomeação.
+const RAIZES_EM_CONSTRUCAO = new Set(['estado-maior']);
+const METRICAS_ZERO = { efetivo: 0, efetivoPrevisto: 0, viaturas: 0, materiaisPct: 0, financas: 0, financaPct: 0, acoes: 0 };
+
+function idsEmConstrucao(nodes) {
+  const ids = new Set();
+  const visitar = (id) => {
+    if (ids.has(id)) return;
+    ids.add(id);
+    nodes.filter((n) => n.parentId === id).forEach((n) => visitar(n.id));
+  };
+  nodes.filter((n) => RAIZES_EM_CONSTRUCAO.has(n.id)).forEach((n) => visitar(n.id));
+  return ids;
+}
+
 const METRICAS_PADRAO = { efetivo: 20, efetivoPrevisto: 22, viaturas: 2, materiaisPct: 88, financas: 40000, financaPct: 88, acoes: 40 };
 
 // Totais agregados (própria unidade + toda a descendência), replicando a
@@ -461,8 +477,12 @@ const METRICAS_PADRAO = { efetivo: 20, efetivoPrevisto: 22, viaturas: 2, materia
 // unidade movida pelo admin recalcula corretamente quem soma no total de
 // quem. `cache` é por chamada de montarOrganograma() (nunca module-level),
 // pra não vazar total calculado com uma árvore antiga para a próxima.
-function totaisDaSigla(sigla, nodes, cache) {
+function totaisDaSigla(sigla, nodes, cache, siglasEmConstrucao = new Set()) {
   if (cache[sigla]) return cache[sigla];
+  if (siglasEmConstrucao.has(sigla)) {
+    cache[sigla] = { ...METRICAS_ZERO };
+    return cache[sigla];
+  }
   const proprio = METRICAS[sigla] || METRICAS_PADRAO;
   const filhos = filhosSiglas(nodes, sigla);
   let total = { efetivo: proprio.efetivo, efetivoPrevisto: proprio.efetivoPrevisto, viaturas: proprio.viaturas, financas: proprio.financas, acoes: proprio.acoes };
@@ -470,7 +490,7 @@ function totaisDaSigla(sigla, nodes, cache) {
   let pesoFin = proprio.financaPct * proprio.efetivo;
   let pesoBase = proprio.efetivo;
   filhos.forEach((filho) => {
-    const ct = totaisDaSigla(filho, nodes, cache);
+    const ct = totaisDaSigla(filho, nodes, cache, siglasEmConstrucao);
     total.efetivo += ct.efetivo;
     total.efetivoPrevisto += ct.efetivoPrevisto;
     total.viaturas += ct.viaturas;
@@ -566,9 +586,29 @@ export function metricasDivisoesProprias(sigla) {
 // continuam vindo dos mocks estáticos (OFICIAIS/METRICAS/SUBSETORES, fora
 // do escopo do organograma editável) — com fallback pra unidade nova que o
 // admin cria, que não existe em nenhum desses mapas.
-function construirUnidades(nodes, totaisPorSigla) {
+function construirUnidades(nodes, totaisPorSigla, emConstrucao = new Set()) {
   return nodes.map((no) => {
     const sigla = no.sigla;
+    if (emConstrucao.has(no.id)) {
+      return {
+        id: no.id,
+        nome: sigla,
+        sigla,
+        tipo: tipoDaSigla(sigla, no.nivel),
+        parent_id: no.parentId,
+        nivel: no.nivel,
+        ordem: no.ordem ?? 0,
+        fixo: !!no.fixo,
+        funcaoCoronel: !!no.funcaoCoronel,
+        emConstrucao: true,
+        descricao: 'Em construção.',
+        responsavel: 'Em construção',
+        cargo: '',
+        divisoes: [],
+        efetivo: 0,
+        ativo: true,
+      };
+    }
     const { oficial, cargo } = OFICIAIS[sigla] || { oficial: '—', cargo: 'Titular' };
     const tipo = tipoDaSigla(sigla, no.nivel);
     const totais = totaisPorSigla.get(sigla) || METRICAS_PADRAO;
@@ -611,6 +651,7 @@ const KPI_SEM_META = new Set(['Materiais', 'Atividades Específicas']);
 function construirIndicadores(unidades, totaisPorSigla) {
   const indicadores = [];
   unidades.forEach((u) => {
+    if (u.emConstrucao) return; // ver RAIZES_EM_CONSTRUCAO
     const totais = totaisPorSigla.get(u.sigla) || METRICAS_PADRAO;
     const specs = [
       { base: 'Efetivo', valor: totais.efetivo, max: null, metaReal: totais.efetivoPrevisto },
@@ -660,7 +701,7 @@ function construirIndicadores(unidades, totaisPorSigla) {
 
 function construirDashboards(unidades) {
   const agora = Date.now();
-  return unidades.map((u) => {
+  return unidades.filter((u) => !u.emConstrucao).map((u) => {
     const rng = criarRng(`${u.id}:dashboard`);
     const diasAtras = Math.round(rng() * 45);
     return {
@@ -725,9 +766,11 @@ function construirAlertas(unidades) {
 export function montarOrganograma(nodes) {
   const cache = {};
   const totaisPorSigla = new Map();
-  nodes.forEach((no) => totaisPorSigla.set(no.sigla, totaisDaSigla(no.sigla, nodes, cache)));
+  const emConstrucao = idsEmConstrucao(nodes);
+  const siglasEmConstrucao = new Set(nodes.filter((n) => emConstrucao.has(n.id)).map((n) => n.sigla));
+  nodes.forEach((no) => totaisPorSigla.set(no.sigla, totaisDaSigla(no.sigla, nodes, cache, siglasEmConstrucao)));
 
-  const unidades = construirUnidades(nodes, totaisPorSigla);
+  const unidades = construirUnidades(nodes, totaisPorSigla, emConstrucao);
   const indicadores = construirIndicadores(unidades, totaisPorSigla);
   const dashboards = construirDashboards(unidades);
   const alertas = construirAlertas(unidades);

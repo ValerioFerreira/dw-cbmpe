@@ -127,8 +127,8 @@ PAI_POR_REGRA = {
 EXTINTAS_CONFIRMADAS = {"CAC", "CPA", "CPTO", "CTA", "CEMET II", "DFEA"}
 
 
-def arvore_do_organograma():
-    """Le a hierarquia de backend/data/organograma.json.
+def arvore_do_organograma(cur):
+    """Le a hierarquia de app.organograma_unidade (banco `dw`).
 
     O organograma e a autoridade sobre QUEM PENDE DE QUEM (decisao do usuario,
     2026-08-24); a tb_ome do SGP continua sendo o registro do QUE EXISTE. As
@@ -138,15 +138,14 @@ def arvore_do_organograma():
     Ate 2026-09-23 isto lia direto `const ARVORE` de src/data/organograma.js
     via regex. Trocado porque o organograma passou a ser editavel pelo
     administrador (ver src/components/admin/OrganogramaEditor.jsx) e
-    persistido em backend/data/organograma.json -- ler esse JSON em vez de
-    regex sobre um arquivo JS e mais robusto E faz a proxima carga do DW
-    refletir edicoes do admin automaticamente, sem precisar sincronizar as
-    duas fontes manualmente. Falha alto se o parse nao render nada, que e o
-    unico modo de falha silenciosa que essa abordagem tem.
+    persistido em backend/data/organograma.json. Desde 2026-09-25 o backend
+    grava na tabela app.organograma_unidade, no proprio banco `dw` (ver
+    etl/dw/ddl/06_app.sql) -- lida aqui pelo mesmo cursor da carga, entao a
+    proxima carga do DW reflete as edicoes do admin sem sincronizar nada.
+    Falha alto se vier vazia, o unico modo de falha silenciosa possivel.
     """
-    caminho = RAIZ / "backend" / "data" / "organograma.json"
-    dado = json.loads(caminho.read_text(encoding="utf-8"))
-    unidades = dado["unidades"]
+    cur.execute("SELECT id, sigla, parent_id FROM app.organograma_unidade")
+    unidades = [{"id": i, "sigla": s, "parentId": p} for i, s, p in cur.fetchall()]
 
     por_id = {u["id"]: u for u in unidades}
     arvore = {}
@@ -158,7 +157,7 @@ def arvore_do_organograma():
         arvore.setdefault(pai_sigla, []).append(u["sigla"])
         pai_de_filho[u["sigla"]] = pai_sigla
     if len(arvore) < 5:
-        raise SystemExit(f"organograma.json com so {len(arvore)} nos com filhos -- parse provavelmente quebrou.")
+        raise SystemExit(f"app.organograma_unidade com so {len(arvore)} nos com filhos -- rode backend/scripts/semear_estado_app.js.")
 
     return arvore, pai_de_filho
 
@@ -276,7 +275,7 @@ def carregar_dim_ome(cur):
     # do organograma, ele e substituido pelo pai de la. Isso corrige, entre
     # outros, DAS (que o SGP pendura na DGP e o organograma poe sob a DGA) e
     # CEFD (SGP: DGP; organograma: DEIP).
-    _arvore, pai_organograma = arvore_do_organograma()
+    _arvore, pai_organograma = arvore_do_organograma(cur)
     por_sigla_norm = {normalizar(l[2]): l[0] for l in linhas}
     por_sigla_norm[normalizar("DGA")] = SK_DGA
 

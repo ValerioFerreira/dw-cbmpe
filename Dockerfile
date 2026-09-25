@@ -9,12 +9,8 @@ COPY . .
 # momento do build (Vite as substitui em tempo de build, não em runtime do
 # container) — por isso viram ARG/ENV aqui, em vez de env_file do serviço no
 # docker-compose.yml, que só afetaria um processo já compilado.
-ARG VITE_ADMIN_USUARIO
-ARG VITE_ADMIN_SENHA
 ARG VITE_AUTH_API_URL
-ENV VITE_ADMIN_USUARIO=$VITE_ADMIN_USUARIO \
-    VITE_ADMIN_SENHA=$VITE_ADMIN_SENHA \
-    VITE_AUTH_API_URL=$VITE_AUTH_API_URL
+ENV VITE_AUTH_API_URL=$VITE_AUTH_API_URL
 
 RUN npm run build
 

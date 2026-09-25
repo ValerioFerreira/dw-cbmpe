@@ -3,13 +3,13 @@ import { Plus, Trash2, AlertTriangle, Check, ChevronDown, Search, RefreshCw, Inf
 import { useCbmpe } from "@/lib/cbmpe-context";
 import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import {
-  PERFIS, unidadeDoUsuario, vinculoDoAssessor, resolverOmePorCpf, senhaEsperada, todosPerfisDoUsuario,
+  PERFIS, unidadeDoUsuario, vinculoDoAssessor, resolverOmePorCpf, todosPerfisDoUsuario,
 } from "@/lib/accessControl";
 import {
   definirAtribuicao, removerAtribuicao, criarUsuarioPendente, atualizarMatriculasPendentes,
   adicionarPerfilAdicional, removerPerfilAdicional,
 } from "@/lib/atribuicoesClient";
-import { resolverPorCpf } from "@/lib/pessoasClient";
+import { resolverPorCpf, identificarUsuarios, formatarCpf } from "@/lib/pessoasClient";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 
@@ -28,19 +28,28 @@ import { Badge } from "@/components/ui/badge";
 //    CPF, ver backend/services/atribuicoesService.js > criarPendente),
 //    unicamente pra permitir o retry em lote depois, pelo botão
 //    "Atualizar" — nunca é devolvido a nenhum cliente (nem este).
+//
+// 3. (2026-09-25) Cada usuário aparece pelo NOME, com o CPF ao lado e a
+//    matrícula embaixo — antes era só a matrícula (e a "senha" do antigo
+//    login de demonstração, removido). Nome/CPF vêm ao vivo do SGP pela
+//    rota admin /pessoas/identificar a cada abertura do modal; nada disso é
+//    persistido (o arquivo de atribuições continua só com a matrícula).
 const CLASSE_CAMPO =
   "h-9 w-full rounded-md border border-border bg-background px-2.5 text-[13px] " +
   "text-foreground outline-none transition-colors focus:border-primary";
 
 export default function UsuariosEditor() {
   const { unidades, atribuicoes, recarregar } = useCbmpe();
-  const { ehAdministrador, tokenAdmin, restrito } = useAcessoUsuario();
+  const { ehAdministrador, tokenAdmin } = useAcessoUsuario();
 
   const [novoCpf, setNovoCpf] = React.useState("");
   const [novoUsuario, setNovoUsuario] = React.useState("");
   const [novoPerfil, setNovoPerfil] = React.useState("TITULAR");
   // "idle" | "buscando" | "encontrada" | "nao_encontrada"
   const [estadoBusca, setEstadoBusca] = React.useState("idle");
+  const [nomeEncontrado, setNomeEncontrado] = React.useState("");
+  // { [usuario]: { nome, cpf } } — ver item 3 do cabeçalho.
+  const [pessoas, setPessoas] = React.useState({});
   const [ocupado, setOcupado] = React.useState(null); // usuário em operação, "novo" ou "pendentes"
   const [erro, setErro] = React.useState("");
   const [ok, setOk] = React.useState("");
@@ -61,6 +70,7 @@ export default function UsuariosEditor() {
   // antigo botão "Resolver" clicado manualmente.
   React.useEffect(() => {
     const digitos = novoCpf.replace(/\D/g, "");
+    setNomeEncontrado("");
     if (digitos.length !== 11) {
       setEstadoBusca("idle");
       return undefined;
@@ -68,10 +78,11 @@ export default function UsuariosEditor() {
     let cancelado = false;
     setEstadoBusca("buscando");
     resolverPorCpf(digitos, tokenAdmin)
-      .then(({ matricula }) => {
+      .then(({ matricula, nome }) => {
         if (cancelado) return;
         if (matricula) {
           setNovoUsuario(matricula);
+          setNomeEncontrado(nome || "");
           setEstadoBusca("encontrada");
         } else {
           setNovoUsuario("");
@@ -85,6 +96,25 @@ export default function UsuariosEditor() {
       });
     return () => { cancelado = true; };
   }, [novoCpf, tokenAdmin]);
+
+  // Chaves atuais como string estável — só refaz a consulta quando o
+  // conjunto de usuários muda (não a cada troca de perfil).
+  const chavesUsuarios = React.useMemo(() => Object.keys(atribuicoes).sort().join("|"), [atribuicoes]);
+  React.useEffect(() => {
+    if (!tokenAdmin || !chavesUsuarios) return undefined;
+    let cancelado = false;
+    identificarUsuarios(chavesUsuarios.split("|"), tokenAdmin)
+      .then((r) => { if (!cancelado) setPessoas(r); })
+      .catch(() => { /* sem nome/CPF: a linha cai de volta na matrícula */ });
+    return () => { cancelado = true; };
+  }, [chavesUsuarios, tokenAdmin]);
+
+  // "NOME (matrícula)" pra mensagens e selects — matrícula sozinha quando o
+  // nome ainda não chegou/não existe.
+  const rotuloUsuario = React.useCallback(
+    (usuario) => (pessoas[usuario]?.nome ? `${pessoas[usuario].nome} (${usuario})` : usuario),
+    [pessoas]
+  );
 
   async function aplicar(usuario, dados, mensagemOk) {
     setOcupado(usuario);
@@ -152,6 +182,7 @@ export default function UsuariosEditor() {
   function limparFormulario() {
     setNovoCpf("");
     setNovoUsuario("");
+    setNomeEncontrado("");
     setEstadoBusca("idle");
   }
 
@@ -241,7 +272,12 @@ export default function UsuariosEditor() {
 
   if (!ehAdministrador) return null;
   const semToken = !tokenAdmin;
-  const rotuloBusca = { idle: "", buscando: "Buscando matrícula…", encontrada: "Matrícula encontrada", nao_encontrada: "Não encontrada na base" }[estadoBusca];
+  const rotuloBusca = {
+    idle: "",
+    buscando: "Buscando matrícula…",
+    encontrada: nomeEncontrado ? `Matrícula encontrada — ${nomeEncontrado}` : "Matrícula encontrada",
+    nao_encontrada: "Não encontrada na base",
+  }[estadoBusca];
 
   return (
     <div className="space-y-4">
@@ -249,9 +285,7 @@ export default function UsuariosEditor() {
         <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-[12px] text-destructive">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span>
-            {restrito
-              ? "Sessão sem token de administrador do backend — a edição só funciona logado com CPF real (SGU), não com o login de demonstração."
-              : "Sessão sem token de administrador do backend — confira se o backend está no ar e se VITE_AUTH_API_URL está configurado, depois saia e entre novamente."}
+            Sessão sem token de administrador do backend — confira se o backend está no ar, depois saia e entre novamente com seu CPF.
           </span>
         </div>
       )}
@@ -365,6 +399,8 @@ export default function UsuariosEditor() {
                   <LinhaUsuario
                     key={usuario}
                     usuario={usuario}
+                    pessoa={pessoas[usuario]}
+                    rotuloUsuario={rotuloUsuario}
                     atribuicao={atribuicoes[usuario]}
                     atribuicoes={atribuicoes}
                     siglas={siglas}
@@ -413,7 +449,7 @@ export default function UsuariosEditor() {
   );
 }
 
-function LinhaUsuario({ usuario, atribuicao, atribuicoes, siglas, titulares, ocupado, trocarPerfil, atualizar, vincularAssessor, remover, adicionarPerfilExtra, removerPerfilExtra }) {
+function LinhaUsuario({ usuario, pessoa, rotuloUsuario, atribuicao, atribuicoes, siglas, titulares, ocupado, trocarPerfil, atualizar, vincularAssessor, remover, adicionarPerfilExtra, removerPerfilExtra }) {
   const perfil = PERFIS[atribuicao.perfil];
   const unidade = unidadeDoUsuario(usuario, atribuicoes);
   const vinculo = vinculoDoAssessor(usuario, atribuicoes);
@@ -425,16 +461,19 @@ function LinhaUsuario({ usuario, atribuicao, atribuicoes, siglas, titulares, ocu
   return (
     <div className="px-4 py-2.5">
     <div className="flex flex-wrap items-start gap-3">
-      <div className="min-w-[8rem]">
+      <div className="min-w-[12rem] flex-1 basis-56">
+        <div className="flex flex-wrap items-baseline gap-x-1.5">
+          <span className="font-medium text-foreground">{pessoa?.nome || (pendente ? "Nome não encontrado" : usuario)}</span>
+          {pessoa?.cpf && <span className="font-mono text-[11px] text-muted-foreground">{formatarCpf(pessoa.cpf)}</span>}
+        </div>
         <div className="flex items-center gap-1.5">
-          <span className="font-medium text-foreground">{usuario}</span>
+          {!pendente && pessoa?.nome && <span className="text-[11px] text-muted-foreground">Matrícula {usuario}</span>}
           {pendente && (
             <Badge variant="outline" className="gap-1 border-amber-500/50 bg-amber-400/10 px-1.5 py-0 text-[10px] font-medium text-amber-700">
               <AlertTriangle className="h-2.5 w-2.5" /> matrícula não encontrada
             </Badge>
           )}
         </div>
-        {!pendente && <div className="font-mono text-[11px] text-muted-foreground">{senhaEsperada(usuario)}</div>}
       </div>
 
       <select
@@ -477,7 +516,7 @@ function LinhaUsuario({ usuario, atribuicao, atribuicoes, siglas, titulares, ocu
               <option value="">Selecione o titular…</option>
               {titulares.map((t) => (
                 <option key={t} value={t}>
-                  {t}{unidadeDoUsuario(t, atribuicoes) ? ` — ${unidadeDoUsuario(t, atribuicoes)}` : ""}
+                  {rotuloUsuario(t)}{unidadeDoUsuario(t, atribuicoes) ? ` — ${unidadeDoUsuario(t, atribuicoes)}` : ""}
                 </option>
               ))}
             </select>
@@ -534,6 +573,7 @@ function LinhaUsuario({ usuario, atribuicao, atribuicoes, siglas, titulares, ocu
       <div className="mt-2">
         <AdicionarPerfilForm
           usuario={usuario}
+          rotuloUsuario={rotuloUsuario}
           atribuicoes={atribuicoes}
           siglas={siglas}
           titulares={titulares}
@@ -551,7 +591,7 @@ function LinhaUsuario({ usuario, atribuicao, atribuicoes, siglas, titulares, ocu
 // confirmação (pedido de 2026-09-25: "deve aparecer um alerta informando
 // do outro perfil deste usuário para confirmar essa dupla atribuição")
 // citando os perfis que o usuário já tem, antes de chamar o backend.
-function AdicionarPerfilForm({ usuario, atribuicoes, siglas, titulares, onAdicionar, onConcluir }) {
+function AdicionarPerfilForm({ usuario, rotuloUsuario, atribuicoes, siglas, titulares, onAdicionar, onConcluir }) {
   const [perfilChave, setPerfilChave] = React.useState("TITULAR");
   const [unidade, setUnidade] = React.useState("");
   const [titular, setTitular] = React.useState("");
@@ -563,7 +603,7 @@ function AdicionarPerfilForm({ usuario, atribuicoes, siglas, titulares, onAdicio
   async function confirmarEAdicionar() {
     const existentes = todosPerfisDoUsuario(usuario, atribuicoes).map((p) => PERFIS[p.perfil]?.nome || p.perfil);
     const confirmado = window.confirm(
-      `"${usuario}" já tem o(s) perfil(is): ${existentes.join(", ")}.\n\nAtribuir também "${info?.nome || perfilChave}"?`
+      `"${rotuloUsuario(usuario)}" já tem o(s) perfil(is): ${existentes.join(", ")}.\n\nAtribuir também "${info?.nome || perfilChave}"?`
     );
     if (!confirmado) return;
 
@@ -606,7 +646,7 @@ function AdicionarPerfilForm({ usuario, atribuicoes, siglas, titulares, onAdicio
       {info?.exigeTitular && (
         <select value={titular} onChange={(e) => setTitular(e.target.value)} disabled={ocupado} className={`${CLASSE_CAMPO} h-7 w-36 text-[11.5px]`}>
           <option value="">Titular…</option>
-          {titulares.map((t) => <option key={t} value={t}>{t}</option>)}
+          {titulares.map((t) => <option key={t} value={t}>{rotuloUsuario(t)}</option>)}
         </select>
       )}
       <button

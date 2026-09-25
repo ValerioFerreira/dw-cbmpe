@@ -97,7 +97,7 @@ export async function fetchAlertas() {
 // pelo admin no PRÓPRIO navegador dele nunca apareceria quando o usuário
 // atribuído logasse no navegador DELE. Mesmo padrão de cache/invalidação de
 // carregarOrganograma() acima — fallback pro accessControl.js local
-// (localStorage/ATRIBUICOES_PADRAO) só quando o backend está fora do ar ou
+// (vazio — ninguém ganha perfil, falha fechada) só quando o backend está fora do ar ou
 // não configurado.
 let atribuicoesCache = null;
 

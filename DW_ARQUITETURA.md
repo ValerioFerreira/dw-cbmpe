@@ -147,6 +147,12 @@ quer poder fazer sobre *qualquer* dado da corporação — não passam pelo
 
 ## Camada de API (proposta em aberto)
 
+> **Decidido em 2026-09-25**: a API do app é o backend Node que já existe
+> (`backend/`), estendido com rotas `/dados/*` que leem só `marts`. A proposta
+> FastAPI abaixo fica descartada. O estado editável do app (organograma,
+> perfis) passou para o schema `app` do banco `dw`. Plano e diretrizes em
+> [`DW_INGESTAO.md`](DW_INGESTAO.md).
+
 **Atualização de 2026-09-23 — não confundir com o backend que já existe.**
 Desde 2026-09-23 há um backend Node/Express pequeno em `backend/`: autentica
 via SGU, e serve/edita o estado administrativo do app (organograma,

@@ -19,8 +19,6 @@
 // `DW_ARQUITETURA.md`) e é pré-requisito para o app sair da Vercel com dado
 // nominal.
 
-const CHAVE_ATRIBUICOES = "cbmpe_atribuicoes_v2";
-
 export const INDICADORES = ["Efetivo", "Viaturas", "Materiais", "Finanças"];
 
 // Perfis definidos pela corporação (2026-08-24).
@@ -86,31 +84,6 @@ export const PERFIS = {
   },
 };
 
-// Estado inicial, usado enquanto ninguém mexeu em /adm. Preserva os usuários
-// de demonstração que já existiam.
-//
-// `cpf` é a credencial real da corporação e fica registrado desde já, mesmo
-// vazio: é por ele que a OME será resolvida quando a base do CBMPE estiver
-// conectada. Os usuários abaixo são de demonstração e não têm CPF.
-export const ATRIBUICOES_PADRAO = {
-  AGGD: { perfil: "ADMINISTRADOR" },
-  CMTGERAL: { perfil: "COMANDANTE_GERAL" },
-  SUBCMT: { perfil: "SUBCOMANDANTE_GERAL" },
-  DGP: { perfil: "DGP" },
-  DLOG: { perfil: "DLOG" },
-  DF: { perfil: "DF" },
-  DGO: { perfil: "TITULAR", unidade: "DGO" },
-  DINTER2: { perfil: "TITULAR", unidade: "DINTER II" },
-  "4GB": { perfil: "TITULAR", unidade: "4º GB" },
-};
-
-// Regra de senha do protótipo, definida pelo usuário: USUARIO + "@GSG".
-// Quando a autenticação for a da corporação (CPF + senha), esta função
-// desaparece — a validação passa a ser do lado do servidor.
-export function senhaEsperada(usuarioChave) {
-  return `${usuarioChave.toUpperCase()}@GSG`;
-}
-
 // Seam da integração com a base de usuários do CBMPE.
 //
 // O fluxo definido em 2026-08-24: o usuário acessa com CPF e senha, o sistema
@@ -122,19 +95,14 @@ export function resolverOmePorCpf() {
   return null;
 }
 
+// Fallback quando o backend está fora do ar/não configurado (ver
+// src/lib/cbmpe.js): nenhuma atribuição — falha FECHADA (ninguém ganha
+// perfil). Até 2026-09-25 caía em usuários de demonstração guardados em
+// localStorage (ATRIBUICOES_PADRAO, senha SIGLA + "@GSG"), removidos junto
+// com o login de demonstração: a única fonte de atribuição agora é o
+// backend (backend/data/atribuicoes.json).
 export function lerAtribuicoes() {
-  try {
-    const bruto = localStorage.getItem(CHAVE_ATRIBUICOES);
-    if (!bruto) return { ...ATRIBUICOES_PADRAO };
-    const salvo = JSON.parse(bruto);
-    return salvo && typeof salvo === "object" ? salvo : { ...ATRIBUICOES_PADRAO };
-  } catch {
-    return { ...ATRIBUICOES_PADRAO };
-  }
-}
-
-export function salvarAtribuicoes(atribuicoes) {
-  localStorage.setItem(CHAVE_ATRIBUICOES, JSON.stringify(atribuicoes));
+  return {};
 }
 
 // Unidade efetiva de um usuário: a fixa do perfil, ou a que veio da OME dele.
@@ -222,29 +190,13 @@ export function vinculoDoAssessor(usuarioChave, atribuicoes = lerAtribuicoes(), 
   return { valido: true, titular, unidade: unidadeAtual };
 }
 
-export function perfilDoUsuario(usuarioChave) {
-  if (!usuarioChave) return null;
-  const atribuicoes = lerAtribuicoes();
-  const atribuicao = atribuicoes[usuarioChave];
-  if (!atribuicao) return null;
-  const perfil = PERFIS[atribuicao.perfil];
-  if (!perfil) return null;
-  return {
-    ...perfil,
-    chave: atribuicao.perfil,
-    unidade: unidadeDoUsuario(usuarioChave, atribuicoes),
-  };
-}
-
 // getSubordinados vem de @/lib/cbmpe — passado por parâmetro pra não criar
 // dependência circular (cbmpe.js não depende deste módulo). `atribuicoesOverride`
 // (2026-09-23): quando quem chama já tem a árvore de atribuições vinda do
 // backend (ver useAcessoUsuario.js, que a busca via CbmpeProvider), passa
 // ela aqui em vez de deixar cair no fallback local — é o que faz uma
 // atribuição feita por outro admin, noutro navegador, valer para este
-// usuário. Sem override, cai em lerAtribuicoes() (localStorage), usado só
-// pelo login de demonstração (authClient.js caminho 2), que nunca teve
-// backend mesmo.
+// usuário. Sem override, cai em lerAtribuicoes() (vazio, falha fechada).
 //
 // `perfilAtivoChave` (2026-09-25, suporte a mais de um perfil): qual dos
 // perfis do usuário (ver todosPerfisDoUsuario) está ATIVO nesta sessão —

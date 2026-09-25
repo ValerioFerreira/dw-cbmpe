@@ -83,7 +83,8 @@ function rotuloColuna(nome) {
   return nome === "Efetivo" ? "Efetivo Atual/Previsto" : nome;
 }
 
-function celulaIndicador(nome, ind) {
+function celulaIndicador(nome, ind, emConstrucao = false) {
+  if (emConstrucao) return "Em construção";
   if (!ind) return "—";
   if (nome === "Efetivo") return celulaEfetivoIndicador(ind);
   if (nome === "Materiais" || nome === "Atividades Específicas") return "Em construção";
@@ -174,6 +175,40 @@ export default function Diretoria() {
 
   const temSetoresVinculados = filhosDiretos.length > 0 || divisoesProprias.length > 0;
 
+  // Unidade "em construção" (ver RAIZES_EM_CONSTRUCAO em
+  // src/data/organograma.js — hoje o Estado-Maior Geral e subordinadas):
+  // nenhum número, nem os agregados das subordinadas, só o aviso.
+  if (unidade.emConstrucao) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <span className="mt-1 h-12 w-1.5 shrink-0 rounded-full bg-primary" />
+            <Insignia sigla={unidade.sigla} tamanho={72} className="-mt-1" />
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">{unidade.nome}</h1>
+          </div>
+          <Link to="/organograma" className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+            <Network className="h-3.5 w-3.5" /> No organograma
+          </Link>
+        </div>
+        <div className="flex h-[40vh] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-card text-center">
+          <p className="font-display text-xl font-semibold text-foreground">Em construção</p>
+          {filhosDiretos.length > 0 && (
+            <p className="text-[12px] text-muted-foreground">
+              Subordinadas:{" "}
+              {filhosDiretos.map((f, i) => (
+                <React.Fragment key={f.id}>
+                  {i > 0 && ", "}
+                  <Link to={`/diretoria/${f.id}`} className="hover:text-primary hover:underline">{f.sigla}</Link>
+                </React.Fragment>
+              ))}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Cabeçalho do workspace */}
@@ -257,7 +292,7 @@ export default function Diretoria() {
                         </td>
                         {KPI_BASES.map((nome) => (
                           <td key={nome} className="whitespace-nowrap p-2.5 text-right tabular-nums text-foreground/80">
-                            {celulaIndicador(nome, porNome[nome])}
+                            {celulaIndicador(nome, porNome[nome], f.emConstrucao)}
                           </td>
                         ))}
                       </tr>

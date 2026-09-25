@@ -4514,3 +4514,45 @@ tinham sido commitados) foram commitados e enviados a `origin/main`.
   desatualizada) — rodar `etl/dw/carga_core.py` de novo (idempotente,
   agora já lendo `backend/data/organograma.json`) deixaria em dia; não
   rodei, por não ter sido pedido nesta rodada.
+
+### 2026-09-25 — Login só pelo SGU, nome/CPF no /adm, Estado-Maior "em construção" e levantamento de ingestão
+
+**Autenticação.** Removidos o administrador fixo (`adm`/`adm`, `VITE_ADMIN_*`
+no front e `ADMIN_*`/`/auth/admin-login` no backend) e os usuários de
+demonstração (`SIGLA@GSG`, `ATRIBUICOES_PADRAO`). Login só por CPF via SGU;
+administrador = matrícula com perfil `ADMINISTRADOR` em
+`backend/data/atribuicoes.json`. Sem backend, as atribuições caem em vazio
+(falha fechada), não mais em usuários de demonstração. Também saíram do
+arquivo de atribuições as três chaves de demonstração que sobravam (`DGO`,
+`DINTER2`, `4GB`).
+
+**/adm > Usuários.** Cada linha mostra nome e CPF (consulta ao vivo no SGP,
+rota admin `POST /pessoas/identificar`, nada persistido — exceção registrada
+em `DW_GOVERNANCA.md`), e o formulário mostra o nome da matrícula encontrada
+pelo CPF. O modal tinha dois defeitos: `max-h-[85vh]` virava ~106% da janela
+por causa do `zoom: 1.25` do `html` (em Chrome o `vh` é multiplicado pelo
+zoom — medido: 816px de altura numa janela de 768px), e o corpo crescia ao
+expandir um perfil. Agora o teto divide por `--app-zoom` e a altura do corpo
+fica travada no tamanho com que o modal abre.
+
+**Estado-Maior Geral.** Ele e 1º/2º/3º EMG (e qualquer unidade criada abaixo
+dele) viram "Em construção": sem chefe, sem indicador, sem painel, métricas
+zeradas. Achado no caminho: como não tinham entrada em `METRICAS`, caíam no
+`METRICAS_PADRAO` fictício e somavam 80 militares inventados no total do
+Subcomando Geral.
+
+**Ingestão.** Levantamento completo em [`DW_INGESTAO.md`](DW_INGESTAO.md):
+quatro caminhos de chegada de dado (JSON no bundle, `public/`, backend ao
+vivo, hardcoded), só o Mapa de Força e a resolução de OME leem o DW. Medido
+no banco: só o Pecúlio recarrega sozinho — SGP, escala, mapa de força,
+Frota, reserva e Finanças pararam em 2026-08-24 — e existe um único usuário,
+superusuário. Diretrizes D1–D10 e plano de conexão em 6 etapas no mesmo
+documento; perguntas em aberto na seção 6 dele.
+
+**Mesma sessão, depois das respostas do usuário** (API = backend Node;
+estado do app no banco; chefes via QOD/Lotação; tabelas do banco `postgres`
+vêm de planilhas do Igor): criado o schema `app` no banco `dw`
+(`etl/dw/ddl/06_app.sql`), backend passou a gravar organograma e perfis lá
+(semente importada e conferida idêntica), `carga_core.py` lê a hierarquia da
+tabela. Reconciliação do Efetivo DW × app e próximos passos em
+[`DW_INGESTAO.md`](DW_INGESTAO.md) seções 6–8.

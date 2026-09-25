@@ -70,6 +70,20 @@ regulares.
 
 ## Autenticação/autorização do app (dependência futura)
 
+> **Atualização de 2026-09-25 — o login é só pelo SGU.** O administrador fixo
+> (`adm`/`adm`, `VITE_ADMIN_*`/`ADMIN_*`) e os usuários de demonstração
+> (`SIGLA@GSG`) descritos abaixo foram **removidos** do front e do backend.
+> Administrador passa a ser exclusivamente o usuário SGU cuja matrícula tem
+> perfil `ADMINISTRADOR` em `backend/data/atribuicoes.json`. O histórico
+> abaixo fica como registro.
+>
+> **Exceção consciente à regra "CPF nunca volta ao cliente"** (mesma data,
+> pedido do usuário): a lista de usuários do modal de `/adm` mostra nome e
+> CPF de cada matrícula atribuída. Limites: só administrador chega à rota
+> (`POST /pessoas/identificar`, `requireAdmin`), a consulta é ao vivo no SGP
+> a cada abertura do modal, e nada é persistido — nem no backend, nem no
+> navegador além do estado da tela.
+
 `src/lib/authClient.js` continua um stub local (`localStorage`, sem
 backend real), mas deixou de aceitar "qualquer email/senha não vazios".
 **Atualização de 2026-08-12**: por pedido do usuário, passou a exigir um

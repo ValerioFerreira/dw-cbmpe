@@ -1,9 +1,9 @@
 // Cliente do endpoint de atribuições de perfil (ver
 // backend/routes/atribuicoesRoutes.js) — mesmo padrão de
-// organogramaClient.js. GET é público e nunca lança (fallback pra
-// ATRIBUICOES_PADRAO/localStorage — ver src/lib/accessControl.js — quando o
+// organogramaClient.js. GET é público e nunca lança (fallback vazio —
+// ver src/lib/accessControl.js > lerAtribuicoes — quando o
 // backend está fora do ar ou não configurado). PUT/DELETE exigem token de
-// admin (fixo OU usuário SGU com perfil ADMINISTRADOR — ver
+// admin (usuário SGU com perfil ADMINISTRADOR — ver
 // backend/middlewares/requireAdmin.js).
 const AUTH_API_URL = (import.meta.env.VITE_AUTH_API_URL || "").replace(/\/$/, "");
 
