@@ -16,4 +16,24 @@ const remover = asyncHandler(async (req, res) => {
   res.status(204).send();
 });
 
-export { listar, definir, remover };
+const adicionarPerfil = asyncHandler(async (req, res) => {
+  const atribuicao = await atribuicoesService.adicionarPerfil(req.params.usuario, req.body);
+  res.status(201).json({ usuario: req.params.usuario.trim().toUpperCase(), atribuicao });
+});
+
+const removerPerfil = asyncHandler(async (req, res) => {
+  const atribuicao = await atribuicoesService.removerPerfil(req.params.usuario, req.params.perfil);
+  res.status(200).json({ usuario: req.params.usuario.trim().toUpperCase(), atribuicao });
+});
+
+const criarPendente = asyncHandler(async (req, res) => {
+  const resultado = await atribuicoesService.criarPendente(req.body);
+  res.status(201).json(resultado);
+});
+
+const atualizarPendentes = asyncHandler(async (req, res) => {
+  const resultado = await atribuicoesService.atualizarPendentes();
+  res.status(200).json(resultado);
+});
+
+export { listar, definir, remover, criarPendente, atualizarPendentes, adicionarPerfil, removerPerfil };

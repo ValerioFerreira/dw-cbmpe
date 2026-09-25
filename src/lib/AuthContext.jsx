@@ -36,6 +36,16 @@ export const AuthProvider = ({ children }) => {
     auth.redirectToLogin(window.location.pathname + window.location.search);
   };
 
+  // Perfil ATIVO da sessão (2026-09-25, suporte a mais de um perfil por
+  // usuário) — qual dos perfis atribuídos ao usuário logado está em uso
+  // agora, escolhido pelo botão de usuário no Topbar (ver
+  // todosPerfisDoUsuario em @/lib/accessControl). Persiste no mesmo storage
+  // do usuário (ver authClient.js), então sobrevive a um reload.
+  const setPerfilAtivo = (chave) => {
+    auth.setPerfilAtivo(chave);
+    setUser((u) => (u ? { ...u, perfilAtivo: chave } : u));
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -43,7 +53,8 @@ export const AuthProvider = ({ children }) => {
       isLoadingAuth,
       logout,
       navigateToLogin,
-      checkUserAuth
+      checkUserAuth,
+      setPerfilAtivo
     }}>
       {children}
     </AuthContext.Provider>

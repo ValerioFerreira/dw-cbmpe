@@ -37,23 +37,24 @@ function cabecalhos(token) {
   return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 }
 
-export async function criarUnidade({ sigla, nivel, parentId }, token) {
+export async function criarUnidade({ sigla, nivel, parentId, funcaoCoronel }, token) {
   precisaBackend();
   const response = await fetch(`${AUTH_API_URL}/organograma`, {
     method: "POST",
     headers: cabecalhos(token),
-    body: JSON.stringify({ sigla, nivel, parentId }),
+    body: JSON.stringify({ sigla, nivel, parentId, funcaoCoronel }),
   });
   const corpo = await tratarResposta(response);
   return corpo.unidade;
 }
 
-export async function atualizarUnidade(id, { sigla, parentId, ordem }, token) {
+export async function atualizarUnidade(id, { sigla, parentId, ordem, funcaoCoronel }, token) {
   precisaBackend();
   const payload = {};
   if (sigla !== undefined) payload.sigla = sigla;
   if (parentId !== undefined) payload.parentId = parentId;
   if (ordem !== undefined) payload.ordem = ordem;
+  if (funcaoCoronel !== undefined) payload.funcaoCoronel = funcaoCoronel;
   const response = await fetch(`${AUTH_API_URL}/organograma/${encodeURIComponent(id)}`, {
     method: "PUT",
     headers: cabecalhos(token),

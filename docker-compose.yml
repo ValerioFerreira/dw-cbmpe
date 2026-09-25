@@ -14,9 +14,10 @@ services:
     depends_on:
       - backend
 
-  # Backend minimo: so faz proxy de autenticacao contra o SGU (ver
-  # backend/app.js e DW_PLANEJAMENTO.md, entrada 2026-09-23). O front
-  # continua estatico, servido pelo nginx do servico "app" acima.
+  # Backend: autenticacao contra o SGU, mais o estado editavel pelo admin
+  # (organograma, atribuicoes de perfil -- backend/data/*.json, ver
+  # backend/app.js e DW_PLANEJAMENTO.md). O front continua estatico,
+  # servido pelo nginx do servico "app" acima.
   backend:
     build:
       context: ./backend
@@ -26,6 +27,18 @@ services:
     ports:
       - "4000:4000"
     restart: unless-stopped
+    volumes:
+      # SEM ISTO, qualquer edicao em /adm (organograma, atribuicoes) some
+      # no proximo `docker compose up --build`/redeploy -- backend/data/
+      # vira parte da imagem (COPY no Dockerfile), que e sempre substituida
+      # do zero. O volume nomeado sobrevive a recriacao do container (some
+      # so com `docker compose down -v`, explicito). Achado testando o
+      # build real em 2026-09-25 -- ver nota equivalente pro CapRover em
+      # backend/.env.example.
+      - backend-data:/app/data
+
+volumes:
+  backend-data:
 
 networks:
   default:

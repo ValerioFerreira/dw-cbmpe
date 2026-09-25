@@ -147,6 +147,34 @@ export function unidadeDoUsuario(usuarioChave, atribuicoes = lerAtribuicoes()) {
   return atribuicao.unidade || resolverOmePorCpf(atribuicao.cpf) || null;
 }
 
+// Todos os perfis de um usuário (2026-09-25, suporte a mais de um perfil):
+// o principal (perfil/unidade/titular/unidadeConcedida — nunca muda de
+// formato, ver backend/services/atribuicoesService.js) seguido dos
+// adicionais (`outrosPerfis`). Cada item tem o mesmo formato
+// {perfil, unidade?, titular?, unidadeConcedida?} — é a lista que
+// Topbar.jsx usa pro seletor de perfil ativo, e que UsuariosEditor.jsx usa
+// pra listar/gerenciar os perfis extras de cada usuário.
+export function todosPerfisDoUsuario(usuarioChave, atribuicoes = lerAtribuicoes()) {
+  const atribuicao = atribuicoes[usuarioChave];
+  if (!atribuicao) return [];
+  const principal = {
+    perfil: atribuicao.perfil,
+    unidade: atribuicao.unidade,
+    titular: atribuicao.titular,
+    unidadeConcedida: atribuicao.unidadeConcedida,
+  };
+  const outros = (atribuicao.outrosPerfis || []).map((p) => ({ ...p }));
+  return [principal, ...outros];
+}
+
+function unidadeDoPerfilAtribuido(atribuicaoObj) {
+  if (!atribuicaoObj) return null;
+  const perfil = PERFIS[atribuicaoObj.perfil];
+  if (!perfil) return null;
+  if (perfil.unidade) return perfil.unidade;
+  return atribuicaoObj.unidade || resolverOmePorCpf() || null;
+}
+
 // O vínculo do assessor, e por que ele pode ter caducado.
 //
 // A regra (definida em 2026-08-24): o assessor é sempre atribuído a um
@@ -156,8 +184,13 @@ export function unidadeDoUsuario(usuarioChave, atribuicoes = lerAtribuicoes()) {
 // revogar. Por isso a OME concedida fica gravada na atribuição do assessor:
 // é ela que permite detectar a transferência comparando com a OME atual do
 // titular.
-export function vinculoDoAssessor(usuarioChave, atribuicoes = lerAtribuicoes()) {
-  const atribuicao = atribuicoes[usuarioChave];
+//
+// `atribuicaoObj` (2026-09-25, suporte a mais de um perfil): quando o
+// perfil ASSESSOR é um perfil ADICIONAL (não o principal), quem chama passa
+// o objeto específico (ver todosPerfisDoUsuario) em vez de deixar cair no
+// perfil principal de `atribuicoes[usuarioChave]`.
+export function vinculoDoAssessor(usuarioChave, atribuicoes = lerAtribuicoes(), atribuicaoObj) {
+  const atribuicao = atribuicaoObj || atribuicoes[usuarioChave];
   if (!atribuicao || atribuicao.perfil !== "ASSESSOR") return null;
 
   const titular = atribuicao.titular;
@@ -212,13 +245,19 @@ export function perfilDoUsuario(usuarioChave) {
 // usuário. Sem override, cai em lerAtribuicoes() (localStorage), usado só
 // pelo login de demonstração (authClient.js caminho 2), que nunca teve
 // backend mesmo.
-export function calcularAcesso(usuarioChave, unidades, getSubordinados, atribuicoesOverride) {
+//
+// `perfilAtivoChave` (2026-09-25, suporte a mais de um perfil): qual dos
+// perfis do usuário (ver todosPerfisDoUsuario) está ATIVO nesta sessão —
+// escolhido pelo usuário no seletor do Topbar (ou o primeiro/principal,
+// por padrão, se ele nunca escolheu ou só tem um).
+export function calcularAcesso(usuarioChave, unidades, getSubordinados, atribuicoesOverride, perfilAtivoChave) {
   const vazio = { siglas: new Set(), indicadores: new Set(), total: false, admin: false };
   if (!usuarioChave) return vazio;
 
   const atribuicoes = atribuicoesOverride || lerAtribuicoes();
-  const atribuicao = atribuicoes[usuarioChave];
-  if (!atribuicao) return vazio;
+  const lista = todosPerfisDoUsuario(usuarioChave, atribuicoes);
+  if (lista.length === 0) return vazio;
+  const atribuicao = lista.find((p) => p.perfil === perfilAtivoChave) || lista[0];
   const perfil = PERFIS[atribuicao.perfil];
   if (!perfil) return vazio;
 
@@ -226,10 +265,10 @@ export function calcularAcesso(usuarioChave, unidades, getSubordinados, atribuic
     return { siglas: null, indicadores: null, total: true, admin: !!perfil.admin };
   }
 
-  let unidade = unidadeDoUsuario(usuarioChave, atribuicoes);
+  let unidade = unidadeDoPerfilAtribuido(atribuicao);
 
   if (perfil.exigeTitular) {
-    const vinculo = vinculoDoAssessor(usuarioChave, atribuicoes);
+    const vinculo = vinculoDoAssessor(usuarioChave, atribuicoes, atribuicao);
     if (!vinculo || !vinculo.valido) return vazio;
     unidade = vinculo.unidade;
   }

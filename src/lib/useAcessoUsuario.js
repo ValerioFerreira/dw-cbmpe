@@ -17,8 +17,12 @@ export function useAcessoUsuario() {
   const { unidades, atribuicoes } = useCbmpe();
 
   const restrito = user?.role === "nivel";
+  // `user.perfilAtivo` (2026-09-25, suporte a mais de um perfil por
+  // usuário) — qual perfil está em uso nesta sessão, escolhido no Topbar
+  // (ver AuthContext.jsx > setPerfilAtivo); sem escolha, calcularAcesso cai
+  // no perfil principal sozinho.
   const acesso = useMemo(
-    () => (restrito ? calcularAcesso(user.nivelAcesso, unidades, getSubordinados, atribuicoes) : null),
+    () => (restrito ? calcularAcesso(user.nivelAcesso, unidades, getSubordinados, atribuicoes, user.perfilAtivo) : null),
     [restrito, user, unidades, atribuicoes]
   );
 

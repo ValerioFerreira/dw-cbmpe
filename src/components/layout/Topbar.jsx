@@ -1,19 +1,33 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, ChevronRight, Home, FileDown, Menu, Network, LogOut, UserRound, ArrowUpRight, Table2 } from "lucide-react";
+import { Search, ChevronRight, Home, FileDown, Menu, Network, LogOut, UserRound, ArrowUpRight, Table2, ChevronDown, Check } from "lucide-react";
 
 const METABASE_URL = "https://estatistica.bombeiros.pe.gov.br/";
 import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "@/lib/AuthContext";
+import { useCbmpe } from "@/lib/cbmpe-context";
+import { PERFIS, todosPerfisDoUsuario } from "@/lib/accessControl";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 
 export default function Topbar({ caminho = [], onOpenSearch, onOpenMobileNav, titulo }) {
-  const { user, logout } = useAuth();
+  const { user, logout, setPerfilAtivo } = useAuth();
+  const { atribuicoes } = useCbmpe();
   const navigate = useNavigate();
 
   const handleSair = () => {
     logout(false);
     navigate("/login");
   };
+
+  // Mais de um perfil por usuário (2026-09-25) — lista de perfis atribuídos
+  // a este usuário (principal + adicionais, ver todosPerfisDoUsuario); só
+  // vira um seletor quando há mais de um, senão o botão continua só
+  // mostrando o nome, sem dropdown.
+  const perfisDoUsuario = React.useMemo(
+    () => (user?.role === "nivel" ? todosPerfisDoUsuario(user.nivelAcesso, atribuicoes) : []),
+    [user, atribuicoes]
+  );
+  const perfilAtivoChave = user?.perfilAtivo || perfisDoUsuario[0]?.perfil;
 
   const nomeExibido = user?.full_name || user?.id;
 
@@ -55,14 +69,13 @@ export default function Topbar({ caminho = [], onOpenSearch, onOpenMobileNav, ti
           )}
 
           {nomeExibido && (
-            <div className="hidden shrink-0 items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 xl:flex">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <UserRound className="h-3.5 w-3.5" />
-              </span>
-              <span className="whitespace-nowrap text-[12px] text-muted-foreground">
-                Bem-vindo, <span className="font-semibold text-foreground">{nomeExibido}</span>
-              </span>
-            </div>
+            <SeletorPerfil
+              nomeExibido={nomeExibido}
+              perfis={perfisDoUsuario}
+              perfilAtivoChave={perfilAtivoChave}
+              onEscolher={setPerfilAtivo}
+              className="hidden items-center gap-2 xl:flex"
+            />
           )}
         </div>
 
@@ -98,7 +111,7 @@ export default function Topbar({ caminho = [], onOpenSearch, onOpenMobileNav, ti
             onClick={() => window.print()}
             aria-label="Gerar PDF desta página"
             title="Gerar PDF desta página"
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-primary text-[12px] font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 xl:w-auto xl:px-3"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border bg-card text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground xl:w-auto xl:px-3"
           >
             <FileDown className="h-3.5 w-3.5 shrink-0" />
             <span className="hidden whitespace-nowrap xl:inline">
@@ -158,19 +171,21 @@ export default function Topbar({ caminho = [], onOpenSearch, onOpenMobileNav, ti
             onClick={() => window.print()}
             aria-label="Gerar PDF desta página"
             title="Gerar PDF desta página"
-            className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-primary px-2 text-[12px] font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+            className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-2 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <FileDown className="h-3.5 w-3.5 shrink-0" />
             <span>PDF</span>
           </button>
 
           {nomeExibido && (
-            <span className="flex min-w-0 flex-1 items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <UserRound className="h-3.5 w-3.5" />
-              </span>
-              <span className="truncate text-[12px] font-semibold text-foreground">{nomeExibido}</span>
-            </span>
+            <SeletorPerfil
+              nomeExibido={nomeExibido}
+              perfis={perfisDoUsuario}
+              perfilAtivoChave={perfilAtivoChave}
+              onEscolher={setPerfilAtivo}
+              className="flex min-w-0 flex-1 items-center gap-1.5"
+              compacto
+            />
           )}
           <button
             onClick={handleSair}
@@ -193,5 +208,70 @@ export default function Topbar({ caminho = [], onOpenSearch, onOpenMobileNav, ti
         </button>
       </div>
     </div>
+  );
+}
+
+// Botão de usuário do Topbar — vira um seletor de perfil ativo (2026-09-25,
+// suporte a mais de um perfil por usuário) quando o usuário tem mais de um
+// perfil atribuído: clicar abre um dropdown listando todos, o ativo
+// marcado com um check; escolher outro chama `onEscolher` (ver
+// AuthContext.jsx > setPerfilAtivo), que recalcula o acesso pra sessão
+// inteira. Com só 1 perfil (o caso comum), continua um badge estático sem
+// dropdown — não há nada pra escolher.
+function SeletorPerfil({ nomeExibido, perfis, perfilAtivoChave, onEscolher, className = "", compacto = false }) {
+  const temEscolha = perfis.length > 1;
+  const conteudo = (
+    <>
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <UserRound className="h-3.5 w-3.5" />
+      </span>
+      {compacto ? (
+        <span className="truncate text-[12px] font-semibold text-foreground">{nomeExibido}</span>
+      ) : (
+        <span className="whitespace-nowrap text-[12px] text-muted-foreground">
+          Bem-vindo, <span className="font-semibold text-foreground">{nomeExibido}</span>
+        </span>
+      )}
+      {temEscolha && <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />}
+    </>
+  );
+
+  if (!temEscolha) {
+    return (
+      <div className={`shrink-0 rounded-lg border border-border bg-card px-2 py-1.5 xl:px-3 ${className}`}>
+        {conteudo}
+      </div>
+    );
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className={`shrink-0 rounded-lg border border-border bg-card px-2 py-1.5 transition-colors hover:bg-muted xl:px-3 ${className}`}
+        >
+          {conteudo}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel className="text-[11px] font-normal text-muted-foreground">Perfil em uso</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {perfis.map((p) => {
+          const info = PERFIS[p.perfil];
+          const ativo = p.perfil === perfilAtivoChave;
+          return (
+            <DropdownMenuItem
+              key={p.perfil}
+              onSelect={() => onEscolher(p.perfil)}
+              className="flex items-center justify-between gap-2 text-[13px]"
+            >
+              <span>{info?.nome || p.perfil}</span>
+              {ativo && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

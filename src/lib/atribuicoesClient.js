@@ -59,3 +59,54 @@ export async function removerAtribuicao(usuario, token) {
     throw new Error(corpo?.message || `Falha ao excluir (HTTP ${response.status})`);
   }
 }
+
+// Mais de um perfil por usuário (2026-09-25, pedido do usuário) — distinto
+// de `definirAtribuicao` (que sempre SUBSTITUI o perfil principal): estas
+// duas ADICIONAM/REMOVEM um perfil extra, mantendo o principal intacto. A
+// confirmação "já tem outro perfil, atribuir mesmo assim?" é da UI (ver
+// UsuariosEditor.jsx) — aqui só chama o backend.
+export async function adicionarPerfilAdicional(usuario, dados, token) {
+  precisaBackend();
+  const response = await fetch(`${AUTH_API_URL}/atribuicoes/${encodeURIComponent(usuario)}/perfis`, {
+    method: "POST",
+    headers: cabecalhos(token),
+    body: JSON.stringify(dados),
+  });
+  const corpo = await tratarResposta(response);
+  return corpo.atribuicao;
+}
+
+export async function removerPerfilAdicional(usuario, perfil, token) {
+  precisaBackend();
+  const response = await fetch(`${AUTH_API_URL}/atribuicoes/${encodeURIComponent(usuario)}/perfis/${encodeURIComponent(perfil)}`, {
+    method: "DELETE",
+    headers: cabecalhos(token),
+  });
+  const corpo = await tratarResposta(response);
+  return corpo.atribuicao;
+}
+
+// CPF sem matrícula resolvida no SGP — cria um registro placeholder,
+// guardando o CPF só neste registro (decisão do usuário, 2026-09-25) pra
+// permitir o retry em lote depois (ver atualizarMatriculasPendentes). Nunca
+// devolvido de volta em GET /atribuicoes (ver atribuicoesService.js).
+export async function criarUsuarioPendente({ cpf, perfil }, token) {
+  precisaBackend();
+  const response = await fetch(`${AUTH_API_URL}/atribuicoes/pendente`, {
+    method: "POST",
+    headers: cabecalhos(token),
+    body: JSON.stringify({ cpf, perfil }),
+  });
+  return tratarResposta(response);
+}
+
+// Retry em lote de todo usuário com a flag "matrícula não encontrada" —
+// botão "Atualizar" em Administracao.jsx.
+export async function atualizarMatriculasPendentes(token) {
+  precisaBackend();
+  const response = await fetch(`${AUTH_API_URL}/atribuicoes/atualizar-pendentes`, {
+    method: "POST",
+    headers: cabecalhos(token),
+  });
+  return tratarResposta(response);
+}

@@ -32,52 +32,59 @@ function slugify(s) {
 
 // ----- Cargo/oficial por sigla (fictício, porém coerente) -----
 const OFICIAIS = {
-  'COMANDO GERAL': { oficial: 'Cel BM Araripe', cargo: 'Comandante Geral' },
-  'SUBCOMANDO GERAL': { oficial: 'Cel BM Curvêlo', cargo: 'Subcomandante Geral' },
-  'GCG': { oficial: 'Maj BM Rafael', cargo: 'Chefe' },
-  'AECI': { oficial: 'Cel BM Jailton', cargo: 'Assessor Especial' },
-  'CPO': { oficial: 'Maj BM França', cargo: 'Chefe' },
-  'CPP': { oficial: 'Maj BM França', cargo: 'Chefe' },
-  'CCS': { oficial: 'Maj BM Getúlio', cargo: 'Chefe' },
-  'CI': { oficial: 'TC BM Samuel', cargo: 'Chefe' },
-  'GSG': { oficial: 'Maj BM Allisson Carneiro', cargo: 'Chefe' },
-  'DIESP': { oficial: 'Cel BM Lucena', cargo: 'Diretor' },
-  'AJG': { oficial: 'Maj BM Calado', cargo: 'Chefe' },
-  'DGO': { oficial: 'Cel BM Leonardo', cargo: 'Diretor' },
-  'DIM': { oficial: 'TC BM Brainer', cargo: 'Diretor' },
-  'DINTER I': { oficial: 'TC BM Ivânio', cargo: 'Diretor' },
-  'DINTER II': { oficial: 'TC BM Clérisson', cargo: 'Diretor' },
-  'GBAPH': { oficial: 'TC BM Cleiton', cargo: 'Comandante' },
-  'GBI': { oficial: 'TC BM Damasceno', cargo: 'Comandante' },
-  'GBS': { oficial: 'TC BM Barbalho', cargo: 'Comandante' },
-  'GBMar': { oficial: 'Maj BM Otávio', cargo: 'Comandante' },
-  'CAT/RMR': { oficial: 'TC BM Flávio Cysneiros', cargo: 'Chefe' },
-  '1º GB': { oficial: 'TC BM Carneiro', cargo: 'Comandante' },
-  '2º GB': { oficial: 'TC BM Dantas', cargo: 'Comandante' },
-  '6º GB': { oficial: 'TC BM Vieira de Melo', cargo: 'Comandante' },
-  '7º GB': { oficial: 'TC BM Melo Júnior', cargo: 'Comandante' },
-  'CAT/ZM': { oficial: 'Maj BM Cibely', cargo: 'Chefe' },
-  'CAT/AG': { oficial: 'Maj BM Cledjones', cargo: 'Chefe' },
-  '3º GB': { oficial: 'Maj BM Isaac', cargo: 'Comandante' },
-  '4º GB': { oficial: 'TC BM Alisson', cargo: 'Comandante' },
-  '5º GB': { oficial: 'Maj BM Castro', cargo: 'Comandante' },
-  '9º GB': { oficial: 'Maj BM Lamartine', cargo: 'Comandante' },
-  'CAT/SE': { oficial: 'TC BM Oliveira', cargo: 'Chefe' },
-  'DGA': { oficial: 'Cel BM XXXX', cargo: 'Diretor' },
-  'DPLAG': { oficial: 'TC BM Barros Leite', cargo: 'Diretor' },
-  'DGP': { oficial: 'TC BM Wagner', cargo: 'Diretor' },
-  'DVP': { oficial: 'TC BM Pablo', cargo: 'Diretor' },
-  'DJD': { oficial: 'TC BM Berenguer', cargo: 'Diretor' },
-  'DF': { oficial: 'TC BM Anderson Carvalho', cargo: 'Diretor' },
-  'DAS': { oficial: 'TC BM Bartolomeu', cargo: 'Diretor' },
-  'DTIC': { oficial: 'TC BM Dallas', cargo: 'Diretor' },
-  'DLOG': { oficial: 'Cel BM Vitoriano', cargo: 'Diretor' },
-  'CMAN': { oficial: 'TC BM Helder', cargo: 'Chefe' },
-  'CINT': { oficial: 'Maj BM Zovka', cargo: 'Chefe' },
-  'CEAO': { oficial: 'TC BM Josinaldo', cargo: 'Chefe' },
-  'DEIP': { oficial: 'Cel BM Aprígio', cargo: 'Diretor' },
-  'ABMG': { oficial: 'Maj BM João Paulo', cargo: 'Comandante' },
-  'CEFD': { oficial: 'Maj BM Silva', cargo: 'Chefe' },
+  'COMANDO GERAL': { oficial: 'Cel Araripe', cargo: 'Comandante Geral' },
+  'SUBCOMANDO GERAL': { oficial: 'Cel Curvêlo', cargo: 'Subcomandante Geral' },
+  // Estado-Maior Geral e suas 3 subordinadas diretas (1º/2º/3º EMG) — mesmo
+  // placeholder "Cel XXXX" já usado pra DGA (chefe ainda não definido,
+  // pedido de 2026-09-25).
+  'ESTADO-MAIOR GERAL': { oficial: 'Cel XXXX', cargo: 'Chefe' },
+  '1º EMG': { oficial: 'Cel XXXX', cargo: 'Chefe' },
+  '2º EMG': { oficial: 'Cel XXXX', cargo: 'Chefe' },
+  '3º EMG': { oficial: 'Cel XXXX', cargo: 'Chefe' },
+  'GCG': { oficial: 'Maj Rafael', cargo: 'Chefe' },
+  'AECI': { oficial: 'Cel Jailton', cargo: 'Assessor Especial' },
+  'CPO': { oficial: 'Maj França', cargo: 'Chefe' },
+  'CPP': { oficial: 'Maj França', cargo: 'Chefe' },
+  'CCS': { oficial: 'Maj Getúlio', cargo: 'Chefe' },
+  'CI': { oficial: 'TC Samuel', cargo: 'Chefe' },
+  'GSG': { oficial: 'Maj Allisson Carneiro', cargo: 'Chefe' },
+  'DIESP': { oficial: 'Cel Lucena', cargo: 'Diretor' },
+  'AJG': { oficial: 'Maj Calado', cargo: 'Chefe' },
+  'DGO': { oficial: 'Cel Leonardo', cargo: 'Diretor' },
+  'DIM': { oficial: 'TC Brainer', cargo: 'Diretor' },
+  'DINTER I': { oficial: 'TC Ivânio', cargo: 'Diretor' },
+  'DINTER II': { oficial: 'TC Clérisson', cargo: 'Diretor' },
+  'GBAPH': { oficial: 'TC Cleiton', cargo: 'Comandante' },
+  'GBI': { oficial: 'TC Damasceno', cargo: 'Comandante' },
+  'GBS': { oficial: 'TC Barbalho', cargo: 'Comandante' },
+  'GBMar': { oficial: 'Maj Otávio', cargo: 'Comandante' },
+  'CAT/RMR': { oficial: 'TC Flávio Cysneiros', cargo: 'Chefe' },
+  '1º GB': { oficial: 'TC Carneiro', cargo: 'Comandante' },
+  '2º GB': { oficial: 'TC Dantas', cargo: 'Comandante' },
+  '6º GB': { oficial: 'TC Vieira de Melo', cargo: 'Comandante' },
+  '7º GB': { oficial: 'TC Melo Júnior', cargo: 'Comandante' },
+  'CAT/ZM': { oficial: 'Maj Cibely', cargo: 'Chefe' },
+  'CAT/AG': { oficial: 'Maj Cledjones', cargo: 'Chefe' },
+  '3º GB': { oficial: 'Maj Isaac', cargo: 'Comandante' },
+  '4º GB': { oficial: 'TC Alisson', cargo: 'Comandante' },
+  '5º GB': { oficial: 'Maj Castro', cargo: 'Comandante' },
+  '9º GB': { oficial: 'Maj Lamartine', cargo: 'Comandante' },
+  'CAT/SE': { oficial: 'TC Oliveira', cargo: 'Chefe' },
+  'DGA': { oficial: 'Cel XXXX', cargo: 'Diretor' },
+  'DPLAG': { oficial: 'TC Barros Leite', cargo: 'Diretor' },
+  'DGP': { oficial: 'TC Wagner', cargo: 'Diretor' },
+  'DVP': { oficial: 'TC Pablo', cargo: 'Diretor' },
+  'DJD': { oficial: 'TC Berenguer', cargo: 'Diretor' },
+  'DF': { oficial: 'TC Anderson Carvalho', cargo: 'Diretor' },
+  'DAS': { oficial: 'TC Bartolomeu', cargo: 'Diretor' },
+  'DTIC': { oficial: 'TC Dallas', cargo: 'Diretor' },
+  'DLOG': { oficial: 'Cel Vitoriano', cargo: 'Diretor' },
+  'CMAN': { oficial: 'TC Helder', cargo: 'Chefe' },
+  'CINT': { oficial: 'Maj Zovka', cargo: 'Chefe' },
+  'CEAO': { oficial: 'TC Josinaldo', cargo: 'Chefe' },
+  'DEIP': { oficial: 'Cel Aprígio', cargo: 'Diretor' },
+  'ABMG': { oficial: 'Maj João Paulo', cargo: 'Comandante' },
+  'CEFD': { oficial: 'Maj Silva', cargo: 'Chefe' },
 };
 
 // ----- Hierarquia (estrutura editável em /adm > Organograma) -----
@@ -92,17 +99,27 @@ const OFICIAIS = {
 // (VITE_AUTH_API_URL vazio), pra o app nunca ficar sem organograma nenhum.
 //
 // Cada nó carrega o `nivel` hierárquico (1 Comando Geral, 2 Subcomando
-// Geral, 3 Estado Maior — reservado, ainda sem unidade —, 4 Diretoria
-// Geral, 5 Diretoria Especialista, 6 OME Subordinada) explicitamente,
-// porque a partir da migração de 2026-09-23 o nível deixou de ser "1 +
-// profundidade na árvore a partir do Comando Geral": unidades de nível 6
-// como GCG/CI/CPO/AECI/CCS/GSG/AJG/CPP são filhas DIRETAS do Comando/
-// Subcomando Geral (profundidade 2), mas continuam nível 6 (gabinetes/
-// comissões, não diretorias de verdade — confirmado pelo usuário) e
-// aparecem no organograma AO LADO do balão do pai, não abaixo dele (ver
-// Organograma.jsx). `id` é estável (não recalculado a partir da sigla) —
-// sobrevive a uma renomeação, pra não quebrar referências existentes
-// (localStorage de "recentes", unidade_id de indicador/dashboard/alerta).
+// Geral, 3 Estado Maior, 4 Diretoria Executiva, 5 Diretoria Setorial, 6 OME
+// Subordinada) explicitamente, porque a partir da migração de 2026-09-23 o
+// nível deixou de ser "1 + profundidade na árvore a partir do Comando
+// Geral": unidades de nível 6 como GCG/CI/CPO/AECI/CCS/GSG/AJG/CPP são
+// filhas DIRETAS do Comando/Subcomando Geral (profundidade 2), mas
+// continuam nível 6 (gabinetes/comissões, não diretorias de verdade —
+// confirmado pelo usuário) e aparecem no organograma AO LADO do balão do
+// pai, não abaixo dele (ver Organograma.jsx). `id` é estável (não
+// recalculado a partir da sigla) — sobrevive a uma renomeação, pra não
+// quebrar referências existentes (localStorage de "recentes", unidade_id
+// de indicador/dashboard/alerta).
+//
+// 2026-09-25: o Estado Maior (nível 3) deixou de ser "reservado, sem
+// unidade" — agora é uma unidade real, filha do Subcomando Geral, renomeada
+// para "Estado-Maior Geral", exibida no mesmo formato visual de uma
+// Diretoria Executiva (balão dourado + body cinza com as 3 subordinadas —
+// ver Organograma.jsx), posicionada à esquerda do balão do Subcomando
+// Geral, na mesma altura. Nível 4 (Diretoria Executiva) CONTINUA filho
+// direto do Subcomando Geral (não do Estado-Maior — testado e revertido no
+// mesmo dia após confusão inicial). Nível 5 foi renomeado, de "Diretoria
+// Especialista" para "Diretoria Setorial".
 //
 // `ordem` (2026-09-23) é a posição de exibição entre irmãos (mesmo
 // parentId) — sem ela, Organograma.jsx caía pra ordem alfabética da sigla,
@@ -123,6 +140,10 @@ const NODES_PADRAO = [
   { id: 'gsg', sigla: 'GSG', nivel: 6, parentId: 'subcomando-geral', ordem: 80 },
   { id: 'ajg', sigla: 'AJG', nivel: 6, parentId: 'subcomando-geral', ordem: 90 },
   { id: 'cpp', sigla: 'CPP', nivel: 6, parentId: 'subcomando-geral', ordem: 100 },
+  { id: 'estado-maior', sigla: 'ESTADO-MAIOR GERAL', nivel: 3, parentId: 'subcomando-geral', fixo: true, ordem: 105 },
+  { id: '1-emg', sigla: '1º EMG', nivel: 6, parentId: 'estado-maior', ordem: 10 },
+  { id: '2-emg', sigla: '2º EMG', nivel: 6, parentId: 'estado-maior', ordem: 20 },
+  { id: '3-emg', sigla: '3º EMG', nivel: 6, parentId: 'estado-maior', ordem: 30 },
   { id: 'dgo', sigla: 'DGO', nivel: 4, parentId: 'subcomando-geral', ordem: 110 },
   { id: 'dga', sigla: 'DGA', nivel: 4, parentId: 'subcomando-geral', ordem: 120 },
   { id: 'dim', sigla: 'DIM', nivel: 5, parentId: 'dgo', ordem: 130 },
@@ -285,7 +306,8 @@ Object.keys(METRICAS).forEach((sigla) => {
 // nós próprios da árvore — filtrados na leitura abaixo) -----
 const SUBSETORES = {
   'COMANDO GERAL': ['SUBCOMANDO GERAL', 'GCG', 'CI', 'CPO', 'AECI', 'CCS'],
-  'SUBCOMANDO GERAL': ['DGO', 'DGA', 'GSG', 'AJG', 'CPP'],
+  'SUBCOMANDO GERAL': ['ESTADO-MAIOR GERAL', 'DGO', 'DGA', 'GSG', 'AJG', 'CPP'],
+  'ESTADO-MAIOR GERAL': ['1º EMG', '2º EMG', '3º EMG'],
   'GCG': ['↳ Chefia', '↳ Secretaria e Apoio Administrativo - SAAdm', '↳ Assessoria Jurídica - AJ', '↳ Assessoria de Relações Institucionais'],
   'AECI': ['↳ Chefia', '↳ Secretaria e Apoio Administrativo - SAAdm', '↳ Divisão de Planejamento de Controle Interno - DPCI'],
   'CPO': ['↳ Presidência', '↳ Secretaria da Comissão de Promoção de Oficiais - SCPO', '↳ Membros'],
@@ -560,6 +582,11 @@ function construirUnidades(nodes, totaisPorSigla) {
       nivel: no.nivel,
       ordem: no.ordem ?? 0,
       fixo: !!no.fixo,
+      // "Função de Coronel" (2026-09-25): unidade marcada assim pelo admin
+      // sempre renderiza no card dourado com fade de diretoria (CardDiretoria
+      // em Organograma.jsx), mesmo quando seu nível normalmente usaria o
+      // card branco de OME "folha" — independe de onde ela está na árvore.
+      funcaoCoronel: !!no.funcaoCoronel,
       descricao: `${cargo}: ${oficial}.${divisoes.length ? ` Divisões internas: ${divisoes.join('; ')}.` : ''}`,
       responsavel: oficial,
       cargo,

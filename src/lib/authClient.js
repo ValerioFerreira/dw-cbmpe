@@ -213,6 +213,15 @@ export const auth = {
     // Sessão é rastreada pelo usuário salvo em localStorage, não por um token.
   },
 
+  // Perfil ativo da sessão (2026-09-25, suporte a mais de um perfil por
+  // usuário) — ver AuthContext.jsx > setPerfilAtivo. Falha em silêncio se
+  // não houver usuário logado (nada a persistir).
+  setPerfilAtivo(chave) {
+    const atual = readUser();
+    if (!atual) return;
+    writeUser({ ...atual, perfilAtivo: chave });
+  },
+
   logout(redirectUrl) {
     localStorage.removeItem(STORAGE_KEY);
     if (redirectUrl) window.location.href = redirectUrl;

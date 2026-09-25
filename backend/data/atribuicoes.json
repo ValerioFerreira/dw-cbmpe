@@ -1,13 +1,37 @@
 {
   "atribuicoes": {
-    "AGGD": { "perfil": "ADMINISTRADOR" },
-    "CMTGERAL": { "perfil": "COMANDANTE_GERAL" },
-    "SUBCMT": { "perfil": "SUBCOMANDANTE_GERAL" },
-    "DGP": { "perfil": "DGP" },
-    "DLOG": { "perfil": "DLOG" },
-    "DF": { "perfil": "DF" },
-    "DGO": { "perfil": "TITULAR", "unidade": "DGO" },
-    "DINTER2": { "perfil": "TITULAR", "unidade": "DINTER II" },
-    "4GB": { "perfil": "TITULAR", "unidade": "4º GB" }
+    "7180462": {
+      "perfil": "ADMINISTRADOR"
+    },
+    "AGGD": {
+      "perfil": "ADMINISTRADOR"
+    },
+    "CMTGERAL": {
+      "perfil": "COMANDANTE_GERAL"
+    },
+    "SUBCMT": {
+      "perfil": "SUBCOMANDANTE_GERAL"
+    },
+    "DGP": {
+      "perfil": "DGP"
+    },
+    "DLOG": {
+      "perfil": "DLOG"
+    },
+    "DF": {
+      "perfil": "DF"
+    },
+    "DGO": {
+      "perfil": "TITULAR",
+      "unidade": "DGO"
+    },
+    "DINTER2": {
+      "perfil": "TITULAR",
+      "unidade": "DINTER II"
+    },
+    "4GB": {
+      "perfil": "TITULAR",
+      "unidade": "4º GB"
+    }
   }
 }
