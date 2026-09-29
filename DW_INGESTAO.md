@@ -462,3 +462,74 @@ core/marts), divisões internas, lotação por função, as tabelas nominais
 (`efetivo_lista.json`, `viaturas_*`) e os painéis de Efetivo, Viaturas, DF,
 Vacinação e Ocorrências. É a próxima leva (seção 9, etapa 5). As rotas
 nominais **têm de filtrar as OMEs pelo perfil no servidor**.
+
+## 11. QOD, dado nominal, painéis e build interno (2026-09-29, continuação)
+
+### O que o app passa a ler do DW (quando o backend está ao alcance)
+| Rota | View(s) em `marts` | Recorte por perfil (no servidor) | Substitui |
+|---|---|---|---|
+| `GET /dados/metricas` | `efetivo_organograma`, `frota_organograma`, `financas_organograma`, `previsto_organograma`, `chefe_organograma`, `carga_status` | nenhum: são os agregados e titulares que o organograma mostra a qualquer usuário logado | `efetivo.json`, `viaturas_lista.json` (contagem), `financas.json`, `efetivo_previsto.json`, `OFICIAIS` fixo |
+| `GET /dados/efetivo` | `efetivo_nominal` | indicador Efetivo | `efetivo_lista.json` |
+| `GET /dados/lotacao` | `lotacao_militar` | indicador Efetivo | `lotacao_funcao.json` (por matrícula) |
+| `GET /dados/painel/df` | `painel_df_*` | indicador Finanças; diárias e funeral só com Finanças de todas as unidades | `financas_dashboard.json` |
+| `GET /dados/painel/vacinacao` | `painel_vacinacao_*` | só quem enxerga a DAS (senão 403) | `vacinacao_dashboard.json` |
+| `GET /dados/painel/ocorrencias` | `painel_roe_*` | só linhas das unidades liberadas | `ocorrencias_dashboard.json` |
+
+- **Regra de acesso:** `backend/services/acessoService.js` é o espelho no
+  servidor de `src/lib/accessControl.js`. Vale a **união** dos perfis do
+  usuário. Testado com os perfis reais: Administrador, Comandante e
+  Subcomandante veem tudo; DGP vê o Efetivo de todos; DF e DLOG só a própria
+  unidade; matrícula sem perfil não vê nada.
+- **Cache:** os nominais saem com `Cache-Control: no-store`.
+- **Decisões do usuário nesta rodada:**
+  - O previsto passa a ser o número de vagas `FUNCIONAL` da aba FUNCOES_DPLAG
+    do QOD publicado, e não mais a aba "GERAL 001" de um xlsx local. Com isso,
+    o 2º GB foi de 485 para 671 e o 6º GB de 232 para 201.
+  - O chefe de cada unidade é quem ocupa a função de menor ordem de exibição.
+    Comando Geral e Subcomando Geral mostram o Comandante e o Subcomandante
+    Geral; GCG e GSG mostram o chefe de gabinete; função sem ocupante aparece
+    como "Vago".
+- **Reconciliação:**
+  - DF: idêntico a `public.fin_*`.
+  - Vacinação: os 3.030 eventos são idênticos ao JSON.
+  - Efetivo e ROE: as diferenças são o tempo entre as extrações (promoções,
+    transferências, ocorrências novas), nunca regra.
+
+### Build interno (CapRover)
+`VITE_APP_INTERNO=1` é o padrão do `Dockerfile`, que só o CapRover usa:
+- não existe login local AGGD;
+- `vite.config.js` esvazia no bundle `efetivo_lista`, a lotação por matrícula
+  e os painéis de Vacinação, Ocorrências e DF.
+
+O bundle cai de 27 MB para 3,9 MB. Na Vercel nada muda.
+
+**Ainda no bundle interno:**
+- `por_unidade_divisao` e `por_unidade_secao` da lotação (só matrículas, sem
+  nome). O casamento seção do QOD → divisão do organograma ainda é feito pelo
+  extrator Python.
+- Os painéis do Dashboard Pessoal de Efetivo (`efetivo_dashboard/*`) e de
+  Viaturas.
+- O Mapa de Força (`public/dados/`).
+
+São a próxima leva.
+
+### Checklist da transição para o CapRover
+1. **Backend:**
+   - `DATABASE_URL_DW` = usuário `app_backend` (valor de
+     `DATABASE_URL_DW_APP` no `.env.local`, a levar ao cofre);
+   - `DATABASE_URL_SGP`, `SGU_URL`, `JWT_SECRET`, `CORS_ORIGIN` = domínio do
+     front.
+2. **Front:** `VITE_AUTH_API_URL` = URL pública do backend. `VITE_APP_INTERNO`
+   já vem 1 do `Dockerfile`.
+3. **Proxy reverso:** vhost no `srv-nginx01` e Port Mapping manual
+   (`DW_ARQUITETURA.md`, "Deploy no CapRover").
+4. **Depois de validado:**
+   - desligar a Vercel;
+   - aposentar os extratores `etl/efetivo/extract_efetivo.py`,
+     `etl/viaturas/extract_viaturas.py`, `etl/financas/extract_financas.py`,
+     `extract_dashboard_df.py`, `etl/das/…` e `etl/ocorrencias/…`;
+   - apagar os JSON correspondentes de `src/data/real/`.
+
+   Os scripts do Windmill "ETL - Frotas" e "ETL - Finanças", que alimentam o
+   Neon, **já não estão agendados**. O "Pecúlio Metabase V1" continua, porque
+   alimenta o sistema de Reserva e o Metabase.

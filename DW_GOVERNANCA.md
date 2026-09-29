@@ -474,3 +474,21 @@ Decisões do usuário ao trazer as duas fontes para o DW:
   superusuário do DW escrita no código, e "Material Operacional" e "Controle
   do tempo de serviço" têm a chave privada de uma service account do Google.
   Todas precisam virar variável secreta do Windmill e ser rotacionadas.
+
+## Dado nominal sai só pela API, recortado no servidor (2026-09-29)
+
+- **Onde o dado pessoal fica:** as views nominais (`marts.efetivo_nominal`,
+  `lotacao_militar`, `painel_vacinacao_*`, `painel_roe_*`) só são lidas por
+  `app_reader`. `bi_reader` (Metabase) é **revogado** nelas e fica com os
+  agregados.
+- **Quem decide o recorte:** o backend, por usuário, a cada requisição
+  (`backend/services/acessoService.js`). O front deixa de ser a barreira. A
+  checagem no navegador (`accessControl.js`) continua, mas só organiza a
+  interface.
+- **O que sai do bundle:** no build interno (CapRover, `VITE_APP_INTERNO=1`),
+  os JSON com nome, dado de saúde e perfil de vítima já não vão para o
+  navegador antes do login. Resta a lista de matrículas por divisão
+  (`lotacao_funcao.json`, `por_unidade_divisao`/`por_unidade_secao`), até o
+  casamento seção→divisão entrar no DW.
+- **Na Vercel,** enquanto ela existir, o bundle continua com os JSON: o app de
+  lá não alcança o backend. É mais uma razão para a transição.

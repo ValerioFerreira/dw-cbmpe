@@ -30,8 +30,12 @@
 > (não superusuário). Vacinação, ROE, QOD, CIM, inativos e escolaridade no DW.
 > O app lê efetivo, viaturas e finanças do DW quando o backend está ao
 > alcance, com fallback para os JSON na Vercel (`DW_INGESTAO.md` seção 10).
-> **Próximo passo:** `marts` do QOD (previsto, lotação, chefes) e as rotas
-> nominais `/dados/*` com filtro por perfil no servidor.
+> **Atualização (mesmo dia):** QOD no DW (previsto, chefes, lotação), rotas
+> nominais e painéis DF/Vacinação/Ocorrências no backend com recorte por
+> perfil no servidor, e build interno (CapRover) sem dado pessoal no bundle —
+> `DW_INGESTAO.md` seção 11, com o checklist da transição. **Próximo passo:**
+> a transição para o CapRover; depois, os painéis pessoais de Efetivo e
+> Viaturas, o Mapa de Força e o casamento seção→divisão no DW.
 
 > **2026-09-23 — autenticação real via SGU e Docker completo, numa worktree
 > isolada, para revisão (nada commitado ainda).** `backend/` novo (Express,
@@ -4688,3 +4692,40 @@ e é negado em `core`, `raw` e `stg`.
 **App:** `GET /dados/metricas` no backend e `aplicarMetricasDw` no front
 (`DW_INGESTAO.md` seção 10). Testado com uma sessão de teste local: o Comando
 Geral saiu com 2.654 militares, 771 viaturas e R$ 2.596.953,65 do DW.
+
+### 2026-09-29 (quinta parte) — QOD, rotas nominais, painéis e build interno
+
+Pedido: "siga com os passos 1, 2, 3 e 4, continuamente". Detalhe e tabela de
+rotas em [`DW_INGESTAO.md`](DW_INGESTAO.md) seção 11.
+
+**Confirmado com o usuário:**
+- O previsto passa a ser o número de vagas FUNCIONAL da FUNCOES_DPLAG. Com
+  isso, 2º GB e 6º GB mudam.
+- A regra dos chefes segue a proposta.
+
+**1. QOD:**
+- `core.qod_vaga`, `qod_funcao` e `qod_ocupacao` (com
+  `etl/dw/ddl/11_qod.sql`).
+- `marts.previsto_organograma` (5.412 vagas em 43 unidades).
+- `marts.chefe_organograma` (43 titulares, 2 vagos), que substitui a tabela
+  `OFICIAIS` mantida à mão.
+
+**2. Nominais:**
+- `marts.efetivo_nominal` e `lotacao_militar` (`12_nominal.sql`).
+- `acessoService.js`, que calcula no servidor o que cada perfil pode ver.
+- `/dados/efetivo` e `/dados/lotacao`. No front, `src/data/efetivoLista.js`
+  e `lotacaoFuncao.js` trocam para o DW, e os índices pré-calculados viraram
+  cálculo sob demanda.
+- Testado no navegador com o perfil DF: a tabela de Efetivo mostrou só os 18
+  militares da DF, vindos do DW.
+
+**3. Painéis:**
+- `13_paineis.sql`, com as regras de limpeza dos extratores em funções
+  `stg` (`SECURITY DEFINER` onde leem tabela).
+- `/dados/painel/*` e `usePainelDw`.
+
+**4. Build interno:** `VITE_APP_INTERNO` (bundle de 27 MB → 3,9 MB, sem
+AGGD).
+
+**Windmill:** flow republicado e rodado com sucesso, com o QOD e a
+`ficha_financ` carregados pelo `windmill_etl`.
