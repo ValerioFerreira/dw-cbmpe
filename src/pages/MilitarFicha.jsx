@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { ChevronLeft, UserRound, CalendarClock, ShieldCheck, Lock } from "lucide-react";
 import SectionCard from "@/components/ui/section-card";
 import EmptyState from "@/components/ui/empty-state";
-import efetivoLista from "@/data/real/efetivo_lista.json";
+import efetivoLista from "@/data/efetivoLista"; // JSON embutido ou DW (ver o módulo)
 import { funcaoDoMilitar, secaoDoMilitar } from "@/lib/lotacaoFuncao";
 
 // Ficha do militar — CAMINHO A (público). Só campos NÃO sensíveis, servidos
@@ -19,9 +19,12 @@ import { funcaoDoMilitar, secaoDoMilitar } from "@/lib/lotacaoFuncao";
 // afastamentos, cursos) entram quando a sincronização SGP → Neon for
 // publicada (ver DW_ETL.md / windmill-sgp.py, engatilhado).
 
-// Índice matrícula → registro (achatando por_unidade uma vez). A OME exibida
-// respeita omeExibicao (ex. "ADIDO"); ver extract_efetivo.py.
-const POR_MATRICULA = (() => {
+// Índice matrícula → registro (achatando por_unidade). A OME exibida
+// respeita omeExibicao (ex. "ADIDO"); ver extract_efetivo.py. Refeito quando
+// a lista troca de fonte (JSON embutido -> DW, ver src/data/efetivoLista.js).
+let indice = { base: null, idx: {} };
+function porMatricula() {
+  if (indice.base === efetivoLista.por_unidade) return indice.idx;
   const idx = {};
   const porUnidade = efetivoLista.por_unidade || {};
   for (const [sigla, arr] of Object.entries(porUnidade)) {
@@ -31,8 +34,9 @@ const POR_MATRICULA = (() => {
       }
     }
   }
+  indice = { base: efetivoLista.por_unidade, idx };
   return idx;
-})();
+}
 
 // Data ISO "aaaa-mm-dd" → dd/mm/aaaa (lê por regex pra não sofrer com fuso).
 function fmtData(valor) {
@@ -78,7 +82,7 @@ function Widget({ icone: Icone, rotulo, valor, sub }) {
 export default function MilitarFicha() {
   const { matricula } = useParams();
   const navigate = useNavigate();
-  const militar = POR_MATRICULA[matricula];
+  const militar = porMatricula()[matricula];
   const completo = militar?.completo || {};
   const funcao = militar ? funcaoDoMilitar(militar.matricula) : null;
   const secao = militar ? secaoDoMilitar(militar.matricula) : null;

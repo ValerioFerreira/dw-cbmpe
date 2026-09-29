@@ -1,4 +1,5 @@
 import * as dadosService from "../services/dadosService.js";
+import { acessoDoUsuario, siglasParaIndicador } from "../services/acessoService.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 const metricas = asyncHandler(async (req, res) => {
@@ -9,4 +10,24 @@ const metricas = asyncHandler(async (req, res) => {
   res.status(200).json(dados);
 });
 
-export { metricas };
+// Nominais: o recorte por perfil é decidido AQUI, no servidor, a cada
+// requisição (perfil revogado em /adm vale na hora). Nada de cache
+// compartilhado — "no-store" para o dado pessoal não ficar em disco.
+async function siglasDoUsuario(req, indicador) {
+  const acesso = await acessoDoUsuario(req.user?.matricula);
+  return siglasParaIndicador(acesso, indicador);
+}
+
+const efetivo = asyncHandler(async (req, res) => {
+  const siglas = await siglasDoUsuario(req, "Efetivo");
+  res.set("Cache-Control", "no-store");
+  res.status(200).json(await dadosService.efetivoNominal(siglas));
+});
+
+const lotacao = asyncHandler(async (req, res) => {
+  const siglas = await siglasDoUsuario(req, "Efetivo");
+  res.set("Cache-Control", "no-store");
+  res.status(200).json(await dadosService.lotacaoNominal(siglas));
+});
+
+export { metricas, efetivo, lotacao };

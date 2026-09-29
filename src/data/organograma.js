@@ -30,7 +30,10 @@ function slugify(s) {
     .replace(/^-+|-+$/g, "");
 }
 
-// ----- Cargo/oficial por sigla (fictício, porém coerente) -----
+// ----- Cargo/oficial por sigla -----
+// Mantido à mão até 2026-09-29. Quando o backend alcança o DW, cada entrada
+// é sobreposta pelo titular do QOD (aplicarMetricasDw, mais abaixo); esta
+// tabela fica só como fallback do app fora da rede (Vercel).
 const OFICIAIS = {
   'COMANDO GERAL': { oficial: 'Cel Araripe', cargo: 'Comandante Geral' },
   'SUBCOMANDO GERAL': { oficial: 'Cel Curvêlo', cargo: 'Subcomandante Geral' },
@@ -307,9 +310,20 @@ Object.keys(METRICAS).forEach((sigla) => {
 // unidade; o rollup continua em totaisDaSigla. No DW os adidos já contam no
 // próprio do Comando Geral (a OME ADIDOS pende dele), então não há o ajuste
 // de efetivoNaoLotado que o JSON precisa.
-const CAMPO_POR_DOMINIO = { efetivo: "efetivo", viaturas: "viaturas", financas: "financas" };
+const CAMPO_POR_DOMINIO = { efetivo: "efetivo", viaturas: "viaturas", financas: "financas", previsto: "efetivoPrevisto" };
 
-export function aplicarMetricasDw({ metricas = {}, dominios = {} } = {}) {
+// "VIEIRA DE MELO" -> "Vieira de Melo", como o organograma sempre exibiu.
+const PARTICULAS = new Set(["de", "da", "do", "das", "dos", "e"]);
+function nomeExibicao(nome) {
+  return (nome || "")
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((p, i) => (i > 0 && PARTICULAS.has(p) ? p : p.charAt(0).toUpperCase() + p.slice(1)))
+    .join(" ");
+}
+
+export function aplicarMetricasDw({ metricas = {}, chefes = null, dominios = {} } = {}) {
   const aplicados = Object.keys(dominios).filter((d) => CAMPO_POR_DOMINIO[d]);
   aplicados.forEach((dominio) => {
     const campo = CAMPO_POR_DOMINIO[dominio];
@@ -317,6 +331,16 @@ export function aplicarMetricasDw({ metricas = {}, dominios = {} } = {}) {
       METRICAS[sigla] = { ...METRICAS[sigla], [campo]: metricas[sigla]?.[dominio] ?? 0 };
     });
   });
+  // Titulares do QOD (marts.chefe_organograma). Unidade que o QOD não
+  // resolve mantém o que já tinha; função sem ocupante vira "Vago" — nunca
+  // um nome que não está no QOD.
+  if (chefes) {
+    Object.entries(chefes).forEach(([sigla, c]) => {
+      const oficial = c.vago ? "Vago" : [c.posto, nomeExibicao(c.nome)].filter(Boolean).join(" ") || "—";
+      OFICIAIS[sigla] = { oficial, cargo: c.cargo || OFICIAIS[sigla]?.cargo || "Titular" };
+    });
+    aplicados.push("chefes");
+  }
   return aplicados;
 }
 

@@ -1,4 +1,4 @@
-import efetivoListaReal from "@/data/real/efetivo_lista.json";
+import efetivoLista from "@/data/efetivoLista";
 
 // Antiguidade de uma OME = menor `ordem` (ordemHierarquica real, fonte
 // Neon/SGP) entre os militares hoje lotados nela — na prática, quem tem o
@@ -28,9 +28,13 @@ import efetivoListaReal from "@/data/real/efetivo_lista.json";
 // muda.
 export const DOBRA_GABINETE = { "COMANDO GERAL": "GCG", "SUBCOMANDO GERAL": "GSG" };
 
-const ORDEM_MINIMA_POR_OME = (() => {
+// Calculado sob demanda e refeito quando a lista muda de fonte (JSON
+// embutido -> DW, ver src/data/efetivoLista.js).
+let cache = { base: null, mapa: new Map() };
+function ordemMinimaPorOme() {
+  if (cache.base === efetivoLista.por_unidade) return cache.mapa;
   const m = new Map();
-  Object.entries(efetivoListaReal.por_unidade).forEach(([siglaBruta, militares]) => {
+  Object.entries(efetivoLista.por_unidade).forEach(([siglaBruta, militares]) => {
     const sigla = DOBRA_GABINETE[siglaBruta] || siglaBruta;
     let minimo = m.has(sigla) ? m.get(sigla) : Infinity;
     militares.forEach((mil) => {
@@ -38,15 +42,16 @@ const ORDEM_MINIMA_POR_OME = (() => {
     });
     if (minimo !== Infinity) m.set(sigla, minimo);
   });
+  cache = { base: efetivoLista.por_unidade, mapa: m };
   return m;
-})();
+}
 
 // OMEs sem militar no efetivo ativo (INATIVOS, categorias de situação
 // funcional, unidades que o organograma ainda não modela — ver
 // etl/das/mapeamento_unidades.json) não têm antiguidade: ficam sempre no
 // fim, nunca tratadas como erro.
 export function antiguidadeOme(sigla) {
-  return ORDEM_MINIMA_POR_OME.get(sigla) ?? Number.POSITIVE_INFINITY;
+  return ordemMinimaPorOme().get(sigla) ?? Number.POSITIVE_INFINITY;
 }
 
 // Ordena um array por antiguidade da OME de cada item (extraída via

@@ -8,7 +8,7 @@
 // passa a ler do DW sem nenhuma mudança de código.
 const AUTH_API_URL = (import.meta.env.VITE_AUTH_API_URL || "").replace(/\/$/, "");
 const STORAGE_KEY = "cbmpe_auth_user_v2"; // mesma chave de src/lib/authClient.js
-const TIMEOUT_MS = 6000;
+const TIMEOUT_MS = 8000;
 
 function tokenDaSessao() {
   try {
@@ -18,14 +18,14 @@ function tokenDaSessao() {
   }
 }
 
-export async function fetchMetricasDw() {
+async function getDados(caminho) {
   const token = tokenDaSessao();
   if (!AUTH_API_URL || !token) return null;
 
   const controle = new AbortController();
   const timer = setTimeout(() => controle.abort(), TIMEOUT_MS);
   try {
-    const response = await fetch(`${AUTH_API_URL}/dados/metricas`, {
+    const response = await fetch(`${AUTH_API_URL}/dados/${caminho}`, {
       headers: { Authorization: `Bearer ${token}` },
       signal: controle.signal,
     });
@@ -37,3 +37,12 @@ export async function fetchMetricasDw() {
     clearTimeout(timer);
   }
 }
+
+/** Agregados por unidade + titulares (sem recorte por perfil). */
+export const fetchMetricasDw = () => getDados("metricas");
+
+/** Relação nominal do efetivo, já recortada pelo perfil no servidor. */
+export const fetchEfetivoDw = () => getDados("efetivo");
+
+/** Lotação por função (QOD), já recortada pelo perfil no servidor. */
+export const fetchLotacaoDw = () => getDados("lotacao");

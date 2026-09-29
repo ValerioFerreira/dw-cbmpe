@@ -10,7 +10,7 @@ import SectionCard from "@/components/ui/section-card";
 import ScrollDuplo from "@/components/ui/scroll-duplo";
 import { FiltroColuna, passaFiltro, valorFiltro, filtrosIniciaisDaUrl } from "@/components/ui/filtro-coluna";
 import { useLarguras, useLarguraContainer, ColGroup, AlcaResize, CELULA_TRUNCADA } from "@/components/ui/tabela-colunas";
-import efetivoLista from "@/data/real/efetivo_lista.json";
+import efetivoLista from "@/data/efetivoLista"; // JSON embutido ou DW (ver o módulo)
 import lotacaoFuncao, { funcaoDoMilitar, secaoDoMilitar } from "@/lib/lotacaoFuncao";
 
 const TAMANHOS_PAGINA = [10, 20, 50];

@@ -1459,6 +1459,97 @@ def carregar_fato_financeiro(cur):
     print(f"  fato_financeiro              {resumo}{extra}")
 
 
+# ---------------------------------------------------------------------------
+# QOD (efetivo previsto, lotacao por funcao, chefes) -- ver ddl/11_qod.sql
+# ---------------------------------------------------------------------------
+# Colunas usadas de cada aba, pelo nome que raw_planilhas.py da ao
+# cabecalho. Se a DPlaG renomear uma coluna, a carga para aqui com o nome que
+# sumiu, em vez de gravar NULL em silencio.
+COLUNAS_QOD = {
+    "funcoes_dplag": ["col_01_ome", "col_02_cod_func", "col_03_funcao", "col_05_tipo_vaga"],
+    "qod_funcoes": ["col_01_id_funcao", "col_02_tipo_funcao", "col_04_ome_completa", "col_05_ome",
+                    "col_06_localidade", "col_07_secao",
+                    "col_08_funcao", "col_09_funcao_completa", "col_10_ordem_exibicao",
+                    "col_16_mes", "col_17_ano", "col_18_ativo"],
+    "qod_consolidada": ["col_02_antig", "col_03_unidade", "col_04_matricula", "col_05_posto_grad",
+                        "col_06_nome_completo", "col_07_csbm_cas_cao", "col_11_portaria", "col_12_bge",
+                        "col_08_tipo", "col_10_funcao_de", "col_13_codigo"],
+}
+
+
+def carregar_qod(cur):
+    for tabela, colunas in COLUNAS_QOD.items():
+        cur.execute("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_schema = 'raw_qod' AND table_name = %s
+        """, (tabela,))
+        existentes = {c for (c,) in cur.fetchall()}
+        if not existentes:
+            print(f"  qod                          (raw_qod.{tabela} ausente -- pulado)")
+            return
+        faltando = [c for c in colunas if c not in existentes]
+        if faltando:
+            raise SystemExit(f"QOD mudou de estrutura: raw_qod.{tabela} sem {faltando}")
+
+    cur.execute("DELETE FROM core.qod_vaga")
+    cur.execute("""
+        INSERT INTO core.qod_vaga (linha, ome_qod, cod_funcao, funcao, tipo_vaga)
+        SELECT linha, nullif(trim(col_01_ome), ''), nullif(trim(col_02_cod_func), ''),
+               nullif(trim(col_03_funcao), ''), upper(nullif(trim(col_05_tipo_vaga), ''))
+        FROM raw_qod.funcoes_dplag
+        WHERE nullif(trim(col_01_ome), '') IS NOT NULL
+    """)
+
+    # O ID de funcao e unico no catalogo; linha repetida (se houver) fica a
+    # primeira, para nao derrubar a carga por uma duplicata da planilha.
+    cur.execute("DELETE FROM core.qod_funcao")
+    cur.execute("""
+        INSERT INTO core.qod_funcao (id_funcao, tipo_funcao, ome_qod, secao, funcao,
+                                     funcao_completa, ordem_exibicao, ativo, mes_referencia,
+                                     ome_completa, localidade)
+        SELECT DISTINCT ON (trim(col_01_id_funcao))
+               trim(col_01_id_funcao), nullif(trim(col_02_tipo_funcao), ''),
+               nullif(trim(col_05_ome), ''), nullif(trim(col_07_secao), ''),
+               nullif(trim(col_08_funcao), ''), nullif(trim(col_09_funcao_completa), ''),
+               stg.valor_monetario(col_10_ordem_exibicao),
+               upper(trim(col_18_ativo)) = 'SIM',
+               nullif(trim(concat_ws('/', col_16_mes, col_17_ano)), ''),
+               nullif(trim(col_04_ome_completa), ''), nullif(trim(col_06_localidade), '')
+        FROM raw_qod.qod_funcoes
+        WHERE nullif(trim(col_01_id_funcao), '') IS NOT NULL
+        ORDER BY trim(col_01_id_funcao), linha
+    """)
+
+    cur.execute("DELETE FROM core.qod_ocupacao")
+    cur.execute("""
+        INSERT INTO core.qod_ocupacao (linha, matricula, nome_qod, unidade_qod, posto_grad,
+                                       id_funcao, tipo, funcao_de, antiguidade,
+                                       cursos, portaria, bge)
+        SELECT linha, nullif(regexp_replace(coalesce(col_04_matricula, ''), '[^0-9]', '', 'g'), ''),
+               nullif(trim(col_06_nome_completo), ''),
+               nullif(trim(col_03_unidade), ''), nullif(trim(col_05_posto_grad), ''),
+               nullif(trim(col_13_codigo), ''), nullif(trim(col_08_tipo), ''),
+               nullif(trim(col_10_funcao_de), ''), stg.valor_monetario(col_02_antig),
+               nullif(trim(col_07_csbm_cas_cao), ''), nullif(trim(col_11_portaria), ''),
+               nullif(trim(col_12_bge), '')
+        FROM raw_qod.qod_consolidada
+        WHERE nullif(trim(col_04_matricula), '') IS NOT NULL
+    """)
+
+    cur.execute("SELECT count(*) FROM core.qod_vaga WHERE tipo_vaga = 'FUNCIONAL'")
+    vagas = cur.fetchone()[0]
+    cur.execute("SELECT count(*), count(DISTINCT id_funcao) FROM core.qod_ocupacao")
+    ocup, funcoes = cur.fetchone()
+    cur.execute("""
+        SELECT DISTINCT ome_qod FROM core.qod_vaga
+        WHERE ome_qod NOT IN (SELECT ome_qod FROM stg.qod_ome_organograma)
+    """)
+    fora = [o for (o,) in cur.fetchall()]
+    extra = f"  !! OME do QOD sem sigla no organograma: {fora}" if fora else ""
+    print(f"  qod                          {vagas} vagas funcionais, {ocup} ocupacoes "
+          f"em {funcoes} funcoes{extra}")
+
+
 def main():
     # role=etl_writer: o que esta carga cria (views em stg) fica com o dono
     # das camadas, seja rodada pelo Windmill (windmill_etl) ou a mao pelo
@@ -1494,6 +1585,7 @@ def main():
     carregar_fatos_lancamento(cur)
     carregar_fatos_reserva(cur)
     carregar_fato_financeiro(cur)
+    carregar_qod(cur)
     conn.commit()
 
     cur.close()

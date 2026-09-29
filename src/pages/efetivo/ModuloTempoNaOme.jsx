@@ -5,7 +5,7 @@ import { linkEfetivoTabela } from "@/lib/efetivoDashboard";
 import SectionCard from "@/components/ui/section-card";
 import PanelGrafico from "@/components/charts/PanelGrafico";
 import MultiSelectFiltro from "@/components/ui/multi-select-filtro";
-import efetivoLista from "@/data/real/efetivo_lista.json";
+import efetivoLista from "@/data/efetivoLista"; // JSON embutido ou DW (ver o módulo)
 
 // Painel 08 do handoff — 3 de 4 quadrantes prontos (carreira_extra.json,
 // campo tempoOmeAnos, bate exato com o print). O 4º (tabela nominal) estava
@@ -33,7 +33,10 @@ const TEMPO_OME_ORDER = ["0-1", "2", "3", "4", "5", "6", "7+"];
 
 // Linhas achatadas de efetivo_lista.json (só os campos usados aqui) — OME
 // respeita omeExibicao (adidos aparecem com "ADIDO", não "COMANDO GERAL").
-const LINHAS_EFETIVO = (() => {
+// Refeito quando a lista troca de fonte (JSON embutido -> DW).
+let cacheLinhas = { base: null, linhas: [] };
+function linhasEfetivo() {
+  if (cacheLinhas.base === efetivoLista.por_unidade) return cacheLinhas.linhas;
   const linhas = [];
   for (const [sigla, arr] of Object.entries(efetivoLista.por_unidade || {})) {
     for (const r of arr) {
@@ -47,8 +50,9 @@ const LINHAS_EFETIVO = (() => {
       });
     }
   }
+  cacheLinhas = { base: efetivoLista.por_unidade, linhas };
   return linhas;
-})();
+}
 
 function paramsAtuais({ postos, omes }) {
   const p = {};
@@ -76,7 +80,7 @@ export default function ModuloTempoNaOme({ indId, carreira, permitidas }) {
   // já escopado em EfetivoDashboard.jsx) — precisa do próprio filtro de
   // escopo aqui (mesma sigla real de `ome`/`omeExibicao`, sem tradução).
   const linhasTabela = useMemo(
-    () => LINHAS_EFETIVO.filter((r) =>
+    () => linhasEfetivo().filter((r) =>
       (postos.size === 0 || postos.has(r.postoGrad)) &&
       (omes.size === 0 || omes.has(r.ome)) &&
       (!permitidas || permitidas.has(r.ome))

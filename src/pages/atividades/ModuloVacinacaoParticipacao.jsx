@@ -7,7 +7,7 @@ import KpiCard from "@/components/ui/kpi-card";
 import SectionCard from "@/components/ui/section-card";
 import GaugeKpi from "@/components/charts/GaugeKpi";
 import EmptyState from "@/components/ui/empty-state";
-import efetivoLista from "@/data/real/efetivo_lista.json";
+import efetivoLista from "@/data/efetivoLista"; // JSON embutido ou DW (ver o módulo)
 
 // Aba "Indicador de participação" — 4º de 4 módulos (ver
 // ModuloVacinacaoVisaoGeral.jsx para o racional do painel exclusivo da

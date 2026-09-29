@@ -1,7 +1,9 @@
 // CBMPE BI — Núcleo de dados e helpers de hierarquia
 import { NODES_PADRAO, montarOrganograma, metricasProprias, metricasDivisoesProprias, aplicarMetricasDw } from "@/data/organograma";
 import { fetchOrganogramaRemoto } from "@/lib/organogramaClient";
-import { fetchMetricasDw } from "@/lib/dadosClient";
+import { fetchMetricasDw, fetchEfetivoDw, fetchLotacaoDw } from "@/lib/dadosClient";
+import { aplicarEfetivoListaDw } from "@/data/efetivoLista";
+import { aplicarLotacaoDw } from "@/lib/lotacaoFuncao";
 import { fetchAtribuicoesRemoto } from "@/lib/atribuicoesClient";
 import { lerAtribuicoes as lerAtribuicoesLocal } from "@/lib/accessControl";
 
@@ -53,7 +55,18 @@ async function carregarOrganograma() {
   if (organogramaCache) return organogramaCache;
   organogramaCache = (async () => {
     let nodes = NODES_PADRAO;
-    const [estrutura, metricasDw] = await Promise.allSettled([fetchOrganogramaRemoto(), fetchMetricasDw()]);
+    const [estrutura, metricasDw, efetivoDw, lotacaoDw] = await Promise.allSettled([
+      fetchOrganogramaRemoto(), fetchMetricasDw(), fetchEfetivoDw(), fetchLotacaoDw(),
+    ]);
+    // Nominais do DW (já recortados pelo perfil no servidor) substituem os
+    // JSON embutidos antes de qualquer tela renderizar — o CbmpeProvider
+    // espera este carregamento. Sem backend, ficam os embutidos.
+    if (efetivoDw.status === "fulfilled" && aplicarEfetivoListaDw(efetivoDw.value)) {
+      console.info("Efetivo nominal do DW aplicado");
+    }
+    if (lotacaoDw.status === "fulfilled" && aplicarLotacaoDw(lotacaoDw.value)) {
+      console.info("Lotação por função do DW aplicada");
+    }
     if (estrutura.status === "fulfilled" && estrutura.value?.length) {
       nodes = estrutura.value;
     } else if (estrutura.status === "rejected") {
