@@ -208,7 +208,7 @@ Consequências práticas:
 
 | Onde | O que era | Decisão |
 |---|---|---|
-| `10.193.1.252:54301`, banco `dw_dim` | Primeira tentativa de DW (schemas `efetivo`, `frotas`, `materiais`) | **Em desuso.** Manter de pé até a carga nova estar validada: é a única fonte de latitude/longitude das OMEs |
+| `10.193.1.252:54301`, banco `dw_dim` | Primeira tentativa de DW (schemas `efetivo`, `frotas`, `materiais`) | **Aposentado em 2026-09-29** (renomeado `dw_dim_aposentado_20260929`, não apagado). As coordenadas das OMEs e os catálogos de materiais foram preservados em `dw.raw_ref.dw_dim_*` — ver `DW_INGESTAO.md` seção 3 |
 | `10.193.1.252:54301`, schema `dw_cbmpe` | Segunda tentativa de DW (esquema estrela, DDL criado, 0 linhas) | **Em desuso.** Tabelas podem ser removidas |
 | `10.193.1.252:54301`, schema `public` | Tabelas que alimentam o Metabase (`peculio_metabase_v1`, `inativos_metabase`, `cim_*`, `fin_*`) | **Não mexer.** Mantidas por terceiros, em uso |
 

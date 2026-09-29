@@ -25,16 +25,13 @@ const SQL_MATRICULA_POR_CPF = `
   limit 1
 `;
 
-// distinct on + order by sk_tempo desc: a linha mais recente por militar,
-// não a mais recente da tabela inteira — ver nota no cabeçalho.
+// A view já traz a linha mais recente por militar, não a mais recente da
+// tabela inteira — ver nota no cabeçalho. O backend só lê marts (D6 em
+// DW_INGESTAO.md); a lógica sobre core.fato_efetivo_diario mora na view.
 const SQL_OME_POR_MATRICULA = `
-  select o.sigla, o.nome, f.adido, f.sk_tempo
-  from core.dim_militar m
-  join core.fato_efetivo_diario f on f.sk_militar = m.sk_militar
-  join core.dim_ome o on o.sk_ome = f.sk_ome
-  where m.matricula = $1
-  order by f.sk_tempo desc
-  limit 1
+  select ome_sigla as sigla, ome_nome as nome, adido, data_referencia
+  from marts.ome_atual_militar
+  where matricula = $1
 `;
 
 // Só o passo 2 (matrícula -> OME) — usada por /adm quando o administrador

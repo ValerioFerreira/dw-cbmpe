@@ -12,10 +12,13 @@ import os
 
 import psycopg2
 
-ESPERADO_TOTAL = 2658   # efetivo ativo do Peculio hoje
-ESPERADO_CPPA = 11      # militares lotados na CPPA
-ESPERADO_DGP = 39       # DGP com a CPPA dentro, sem adidos
-ESPERADO_ADIDOS = 187   # adidos, que contam no Comando Geral e nao na DGP
+# As expectativas NAO sao numeros fixos: o efetivo muda toda semana, e um
+# validador com o total de agosto cravado falharia todo dia depois de
+# agendado (aconteceu em 2026-09-29: 10 "falhas" que eram so 2658 -> 2655).
+# O total vem da planilha do Peculio em raw -- contado de forma independente
+# do core -- e o resto sao invariantes: o rollup do Comando Geral e o total,
+# a DGP e a DGP propria + CPPA, os adidos sao os militares marcados como
+# adido. Ver esperados().
 
 
 def url_do_dw():
@@ -49,10 +52,29 @@ def checar(rotulo, obtido, esperado=None):
     return ok
 
 
+def esperados(cur):
+    """Total, DGP e adidos esperados, calculados sem passar pela logica do core."""
+    # Mesmo filtro de carga_core.py: quem tem matricula (coluna na posicao 8)
+    # esta no efetivo ativo. A posicao e o contrato, nao o nome da coluna.
+    col = valor(cur, """
+        SELECT column_name FROM information_schema.columns
+        WHERE table_schema = 'raw_peculio' AND table_name = 'planilha'
+          AND column_name LIKE %s""", "col_08_%")
+    total = valor(cur, f"""
+        SELECT count(DISTINCT replace(trim("{col}"), '-', ''))
+        FROM raw_peculio.planilha WHERE nullif(trim("{col}"), '') IS NOT NULL""")
+    dgp = valor(cur, """
+        SELECT sum(efetivo_proprio) FROM marts.efetivo_por_ome
+        WHERE sigla IN ('DGP', 'CPPA') AND data_referencia = """ + DIA)
+    adidos = valor(cur, f"SELECT count(*) FROM core.fato_efetivo_diario WHERE adido AND sk_tempo = {HOJE}")
+    return total, dgp, adidos
+
+
 def main():
     conn = psycopg2.connect(url_do_dw(), connect_timeout=20)
     cur = conn.cursor()
     falhas = 0
+    ESPERADO_TOTAL, ESPERADO_DGP, ESPERADO_ADIDOS = esperados(cur)
 
     print("Efetivo -- a hierarquia resolve CPPA e adidos sem regra especial:")
     falhas += not checar(
@@ -61,8 +83,7 @@ def main():
         ESPERADO_TOTAL)
     falhas += not checar(
         "CPPA (efetivo proprio)",
-        valor(cur, f"SELECT efetivo_proprio FROM marts.efetivo_por_ome WHERE sigla = 'CPPA' AND data_referencia = {DIA}"),
-        ESPERADO_CPPA)
+        valor(cur, f"SELECT efetivo_proprio FROM marts.efetivo_por_ome WHERE sigla = 'CPPA' AND data_referencia = {DIA}"))
     falhas += not checar(
         "DGP propria + CPPA (o numero que o app mostra)",
         valor(cur, """
@@ -321,6 +342,25 @@ def main():
            valor(cur, "SELECT count(*) FROM core.dim_posto_servico WHERE latitude IS NOT NULL"))
     checar("postos de servico com AIS",
            valor(cur, "SELECT count(*) FROM core.dim_posto_servico WHERE ais IS NOT NULL"))
+
+    # D8: nenhuma carga pode falhar em silencio. O flow diario roda as fontes
+    # em ramos que nao derrubam uns aos outros (o core e montado com o que
+    # chegou); e aqui que a falha de uma fonte vira falha do job. Conta a
+    # carga MAIS RECENTE de cada tabela nas ultimas 24h -- uma que falhou e
+    # foi refeita com sucesso depois nao conta.
+    print("\nCargas das ultimas 24h (a mais recente de cada tabela):")
+    cur.execute("""
+        SELECT tabela, fonte, status, coalesce(observacao, '') FROM (
+            SELECT DISTINCT ON (tabela) tabela, fonte, status, observacao
+            FROM stg.carga
+            WHERE iniciado_em > now() - interval '24 hours'
+            ORDER BY tabela, carga_id DESC
+        ) x WHERE status <> 'ok' ORDER BY tabela
+    """)
+    problemas = cur.fetchall()
+    for tabela, fonte, status, obs in problemas:
+        print(f"  !! {tabela:<40} {status:<13} {fonte}  {obs[:120]}")
+    falhas += not checar("tabelas cuja ultima carga nao terminou ok", len(problemas), 0)
 
     print()
     if falhas:

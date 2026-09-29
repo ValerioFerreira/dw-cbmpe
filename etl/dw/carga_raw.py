@@ -2,6 +2,15 @@
 # psycopg2-binary
 """Carrega a camada raw do DW: copia fiel das fontes, sem transformacao.
 
+DESDE 2026-09-29 este script NAO e mais o caminho principal para as fontes
+Postgres da rede interna (sgp, escala, mapa_forca, frota): o proprio DW le a
+origem via postgres_fdw -- etl/dw/configurar_fdw.py + CALL
+stg.carregar_raw('<fonte>'), disparado por etl/windmill/dw/raw_fdw.py. Aqui
+continuam: `reserva` (o Neon, na internet, fora do alcance do fdw), e o
+FONTES abaixo, que e a lista de tabelas que configurar_fdw.py le. Rodar
+`python carga_raw.py frota` ainda funciona, como alternativa se a origem
+recusar a conexao vinda do servidor do DW.
+
 Principio da camada (ver DW_ARQUITETURA.md): nada e transformado aqui. E o
 que permite reprocessar sem reler a origem, e o que garante que a regra de
 negocio viva num lugar so (stg em diante) em vez de espalhada pelos
@@ -234,8 +243,9 @@ def copiar(conn_origem, conn_dw, schema_origem, tabela, schema_dw, tabela_dw,
     return total
 
 
-def main():
-    alvos = sys.argv[1:] or list(FONTES)
+def main(fontes: list = None):
+    """No Windmill: main(fontes=["reserva"]). Na linha de comando: argv."""
+    alvos = fontes or list(FONTES)
     conn_dw = psycopg2.connect(url_do_dw(), connect_timeout=20)
 
     total_geral = 0
@@ -265,4 +275,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:] or None)

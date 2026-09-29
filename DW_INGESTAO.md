@@ -54,7 +54,7 @@ e as regras para chegar lá.
 |---|---|---|
 | Login | SGU (`SGU_URL`) | Só identidade; nada gravado |
 | CPF → matrícula (+ nome) | SGP `ovrsgp.tb_pess` (`DATABASE_URL_SGP`) | Fonte original, não o DW — o DW não guarda CPF, de propósito |
-| Matrícula → OME | `dw.core.fato_efetivo_diario` + `dim_ome` | **Único ponto em que o sistema já lê o DW ao vivo** |
+| Matrícula → OME | `dw.marts.ome_atual_militar` (desde 2026-09-29; antes lia `core` direto) | **Único ponto em que o sistema já lê o DW ao vivo** |
 | Nome + CPF na lista de usuários do /adm | SGP `ovrsgp.tb_pess` | Desde 2026-09-25; só administrador; nada persistido |
 | Organograma editável | `backend/data/organograma.json` | Estado do app, fora de qualquer banco |
 | Perfis de acesso | `backend/data/atribuicoes.json` | Idem |
@@ -91,6 +91,28 @@ Servidor `10.193.1.252:54301`, dois bancos:
   `inativos_metabase`, `peculio_metabase_v1`, `escolaridade_militares`) e um
   schema `dw_cbmpe` vazio (tentativa antiga). Quatro extratores do app leem
   daqui.
+- **`dw_dim`** e **`dw_diesp`** — achados em 2026-09-29, **de origem
+  desconhecida** (criados com o mesmo `datawarehouse-user`). **Não mexer**
+  até descobrir o dono.
+  - `dw_dim`: **aposentado em 2026-09-29** (decisão do dono). Foi renomeado
+    para `dw_dim_aposentado_20260929`, com `CONNECT` revogado e o motivo no
+    comentário do banco. **Não foi apagado**: o `DROP` fica para o dono.
+    Antes disso, o que só existia lá foi copiado para `dw.raw_ref.dw_dim_*`
+    (`etl/dw/preservar_dw_dim.py`): OMEs com coordenadas, classe por patente e
+    catálogo de materiais. **O `carga_core.py` dependia dele** para as
+    coordenadas das OMEs. Agora a cadeia é `raw_ref.dw_dim_ome` →
+    `casar_coordenadas_ome.py --gravar-dw` → `stg.coordenada_ome` →
+    `carga_core.py`, com resultado idêntico (62 OMEs com coordenada,
+    conferido linha a linha). Descrição original: modelagem anterior e parada.
+    Schemas `efetivo` (2.387 militares, derivado do Pecúlio), `frotas` (cópia
+    da Frota **com `cpf_condutor`**, contra a D5) e `materiais` (catálogo de
+    309 itens, só código/nome, sem estoque). Proposta: aposentar quando o dono
+    concordar.
+  - `dw_diesp`: **job ativo**. Todo dia às 02:59 UTC grava um snapshot da
+    tramitação atual dos projetos do SGAT (protocolo, DAE, laudo, seção,
+    analista) em `projetos.tramitacao_atual_projeto_historico`, em JSON. Tem
+    27 execuções entre 2026-08-22 e 2026-09-29. Quando "Atividades Específicas
+    / DIESP" entrar, isso vira `raw_sgat` no `dw`, lendo o `ovrsgat` direto.
 
 **Frescor** (`stg.carga`): só a planilha do **Pecúlio** está sendo recarregada
 (última carga hoje, 2026-09-25 — daí o `fato_efetivo_diario` estar em dia).
@@ -185,9 +207,13 @@ dúvidas), depois catálogo, depois D1–D9.
 
 Em ordem; cada etapa entrega algo usável e não quebra o que já funciona.
 
-1. **Papéis de banco** (D7) — criar `etl_writer`/`app_reader`/`bi_reader`,
-   trocar a credencial do backend para `app_reader`. Depende de quem administra
-   o servidor.
+0. **Carga `raw` das fontes Postgres internas via `postgres_fdw`** — **feito
+   em 2026-09-29** (seção 9).
+1. **Papéis de banco** (D7) — **papéis-grupo criados em 2026-09-29**
+   (`etl/dw/ddl/07_papeis.sql`, sem login). Falta criar os usuários de login
+   (senha no cofre) e trocar a credencial do backend para um usuário com
+   `app_reader`. O backend já só lê `marts` + `app`: a consulta
+   matrícula → OME passou para `marts.ome_atual_militar`.
 2. **Camada de dados no backend** — rotas `GET /dados/...` autenticadas,
    consultando `marts`, com o perfil do usuário filtrando as OMEs no servidor.
    `src/lib/cbmpe.js` passa a buscar delas, mantendo o mesmo formato que as
@@ -254,12 +280,150 @@ Primeiro domínio a migrar (etapa 3.1). `marts.efetivo_por_ome` (último dia,
 
 ## 8. Perguntas em aberto
 
-1. **Onde roda a carga diária do DW?** `raw_peculio` e `core` foram recarregados
-   hoje às 11:35, mas as demais fontes não desde 2026-08-24. Se for o Windmill,
-   a cópia de `carga_core.py` que está lá precisa ser atualizada (agora lê
-   `app.organograma_unidade`); se for esta máquina, já está.
-2. **Links das planilhas** de `cim_pedidos`/`cim_atendidos`, `inativos_metabase`
-   e `escolaridade_militares` (decisão 4).
-3. **Quem administra o servidor do DW** e pode criar os papéis da D7
-   (`etl_writer`/`app_reader`/`bi_reader`) e as agendas do Windmill? Hoje tudo,
-   inclusive o backend, usa o superusuário.
+1. ~~Onde roda a carga diária do DW?~~ **Respondida em 2026-09-29: no
+   Windmill, que já roda.** Falta a URL e o acesso para publicar o flow
+   `dw_diario` (seção 9).
+2. ~~Links das planilhas de CIM, inativos e escolaridade~~ **Resolvida em
+   2026-09-29**: estavam nos scripts do Windmill do usuário e já foram
+   carregadas em `raw_*` (seção 9). Nova pendência: republicar as planilhas
+   **CP** e **natureza** do Material Operacional (HTTP 410).
+3. **Usuários de login dos papéis da D7.** Os papéis-grupo existem desde
+   2026-09-29. Falta decidir quem guarda as senhas (cofre `cofre-sistemas.kdbx`
+   da Seção?) para criar `windmill_etl` (etl_writer), `app_backend`
+   (app_reader) e `metabase` (bi_reader). Hoje tudo, inclusive o backend, usa
+   o superusuário.
+4. **Credenciais de leitura nas origens.** O user mapping do fdw usa as
+   mesmas credenciais de `.env.local`. É preciso confirmar se são só leitura
+   na origem ou pedir um usuário read-only para cada sistema (SGP, OPS,
+   Frota, ROE).
+5. ~~Dono do `dw_dim` e do `dw_diesp`~~ **Respondida em 2026-09-29: o
+   próprio usuário.** Falta decidir o destino (seção 3).
+
+## 9. Estrutura v1 do DW e plano fonte a fonte (2026-09-29)
+
+Pedido do usuário: "organizar para que todos os dados estejam no banco do DW,
+e o sistema se conecte ao banco". Decisões dele nesta data:
+- **Windmill** para o que é externo (planilhas, Neon da reserva).
+- **`postgres_fdw`** para os sistemas Postgres da rede interna. O DW puxa por
+  SQL e o Windmill só agenda e monitora.
+- **Um banco só**, o `dw`. Nada de novos `dw_*`.
+
+### Por que fdw, e não replicação ou script
+- **Replicação lógica** está descartada. O SGP roda PG 9.5, que não tem
+  replicação lógica nativa, e ela exigiria mudar a configuração (`wal_level`,
+  publicações) de sistemas de outras equipes.
+- **Script Python copiando linha a linha** (`carga_raw.py`) funciona, mas o dado
+  trafega pelo worker. Com o fdw, ele vai de banco a banco: 1,9 milhão de
+  linhas do mapa de força em **19 s**, medido em 2026-09-29. O filtro de uma
+  carga incremental (`updated_at`) roda na origem, e a carga vira SQL
+  versionado.
+- **Custo**: as credenciais das origens ficam no catálogo do DW
+  (`pg_user_mapping`, legível só pelo dono ou superusuário). O servidor do DW
+  precisa alcançar as origens, o que foi **confirmado para as quatro**
+  (10.193.0.16, 10.193.0.20 e 10.193.1.252:54329).
+
+### Como funciona
+- `etl/dw/ddl/08_fdw.sql` cria a extensão e o procedimento
+  `stg.carregar_raw(fonte)`. O procedimento copia cada foreign table de
+  `fdw_<fonte>` para `raw_<fonte>`, com uma transação por tabela e uma linha
+  em `stg.carga` por tabela (`observacao = 'postgres_fdw'`). Se uma tabela
+  falha, a raw anterior dela fica intacta e as outras seguem. No fim, o
+  procedimento sai com erro.
+- `etl/dw/configurar_fdw.py` cria o servidor `srv_<fonte>`, o user mapping e
+  as foreign tables. As colunas são lidas do catálogo da origem: `citext` e
+  enum viram `text`, e **as colunas negadas (CPF) nem existem na foreign
+  table**. Ele roda uma vez, e de novo quando mudar credencial ou coluna.
+- `etl/windmill/dw/raw_fdw.py` é o gatilho no Windmill.
+- Diferença para o `carga_raw.py`: datas com ano impossível (62025) chegam
+  como `date`, que o Postgres aceita, e não mais como texto. O `carga_core.py`
+  passou a aplicar o regex em `reference_date::text`, e o descarte das 3
+  datas inválidas da Frota continua igual.
+
+### Estrutura v1
+
+```
+fdw_<fonte>  foreign tables (só o ETL lê; sem grant para ninguém)
+             fdw_sgp, fdw_escala (10.193.0.16) · fdw_mapa_forca (10.193.0.20)
+             fdw_frota (10.193.1.252:54329) · a seguir: fdw_vacina, fdw_roe
+raw_<fonte>  cópia fiel + carga_id/extraido_em
+             hoje: sgp, escala, mapa_forca, frota, reserva, peculio, financas
+             a seguir: vacina, roe (fdw) · qod (planilha publicada)
+                       cim, inativos, escolaridade (planilhas do Igor)
+                       ref (malha IBGE, KMZ/coordenadas das OMEs)
+                       depois: sgat (projetos/DIESP), materiais
+stg          carga, de_para_ome, de_para_viatura, carregar_raw()
+             a seguir: de_para_ome com sistema 'organograma', 'qod',
+                       'financas', 'vacina', 'roe'
+core         dimensões e fatos atuais
+             a seguir: dim_municipio, fato_previsto_ome, fato_lotacao_funcao,
+                       fato_financeiro, fato_vacinacao, fato_ocorrencia,
+                       fato_intencao_movimentacao, fato_inativo
+marts        views atuais + ome_atual_militar (2026-09-29)
+             a seguir: uma view por tela do app (efetivo_organograma,
+                       efetivo_previsto, lotacao_funcao, financas_*,
+                       vacinacao_*, ocorrencias_*, intencao_movimentacao,
+                       saida_previsao) + carga_status (frescor por domínio)
+app          organograma_unidade, atribuicao, atribuicao_adicional
+papéis       etl_writer · app_reader (marts + app) · bi_reader (marts)
+```
+
+### Fonte a fonte
+
+| Fonte | Onde | Método | `raw` | Freq. | Estado em 2026-09-29 |
+|---|---|---|---|---|---|
+| SGP (OME, seção) | 10.193.0.16 | fdw | raw_sgp | diária | **via fdw, em dia** |
+| Escala | 10.193.0.16 | fdw | raw_escala | diária | **via fdw, em dia** |
+| Mapa de força | 10.193.0.20 | fdw (incremental depois) | raw_mapa_forca | diária | **via fdw, em dia** |
+| Frota | 10.193.1.252:54329 | fdw | raw_frota | diária | **via fdw, em dia** |
+| Vacinação | 10.193.0.20 | fdw | raw_vacina | diária | fora do DW (o app lê a fonte) |
+| Ocorrências (ROE) | 10.193.1.252:15432 | fdw | raw_roe | diária | fora do DW (o app lê a fonte) |
+| Reserva remunerada | Neon (origem) | Python (`carga_raw.py reserva`) | raw_reserva | diária | no DW, parado em 08-24 |
+| Pecúlio | Google Sheets | Python (`raw_planilhas.py`) | raw_peculio | diária | em dia |
+| Finanças | Google Sheets | Python (`raw_planilhas.py`) | raw_financas | diária | no DW, sem uso |
+| QOD (previsto + lotação) | Google Sheets publicada | Python | raw_qod | por publicação | fora (xlsx local) |
+| Inativos, escolaridade | Abas da **mesma pasta do Pecúlio** | Python (`raw_planilhas.py`) | raw_inativos, raw_escolaridade | diária | **no DW desde 2026-09-29** (1.981 e 2.654 linhas) |
+| CIM (pedidos, atendidos) | Planilha própria | Python (`raw_planilhas.py`) | raw_cim | diária | **no DW desde 2026-09-29** (2.667 e 388) |
+| Material operacional | 5 planilhas (SMO, VT, CP, natureza, uso) | Python (`raw_planilhas.py`) | raw_materiais | diária | **smo, vt, uso no DW**; **CP e natureza despublicadas (HTTP 410)** |
+| IBGE, KMZ | arquivo / API | carga pontual | raw_ref | pontual | fora (JSON) |
+
+### Os scripts do Windmill do usuário (lidos em 2026-09-29, só leitura)
+
+Workspace `dgp` em `windmill-server.captain.cbmpe.intranet` (CE v1.378).
+**Nenhum script do DW está publicado lá ainda**: `carga_core.py`,
+`carga_raw.py` e `raw_planilhas.py` só rodaram manualmente. As cargas antigas
+(08-24, 09-25) foram feitas de uma máquina local.
+
+| Script (resumo) | Agenda | O que faz | Serve ao DW? |
+|---|---|---|---|
+| Pecúlio Metabase V1 | de hora em hora | Planilha do Pecúlio → Neon `Militar` + `postgres.public.peculio_metabase_v1` | **Não mexer.** O DW lê a mesma planilha direto em `raw_peculio`. Com a mesma agenda, a atualização é a mesma do Neon |
+| Metabase - Inativos e Escolaridade | diária | Duas abas da pasta do Pecúlio → `public.inativos_metabase`, `public.escolaridade_militares` | URLs reaproveitadas → `raw_inativos`, `raw_escolaridade` |
+| CIM_pedidos_e_atendidos | de hora em hora | Planilha → `public.cim_pedidos`, `cim_atendidos` | URLs reaproveitadas → `raw_cim` |
+| DF Metabase | a cada 2h | Planilha de Finanças (xlsx) → `public.fin_*` | Já coberto: é a mesma planilha de `raw_financas` |
+| ETL - Finanças | — | `public.fin_*` → Neon `FinancaLancamento` | Não: é cópia derivada, sai quando o app ler o DW |
+| ETL - Frotas | — | Frota → Neon `Viatura` | Não: o DW lê a Frota via fdw |
+| Material Operacional | diária | 5 planilhas → planilha "Material Operacional - Tratado" | URLs das originais → `raw_materiais`. **Falhando** nas últimas 5 execuções (conflito do pacote `cryptography` no worker) |
+| Controle do tempo de serviço | a cada 6h | Calcula datas de reserva e escreve de volta numa planilha | Não (dado derivado; o DW tem a reserva da origem). **Falhando** nas últimas 5 (HTTPError ao ler a URL do Pecúlio) |
+
+**Segurança:** "Material Operacional" e "Controle do tempo de serviço" têm a
+**chave privada de uma service account do Google colada no código**. Ela
+deveria virar *resource* secreto do Windmill, e a chave deveria ser rotacionada.
+
+### Ordem de execução
+1. ~~Fundação: fdw + `carregar_raw` + papéis-grupo~~ (**feito**, 2026-09-29).
+2. **Windmill**: flow `f/dw/dw_diario` e agenda **prontos em
+   `etl/windmill/publicar_dw.py`**. Para rodar no Windmill, o `carga_core.py`
+   deixou de ler arquivos locais e outros bancos (coordenadas via
+   `stg.coordenada_ome`; siglas do Pecúlio lidas de `raw_peculio`, conjunto
+   idêntico ao do antigo `mapeamento_unidades.json`). A publicação ainda
+   **precisa ser executada pelo usuário**: o comando foi bloqueado pelo
+   controle de permissões da sessão de 2026-09-29.
+3. **Fontes que faltam**: vacinação e ROE via fdw, QOD via planilha, e as
+   planilhas do Igor quando vierem os links. Para cada uma: raw → de-para de
+   OME → fato no core, com a regra que hoje está nos extratores do app
+   movida para SQL (D1).
+4. **`marts` por tela**, cada view reconciliada contra o JSON que ela
+   substitui (seção 7).
+5. **Rotas `/dados/*` no backend + `src/lib/cbmpe.js`**, domínio a domínio,
+   removendo o JSON correspondente do bundle.
+6. **Limpeza**: desligar os scripts `*_para_neon.py`, os fictícios viram "Em
+   construção", e resolver o `dw_dim`/`dw_diesp` com o dono.

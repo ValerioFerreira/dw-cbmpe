@@ -37,8 +37,40 @@ em `etl/dw/carga_core.py`, do `stg` para frente.
 | Script | Lê | Escreve |
 |---|---|---|
 | `raw_planilhas.py` | Planilhas do Pecúlio e de Finanças (Google Sheets) | `dw.raw_peculio.planilha`, `dw.raw_financas.*` |
-| `../../dw/carga_raw.py` | SGP, escala, mapa de força, Frota | `dw.raw_sgp`, `raw_escala`, `raw_mapa_forca`, `raw_frota` |
+| `raw_fdw.py` | SGP, escala, mapa de força, Frota — **o próprio DW lê a origem via `postgres_fdw`**; o script só chama `CALL stg.carregar_raw(fonte)` | `dw.raw_sgp`, `raw_escala`, `raw_mapa_forca`, `raw_frota` |
+| `../../dw/carga_raw.py reserva` | Sistema de reserva remunerada (Neon — a única fonte em que o Neon é a origem) | `dw.raw_reserva` |
 | `../../dw/carga_core.py` | `dw.raw_*` | `dw.stg`, `dw.core` |
+| `../../dw/validar.py` | `dw.core`, `dw.marts` | — (sai com erro se uma regra de negócio quebrar) |
+
+| `../../sgp/casar_coordenadas_ome.py --gravar-dw` | `dw.raw_ref.dw_dim_ome` + `dw.raw_sgp.tb_ome` | `dw.stg.coordenada_ome` (lido pelo `carga_core.py`) |
+
+**Flow diário `f/dw/dw_diario`** (workspace `dgp`, agenda 05:30
+America/Recife):
+1. **Em paralelo**, cada ramo com `skip_failure` para uma fonte fora do ar não
+   derrubar as outras: `raw_fdw.py`, `raw_planilhas.py` e
+   `carga_raw.py` com `fontes=["reserva"]`.
+2. `casar_coordenadas_ome.py` com `gravar_dw=true`.
+3. `carga_core.py`.
+4. `validar.py`. Falha o job se uma regra de negócio quebrar **ou** se a carga
+   mais recente de alguma tabela nas últimas 24h não terminou `ok`. É aqui
+   que a falha de um ramo do passo 1 aparece.
+
+**Como publicar:** `python etl/windmill/publicar_dw.py` (ou `--rodar` para
+também disparar uma vez). Ele cria a pasta `f/dw`, as variáveis **secretas**
+`f/dw/database_url_dw` e `f/dw/database_url_reserva`, os seis scripts a partir
+dos arquivos do repositório, o flow e a agenda. Lê tudo de variáveis de
+ambiente (`WINDMILL_URL/EMAIL/PASSWORD`, `DATABASE_URL_DW`,
+`DATABASE_URL_RESERVA`). **Não edite os scripts no Windmill**: edite aqui e
+publique de novo.
+
+As foreign tables do `raw_fdw.py` são criadas uma vez por
+`etl/dw/configurar_fdw.py`, que precisa rodar com o **mesmo usuário de banco**
+do flow, porque o user mapping é por usuário.
+
+**Planilhas pausadas** (`"pausada"` em `raw_planilhas.py`): ficam fora da
+rodada padrão enquanto estiverem fora do ar, para o flow não ficar vermelho
+todo dia. Hoje são `materiais_cp` e `materiais_natureza` (HTTP 410 desde
+2026-09-29).
 
 ### Por que o DW não lê o Neon
 

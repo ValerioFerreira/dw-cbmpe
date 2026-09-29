@@ -1,7 +1,13 @@
 # requirements:
 # psycopg2-binary
-"""Casa as coordenadas de dw_dim.efetivo.ome com ovrsgp.tb_ome e gera o
-relatorio de divergencias + o SQL de UPDATE de nr_latd/nr_long.
+"""Casa as coordenadas das OMEs com ovrsgp.tb_ome e gera o relatorio de
+divergencias + o SQL de UPDATE de nr_latd/nr_long.
+
+Desde 2026-09-29 le tudo do banco `dw`: a origem das coordenadas e
+raw_ref.dw_dim_ome (preservada do dw_dim, aposentado nesta data -- ver
+etl/dw/preservar_dw_dim.py) e as OMEs sao raw_sgp.tb_ome (copia diaria do SGP
+via fdw). Com --gravar-dw, grava o resultado em stg.coordenada_ome, que e de
+onde carga_core.py le -- e o passo que roda no flow diario do Windmill.
 
 Contexto (ver DW_PLANEJAMENTO.md): a tb_ome do SGP tem 82 linhas e nenhuma
 coordenada real -- as 75 que nao sao NULL estao gravadas como 0,0. O banco
@@ -15,7 +21,9 @@ de revisao humana.
 
 Uso:
     DATABASE_URL_SGP=... DATABASE_URL_DW=... python casar_coordenadas_ome.py
-    ... --aplicar     # executa os UPDATEs (revisar o relatorio antes!)
+    ... --gravar-dw   # grava stg.coordenada_ome no DW (seguro, idempotente)
+    ... --aplicar     # executa os UPDATEs no SGP (revisar o relatorio antes!)
+No Windmill: main(gravar_dw=True).
 """
 import os
 import sys
@@ -77,13 +85,18 @@ def normalizar(texto):
     return "".join(c for c in base.upper() if c.isalnum())
 
 
+def url_do_dw():
+    base, _, _ = os.environ["DATABASE_URL_DW"].rpartition("/")
+    return f"{base}/dw"
+
+
 def carregar_origem():
-    """dw_dim.efetivo.ome -- a fonte das coordenadas."""
-    url = os.environ["DATABASE_URL_DW"].replace("/postgres", "/dw_dim")
-    conn = psycopg2.connect(url, connect_timeout=15)
+    """raw_ref.dw_dim_ome -- a fonte das coordenadas (copia do antigo
+    dw_dim.efetivo.ome)."""
+    conn = psycopg2.connect(url_do_dw(), connect_timeout=15)
     cur = conn.cursor()
     cur.execute(
-        'SELECT "acrônimo", nome, latitude, longitude FROM efetivo.ome '
+        'SELECT "acrônimo", nome, latitude, longitude FROM raw_ref.dw_dim_ome '
         "WHERE latitude IS NOT NULL AND longitude IS NOT NULL"
     )
     origem = {}
@@ -100,12 +113,12 @@ def carregar_origem():
 
 
 def carregar_destino():
-    """ovrsgp.tb_ome -- quem vai receber as coordenadas."""
-    conn = psycopg2.connect(os.environ["DATABASE_URL_SGP"], connect_timeout=15)
+    """raw_sgp.tb_ome -- as OMEs do SGP, na copia diaria do DW."""
+    conn = psycopg2.connect(url_do_dw(), connect_timeout=15)
     cur = conn.cursor()
     cur.execute(
         "SELECT id_ome, nm_ome, sg_ome, ic_tipo, ic_stat, nr_latd, nr_long "
-        "FROM ovrsgp.tb_ome ORDER BY id_ome"
+        "FROM raw_sgp.tb_ome ORDER BY id_ome"
     )
     linhas = cur.fetchall()
     conn.close()
@@ -162,8 +175,26 @@ def resolver(linha, origem, por_sigla, por_nome):
     return None, "divergencia", "operacional sem correspondencia na origem"
 
 
-def main():
-    aplicar = "--aplicar" in sys.argv
+def gravar_no_dw(resultados):
+    """Resultado do casamento -> stg.coordenada_ome (troca inteira, numa
+    transacao). So entra quem recebeu coordenada."""
+    conn = psycopg2.connect(url_do_dw(), connect_timeout=15)
+    cur = conn.cursor()
+    cur.execute("DELETE FROM stg.coordenada_ome")
+    linhas = [
+        (int(id_ome), (sigla or "").strip(), coord[0], coord[1], categoria, explicacao)
+        for (id_ome, _n, sigla, _t, _s, _la, _lo), coord, categoria, explicacao in resultados
+        if coord is not None
+    ]
+    cur.executemany(
+        "INSERT INTO stg.coordenada_ome (id_ome, sigla, latitude, longitude, categoria, explicacao) "
+        "VALUES (%s, %s, %s, %s, %s, %s)", linhas)
+    conn.commit()
+    conn.close()
+    print("%d coordenadas gravadas em stg.coordenada_ome." % len(linhas))
+
+
+def main(gravar_dw: bool = False, aplicar: bool = False):
     origem = carregar_origem()
 
     por_sigla, por_nome = {}, {}
@@ -201,6 +232,10 @@ def main():
     print("RESUMO: %d linhas na tb_ome | %d receberiam coordenada | %d divergencias"
           % (len(linhas), len(aplicaveis), len(divergentes)))
 
+    if gravar_dw:
+        gravar_no_dw(resultados)
+        return {"com_coordenada": len(aplicaveis), "divergencias": len(divergentes)}
+
     with SAIDA_SQL.open("w", encoding="utf-8") as fh:
         fh.write("-- Gerado por etl/sgp/casar_coordenadas_ome.py -- REVISAR ANTES DE EXECUTAR.\n")
         fh.write("-- Preenche nr_latd/nr_long em ovrsgp.tb_ome (hoje 0,0 ou NULL em todas).\n")
@@ -236,4 +271,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(gravar_dw="--gravar-dw" in sys.argv, aplicar="--aplicar" in sys.argv)

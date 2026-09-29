@@ -26,18 +26,12 @@ DW_PLANEJAMENTO.md (entrada 2026-08-24) e DW_MODELO_DADOS.md:
 Uso:
     python carga_core.py
 """
-import importlib.util
-import json
 import os
 import re
 import unicodedata
-from pathlib import Path
 
 import psycopg2
 from psycopg2.extras import execute_values
-
-RAIZ = Path(__file__).resolve().parents[2]
-MAPEAMENTO_PECULIO = RAIZ / "etl" / "efetivo" / "mapeamento_unidades.json"
 
 # --- regras de OME, ver docstring -------------------------------------------
 SK_CG = 23
@@ -162,27 +156,14 @@ def arvore_do_organograma(cur):
     return arvore, pai_de_filho
 
 
-def coordenadas_das_omes():
-    """Reaproveita as regras ja fechadas em etl/sgp/casar_coordenadas_ome.py
-    em vez de duplica-las aqui -- elas foram revisadas uma a uma com o
-    usuario e nao devem ter duas versoes."""
-    caminho = RAIZ / "etl" / "sgp" / "casar_coordenadas_ome.py"
-    spec = importlib.util.spec_from_file_location("casar_coord", caminho)
-    modulo = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(modulo)
-
-    origem = modulo.carregar_origem()
-    por_sigla, por_nome = {}, {}
-    for reg in origem.values():
-        por_sigla.setdefault(reg["chave_sigla"], []).append(reg)
-        por_nome.setdefault(reg["chave_nome"], []).append(reg)
-
-    coords = {}
-    for linha in modulo.carregar_destino():
-        coord, _categoria, _explicacao = modulo.resolver(linha, origem, por_sigla, por_nome)
-        if coord:
-            coords[int(linha[0])] = coord
-    return coords
+def coordenadas_das_omes(cur):
+    """Coordenada por id_ome do SGP, ja casada por
+    etl/sgp/casar_coordenadas_ome.py --gravar-dw (as regras foram revisadas
+    uma a uma com o usuario e so existem la). Ate 2026-09-29 este script
+    importava aquele arquivo do disco e lia o banco dw_dim; agora le so o
+    `dw`, para rodar no Windmill -- o casamento e o passo anterior do flow."""
+    cur.execute("SELECT id_ome, latitude::float, longitude::float FROM stg.coordenada_ome")
+    return {int(i): (lat, lon) for i, lat, lon in cur.fetchall()}
 
 
 # ---------------------------------------------------------------------------
@@ -211,7 +192,7 @@ def carregar_dim_tempo(cur):
 # dim_ome + closure
 # ---------------------------------------------------------------------------
 def carregar_dim_ome(cur):
-    coords = coordenadas_das_omes()
+    coords = coordenadas_das_omes(cur)
 
     cur.execute("""
         SELECT id_ome, id_ome_fk, sg_ome, nm_ome, ic_tipo, nr_nivel_ome,
@@ -629,7 +610,7 @@ def carregar_dim_viatura(cur):
     # nao sumirem em silencio.
     cur.execute(r"""
         SELECT count(*) FROM raw_frota.vehicle_statuses
-        WHERE reference_date !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
+        WHERE reference_date::text !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
     """)
     datas_descartadas = cur.fetchone()[0]
 
@@ -647,7 +628,7 @@ def carregar_dim_viatura(cur):
                    'situacao', vst.name
             FROM raw_frota.vehicle_statuses vs
             JOIN raw_frota.vehicle_status_types vst ON vst.id = vs.status_type_id
-            WHERE vs.reference_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
+            WHERE vs.reference_date::text ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
         ),
         datas AS (SELECT DISTINCT vehicle_id, d FROM eventos),
         -- Estado da viatura em cada data de evento: o ultimo valor conhecido
@@ -797,10 +778,27 @@ def carregar_de_para_ome(cur):
     linhas.append(("sgp", "DGP.", SK_DGP, "fusao",
                    "id 8 do SGP e a mesma DGP do id 25 -- decisao de 2026-08-24"))
 
-    # Peculio (Neon): as chaves do mapeamento ja usado pelo app.
-    mapeamento = json.loads(MAPEAMENTO_PECULIO.read_text(encoding="utf-8"))
+    # Peculio: as siglas de OME que aparecem na planilha (coluna na posicao
+    # 3, mesmo filtro de militar de carregar_dimensoes_pessoal). Ate
+    # 2026-09-29 vinham das chaves de etl/efetivo/mapeamento_unidades.json;
+    # conferido nesta data que os dois conjuntos eram identicos (46 siglas),
+    # e ler da raw faz uma OME nova na planilha entrar sozinha -- ou aparecer
+    # em "nao casados" abaixo.
+    cur.execute("""
+        SELECT column_name FROM information_schema.columns
+        WHERE table_schema = 'raw_peculio' AND table_name = 'planilha'
+          AND column_name LIKE 'col%' ORDER BY ordinal_position
+    """)
+    col = {int(c[4:6]): c for (c,) in cur.fetchall()}
+    cur.execute(f"""
+        SELECT DISTINCT trim("{col[3]}") FROM raw_peculio.planilha
+        WHERE nullif(trim("{col[8]}"), '') IS NOT NULL
+          AND nullif(trim("{col[3]}"), '') IS NOT NULL
+        ORDER BY 1
+    """)
+    siglas_peculio = [s for (s,) in cur.fetchall()]
     nao_casados = []
-    for sigla_peculio in mapeamento:
+    for sigla_peculio in siglas_peculio:
         alvo = PECULIO_PARA_SGP.get(sigla_peculio, sigla_peculio)
         sk = por_sigla.get(normalizar(alvo))
         if sk is None:

@@ -20,7 +20,16 @@
   trabalhamos toda vez que uma nova fonte de dados é integrada ao DW.
   **Leitura obrigatória antes de propor qualquer integração de fonte.**
 
-## Estado atual — onde retomar (atualizado 2026-09-23)
+## Estado atual — onde retomar (atualizado 2026-09-29)
+
+> **2026-09-29 — DW v1 desenhado; as fontes Postgres internas entram via
+> `postgres_fdw`.** O plano completo (estrutura v1, fonte a fonte, ordem de
+> execução) está em [`DW_INGESTAO.md`](DW_INGESTAO.md) seção 9, e o detalhe
+> na entrada **2026-09-29** do log abaixo. **Próximo passo:** rodar
+> `python etl/windmill/publicar_dw.py --rodar`, que publica o flow `dw_diario`
+> no Windmill. Está autorizado pelo usuário, mas a execução foi bloqueada
+> pelo controle de permissões da sessão. `dw_dim` aposentado (renomeado, não
+> apagado). Depois: vacinação e ROE via fdw, QOD, e `marts` por tela.
 
 > **2026-09-23 — autenticação real via SGU e Docker completo, numa worktree
 > isolada, para revisão (nada commitado ainda).** `backend/` novo (Express,
@@ -4556,3 +4565,61 @@ vêm de planilhas do Igor): criado o schema `app` no banco `dw`
 (semente importada e conferida idêntica), `carga_core.py` lê a hierarquia da
 tabela. Reconciliação do Efetivo DW × app e próximos passos em
 [`DW_INGESTAO.md`](DW_INGESTAO.md) seções 6–8.
+
+### 2026-09-29 — DW v1: fdw para as fontes internas, papéis, planilhas do Windmill no `raw`
+
+Pedido do usuário: organizar para que todo dado esteja no `dw` e o sistema
+se conecte a ele, olhando fonte a fonte. Desenho completo em
+[`DW_INGESTAO.md`](DW_INGESTAO.md) seção 9. O que foi feito e medido:
+
+- **Servidor `10.193.1.252:54301`: confirmado como o DW, com 4 bancos.**
+  `dw` (nosso), `postgres` (Metabase), `dw_dim` e `dw_diesp`, estes dois
+  achados agora e **do próprio usuário** (seção 3 do `DW_INGESTAO.md`).
+- **Fontes Postgres internas via `postgres_fdw`** (decisão do usuário):
+  `08_fdw.sql` (procedimento `stg.carregar_raw`), `configurar_fdw.py`
+  (servidores, mappings, foreign tables sem colunas de CPF) e
+  `etl/windmill/dw/raw_fdw.py` (gatilho). SGP, escala, mapa de força e Frota
+  foram recarregados, pela primeira vez desde 08-24. O mapa de força levou
+  **19 s** para 1,9 milhão de linhas.
+- **Um ajuste no `carga_core.py`**: `reference_date` da Frota agora chega como
+  `date`, e não mais como texto. O regex passou a rodar em `::text`, e o
+  descarte das 3 datas com ano impossível continua igual.
+  `carga_core.py` foi rodado de novo, sem erro.
+- **`validar.py` com expectativas dinâmicas.** As 10 "falhas" eram o total
+  de agosto (2658) cravado no código, contra 2655 de hoje. Agora o total vem
+  da planilha em `raw` e o resto são invariantes. Resultado: 19/19 ok.
+- **Papéis D7**: `07_papeis.sql` cria os papéis-grupo sem login.
+  `app_reader` só enxerga `marts` + `app`. Para isso nasceu
+  `marts.ome_atual_militar`, e o `backend/services/omeResolver.js` deixou de
+  ler `core` (0 divergências contra a consulta antiga).
+- **Scripts do Windmill do usuário lidos** (só leitura, via API): as URLs de
+  CIM, inativos, escolaridade e Material Operacional foram reaproveitadas em
+  `raw_planilhas.py`. Carregados `raw_cim`, `raw_inativos`,
+  `raw_escolaridade` e `raw_materiais` (3 de 5: CP e natureza estão
+  despublicadas). O `raw_planilhas.py` agora isola a falha de uma planilha.
+  Dois jobs do usuário estão falhando e dois têm chave de service account no
+  código. Detalhe na seção 9 do `DW_INGESTAO.md`.
+- **Efetivo e Neon** (nota do usuário): o Neon tem o efetivo mais atual
+  porque o "Pecúlio Metabase V1" roda de hora em hora a partir da planilha.
+  O DW lê a **mesma planilha** direto; com a mesma agenda, tem o mesmo
+  frescor. `postgres.public.peculio_metabase_v1` não foi tocada.
+- Credenciais do Windmill: só no `.env.local` (gitignored).
+- Local: `.claude/launch.json` ganhou `dw-cbmpe-backend` (porta 4000).
+
+**Mesma data, segunda parte** (o usuário autorizou publicar, commitar e
+aposentar o `dw_dim`):
+- **`dw_dim` aposentado sem apagar nada**: renomeado para
+  `dw_dim_aposentado_20260929`, com `CONNECT` revogado. Antes, as tabelas úteis
+  e sem dado pessoal foram para `dw.raw_ref`. Achado no caminho: o
+  `carga_core.py` tirava as coordenadas das OMEs do `dw_dim`, por meio do
+  `casar_coordenadas_ome.py` importado do disco. Agora a cadeia é
+  `raw_ref` → `stg.coordenada_ome` → `core`, com resultado idêntico.
+- **`carga_core.py` só lê o banco `dw`**. Não lê mais arquivo local, nem o
+  SGP direto, nem o `dw_dim`. É pré-requisito para rodar no Windmill.
+- **`validar.py` checa as cargas das últimas 24h (D8)**, e o
+  `raw_planilhas.py` registra falha de download em `stg.carga`. As planilhas
+  CP e natureza (HTTP 410) ficam "pausadas".
+- **Publicador `etl/windmill/publicar_dw.py`**: cria a pasta `f/dw`, as
+  variáveis secretas, os 6 scripts (publicados a partir do repositório),
+  o flow `dw_diario` e a agenda das 05:30. **Não foi executado**: o
+  controle de permissões da sessão bloqueou. Fica para o usuário rodar.

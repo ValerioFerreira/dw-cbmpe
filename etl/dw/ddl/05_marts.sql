@@ -263,3 +263,21 @@ LEFT JOIN core.fato_efetivo_diario f
       AND f.sk_tempo = (SELECT max(sk_tempo) FROM core.fato_efetivo_diario)
 LEFT JOIN core.dim_ome o                  ON o.sk_ome = f.sk_ome
 LEFT JOIN core.dim_tipo_afastamento ta    ON ta.sk_tipo_afastamento = f.sk_tipo_afastamento;
+
+-- OME atual de cada militar, pela linha mais recente DAQUELE militar no
+-- fato diario (nao o ultimo dia global: quem saiu do efetivo antes do
+-- ultimo dia carregado tambem resolve). E o que o backend usa para
+-- matricula -> OME no login e no /adm (backend/services/omeResolver.js), sem
+-- precisar de acesso a core (D6). Sem nome nem dado pessoal: so a chave.
+CREATE OR REPLACE VIEW marts.ome_atual_militar AS
+SELECT DISTINCT ON (m.matricula)
+    m.matricula,
+    o.sigla     AS ome_sigla,
+    o.nome      AS ome_nome,
+    f.adido,
+    t.data      AS data_referencia
+FROM core.dim_militar m
+JOIN core.fato_efetivo_diario f ON f.sk_militar = m.sk_militar
+JOIN core.dim_ome o             ON o.sk_ome = f.sk_ome
+JOIN core.dim_tempo t           ON t.sk_tempo = f.sk_tempo
+ORDER BY m.matricula, f.sk_tempo DESC;

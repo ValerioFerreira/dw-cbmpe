@@ -67,6 +67,71 @@ PLANILHAS = {
         "formato": "xlsx",
         "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSdAOE4f85xPHmIdWzNqliukYDJt-88nMcy0Ny7S-1BKWyvNtvF_-XcSWWSzdj3LZYp5drKoOskt-uc/pub?output=xlsx",
     },
+    # --- 2026-09-29: planilhas que so chegavam ao banco `postgres` (Metabase)
+    # pelos scripts do Windmill do usuario. Aqui entram como estao, direto da
+    # planilha publicada (D3), sem passar por public.* -- que continua
+    # intocado, servindo o Metabase.
+    # "Metabase - Inativos e Escolaridade": abas da MESMA pasta do Peculio.
+    "inativos": {
+        "schema": "raw_inativos",
+        "tabela": "planilha",
+        "formato": "csv",
+        "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQijAJBzH4CsNdlBBTpx6VPFRXAXNeITi7WxOmwHIN6gqLLnOEHgTWIv8VSZl_37ULf0zBeapJOwUBZ/pub?gid=150669536&single=true&output=csv",
+    },
+    "escolaridade": {
+        "schema": "raw_escolaridade",
+        "tabela": "planilha",
+        "formato": "csv",
+        "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQijAJBzH4CsNdlBBTpx6VPFRXAXNeITi7WxOmwHIN6gqLLnOEHgTWIv8VSZl_37ULf0zBeapJOwUBZ/pub?gid=752893521&single=true&output=csv",
+    },
+    # "CIM_pedidos_e_atendidos": intencao de movimentacao.
+    "cim_pedidos": {
+        "schema": "raw_cim",
+        "tabela": "pedidos",
+        "formato": "csv",
+        "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vTAlnFTuArYkXiO-pTAmOumKsjnLpTMD-zKgu0q__xw6Z_AdyCfX5bLd-FSLHCIk7mxVjUHx2xOsykK/pub?gid=0&single=true&output=csv",
+    },
+    "cim_atendidos": {
+        "schema": "raw_cim",
+        "tabela": "atendidos",
+        "formato": "csv",
+        "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vTAlnFTuArYkXiO-pTAmOumKsjnLpTMD-zKgu0q__xw6Z_AdyCfX5bLd-FSLHCIk7mxVjUHx2xOsykK/pub?gid=520602091&single=true&output=csv",
+    },
+    # "Material Operacional": as 5 planilhas ORIGINAIS que o script do
+    # usuario trata e grava na planilha "Material Operacional - Tratado". O DW
+    # guarda as originais; o tratamento vira stg/core quando Materiais entrar.
+    "materiais_smo": {
+        "schema": "raw_materiais",
+        "tabela": "smo",
+        "formato": "csv",
+        "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQq7fyKYVwPyh9RvxQzaitlpJDDVFwIm1BAM-ph79G4Ebl9sqizSFNm5hN9bomvpIV13AfVacLf1PU-/pub?gid=870321773&single=true&output=csv",
+    },
+    "materiais_vt": {
+        "schema": "raw_materiais",
+        "tabela": "vt",
+        "formato": "csv",
+        "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_9MLmCG1dhKtauZZkfT5wRtnkCwu8icB-T2LFN1BIY82i1jpvnYzzORKPSNhe-L81SmiHXYEgXkMx/pub?gid=189257916&single=true&output=csv",
+    },
+    "materiais_cp": {
+        "schema": "raw_materiais",
+        "tabela": "cp",
+        "formato": "csv",
+        "pausada": "despublicada (HTTP 410) desde 2026-09-29 -- republicar e remover esta chave",
+        "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRDngjWa0Sg6aSPg6pLYdtTbYYjgS78B51-yW1fCinanDq1aV3nB4yglPuMgK_-bA/pub?gid=1086983721&single=true&output=csv",
+    },
+    "materiais_natureza": {
+        "schema": "raw_materiais",
+        "tabela": "natureza",
+        "formato": "csv",
+        "pausada": "despublicada (HTTP 410) desde 2026-09-29 -- republicar e remover esta chave",
+        "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRDngjWa0Sg6aSPg6pLYdtTbYYjgS78B51-yW1fCinanDq1aV3nB4yglPuMgK_-bA/pub?gid=855558513&single=true&output=csv",
+    },
+    "materiais_uso": {
+        "schema": "raw_materiais",
+        "tabela": "uso",
+        "formato": "csv",
+        "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vT4PITcONEn0irlRHdEAydHWxLZHBvASg5bGyT8Y3K1t7KgYMjTHrQ3lRTMAGa-Jxfd42Sbh-HRZF7R/pub?gid=1269397420&single=true&output=csv",
+    },
 }
 
 
@@ -158,23 +223,54 @@ def baixar(url, formato):
     return pd.read_excel(dados, sheet_name=None, dtype=str)
 
 
-def main():
-    alvos = sys.argv[1:] or list(PLANILHAS)
+def main(planilhas: list = None):
+    """No Windmill: main() carrega todas. Na linha de comando: argv."""
+    # "pausada": planilha sabidamente fora do ar. Fica fora da rodada padrao
+    # (senao o flow diario fica vermelho todo dia e o alarme perde o sentido),
+    # mas carrega se pedida pelo nome.
+    if planilhas:
+        alvos = planilhas
+    else:
+        alvos = [n for n, spec in PLANILHAS.items() if not spec.get("pausada")]
+        for n, spec in PLANILHAS.items():
+            if spec.get("pausada"):
+                print(f"(pausada) {n}: {spec['pausada']}")
     conn = psycopg2.connect(url_do_dw(), connect_timeout=30)
 
+    # Uma planilha fora do ar (ex.: despublicada, HTTP 410) nao pode impedir
+    # as outras de carregar (D8): tenta todas, e so no fim sai com erro para
+    # o Windmill marcar o job como falho. A raw da que falhou fica como
+    # estava na ultima carga boa.
+    falhas = []
     for nome in alvos:
         spec = PLANILHAS[nome]
         print(f"\n=== {nome} ===")
-        abas = baixar(spec["url"], spec["formato"])
-        for aba, df in abas.items():
-            if aba is None:
-                tabela = spec["tabela"]
-            else:
-                tabela = nome_de_coluna(aba, 0).replace("col_00_", "") or "aba"
-            gravar(conn, spec["schema"], tabela, df, f"google_sheets:{nome}")
+        try:
+            abas = baixar(spec["url"], spec["formato"])
+            for aba, df in abas.items():
+                if aba is None:
+                    tabela = spec["tabela"]
+                else:
+                    tabela = nome_de_coluna(aba, 0).replace("col_00_", "") or "aba"
+                gravar(conn, spec["schema"], tabela, df, f"google_sheets:{nome}")
+        except Exception as erro:
+            conn.rollback()
+            falhas.append(nome)
+            print(f"  !! {nome}: {erro}")
+            # Registra a falha em stg.carga -- se o download falhou, gravar()
+            # nem chegou a abrir linha, e a falha sumiria do log (D8).
+            cur = conn.cursor()
+            cur.execute(
+                "INSERT INTO stg.carga (fonte, tabela, concluido_em, status, observacao) "
+                "VALUES (%s, %s, clock_timestamp(), 'erro', %s)",
+                (f"google_sheets:{nome}", f"{spec['schema']}.{spec['tabela'] or '*'}", str(erro)[:500]),
+            )
+            conn.commit()
 
     conn.close()
+    if falhas:
+        raise RuntimeError(f"planilhas com falha: {', '.join(falhas)}")
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:] or None)
