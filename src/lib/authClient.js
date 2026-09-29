@@ -25,6 +25,11 @@
 // A chave de storage "cbmpe_auth_user_v2" continua a mesma; sessões antigas
 // sem `token` (o admin fixo adm/adm removido) são descartadas em auth.me() —
 // exceto a do AGGD.
+//
+// No build interno (CapRover, VITE_APP_INTERNO=1 — ver Dockerfile) ele NÃO
+// existe: lá o SGU está ao alcance e o login local seria só uma porta sem
+// autenticação. Continua existindo só no build da Vercel.
+const LOGIN_LOCAL_HABILITADO = import.meta.env.VITE_APP_INTERNO !== "1";
 const LOGIN_LOCAL_USUARIO = "AGGD";
 const LOGIN_LOCAL_SENHA = "AGGD@GSG";
 const LOGIN_LOCAL_ID = "login-local-aggd";
@@ -95,7 +100,14 @@ export const auth = {
     }
 
     // Login local AGGD (ver cabeçalho): sessão só do navegador, sem backend.
-    if (user.id === LOGIN_LOCAL_ID) return user;
+    // No build interno uma sessão dessas (de antes da transição) é derrubada.
+    if (user.id === LOGIN_LOCAL_ID) {
+      if (LOGIN_LOCAL_HABILITADO) return user;
+      localStorage.removeItem(STORAGE_KEY);
+      const err = new Error("Sessão expirada");
+      err.status = 401;
+      throw err;
+    }
 
     // Sessão sem token = resquício do admin fixo adm/adm (removido em
     // 2026-09-25) — derruba, força novo login.
@@ -128,7 +140,7 @@ export const auth = {
 
   async loginViaEmailPassword(usuario, senha) {
     if (!usuario || !senha) throw new Error("Informe CPF e senha");
-    if (usuario.trim().toUpperCase() === LOGIN_LOCAL_USUARIO) {
+    if (LOGIN_LOCAL_HABILITADO && usuario.trim().toUpperCase() === LOGIN_LOCAL_USUARIO) {
       if (senha !== LOGIN_LOCAL_SENHA) throw new Error("Usuário ou senha inválidos");
       writeUser({ id: LOGIN_LOCAL_ID, email: LOGIN_LOCAL_USUARIO, full_name: "Administrador (AGGD)", role: "admin", nivelAcesso: null });
       return;

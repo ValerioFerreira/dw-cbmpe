@@ -6,6 +6,9 @@ services:
         # Origem publica do backend abaixo — sem isto o front nao sabe pra
         # onde mandar o login por CPF (ver src/lib/authClient.js).
         VITE_AUTH_API_URL: ${VITE_AUTH_API_URL}
+        # App interno: sem login local AGGD e sem dado pessoal no bundle (o
+        # dado vem do DW pelo backend) — ver Dockerfile e vite.config.js.
+        VITE_APP_INTERNO: "1"
     ports:
       - "8080:80"
     restart: unless-stopped

@@ -12,6 +12,13 @@ COPY . .
 ARG VITE_AUTH_API_URL
 ENV VITE_AUTH_API_URL=$VITE_AUTH_API_URL
 
+# App interno (CapRover): sem login local AGGD e sem os JSON com dado
+# pessoal no bundle — o dado vem do DW pelo backend. Ver vite.config.js e
+# src/lib/authClient.js. Este Dockerfile só é usado no CapRover (a Vercel
+# faz o próprio build), por isso o padrão aqui é 1.
+ARG VITE_APP_INTERNO=1
+ENV VITE_APP_INTERNO=$VITE_APP_INTERNO
+
 RUN npm run build
 
 # Serve: nginx servindo os arquivos estáticos gerados, com fallback de
