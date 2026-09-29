@@ -832,6 +832,21 @@ def carregar_de_para_ome(cur):
         else:
             nao_casados.append(f"frota:{acronimo}")
 
+    # Organograma do app: sigla do organograma -> OME do DW. E o que deixa o
+    # marts responder na sigla que o app usa (marts.efetivo_organograma e
+    # afins, lidos pelo backend em /dados). Sigla do organograma que nao
+    # existe no SGP (unidade so planejada, ou "em construcao") aparece em
+    # "sem correspondencia" e simplesmente nao recebe numero do DW.
+    cur.execute("SELECT DISTINCT sigla FROM app.organograma_unidade")
+    for (sigla_org,) in cur.fetchall():
+        alvo = ORGANOGRAMA_PARA_SGP.get(sigla_org, sigla_org)
+        sk = por_sigla.get(normalizar(alvo))
+        if sk is None:
+            nao_casados.append(f"organograma:{sigla_org}")
+            continue
+        tipo = "grafia" if alvo == sigla_org else "de_para"
+        linhas.append(("organograma", sigla_org, sk, tipo, None))
+
     # Remove duplicata de (sistema, valor_origem) mantendo a primeira.
     unicos, chaves = [], set()
     for l in linhas:
@@ -1362,8 +1377,93 @@ def carregar_fatos_reserva(cur):
     print(f"  fato_previsao_reserva        {cur.fetchone()[0]:>8}")
 
 
+# ---------------------------------------------------------------------------
+# Financas
+# ---------------------------------------------------------------------------
+# A planilha de Financas tem UMA aba de dados ("Banco de Dados - NAO MEXER",
+# raw_financas.banco_de_dados_nao_mexer) com tres blocos lado a lado --
+# Autorizacao em A:R, Carnaval 2026 em T:AK, SFI Ordinario em AM:AZ. E o mesmo
+# recorte por posicao que o script "DF Metabase" do Windmill usa para gravar
+# public.fin_*. Aqui a posicao e conferida contra o cabeçalho: se a planilha
+# ganhar ou perder coluna, a carga para em vez de somar a coluna errada.
+BLOCOS_FINANCAS = {
+    # bloco: {campo: (posicao 1-based, trecho(s) aceito(s) no nome da coluna)}
+    # O bloco Autorizacao chama o destino de "OME"; os outros, de "DESTINO".
+    "autorizacao": {"valor": (8, "valor"), "destino": (10, ("destino", "ome")),
+                    "enquadramento": (11, "enquadr"), "situacao": (12, "situa"),
+                    "mes": (13, "mes"), "valor_liquidado": (15, "liquid"),
+                    "valor_pago": (16, "pago")},
+    "carnaval_2026": {"valor": (27, "valor"), "destino": (29, "destino"),
+                      "enquadramento": (30, "enquadr"), "situacao": (31, "situa"),
+                      "mes": (32, "mes"), "valor_liquidado": (34, "liquid"),
+                      "valor_pago": (35, "pago")},
+    "sfi_ordinario": {"natureza": (42, "natureza"), "valor": (44, "valor"),
+                      "destino": (45, "destino"), "situacao": (46, "situa"),
+                      "mes": (47, "mes"), "valor_liquidado": (49, "liquid"),
+                      "valor_pago": (50, "pago")},
+}
+CAMPOS_TEXTO = ("destino", "enquadramento", "situacao", "natureza", "mes")
+CAMPOS_VALOR = ("valor", "valor_liquidado", "valor_pago")
+
+
+def carregar_fato_financeiro(cur):
+    cur.execute("""
+        SELECT column_name FROM information_schema.columns
+        WHERE table_schema = 'raw_financas' AND table_name = 'banco_de_dados_nao_mexer'
+          AND column_name LIKE 'col%'
+    """)
+    col = {int(c[4:6]): c for (c,) in cur.fetchall()}
+    if not col:
+        print("  fato_financeiro              (raw_financas.banco_de_dados_nao_mexer ausente -- pulado)")
+        return
+
+    cur.execute("DELETE FROM core.fato_financeiro")
+    for bloco, campos in BLOCOS_FINANCAS.items():
+        def confere(pos, trechos):
+            nome = col.get(pos) or ""
+            return any(t in nome for t in (trechos if isinstance(trechos, tuple) else (trechos,)))
+
+        errados = [f"{campo}: posicao {pos} = {col.get(pos)!r}, esperado {trecho!r}"
+                   for campo, (pos, trecho) in campos.items()
+                   if not confere(pos, trecho)]
+        if errados:
+            raise SystemExit(f"planilha de Financas mudou de estrutura no bloco {bloco}: "
+                             + "; ".join(errados))
+
+        def expr(campo):
+            if campo not in campos:
+                return "NULL"
+            nome = col[campos[campo][0]]
+            if campo in CAMPOS_VALOR:
+                return f'stg.valor_monetario("{nome}")'
+            return f'nullif(trim("{nome}"), \'\')'
+
+        preenchido = " OR ".join(f'nullif(trim("{col[campos[c][0]]}"), \'\') IS NOT NULL'
+                                 for c in ("destino", "valor", "situacao"))
+        cur.execute(f"""
+            INSERT INTO core.fato_financeiro
+                (bloco, linha, destino, enquadramento, situacao, natureza, mes,
+                 valor, valor_liquidado, valor_pago)
+            SELECT %s, linha, {expr('destino')}, {expr('enquadramento')}, {expr('situacao')},
+                   {expr('natureza')}, {expr('mes')},
+                   {expr('valor')}, {expr('valor_liquidado')}, {expr('valor_pago')}
+            FROM raw_financas.banco_de_dados_nao_mexer
+            WHERE {preenchido}
+        """, (bloco,))
+
+    cur.execute("SELECT bloco, count(*) FROM core.fato_financeiro GROUP BY 1 ORDER BY 1")
+    resumo = ", ".join(f"{b}={n}" for b, n in cur.fetchall())
+    cur.execute("SELECT count(*) FROM marts.financas_destino_sem_mapeamento")
+    sem = cur.fetchone()[0]
+    extra = f"  !! {sem} destino(s) sem mapeamento (marts.financas_destino_sem_mapeamento)" if sem else ""
+    print(f"  fato_financeiro              {resumo}{extra}")
+
+
 def main():
-    conn = psycopg2.connect(url_do_dw(), connect_timeout=30)
+    # role=etl_writer: o que esta carga cria (views em stg) fica com o dono
+    # das camadas, seja rodada pelo Windmill (windmill_etl) ou a mao pelo
+    # administrador. Ver etl/dw/ddl/07_papeis.sql.
+    conn = psycopg2.connect(url_do_dw(), connect_timeout=30, options="-c role=etl_writer")
     cur = conn.cursor()
 
     print("Snapshots diarios (guardados pela chave natural):")
@@ -1393,6 +1493,7 @@ def main():
     carregar_fato_frota_diaria(cur)
     carregar_fatos_lancamento(cur)
     carregar_fatos_reserva(cur)
+    carregar_fato_financeiro(cur)
     conn.commit()
 
     cur.close()

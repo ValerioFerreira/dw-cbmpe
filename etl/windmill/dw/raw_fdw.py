@@ -27,7 +27,7 @@ import time
 
 import psycopg2
 
-FONTES = ["frota", "sgp", "escala", "mapa_forca"]
+FONTES = ["frota", "sgp", "escala", "mapa_forca", "vacina", "roe"]
 
 
 def url_do_dw():
@@ -37,7 +37,10 @@ def url_do_dw():
 
 def main(fontes: list = None):
     alvos = fontes or FONTES
-    conn = psycopg2.connect(url_do_dw(), connect_timeout=30)
+    # role=etl_writer: a raw recriada fica com o dono das camadas, e o
+    # postgres_fdw usa o user mapping de etl_writer -- o mesmo caminho seja
+    # quem for que rode (ver etl/dw/ddl/07_papeis.sql e configurar_fdw.py).
+    conn = psycopg2.connect(url_do_dw(), connect_timeout=30, options="-c role=etl_writer")
     # CALL de procedimento que faz COMMIT por tabela: nao pode rodar dentro
     # de transacao aberta pelo driver.
     conn.autocommit = True

@@ -25,11 +25,13 @@
 > **2026-09-29 — DW v1 desenhado; as fontes Postgres internas entram via
 > `postgres_fdw`.** O plano completo (estrutura v1, fonte a fonte, ordem de
 > execução) está em [`DW_INGESTAO.md`](DW_INGESTAO.md) seção 9, e o detalhe
-> na entrada **2026-09-29** do log abaixo. **Próximo passo:** rodar
-> `python etl/windmill/publicar_dw.py --rodar`, que publica o flow `dw_diario`
-> no Windmill. Está autorizado pelo usuário, mas a execução foi bloqueada
-> pelo controle de permissões da sessão. `dw_dim` aposentado (renomeado, não
-> apagado). Depois: vacinação e ROE via fdw, QOD, e `marts` por tela.
+> na entrada **2026-09-29** do log abaixo. **Estado ao fim do dia:** flow
+> `f/dw/dw_diario` publicado e rodando no Windmill (05:30), como `windmill_etl`
+> (não superusuário). Vacinação, ROE, QOD, CIM, inativos e escolaridade no DW.
+> O app lê efetivo, viaturas e finanças do DW quando o backend está ao
+> alcance, com fallback para os JSON na Vercel (`DW_INGESTAO.md` seção 10).
+> **Próximo passo:** `marts` do QOD (previsto, lotação, chefes) e as rotas
+> nominais `/dados/*` com filtro por perfil no servidor.
 
 > **2026-09-23 — autenticação real via SGU e Docker completo, numa worktree
 > isolada, para revisão (nada commitado ainda).** `backend/` novo (Express,
@@ -4643,3 +4645,46 @@ aposentar o `dw_dim`):
   o mesmo número do dashboard DF: ele usa valor liquidado no SFI e valor
   empenhado nos demais cards. Resolve quando Finanças for migrada para
   `marts` (etapa 3.4).
+
+### 2026-09-29 (quarta parte) — Flow no ar, usuários de banco, Vacinação/ROE/QOD no DW, app lendo o DW
+
+Pedido: "execute todos os próximos passos; o que for necessário confirmar,
+confirme". Confirmado com o usuário antes de executar:
+- **App:** fica na Vercel por ora → migrar com fallback, já pronto para o
+  CapRover.
+- **Usuários de banco:** criar, com senhas só no `.env.local` e no Windmill.
+- **Vacinação:** tudo, sem CPF.
+- **ROE:** só as views do painel, sem dado pessoal de cidadão.
+- **Finanças:** migrar para o DW.
+
+**O que o primeiro flow no Windmill revelou:** as cargas `raw` faziam
+`DROP TABLE`, e o Postgres recusava porque o `carga_core.py` cria views em
+`stg` sobre a raw. Agora é `TRUNCATE` quando a estrutura não muda, e
+`DROP ... CASCADE` só quando muda (as views voltam no passo do core). Vale
+para os três carregadores.
+
+**Testar como `windmill_etl` antes de publicar pegou mais três problemas:**
+- `CREATE SCHEMA IF NOT EXISTS` exige permissão mesmo quando o schema existe.
+- O SGP não pede senha, e o fdw recusa isso para quem não é superusuário
+  (`password_required 'false'` no mapping de `etl_writer`).
+- Objetos com dono diferente conforme quem rodou a carga. Agora toda carga
+  conecta com `role=etl_writer`, e `etl_writer` é dono de `raw_*`, `stg` e
+  `core` (`07_papeis.sql`).
+
+**Resultado:** o flow completo rodou no Windmill como `windmill_etl` em 224s,
+tudo ok, com o validador passando. O backend local roda como `app_backend`
+e é negado em `core`, `raw` e `stg`.
+
+**Novo no DW:**
+- `raw_vacina` e `raw_roe` via fdw.
+- `raw_qod` (8 abas do QOD publicado).
+- `core.fato_financeiro`: os 3 blocos da aba "Banco de Dados - NÃO MEXER",
+  por posição, com o cabeçalho conferido.
+- `stg.de_para_destino_financas`: o antigo `mapeamento_unidades.json`.
+- De-para `sistema = 'organograma'`.
+- `marts.efetivo_organograma`, `frota_organograma`, `financas_organograma`,
+  `financas_destino_sem_mapeamento` e `carga_status`.
+
+**App:** `GET /dados/metricas` no backend e `aplicarMetricasDw` no front
+(`DW_INGESTAO.md` seção 10). Testado com uma sessão de teste local: o Comando
+Geral saiu com 2.654 militares, 771 viaturas e R$ 2.596.953,65 do DW.

@@ -35,7 +35,7 @@ from carga_raw import FONTES, colunas_da_origem, url_da_fonte, url_do_dw
 
 # Fontes Postgres da rede interna que o DW le direto. `reserva` fica fora de
 # proposito: e o Neon, na internet -- continua em carga_raw.py (Python).
-FDW_FONTES = ["frota", "sgp", "escala", "mapa_forca"]
+FDW_FONTES = ["frota", "sgp", "escala", "mapa_forca", "vacina", "roe"]
 
 
 def partes_da_url(url):
@@ -64,8 +64,26 @@ def configurar(cur_dw, fonte):
         ).format(sql.Identifier(servidor)),
         (p["host"], p["port"], p["dbname"]),
     )
+    # Dois mappings: o do administrador (quem roda este script e as cargas
+    # manuais) e o de etl_writer -- o login do Windmill entra com
+    # `SET role = etl_writer`, e o postgres_fdw procura o mapping do
+    # current_user, que passa a ser etl_writer.
+    #
+    # password_required 'false' so no de etl_writer: o SGP (10.193.0.16)
+    # aceita o IP do DW sem pedir senha, e o postgres_fdw recusa, para
+    # usuario que nao e superusuario, conexao em que a origem nao pediu senha
+    # ("password or GSSAPI delegated credentials required"). A opcao so pode
+    # ser posta pelo superusuario -- este script -- e vale apenas para quem e
+    # membro de etl_writer. A senha continua sendo enviada; nada muda para
+    # origem que pede senha.
     cur_dw.execute(
         sql.SQL("CREATE USER MAPPING FOR CURRENT_USER SERVER {} OPTIONS (user %s, password %s)")
+        .format(sql.Identifier(servidor)),
+        (p["user"], p["password"]),
+    )
+    cur_dw.execute(
+        sql.SQL("CREATE USER MAPPING FOR etl_writer SERVER {} "
+                "OPTIONS (user %s, password %s, password_required 'false')")
         .format(sql.Identifier(servidor)),
         (p["user"], p["password"]),
     )

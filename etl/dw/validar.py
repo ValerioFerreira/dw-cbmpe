@@ -349,12 +349,18 @@ def main():
     # carga MAIS RECENTE de cada tabela nas ultimas 24h -- uma que falhou e
     # foi refeita com sucesso depois nao conta.
     print("\nCargas das ultimas 24h (a mais recente de cada tabela):")
+    # A chave e (fonte, schema de destino), nao o nome da tabela: planilha de
+    # varias abas registra a falha como "raw_x.*" e o sucesso aba a aba, e
+    # a falha nunca seria "substituida" se a chave fosse a tabela. O schema
+    # entra porque fontes diferentes tem tabela de mesmo nome (public.omes
+    # existe na Frota e no mapa de forca).
     cur.execute("""
         SELECT tabela, fonte, status, coalesce(observacao, '') FROM (
-            SELECT DISTINCT ON (tabela) tabela, fonte, status, observacao
+            SELECT DISTINCT ON (fonte, split_part(tabela, '.', 1))
+                   tabela, fonte, status, observacao
             FROM stg.carga
             WHERE iniciado_em > now() - interval '24 hours'
-            ORDER BY tabela, carga_id DESC
+            ORDER BY fonte, split_part(tabela, '.', 1), carga_id DESC
         ) x WHERE status <> 'ok' ORDER BY tabela
     """)
     problemas = cur.fetchall()

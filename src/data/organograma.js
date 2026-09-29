@@ -297,6 +297,29 @@ Object.keys(METRICAS).forEach((sigla) => {
   METRICAS[sigla] = { ...METRICAS[sigla], financas: financasReal.por_unidade[sigla] ?? 0 };
 });
 
+// ----- Overlay do DW (GET /dados/metricas, ver backend/services/dadosService.js) -----
+// Quando o backend responde (app no CapRover, dentro da rede), os números
+// dos domínios que vieram passam a ser os do DW, atualizados todo dia pelo
+// flow do Windmill. Mesmo princípio dos overlays acima: o domínio que veio
+// substitui o valor de TODAS as unidades (0 para quem o DW não conta), e o
+// domínio que não veio fica como estava (JSON embutido) — o app nunca mistura
+// as duas fontes dentro de um mesmo domínio. Valores são os PRÓPRIOS da
+// unidade; o rollup continua em totaisDaSigla. No DW os adidos já contam no
+// próprio do Comando Geral (a OME ADIDOS pende dele), então não há o ajuste
+// de efetivoNaoLotado que o JSON precisa.
+const CAMPO_POR_DOMINIO = { efetivo: "efetivo", viaturas: "viaturas", financas: "financas" };
+
+export function aplicarMetricasDw({ metricas = {}, dominios = {} } = {}) {
+  const aplicados = Object.keys(dominios).filter((d) => CAMPO_POR_DOMINIO[d]);
+  aplicados.forEach((dominio) => {
+    const campo = CAMPO_POR_DOMINIO[dominio];
+    Object.keys(METRICAS).forEach((sigla) => {
+      METRICAS[sigla] = { ...METRICAS[sigla], [campo]: metricas[sigla]?.[dominio] ?? 0 };
+    });
+  });
+  return aplicados;
+}
+
 // ----- Divisões/seções internas por unidade (inclui itens que também são
 // nós próprios da árvore — filtrados na leitura abaixo) -----
 const SUBSETORES = {

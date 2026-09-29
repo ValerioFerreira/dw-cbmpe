@@ -1,6 +1,7 @@
 // CBMPE BI — Núcleo de dados e helpers de hierarquia
-import { NODES_PADRAO, montarOrganograma, metricasProprias, metricasDivisoesProprias } from "@/data/organograma";
+import { NODES_PADRAO, montarOrganograma, metricasProprias, metricasDivisoesProprias, aplicarMetricasDw } from "@/data/organograma";
 import { fetchOrganogramaRemoto } from "@/lib/organogramaClient";
+import { fetchMetricasDw } from "@/lib/dadosClient";
 import { fetchAtribuicoesRemoto } from "@/lib/atribuicoesClient";
 import { lerAtribuicoes as lerAtribuicoesLocal } from "@/lib/accessControl";
 
@@ -52,13 +53,19 @@ async function carregarOrganograma() {
   if (organogramaCache) return organogramaCache;
   organogramaCache = (async () => {
     let nodes = NODES_PADRAO;
-    try {
-      const remoto = await fetchOrganogramaRemoto();
-      if (remoto && remoto.length) nodes = remoto;
-    } catch (e) {
+    const [estrutura, metricasDw] = await Promise.allSettled([fetchOrganogramaRemoto(), fetchMetricasDw()]);
+    if (estrutura.status === "fulfilled" && estrutura.value?.length) {
+      nodes = estrutura.value;
+    } else if (estrutura.status === "rejected") {
       // Backend fora do ar ou não configurado: cai no organograma padrão
       // embutido no bundle — o app nunca fica sem estrutura nenhuma.
-      console.warn("Organograma: usando estrutura padrão local (backend indisponível)", e);
+      console.warn("Organograma: usando estrutura padrão local (backend indisponível)", estrutura.reason);
+    }
+    // Números do DW quando o backend alcança o banco (CapRover); senão
+    // fetchMetricasDw devolve null e ficam os JSON embutidos (Vercel).
+    if (metricasDw.status === "fulfilled" && metricasDw.value) {
+      const aplicados = aplicarMetricasDw(metricasDw.value);
+      if (aplicados.length) console.info("Métricas do DW aplicadas:", aplicados.join(", "));
     }
     return montarOrganograma(nodes);
   })();

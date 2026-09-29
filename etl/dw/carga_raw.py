@@ -47,10 +47,34 @@ extras.register_default_jsonb(loads=lambda x: x)
 
 LOTE = 5000
 
-# Colunas que nunca sao copiadas, por fonte.
+# Colunas que nunca sao copiadas, por tabela de origem. Valem tambem para o
+# postgres_fdw: configurar_fdw.py nem cria essas colunas na foreign table.
 NEGADAS = {
     "launch_militaries": {"military_cpf"},
     "action_logs": {"user_cpf"},
+    # Vacinacao (decisao do usuario, 2026-09-29): tudo, sem CPF. O dado de
+    # saude fica em raw_vacina, sem grant para app nem BI.
+    "militaries": {"cpf"},
+    "applicators": {"cpf"},
+    # ROE (decisao do usuario, 2026-09-29): as views do painel, SEM dado
+    # pessoal de cidadao -- nome, telefone, CPF/CNPJ, alergia, endereco de
+    # rua/referencia, nome de hospital/medico -- nem nome de militar (a
+    # matricula basta como chave). Ficam idade, genero, bairro, municipio e
+    # coordenadas, que so saem do DW agregados.
+    "roe_aph_ocorrencias": {"nome", "telefone", "rua", "nome_hospital", "nome_medico"},
+    "roe_basico_ocorrencias": {"logradouro", "logradouro_complemento", "logradouro_referencia",
+                               "logradouro_cep", "nome_chefe_guarnicao", "nome_oficial_operacoes"},
+    "roe_basico_ocorrencias_nova": {"logradouro", "logradouro_complemento", "logradouro_referencia",
+                                    "logradouro_cep", "nome_chefe_guarnicao", "nome_oficial_operacoes"},
+    "roe_resumo_ocorrencias": {"logradouro", "logradouro_complemento", "logradouro_referencia",
+                               "logradouro_cep", "nome_chefe_guarnicao", "nome_oficial_operacoes"},
+    "roe_incendio_ocorrencias": {"cpf_cnpj", "bens_entregues_nome"},
+    "roe_prevencao_ocorrencias": {"cpf_cnpj_responsavel", "logradouro"},
+    "roe_prod_perigosos_ocorrencias": {"cpf_cnpj_razao_social"},
+    "roe_salvamento_ocorrencias": {"nome_responsavel_animal", "telefone_responsavel_animal",
+                                   "nome_pessoa_envolvida", "vitima_nome", "vitima_possui_alergias",
+                                   "vitima_detalhe_alergia", "mergulhador_nome_guerra",
+                                   "mergulhador_cpf"},
 }
 
 # fonte -> (variavel de ambiente, banco a apontar, [(schema_origem, tabela)])
@@ -100,6 +124,36 @@ FONTES = {
     # A tabela Militar entra junto porque Averbacao/Afastamento apontam para
     # ela por id local (militarId), nao por matricula -- sem ela nao da para
     # resolver de quem e cada averbacao.
+    # Vacinacao (DAS). Ficam de fora: users (contas do sistema, com hash de
+    # senha e token), versions (auditoria do Rails -- guarda o objeto
+    # serializado, CPF inclusive), as internas do Rails e as views (sao
+    # derivadas; a regra delas e refeita em marts).
+    "vacina": ("DATABASE_URL_OPS", "vaccine_control_production", [
+        ("public", "militaries"),
+        ("public", "applicators"),
+        ("public", "campaigns"),
+        ("public", "omes"),
+        ("public", "vaccines"),
+        ("public", "vaccine_brands"),
+        ("public", "vaccinations"),
+        ("public", "measurement_units"),
+        ("public", "vital_signs"),
+        ("public", "vital_sign_records"),
+        ("public", "vital_sign_measurements"),
+    ]),
+    # Ocorrencias (ROE). As views que o proprio sistema publica para analise
+    # (as mesmas do painel de Ocorrencias), nao as ~150 tabelas: e o recorte
+    # decidido pelo usuario, sem dado pessoal (ver NEGADAS).
+    "roe": ("DATABASE_URL_ROE", None, [
+        ("public", "roe_basico_ocorrencias"),
+        ("public", "roe_basico_ocorrencias_nova"),
+        ("public", "roe_resumo_ocorrencias"),
+        ("public", "roe_aph_ocorrencias"),
+        ("public", "roe_incendio_ocorrencias"),
+        ("public", "roe_salvamento_ocorrencias"),
+        ("public", "roe_prevencao_ocorrencias"),
+        ("public", "roe_prod_perigosos_ocorrencias"),
+    ]),
     "reserva": ("DATABASE_URL_RESERVA", None, [
         ("public", "Militar"),
         ("public", "Averbacao"),
@@ -158,9 +212,30 @@ def colunas_da_origem(cur, schema, tabela):
 
 
 def recriar_destino(cur_dw, schema_dw, tabela_dw, colunas):
+    """Deixa a tabela raw vazia e com a estrutura da origem.
+
+    Estrutura igual a da carga anterior (o caso comum): TRUNCATE, que nao
+    mexe em quem depende da tabela -- carga_core.py cria views em stg sobre
+    a raw (ex.: stg.reserva_militar). So quando a origem muda de colunas a
+    tabela e recriada; o CASCADE derruba essas views, que o carga_core recria
+    no passo seguinte do flow.
+    """
+    cur_dw.execute(
+        """SELECT a.attname, format_type(a.atttypid, a.atttypmod)
+           FROM pg_attribute a
+           WHERE a.attrelid = to_regclass(%s) AND a.attnum > 0 AND NOT a.attisdropped
+             AND a.attname NOT IN ('carga_id', 'extraido_em')
+           ORDER BY a.attnum""",
+        (f'"{schema_dw}"."{tabela_dw}"',),
+    )
+    if [tuple(r) for r in cur_dw.fetchall()] == [tuple(c) for c in colunas]:
+        cur_dw.execute(sql.SQL("TRUNCATE {}.{}").format(
+            sql.Identifier(schema_dw), sql.Identifier(tabela_dw)))
+        return
+
     corpo = ",\n    ".join(f'"{nome}" {tipo}' for nome, tipo in colunas)
     cur_dw.execute(
-        sql.SQL("DROP TABLE IF EXISTS {}.{}").format(
+        sql.SQL("DROP TABLE IF EXISTS {}.{} CASCADE").format(
             sql.Identifier(schema_dw), sql.Identifier(tabela_dw))
     )
     cur_dw.execute(
@@ -246,7 +321,9 @@ def copiar(conn_origem, conn_dw, schema_origem, tabela, schema_dw, tabela_dw,
 def main(fontes: list = None):
     """No Windmill: main(fontes=["reserva"]). Na linha de comando: argv."""
     alvos = fontes or list(FONTES)
-    conn_dw = psycopg2.connect(url_do_dw(), connect_timeout=20)
+    # role=etl_writer: tabela raw recriada fica com o dono das camadas, seja
+    # quem for que rode (ver etl/dw/ddl/07_papeis.sql).
+    conn_dw = psycopg2.connect(url_do_dw(), connect_timeout=20, options="-c role=etl_writer")
 
     total_geral = 0
     for fonte in alvos:

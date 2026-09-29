@@ -89,6 +89,16 @@ PLANILHAS = {
         "formato": "csv",
         "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQijAJBzH4CsNdlBBTpx6VPFRXAXNeITi7WxOmwHIN6gqLLnOEHgTWIv8VSZl_37ULf0zBeapJOwUBZ/pub?gid=752893521&single=true&output=csv",
     },
+    # QOD publicado pela DPlaG (mesmo link de etl/efetivo/
+    # extract_lotacao_funcao.py): catalogo de funcoes (QOD_FUNCOES), quem
+    # ocupa cada uma (QOD_CONSOLIDADA) e as demais abas. Base do efetivo
+    # previsto, da lotacao por funcao e dos chefes das unidades.
+    "qod": {
+        "schema": "raw_qod",
+        "tabela": None,           # uma tabela por aba
+        "formato": "xlsx",
+        "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRLXuwu8Q9WIe3OBC7A5CC_95t6yjniWITLEg-8OD09-ytRjV-Yphb7Pcbze7Gd5MZmhbk1r7riO0Dn/pub?output=xlsx",
+    },
     # "CIM_pedidos_e_atendidos": intencao de movimentacao.
     "cim_pedidos": {
         "schema": "raw_cim",
@@ -170,7 +180,12 @@ def gravar(conn, schema, tabela, df, fonte):
         return
 
     cur = conn.cursor()
-    cur.execute(f'CREATE SCHEMA IF NOT EXISTS "{schema}"')
+    # CREATE SCHEMA IF NOT EXISTS exige permissao de criar schema no banco
+    # mesmo quando ele ja existe -- e o ETL roda como etl_writer, que nao a
+    # tem. Os schemas raw_* sao declarados em etl/dw/ddl/01_camadas.sql.
+    cur.execute("SELECT 1 FROM pg_namespace WHERE nspname = %s", (schema,))
+    if not cur.fetchone():
+        cur.execute(f'CREATE SCHEMA "{schema}"')
 
     cur.execute(
         "INSERT INTO stg.carga (fonte, tabela) VALUES (%s, %s) RETURNING carga_id",
@@ -180,12 +195,28 @@ def gravar(conn, schema, tabela, df, fonte):
 
     colunas = [nome_de_coluna(c, i) for i, c in enumerate(df.columns, start=1)]
     corpo = ",\n    ".join(f'"{c}" text' for c in colunas)
-    cur.execute(f'DROP TABLE IF EXISTS "{schema}"."{tabela}"')
+    # Mesma estrutura da carga anterior (o caso comum): TRUNCATE, que nao
+    # mexe em quem depende da tabela -- carga_core.py cria views em stg sobre
+    # a raw (stg.peculio). So quando o cabecalho muda a tabela e recriada; o
+    # CASCADE derruba essas views, que o carga_core recria no passo seguinte.
+    desejadas = [("linha", "integer")] + [(c, "text") for c in colunas]
     cur.execute(
-        f'CREATE TABLE "{schema}"."{tabela}" (\n    linha integer,\n    {corpo},\n'
-        f'    carga_id bigint NOT NULL,\n'
-        f'    extraido_em timestamptz NOT NULL DEFAULT now()\n)'
+        """SELECT a.attname, format_type(a.atttypid, a.atttypmod)
+           FROM pg_attribute a
+           WHERE a.attrelid = to_regclass(%s) AND a.attnum > 0 AND NOT a.attisdropped
+             AND a.attname NOT IN ('carga_id', 'extraido_em')
+           ORDER BY a.attnum""",
+        (f'"{schema}"."{tabela}"',),
     )
+    if [tuple(r) for r in cur.fetchall()] == desejadas:
+        cur.execute(f'TRUNCATE "{schema}"."{tabela}"')
+    else:
+        cur.execute(f'DROP TABLE IF EXISTS "{schema}"."{tabela}" CASCADE')
+        cur.execute(
+            f'CREATE TABLE "{schema}"."{tabela}" (\n    linha integer,\n    {corpo},\n'
+            f'    carga_id bigint NOT NULL,\n'
+            f'    extraido_em timestamptz NOT NULL DEFAULT now()\n)'
+        )
 
     # O cabecalho original, para nao se perder quando a planilha mudar.
     cur.execute("""
@@ -243,7 +274,9 @@ def main(planilhas: list = None):
         for n, spec in PLANILHAS.items():
             if spec.get("pausada"):
                 print(f"(pausada) {n}: {spec['pausada']}")
-    conn = psycopg2.connect(url_do_dw(), connect_timeout=30)
+    # role=etl_writer: tabela raw recriada fica com o dono das camadas, seja
+    # quem for que rode (ver etl/dw/ddl/07_papeis.sql).
+    conn = psycopg2.connect(url_do_dw(), connect_timeout=30, options="-c role=etl_writer")
 
     # Uma planilha fora do ar (ex.: despublicada, HTTP 410) nao pode impedir
     # as outras de carregar (D8): tenta todas, e so no fim sai com erro para

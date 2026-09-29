@@ -63,6 +63,34 @@ GRANT USAGE ON ALL SEQUENCES IN SCHEMA app TO app_reader;
 ALTER DEFAULT PRIVILEGES IN SCHEMA app GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_reader;
 ALTER DEFAULT PRIVILEGES IN SCHEMA app GRANT USAGE ON SEQUENCES TO app_reader;
 
+-- etl_writer e DONO das camadas que o ETL reescreve (raw_*, raw_ref, stg,
+-- core). Grant nao basta: o ETL recria views em stg (carga_core.py) e, quando
+-- a origem muda de colunas, recria tabelas raw -- DROP e CREATE OR REPLACE
+-- exigem ser dono. O usuario de login do Windmill (windmill_etl) entra com
+-- `SET role = etl_writer` (etl/dw/criar_usuarios.py), entao o que ele cria
+-- tambem fica com etl_writer. marts continua do administrador: as views de
+-- consumo so mudam por DDL revisado, nunca pelo ETL. Roda a cada aplicacao
+-- do DDL, para pegar tabela nova criada pelo administrador.
+DO $$
+DECLARE
+    obj record;
+BEGIN
+    FOR obj IN
+        SELECT n.nspname, c.relname, c.relkind
+          FROM pg_class c
+          JOIN pg_namespace n ON n.oid = c.relnamespace
+         WHERE (n.nspname LIKE 'raw\_%' OR n.nspname IN ('stg', 'core'))
+           AND c.relkind IN ('r', 'v', 'm', 'p')
+           AND pg_get_userbyid(c.relowner) <> 'etl_writer'
+    LOOP
+        EXECUTE format('ALTER %s %I.%I OWNER TO etl_writer',
+                       CASE obj.relkind WHEN 'v' THEN 'VIEW'
+                                        WHEN 'm' THEN 'MATERIALIZED VIEW'
+                                        ELSE 'TABLE' END,
+                       obj.nspname, obj.relname);
+    END LOOP;
+END $$;
+
 -- etl_writer le a hierarquia do organograma (carga_core.py monta
 -- dim_ome_ancestral a partir dela), mas nao altera o estado do app.
 GRANT USAGE ON SCHEMA app TO etl_writer;

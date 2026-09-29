@@ -439,3 +439,38 @@ sistema espelhando o `.env` inteiro. É para lá que as nossas cinco credenciais
 devem ir quando forem rotacionadas — não para outro `.env.local`. A regra do
 wiki, que adotamos: *a documentação nunca guarda valor de segredo, só o mapa
 de onde ele está.*
+
+## Vacinação, Ocorrências e usuários de banco (2026-09-29)
+
+Decisões do usuário ao trazer as duas fontes para o DW:
+
+- **Vacinação (`raw_vacina`): tudo, sem CPF.** Inclui dado de **saúde**
+  (sinais vitais, medições, vacinas por militar), que é dado sensível pela
+  LGPD (art. 11). Ficam fora: `cpf` de `militaries` e `applicators`, a tabela
+  `users` (contas do sistema, com hash de senha e token) e `versions` (a
+  auditoria do Rails guarda o objeto serializado, CPF inclusive). A tabela
+  `raw_vacina` **não tem grant para app nem para BI**. Só sai do DW agregada,
+  por view em `marts`.
+- **Ocorrências (`raw_roe`): só as 8 views de análise que o próprio ROE
+  publica, sem dado pessoal de cidadão.** Ficam fora nome, telefone, CPF/CNPJ,
+  alergias, endereço de rua/referência/CEP, nome de hospital/médico, nome do
+  responsável pelo animal e da vítima, e nome de militar (a matrícula basta).
+  Ficam idade, gênero, bairro, município e coordenadas, que só saem
+  agregados. A lista está em `NEGADAS` (`etl/dw/carga_raw.py`), e as colunas
+  negadas **nem existem na foreign table**: o DW não consegue lê-las.
+- **Usuários de login (D7)** criados por `etl/dw/criar_usuarios.py`:
+  `windmill_etl` (etl_writer), `app_backend` (app_reader) e `metabase_bi`
+  (bi_reader). As senhas foram geradas na criação, gravadas **só** no
+  `.env.local` da máquina de quem administra e na variável secreta
+  `f/dw/database_url_dw` do Windmill. Nunca foram exibidas nem commitadas.
+  **Pendente:** levar ao cofre `cofre-sistemas.kdbx` e aos App Configs do
+  CapRover. Testado em 2026-09-29: `app_backend` é **negado** em `core`,
+  `raw_*` e `stg`.
+- **`password_required 'false'`** no user mapping de `etl_writer` para o fdw:
+  o SGP (10.193.0.16) aceita o IP do DW sem pedir senha, e o postgres_fdw
+  recusa isso para quem não é superusuário. A opção vale só para membros de
+  `etl_writer` e só pode ser posta pelo administrador.
+- **Credencial exposta em script do Windmill:** "DF Metabase" tem a senha do
+  superusuário do DW escrita no código, e "Material Operacional" e "Controle
+  do tempo de serviço" têm a chave privada de uma service account do Google.
+  Todas precisam virar variável secreta do Windmill e ser rotacionadas.

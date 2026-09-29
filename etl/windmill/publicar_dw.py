@@ -34,9 +34,14 @@ PASTA = "dw"
 RAIZ = Path(__file__).resolve().parents[2]
 
 VARIAVEIS = {
-    "DATABASE_URL_DW": "Postgres do DW (10.193.1.252:54301). Hoje o superusuario -- trocar por um login com etl_writer.",
+    "DATABASE_URL_DW": "Postgres do DW (10.193.1.252:54301), usuario windmill_etl (papel etl_writer).",
     "DATABASE_URL_RESERVA": "Sistema de reserva remunerada (Neon) -- unica fonte em que o Neon e a origem.",
 }
+
+# Qual variavel local alimenta cada variavel secreta do Windmill. O flow roda
+# como windmill_etl (etl/dw/criar_usuarios.py), nunca como superusuario --
+# DATABASE_URL_DW local continua sendo o administrador, que aplica DDL.
+ORIGEM_LOCAL = {"DATABASE_URL_DW": "DATABASE_URL_DW_ETL"}
 
 ARRAY_TEXTO = {"type": "array", "items": {"type": "string"}, "default": None}
 
@@ -141,7 +146,7 @@ def publicar(wm):
     # Variaveis secretas
     for nome, descricao in VARIAVEIS.items():
         caminho = f"f/{PASTA}/{nome.lower()}"
-        valor = os.environ[nome]
+        valor = os.environ[ORIGEM_LOCAL.get(nome, nome)]
         if wm.get(f"/variables/exists/{caminho}"):
             wm.post(f"/variables/update/{caminho}", {"value": valor, "description": descricao})
         else:
@@ -231,7 +236,8 @@ def rodar(wm, caminho_flow):
 
 if __name__ == "__main__":
     carregar_env_local()
-    faltando = [v for v in ("WINDMILL_URL", "WINDMILL_EMAIL", "WINDMILL_PASSWORD", *VARIAVEIS)
+    faltando = [v for v in ("WINDMILL_URL", "WINDMILL_EMAIL", "WINDMILL_PASSWORD",
+                            *(ORIGEM_LOCAL.get(n, n) for n in VARIAVEIS))
                 if not os.environ.get(v)]
     if faltando:
         sys.exit(f"faltam variaveis (no ambiente ou no .env.local): {', '.join(faltando)}")

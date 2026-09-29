@@ -29,6 +29,7 @@ DECLARE
     v_destino text := format('%I.%I', 'raw_' || p_fonte, p_tabela);
     v_nomes   text;
     v_defs    text;
+    v_atuais  text;
     v_linhas  bigint;
 BEGIN
     SELECT string_agg(format('%I', attname), ', ' ORDER BY attnum),
@@ -40,10 +41,25 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'raw_' || p_fonte) THEN
         EXECUTE format('CREATE SCHEMA %I', 'raw_' || p_fonte);
     END IF;
-    EXECUTE format('DROP TABLE IF EXISTS %s', v_destino);
-    EXECUTE format(
-        'CREATE TABLE %s (%s, carga_id bigint NOT NULL, extraido_em timestamptz NOT NULL DEFAULT now())',
-        v_destino, v_defs);
+
+    -- Mesma estrutura da carga anterior (o caso comum): TRUNCATE, que nao
+    -- mexe em quem depende da tabela (carga_core.py cria views em stg sobre
+    -- a raw). Estrutura diferente: recria, e o CASCADE derruba essas views,
+    -- que o carga_core recria no passo seguinte do flow.
+    SELECT string_agg(format('%I %s', attname, format_type(atttypid, atttypmod)), ', ' ORDER BY attnum)
+      INTO v_atuais
+      FROM pg_attribute
+     WHERE attrelid = to_regclass(v_destino) AND attnum > 0 AND NOT attisdropped
+       AND attname NOT IN ('carga_id', 'extraido_em');
+
+    IF v_atuais IS NOT DISTINCT FROM v_defs THEN
+        EXECUTE format('TRUNCATE %s', v_destino);
+    ELSE
+        EXECUTE format('DROP TABLE IF EXISTS %s CASCADE', v_destino);
+        EXECUTE format(
+            'CREATE TABLE %s (%s, carga_id bigint NOT NULL, extraido_em timestamptz NOT NULL DEFAULT now())',
+            v_destino, v_defs);
+    END IF;
     EXECUTE format('INSERT INTO %s (%s, carga_id) SELECT %s, %s FROM %s',
                    v_destino, v_nomes, v_nomes, p_carga_id, v_origem);
     GET DIAGNOSTICS v_linhas = ROW_COUNT;

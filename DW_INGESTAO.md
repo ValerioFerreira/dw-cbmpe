@@ -375,12 +375,12 @@ papéis       etl_writer · app_reader (marts + app) · bi_reader (marts)
 | Escala | 10.193.0.16 | fdw | raw_escala | diária | **via fdw, em dia** |
 | Mapa de força | 10.193.0.20 | fdw (incremental depois) | raw_mapa_forca | diária | **via fdw, em dia** |
 | Frota | 10.193.1.252:54329 | fdw | raw_frota | diária | **via fdw, em dia** |
-| Vacinação | 10.193.0.20 | fdw | raw_vacina | diária | fora do DW (o app lê a fonte) |
-| Ocorrências (ROE) | 10.193.1.252:15432 | fdw | raw_roe | diária | fora do DW (o app lê a fonte) |
+| Vacinação | 10.193.0.20 | fdw | raw_vacina | diária | **via fdw desde 2026-09-29**: tudo, sem CPF, sem `users`/`versions` (DW_GOVERNANCA.md) |
+| Ocorrências (ROE) | 10.193.1.252:15432 | fdw | raw_roe | diária | **via fdw desde 2026-09-29**: as 8 views `roe_*`, sem dado pessoal de cidadão |
 | Reserva remunerada | Neon (origem) | Python (`carga_raw.py reserva`) | raw_reserva | diária | no DW, parado em 08-24 |
 | Pecúlio | Google Sheets | Python (`raw_planilhas.py`) | raw_peculio | diária | em dia |
-| Finanças | Google Sheets | Python (`raw_planilhas.py`) | raw_financas | diária | no DW, sem uso |
-| QOD (previsto + lotação) | Google Sheets publicada | Python | raw_qod | por publicação | fora (xlsx local) |
+| Finanças | Google Sheets | Python (`raw_planilhas.py`) | raw_financas | diária | **`core.fato_financeiro` + `marts.financas_organograma`** desde 2026-09-29 (bate com `public.fin_*`) |
+| QOD (previsto + lotação) | Google Sheets publicada (xlsx) | Python (`raw_planilhas.py`) | raw_qod | diária | **no DW desde 2026-09-29** (8 abas); ainda sem core/marts |
 | Inativos, escolaridade | Abas da **mesma pasta do Pecúlio** | Python (`raw_planilhas.py`) | raw_inativos, raw_escolaridade | diária | **no DW desde 2026-09-29** (1.981 e 2.654 linhas) |
 | CIM (pedidos, atendidos) | Planilha própria | Python (`raw_planilhas.py`) | raw_cim | diária | **no DW desde 2026-09-29** (2.667 e 388) |
 | Material operacional | 5 planilhas (SMO, VT, CP, natureza, uso) | Python (`raw_planilhas.py`) | raw_materiais | — | **Standby** (decisão do usuário, 2026-09-29). Carga única de smo, vt e uso; CP e natureza despublicadas (HTTP 410) |
@@ -427,3 +427,38 @@ deveria virar *resource* secreto do Windmill, e a chave deveria ser rotacionada.
    removendo o JSON correspondente do bundle.
 6. **Limpeza**: desligar os scripts `*_para_neon.py`, os fictícios viram "Em
    construção", e resolver o `dw_dim`/`dw_diesp` com o dono.
+
+## 10. O app lendo o DW (2026-09-29)
+
+**Caminho:** `GET /dados/metricas` no backend lê as views
+`marts.efetivo_organograma`, `marts.frota_organograma` e
+`marts.financas_organograma`, com o valor **próprio** de cada unidade na sigla
+do organograma e o frescor em `marts.carga_status`. No front,
+`carregarOrganograma()` (`src/lib/cbmpe.js`) chama a rota junto com o
+organograma e aplica os números por domínio (`aplicarMetricasDw` em
+`src/data/organograma.js`). O rollup continua no front, igual a antes.
+
+**Fallback (decisão do usuário: a Vercel continua até a transição):** sem
+backend alcançável, sem sessão SGU (inclusive o login local AGGD) ou com erro,
+o app segue com os JSON embutidos. No CapRover, com login SGU, os cards passam
+a ler do DW sem mudar código. Testado localmente: com sessão, o Comando Geral
+mostrou 2.654 militares, 771 viaturas e R$ 2.596.953,65 (DW); sem sessão,
+os valores dos JSON.
+
+**Regra de pertencimento** (`stg.ome_dono_organograma`): cada OME conta para o
+ancestral mais próximo que existe no organograma. Isso reproduz, sem regra
+especial, CPPA na DGP, adidos no Comando Geral e as CAT numeradas na base.
+
+**Reconciliação** (DW de hoje × JSON do app):
+- **Finanças:** idêntico a `public.fin_*` (R$ 2.596.953,65). O JSON do app era
+  de 07/08.
+- **Efetivo:** 2.654 × 2.658 (JSON de 21/08), com diferenças de ±1 a 4 por
+  unidade.
+- **Viaturas:** 771 × 771, com transferências de ±1 a 3 por unidade.
+- Nenhuma diferença é de regra; todas são o tempo entre as duas extrações.
+
+**O que ainda sai de JSON do bundle:** efetivo previsto (QOD ainda sem
+core/marts), divisões internas, lotação por função, as tabelas nominais
+(`efetivo_lista.json`, `viaturas_*`) e os painéis de Efetivo, Viaturas, DF,
+Vacinação e Ocorrências. É a próxima leva (seção 9, etapa 5). As rotas
+nominais **têm de filtrar as OMEs pelo perfil no servidor**.

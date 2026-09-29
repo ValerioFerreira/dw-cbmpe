@@ -16,6 +16,15 @@ CREATE SCHEMA IF NOT EXISTS raw_frota;
 CREATE SCHEMA IF NOT EXISTS raw_peculio;
 CREATE SCHEMA IF NOT EXISTS raw_vacina;
 CREATE SCHEMA IF NOT EXISTS raw_reserva;
+-- 2026-09-29. Declarados aqui porque o ETL roda como etl_writer, que nao
+-- tem permissao de criar schema no banco.
+CREATE SCHEMA IF NOT EXISTS raw_roe;
+CREATE SCHEMA IF NOT EXISTS raw_financas;
+CREATE SCHEMA IF NOT EXISTS raw_inativos;
+CREATE SCHEMA IF NOT EXISTS raw_escolaridade;
+CREATE SCHEMA IF NOT EXISTS raw_cim;
+CREATE SCHEMA IF NOT EXISTS raw_materiais;
+CREATE SCHEMA IF NOT EXISTS raw_qod;
 CREATE SCHEMA IF NOT EXISTS stg;
 CREATE SCHEMA IF NOT EXISTS core;
 CREATE SCHEMA IF NOT EXISTS marts;
@@ -26,6 +35,8 @@ COMMENT ON SCHEMA raw_mapa_forca IS 'Copia fiel do mapa_forca_api_development.';
 COMMENT ON SCHEMA raw_frota IS 'Copia fiel do sistema de frotas.';
 COMMENT ON SCHEMA raw_peculio IS 'Copia fiel da planilha do Peculio (Google Sheets), fonte atual do efetivo ativo.';
 COMMENT ON SCHEMA raw_vacina IS 'Copia fiel do vaccine_control_production.';
+COMMENT ON SCHEMA raw_roe IS 'Views de analise do ROE (ocorrencias), sem dado pessoal de cidadao -- ver NEGADAS em carga_raw.py.';
+COMMENT ON SCHEMA raw_qod IS 'Copia fiel do QOD publicado (previsto e lotacao por funcao).';
 COMMENT ON SCHEMA raw_reserva IS 'Copia fiel do sistema de controle de reserva remunerada (Neon). Unica fonte em que o Neon e sistema de origem, nao cache.';
 COMMENT ON SCHEMA stg IS 'Padronizacao e de-para entre sistemas.';
 COMMENT ON SCHEMA core IS 'Dimensoes conformadas e fatos. Acesso restrito.';
