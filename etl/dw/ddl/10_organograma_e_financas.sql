@@ -129,12 +129,15 @@ CREATE TABLE IF NOT EXISTS core.fato_financeiro (
     valor_pago       numeric(14, 2),
     PRIMARY KEY (bloco, linha)
 );
+-- "Operacao" das diarias no painel DF (2026-09-29).
+ALTER TABLE core.fato_financeiro ADD COLUMN IF NOT EXISTS ficha_financ text;
 
 -- Destino -> sigla do organograma: casa direto pela normalizacao ou pelo
 -- de-para acima. Destino que nao casa em nenhum dos dois aparece em
 -- marts.financas_destino_sem_mapeamento (e validar.py acusa).
 CREATE OR REPLACE VIEW stg.financas_destino AS
-SELECT f.*,
+SELECT f.bloco, f.linha, f.destino, f.enquadramento, f.situacao, f.natureza, f.mes,
+       f.valor, f.valor_liquidado, f.valor_pago,
        CASE WHEN dp.chave IS NOT NULL THEN dp.sigla ELSE o.sigla END AS sigla_organograma,
        (dp.chave IS NULL AND o.sigla IS NULL)                        AS sem_mapeamento
 FROM core.fato_financeiro f

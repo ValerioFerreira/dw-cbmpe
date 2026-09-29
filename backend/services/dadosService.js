@@ -154,6 +154,128 @@ export async function lotacaoNominal(siglas) {
   return { fonte: "dw (marts.lotacao_militar)", por_matricula: porMatricula, funcoes };
 }
 
+// ---------------------------------------------------------------------------
+// Painéis corporativos (etl/dw/ddl/13_paineis.sql) — mesmo JSON que
+// src/data/real/{financas,vacinacao,ocorrencias}_dashboard.json.
+// ---------------------------------------------------------------------------
+const num = (v) => (v == null ? null : Number(v));
+const texto = (v) => (v == null ? null : String(v).trim() || null);
+// Espelho de stg.normalizar_sigla(): maiúsculas, sem acento, só letras e
+// números ("GBMar" e "GBMAR" viram "GBMAR").
+function normalizarSigla(s) {
+  return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+const CONECTORES_NOME = new Set(["de", "da", "do", "das", "dos", "e"]);
+// capitalizar_nome() de extract_dashboard_vacinacoes.py
+function capitalizarNome(bruto) {
+  if (!bruto) return null;
+  return bruto.trim().split(/\s+/).map((p, i) => {
+    const pl = p.toLowerCase();
+    return i > 0 && CONECTORES_NOME.has(pl) ? pl : pl.charAt(0).toUpperCase() + pl.slice(1);
+  }).join(" ");
+}
+
+// DF: linhas por unidade recortadas pelo indicador Finanças; diárias e
+// auxílio funeral não têm unidade, então só vão para quem vê Finanças de
+// todas as unidades (acesso total ou perfil DF) — o painel só as mostra na
+// visão do Comando Geral.
+export async function painelDf(siglas) {
+  const pool = getPoolDw();
+  const parametros = [];
+  const where = siglas === null ? "" : (parametros.push([...siglas]), "where unidade = any($1)");
+  const [ord, extra, si, diarias, funeral] = await Promise.all([
+    pool.query(`select unidade, natureza, mes, valor from marts.painel_df_sfi_ordinario ${where}`, parametros),
+    pool.query(`select unidade, valor from marts.painel_df_sfi_extra ${where}`, parametros),
+    pool.query(`select unidade, valor from marts.painel_df_suprimento_individual ${where}`, parametros),
+    siglas === null ? pool.query("select operacao, valor from marts.painel_df_diarias order by valor desc") : { rows: [] },
+    siglas === null ? pool.query("select mes, valor from marts.painel_df_funeral order by ordem, mes") : { rows: [] },
+  ]);
+  const comValor = (r) => ({ ...r, valor: num(r.valor) });
+  return {
+    fonte: "dw (marts.painel_df_*)",
+    criterio: "situacao=EMPENHADO. SFI = SFI Ordinário (valor liquidado) + Autorização enquadramento=SFI (SFI Extra). Suprimento Individual = Autorização enquadramento=SI. Despesas Diversas = Autorização enquadramento=DIÁRIAS e FUNERAL.",
+    sfi_ordinario: ord.rows.map(comValor),
+    sfi_extra: extra.rows.map(comValor),
+    suprimento_individual: si.rows.map(comValor),
+    diarias: diarias.rows.map(comValor),
+    funeral: funeral.rows.map(comValor),
+  };
+}
+
+export async function painelVacinacao() {
+  const pool = getPoolDw();
+  const [eventos, participacao] = await Promise.all([
+    pool.query("select data, posto, campanha, vacina, marca, ome, aplicador from marts.painel_vacinacao_evento order by data"),
+    pool.query("select vacina, ome, militares from marts.painel_vacinacao_participacao"),
+  ]);
+  return {
+    eventos: eventos.rows.map((r) => ({ ...r, aplicador: capitalizarNome(r.aplicador) })),
+    participacao: participacao.rows.map((r) => ({ ...r, militares: Number(r.militares) })),
+  };
+}
+
+// Ocorrências: recortadas pelas unidades liberadas (ome OU diretoria da
+// ocorrência dentro do conjunto). `siglas` null = todas.
+export async function painelOcorrencias(siglas) {
+  const pool = getPoolDw();
+  const parametros = [];
+  // Compara normalizado: a ROE grava as OMEs em maiúsculas ("GBMAR") e o
+  // organograma não ("GBMar").
+  const where = siglas === null ? "" : (parametros.push([...siglas].map(normalizarSigla)),
+    "where ome_norm = any($1) or diretoria_norm = any($1)");
+  const consulta = (sql) => pool.query(`${sql} ${where}`, parametros);
+  const [oc, aph, inc, salv, prev, pp, diag] = await Promise.all([
+    consulta("select * from marts.painel_roe_ocorrencia"),
+    consulta("select * from marts.painel_roe_aph"),
+    consulta("select * from marts.painel_roe_incendio"),
+    consulta("select * from marts.painel_roe_salvamento"),
+    consulta("select * from marts.painel_roe_prevencao"),
+    consulta("select * from marts.painel_roe_produtos_perigosos"),
+    pool.query("select * from marts.painel_roe_diagnostico_pp"),
+  ]);
+  const d = diag.rows[0] || {};
+  return {
+    ocorrencias: oc.rows.map((r) => ({
+      data: r.data, natureza: r.natureza, diretoria: r.diretoria, ome: r.ome, cidade: r.cidade,
+      grupo: r.grupo, subgrupo: r.subgrupo, motivoNaoAtendimento: r.motivo_nao_atendimento,
+      statusRelatorio: r.status_relatorio, finalizado: r.status_relatorio === "Finalizado",
+      ocorrenciaAtendida: r.ocorrencia_atendida, protocoloPresente: !!r.protocolo_presente,
+      vitimasFeridas: Number(r.vitimas_feridas), vitimasFatais: Number(r.vitimas_fatais),
+      vitimasIlesas: Number(r.vitimas_ilesas), vitimasDesaparecidas: Number(r.vitimas_desaparecidas),
+    })),
+    aphEstatistica: aph.rows.map((r) => ({
+      ome: r.ome, diretoria: r.diretoria, genero: texto(r.genero), idade: num(r.idade),
+      idadeEmMeses: !!r.idade_em_meses, cvi: r.cvi == null ? null : !!r.cvi,
+      entregueVivo: r.entregue_vivo == null ? null : !!r.entregue_vivo, deficiencia: texto(r.deficiencia),
+    })),
+    incendio: inc.rows.map((r) => ({
+      data: r.data, ome: r.ome, diretoria: r.diretoria, cidade: r.cidade,
+      duracaoCombateHoras: num(r.duracao_combate_horas), duracaoRescaldoHoras: num(r.duracao_rescaldo_horas),
+      duracaoTotalHoras: num(r.duracao_total_horas),
+    })),
+    salvamento: salv.rows.map((r) => ({
+      data: r.data, ome: r.ome, diretoria: r.diretoria, cidade: r.cidade, tipoPredominante: r.tipo_predominante,
+    })),
+    prevencao: prev.rows.map((r) => ({
+      data: r.data, ome: r.ome, diretoria: r.diretoria, cidade: r.cidade,
+      duracaoEventoHoras: num(r.duracao_evento_horas), publicoEstimado: num(r.publico_estimado),
+      publicoPresente: num(r.publico_presente), situacaoAvcb: r.situacao_avcb, areaEstimada: num(r.area_estimada),
+      eventoRegularizado: r.evento_regularizado,
+    })),
+    produtosPerigosos: pp.rows.map((r) => ({
+      data: r.data, ome: r.ome, diretoria: r.diretoria, cidade: r.cidade, nomeProduto: r.nome_produto,
+      classeRisco: r.classe_risco, perfilBotijaoGlp: r.perfil_botijao_glp,
+    })),
+    produtosPerigososDiagnostico: {
+      semMatchNaBasico: num(d.sem_match_na_basico), matchMasDataNula: num(d.match_mas_data_nula), comData: num(d.com_data),
+    },
+    // Ressalva de qualidade de dado que continua valendo (ver o extrator).
+    pendenciasSemSql: {
+      produtos_perigosos_total_por_produto: "Igor sinalizou suspeita de erro de qualidade na fonte: 656 dos 672 produtos apareciam com contagem exatamente 20, a maioria com rótulo no formato \"X (ver Y)\" — indício de lista de referência carregada junto com o dado de incidente. Card retido até confirmação com quem administra a base.",
+    },
+  };
+}
+
 // { metricas: { [sigla]: { efetivo?, viaturas?, financas?, previsto? } },
 //   chefes:   { [sigla]: { posto, nome, cargo, vago } } | null,
 //   dominios: { efetivo: { data_referencia, carregado_em }, ... } }

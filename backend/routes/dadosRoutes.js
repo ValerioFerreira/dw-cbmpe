@@ -1,5 +1,7 @@
 import express from "express";
-import { metricas, efetivo, lotacao } from "../controllers/dadosController.js";
+import {
+  metricas, efetivo, lotacao, painelDf, painelVacinacao, painelOcorrencias,
+} from "../controllers/dadosController.js";
 import validateToken from "../middlewares/validateToken.js";
 
 const router = express.Router();
@@ -15,5 +17,10 @@ router.get("/metricas", validateToken, metricas);
 // (services/acessoService.js), no indicador Efetivo.
 router.get("/efetivo", validateToken, efetivo);
 router.get("/lotacao", validateToken, lotacao);
+
+// Painéis corporativos — recorte por perfil no servidor (ver o controller).
+router.get("/painel/df", validateToken, painelDf);
+router.get("/painel/vacinacao", validateToken, painelVacinacao);
+router.get("/painel/ocorrencias", validateToken, painelOcorrencias);
 
 export default router;

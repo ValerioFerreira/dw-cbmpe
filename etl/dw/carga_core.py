@@ -1389,20 +1389,20 @@ def carregar_fatos_reserva(cur):
 BLOCOS_FINANCAS = {
     # bloco: {campo: (posicao 1-based, trecho(s) aceito(s) no nome da coluna)}
     # O bloco Autorizacao chama o destino de "OME"; os outros, de "DESTINO".
-    "autorizacao": {"valor": (8, "valor"), "destino": (10, ("destino", "ome")),
+    "autorizacao": {"ficha_financ": (7, "ficha"), "valor": (8, "valor"), "destino": (10, ("destino", "ome")),
                     "enquadramento": (11, "enquadr"), "situacao": (12, "situa"),
                     "mes": (13, "mes"), "valor_liquidado": (15, "liquid"),
                     "valor_pago": (16, "pago")},
-    "carnaval_2026": {"valor": (27, "valor"), "destino": (29, "destino"),
+    "carnaval_2026": {"ficha_financ": (26, "ficha"), "valor": (27, "valor"), "destino": (29, "destino"),
                       "enquadramento": (30, "enquadr"), "situacao": (31, "situa"),
                       "mes": (32, "mes"), "valor_liquidado": (34, "liquid"),
                       "valor_pago": (35, "pago")},
-    "sfi_ordinario": {"natureza": (42, "natureza"), "valor": (44, "valor"),
+    "sfi_ordinario": {"natureza": (42, "natureza"), "ficha_financ": (43, "ficha"), "valor": (44, "valor"),
                       "destino": (45, "destino"), "situacao": (46, "situa"),
                       "mes": (47, "mes"), "valor_liquidado": (49, "liquid"),
                       "valor_pago": (50, "pago")},
 }
-CAMPOS_TEXTO = ("destino", "enquadramento", "situacao", "natureza", "mes")
+CAMPOS_TEXTO = ("destino", "enquadramento", "situacao", "natureza", "mes", "ficha_financ")
 CAMPOS_VALOR = ("valor", "valor_liquidado", "valor_pago")
 
 
@@ -1443,10 +1443,11 @@ def carregar_fato_financeiro(cur):
         cur.execute(f"""
             INSERT INTO core.fato_financeiro
                 (bloco, linha, destino, enquadramento, situacao, natureza, mes,
-                 valor, valor_liquidado, valor_pago)
+                 valor, valor_liquidado, valor_pago, ficha_financ)
             SELECT %s, linha, {expr('destino')}, {expr('enquadramento')}, {expr('situacao')},
                    {expr('natureza')}, {expr('mes')},
-                   {expr('valor')}, {expr('valor_liquidado')}, {expr('valor_pago')}
+                   {expr('valor')}, {expr('valor_liquidado')}, {expr('valor_pago')},
+                   {expr('ficha_financ')}
             FROM raw_financas.banco_de_dados_nao_mexer
             WHERE {preenchido}
         """, (bloco,))

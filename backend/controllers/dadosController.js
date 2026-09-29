@@ -30,4 +30,32 @@ const lotacao = asyncHandler(async (req, res) => {
   res.status(200).json(await dadosService.lotacaoNominal(siglas));
 });
 
-export { metricas, efetivo, lotacao };
+// Painéis: mesma regra de visibilidade que src/lib/atividadesEspecificas.js
+// aplica na tela, agora no servidor.
+const painelDf = asyncHandler(async (req, res) => {
+  const siglas = await siglasDoUsuario(req, "Finanças");
+  res.set("Cache-Control", "private, max-age=300");
+  res.status(200).json(await dadosService.painelDf(siglas));
+});
+
+// Painel exclusivo da DAS: só quem enxerga a DAS (acesso total, ou a DAS na
+// subárvore liberada — ex. titular do Subcomando Geral).
+const painelVacinacao = asyncHandler(async (req, res) => {
+  const acesso = await acessoDoUsuario(req.user?.matricula);
+  if (!acesso.total && !acesso.siglas.has("DAS")) {
+    return res.status(403).json({ message: "Painel de Vacinação restrito a quem tem acesso à DAS." });
+  }
+  res.set("Cache-Control", "private, max-age=300");
+  res.status(200).json(await dadosService.painelVacinacao());
+});
+
+// Ocorrências: só as linhas das unidades liberadas (a tela ainda recorta
+// pela cadeia da DGO por cima disso).
+const painelOcorrencias = asyncHandler(async (req, res) => {
+  const acesso = await acessoDoUsuario(req.user?.matricula);
+  const siglas = acesso.total ? null : acesso.siglas;
+  res.set("Cache-Control", "private, max-age=300");
+  res.status(200).json(await dadosService.painelOcorrencias(siglas));
+});
+
+export { metricas, efetivo, lotacao, painelDf, painelVacinacao, painelOcorrencias };

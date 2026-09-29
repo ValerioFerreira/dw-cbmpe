@@ -6,7 +6,8 @@ import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import { getCaminho } from "@/lib/cbmpe";
 import { MODULOS_FINANCAS_DASHBOARD, filtrarPorEscopoFinancas, siglasPermitidas } from "@/lib/financasDashboard";
 import EmptyState from "@/components/ui/empty-state";
-import financasDashboardReal from "@/data/real/financas_dashboard.json";
+import financasDashboardEmbutido from "@/data/real/financas_dashboard.json";
+import { usePainelDw } from "@/lib/usePainelDw";
 
 import ModuloSfi from "./ModuloSfi";
 import ModuloSuprimentoIndividual from "./ModuloSuprimentoIndividual";
@@ -40,9 +41,11 @@ export default function FinancasDashboard() {
 
   // Escopo por unidade — mesma regra dos outros Dashboards Pessoais.
   const permitidas = useMemo(() => siglasPermitidas(unidade, unidades), [unidade, unidades]);
-  const sfiOrdinario = useMemo(() => filtrarPorEscopoFinancas(financasDashboardReal.sfi_ordinario, permitidas), [permitidas]);
-  const sfiExtra = useMemo(() => filtrarPorEscopoFinancas(financasDashboardReal.sfi_extra, permitidas), [permitidas]);
-  const suprimentoIndividual = useMemo(() => filtrarPorEscopoFinancas(financasDashboardReal.suprimento_individual, permitidas), [permitidas]);
+  // JSON embutido ou DW (GET /dados/painel/df) — ver src/lib/usePainelDw.js.
+  const financasDashboardReal = usePainelDw("df", financasDashboardEmbutido);
+  const sfiOrdinario = useMemo(() => filtrarPorEscopoFinancas(financasDashboardReal.sfi_ordinario, permitidas), [financasDashboardReal, permitidas]);
+  const sfiExtra = useMemo(() => filtrarPorEscopoFinancas(financasDashboardReal.sfi_extra, permitidas), [financasDashboardReal, permitidas]);
+  const suprimentoIndividual = useMemo(() => filtrarPorEscopoFinancas(financasDashboardReal.suprimento_individual, permitidas), [financasDashboardReal, permitidas]);
   const unidadesDisponiveis = useMemo(
     () => [...new Set([...sfiOrdinario, ...sfiExtra, ...suprimentoIndividual].map((r) => r.unidade))].sort(),
     [sfiOrdinario, sfiExtra, suprimentoIndividual]

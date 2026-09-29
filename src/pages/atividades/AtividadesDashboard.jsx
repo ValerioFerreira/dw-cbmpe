@@ -7,8 +7,9 @@ import { getCaminho } from "@/lib/cbmpe";
 import { siglasPermitidas } from "@/lib/dashboardHelpers";
 import { TODOS_MODULOS_ATIVIDADES, familiaDoModulo } from "@/lib/atividadesEspecificas";
 import EmptyState from "@/components/ui/empty-state";
-import vacinacaoDashboardReal from "@/data/real/vacinacao_dashboard.json";
-import ocorrenciasDashboardReal from "@/data/real/ocorrencias_dashboard.json";
+import vacinacaoDashboardEmbutido from "@/data/real/vacinacao_dashboard.json";
+import ocorrenciasDashboardEmbutido from "@/data/real/ocorrencias_dashboard.json";
+import { usePainelDw } from "@/lib/usePainelDw";
 
 import ModuloMapaForca from "./ModuloMapaForca";
 import ModuloVacinacaoVisaoGeral from "./ModuloVacinacaoVisaoGeral";
@@ -75,6 +76,11 @@ export default function AtividadesDashboard() {
   // é o mesmo em toda a subárvore, mostrando só o que pende da unidade que
   // está sendo vista.
   const permitidas = useMemo(() => siglasPermitidas(unidade, unidades), [unidade, unidades]);
+
+  // JSON embutido ou DW (GET /dados/painel/*), buscado só quando a família
+  // do painel está aberta — ver src/lib/usePainelDw.js.
+  const vacinacaoDashboardReal = usePainelDw("vacinacao", vacinacaoDashboardEmbutido, familiaAtual?.id === "vacinacao");
+  const ocorrenciasDashboardReal = usePainelDw("ocorrencias", ocorrenciasDashboardEmbutido, familiaAtual?.id === "ocorrencias");
 
   if (!ind || ind.nome !== "Atividades Específicas" || !moduloInfo) {
     return (
