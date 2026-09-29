@@ -383,7 +383,7 @@ papéis       etl_writer · app_reader (marts + app) · bi_reader (marts)
 | QOD (previsto + lotação) | Google Sheets publicada | Python | raw_qod | por publicação | fora (xlsx local) |
 | Inativos, escolaridade | Abas da **mesma pasta do Pecúlio** | Python (`raw_planilhas.py`) | raw_inativos, raw_escolaridade | diária | **no DW desde 2026-09-29** (1.981 e 2.654 linhas) |
 | CIM (pedidos, atendidos) | Planilha própria | Python (`raw_planilhas.py`) | raw_cim | diária | **no DW desde 2026-09-29** (2.667 e 388) |
-| Material operacional | 5 planilhas (SMO, VT, CP, natureza, uso) | Python (`raw_planilhas.py`) | raw_materiais | diária | **smo, vt, uso no DW**; **CP e natureza despublicadas (HTTP 410)** |
+| Material operacional | 5 planilhas (SMO, VT, CP, natureza, uso) | Python (`raw_planilhas.py`) | raw_materiais | — | **Standby** (decisão do usuário, 2026-09-29). Carga única de smo, vt e uso; CP e natureza despublicadas (HTTP 410) |
 | IBGE, KMZ | arquivo / API | carga pontual | raw_ref | pontual | fora (JSON) |
 
 ### Os scripts do Windmill do usuário (lidos em 2026-09-29, só leitura)

@@ -64,6 +64,20 @@ CRON = "0 30 5 * * *"          # 05:30, todo dia (formato do Windmill: com segun
 FUSO = "America/Recife"
 
 
+def carregar_env_local():
+    """Preenche os.environ com o .env.local da raiz (gitignored), sem
+    sobrescrever o que ja estiver definido. Assim `python publicar_dw.py`
+    funciona direto do terminal, sem exportar variavel a mao."""
+    arquivo = RAIZ / ".env.local"
+    if not arquivo.exists():
+        return
+    for linha in arquivo.read_text(encoding="utf-8").splitlines():
+        linha = linha.strip()
+        if linha and not linha.startswith("#") and "=" in linha:
+            chave, valor = linha.split("=", 1)
+            os.environ.setdefault(chave.strip(), valor.strip().strip('"'))
+
+
 def trecho_windmill(variaveis):
     nomes = ", ".join(f'"{v}"' for v in variaveis)
     return f'''
@@ -216,6 +230,11 @@ def rodar(wm, caminho_flow):
 
 
 if __name__ == "__main__":
+    carregar_env_local()
+    faltando = [v for v in ("WINDMILL_URL", "WINDMILL_EMAIL", "WINDMILL_PASSWORD", *VARIAVEIS)
+                if not os.environ.get(v)]
+    if faltando:
+        sys.exit(f"faltam variaveis (no ambiente ou no .env.local): {', '.join(faltando)}")
     wm = Windmill()
     caminho = publicar(wm)
     if "--rodar" in sys.argv:

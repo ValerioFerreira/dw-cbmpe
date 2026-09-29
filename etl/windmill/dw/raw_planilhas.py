@@ -42,6 +42,11 @@ LOTE = 2000
 # ATENCAO: sao URLs de "publicar na web" do Google Sheets -- nao pedem
 # autenticacao. Quem tiver o link baixa a planilha inteira, com o efetivo
 # nominal. Pendencia registrada em DW_GOVERNANCA.md.
+# Material Operacional em standby por decisao do usuario (2026-09-29): nao
+# carregar ate segunda ordem. raw_materiais fica com a carga de 2026-09-29
+# (smo, vt, uso); cp e natureza estao despublicadas (HTTP 410) na origem.
+STANDBY_MATERIAIS = "Material Operacional em standby (decisao do usuario, 2026-09-29)"
+
 PLANILHAS = {
     "peculio": {
         "schema": "raw_peculio",
@@ -104,32 +109,35 @@ PLANILHAS = {
         "schema": "raw_materiais",
         "tabela": "smo",
         "formato": "csv",
+        "pausada": STANDBY_MATERIAIS,
         "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQq7fyKYVwPyh9RvxQzaitlpJDDVFwIm1BAM-ph79G4Ebl9sqizSFNm5hN9bomvpIV13AfVacLf1PU-/pub?gid=870321773&single=true&output=csv",
     },
     "materiais_vt": {
         "schema": "raw_materiais",
         "tabela": "vt",
         "formato": "csv",
+        "pausada": STANDBY_MATERIAIS,
         "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_9MLmCG1dhKtauZZkfT5wRtnkCwu8icB-T2LFN1BIY82i1jpvnYzzORKPSNhe-L81SmiHXYEgXkMx/pub?gid=189257916&single=true&output=csv",
     },
     "materiais_cp": {
         "schema": "raw_materiais",
         "tabela": "cp",
         "formato": "csv",
-        "pausada": "despublicada (HTTP 410) desde 2026-09-29 -- republicar e remover esta chave",
+        "pausada": STANDBY_MATERIAIS,
         "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRDngjWa0Sg6aSPg6pLYdtTbYYjgS78B51-yW1fCinanDq1aV3nB4yglPuMgK_-bA/pub?gid=1086983721&single=true&output=csv",
     },
     "materiais_natureza": {
         "schema": "raw_materiais",
         "tabela": "natureza",
         "formato": "csv",
-        "pausada": "despublicada (HTTP 410) desde 2026-09-29 -- republicar e remover esta chave",
+        "pausada": STANDBY_MATERIAIS,
         "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRDngjWa0Sg6aSPg6pLYdtTbYYjgS78B51-yW1fCinanDq1aV3nB4yglPuMgK_-bA/pub?gid=855558513&single=true&output=csv",
     },
     "materiais_uso": {
         "schema": "raw_materiais",
         "tabela": "uso",
         "formato": "csv",
+        "pausada": STANDBY_MATERIAIS,
         "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vT4PITcONEn0irlRHdEAydHWxLZHBvASg5bGyT8Y3K1t7KgYMjTHrQ3lRTMAGa-Jxfd42Sbh-HRZF7R/pub?gid=1269397420&single=true&output=csv",
     },
 }

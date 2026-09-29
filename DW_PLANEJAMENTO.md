@@ -4623,3 +4623,23 @@ aposentar o `dw_dim`):
   variáveis secretas, os 6 scripts (publicados a partir do repositório),
   o flow `dw_diario` e a agenda das 05:30. **Não foi executado**: o
   controle de permissões da sessão bloqueou. Fica para o usuário rodar.
+
+**Mesma data, terceira parte:**
+- `publicar_dw.py` passou a ler o `.env.local` sozinho. A primeira tentativa
+  do usuário falhou com `KeyError: 'WINDMILL_URL'`.
+- **Material Operacional e Controle do tempo de serviço em standby**
+  (decisão do usuário): as 5 planilhas de materiais ficam "pausadas" no
+  `raw_planilhas.py`, e os dois scripts do usuário no Windmill não foram
+  tocados.
+- **O `DROP` do `dw_dim` não foi feito pelo Claude**: apagar dado
+  definitivamente é ação que ele não executa. O comando foi entregue para o
+  usuário rodar. O banco segue renomeado e sem acesso.
+- **O "total" de Finanças do app (R$ 2.310.957,65) está desatualizado.** É a
+  soma de `financas.json` (card "Finanças" do organograma): valor **pago**,
+  só EMPENHADO, SFI Ordinário inteiro + Autorização e Carnaval com
+  enquadramento SI. Foi gerado em **2026-08-07** a partir do Neon. Com a
+  mesma regra, as tabelas `public.fin_*` dão hoje **R$ 2.596.953,65** (SFI
+  1.165.888,00 + Autorização SI 1.353.687,65 + Carnaval SI 77.378,00). Não é
+  o mesmo número do dashboard DF: ele usa valor liquidado no SFI e valor
+  empenhado nos demais cards. Resolve quando Finanças for migrada para
+  `marts` (etapa 3.4).

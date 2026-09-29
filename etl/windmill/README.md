@@ -68,9 +68,14 @@ As foreign tables do `raw_fdw.py` são criadas uma vez por
 do flow, porque o user mapping é por usuário.
 
 **Planilhas pausadas** (`"pausada"` em `raw_planilhas.py`): ficam fora da
-rodada padrão enquanto estiverem fora do ar, para o flow não ficar vermelho
-todo dia. Hoje são `materiais_cp` e `materiais_natureza` (HTTP 410 desde
-2026-09-29).
+rodada padrão, mas carregam se pedidas pelo nome. Hoje são **todas as do
+Material Operacional**, em standby por decisão do usuário (2026-09-29).
+`raw_materiais` guarda a carga desse dia (smo, vt, uso). CP (carga padrão
+por tipo de viatura) e natureza (natureza de cada material) estão
+despublicadas na origem (HTTP 410).
+
+`publicar_dw.py` lê o `.env.local` da raiz sozinho: basta
+`python etl/windmill/publicar_dw.py --rodar`.
 
 ### Por que o DW não lê o Neon
 
