@@ -48,7 +48,16 @@ SELECT d.sigla_organograma                                   AS sigla,
        m.data_ingresso,
        m.data_ultima_promocao,
        coalesce(pp.principio ILIKE '%PCNH%', false)          AS pcnh,
-       t.data                                                AS data_referencia
+       t.data                                                AS data_referencia,
+       -- Agregado: marca "Ag" na coluna OBS do Peculio (sozinha, ou junto de
+       -- outra, como "Ag - READAP"). Conta na OME da coluna OME do Peculio.
+       coalesce(m.observacao ~* '(^|[^A-Za-z])Ag([^A-Za-z]|$)', false) AS agregado,
+       -- Regra de "indisponivel" (decisao do usuario, 2026-10-01): adido, ou
+       -- afastado (LTS/LM), ou LTIP, ou LE, ou agregado. Readaptado sozinho
+       -- continua disponivel. E a mesma regra de ehIndisponivel() em
+       -- src/lib/efetivoDashboard.js -- mude as duas juntas.
+       (f.adido OR o.sigla = 'ADIDOS' OR f.afastado OR f.le OR f.ltip
+        OR coalesce(m.observacao ~* '(^|[^A-Za-z])Ag([^A-Za-z]|$)', false)) AS indisponivel
 FROM core.fato_efetivo_diario f
 JOIN core.dim_tempo t      ON t.sk_tempo = f.sk_tempo
 JOIN core.dim_militar m    ON m.sk_militar = f.sk_militar

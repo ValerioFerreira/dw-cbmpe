@@ -1,5 +1,5 @@
 // CBMPE BI — Núcleo de dados e helpers de hierarquia
-import { NODES_PADRAO, montarOrganograma, metricasProprias, metricasDivisoesProprias, aplicarMetricasDw } from "@/data/organograma";
+import { NODES_PADRAO, NODES_NOVA, montarOrganograma, metricasProprias, metricasDivisoesProprias, aplicarMetricasDw } from "@/data/organograma";
 import { fetchOrganogramaRemoto } from "@/lib/organogramaClient";
 import { fetchMetricasDw, fetchEfetivoDw, fetchLotacaoDw } from "@/lib/dadosClient";
 import { aplicarEfetivoListaDw } from "@/data/efetivoLista";
@@ -49,10 +49,37 @@ export const SEVERIDADE = {
 // CbmpeProvider não disparar 4 GETs simultâneos nem remontar 4 vezes — ver
 // invalidarCacheOrganograma(), chamada pelo contexto sempre que
 // recarregar() roda de novo (ex. depois de uma edição em /adm).
-let organogramaCache = null;
+// LOB ATUAL, como o Comando quer ver hoje (2026-10-01), sem mexer no banco:
+// - o Estado-Maior Geral e as subordinadas dele (nível 3 e abaixo) ainda não existem;
+// - a DGA sai (extinta): as subordinadas dela passam a ser filhas do Subcomando Geral e o
+//   organograma as desenha EXATAMENTE como antes (mesmas colunas), só sem o quadro e o
+//   card da DGA, na linha dela, ao lado da DGO (ver `colunasSoltas` em Organograma.jsx);
+// - a AECI ganha o card de função de Coronel.
+function ajustarLobAtual(nodes) {
+  const porId = new Map(nodes.map((n) => [n.id, n]));
+  const sobeDoEstadoMaior = (n) => {
+    for (let a = n; a; a = porId.get(a.parentId)) if (a.nivel === 3) return true;
+    return false;
+  };
+  const dga = nodes.find((n) => n.sigla === "DGA" && n.nivel === 4);
+  return nodes
+    .filter((n) => !sobeDoEstadoMaior(n) && n !== dga)
+    .map((n) => {
+      let novo = n;
+      if (dga && n.parentId === dga.id) novo = { ...novo, parentId: dga.parentId };
+      if (n.sigla === "AECI") novo = { ...novo, funcaoCoronel: true };
+      return novo;
+    });
+}
 
-async function carregarOrganograma() {
-  if (organogramaCache) return organogramaCache;
+let organogramaCache = null;
+let organogramaCacheLob = null;
+
+// `lob`: "atual" (árvore do backend/padrão, editável em /adm) ou "nova" (NODES_NOVA,
+// só visualização — ver src/data/organograma.js).
+async function carregarOrganograma(lob = "atual") {
+  if (organogramaCache && organogramaCacheLob === lob) return organogramaCache;
+  organogramaCacheLob = lob;
   organogramaCache = (async () => {
     let nodes = NODES_PADRAO;
     const [estrutura, metricasDw, efetivoDw, lotacaoDw] = await Promise.allSettled([
@@ -67,7 +94,9 @@ async function carregarOrganograma() {
     if (lotacaoDw.status === "fulfilled" && aplicarLotacaoDw(lotacaoDw.value)) {
       console.info("Lotação por função do DW aplicada");
     }
-    if (estrutura.status === "fulfilled" && estrutura.value?.length) {
+    if (lob === "nova") {
+      nodes = NODES_NOVA;
+    } else if (estrutura.status === "fulfilled" && estrutura.value?.length) {
       nodes = estrutura.value;
     } else if (estrutura.status === "rejected") {
       // Backend fora do ar ou não configurado: cai no organograma padrão
@@ -80,7 +109,7 @@ async function carregarOrganograma() {
       const aplicados = aplicarMetricasDw(metricasDw.value);
       if (aplicados.length) console.info("Métricas do DW aplicadas:", aplicados.join(", "));
     }
-    return montarOrganograma(nodes);
+    return montarOrganograma(lob === "nova" ? nodes : ajustarLobAtual(nodes), { lob });
   })();
   return organogramaCache;
 }
@@ -89,25 +118,26 @@ async function carregarOrganograma() {
 // pra próxima leitura buscar a árvore atualizada em vez da cacheada.
 export function invalidarCacheOrganograma() {
   organogramaCache = null;
+  organogramaCacheLob = null;
 }
 
-export async function fetchUnidades() {
-  const { unidades } = await carregarOrganograma();
+export async function fetchUnidades(lob) {
+  const { unidades } = await carregarOrganograma(lob);
   return [...unidades].sort((a, b) => b.nivel - a.nivel);
 }
 
-export async function fetchIndicadores() {
-  const { indicadores } = await carregarOrganograma();
+export async function fetchIndicadores(lob) {
+  const { indicadores } = await carregarOrganograma(lob);
   return indicadores;
 }
 
-export async function fetchDashboards() {
-  const { dashboards } = await carregarOrganograma();
+export async function fetchDashboards(lob) {
+  const { dashboards } = await carregarOrganograma(lob);
   return [...dashboards].sort((a, b) => (b.atualizado_em || "").localeCompare(a.atualizado_em || ""));
 }
 
-export async function fetchAlertas() {
-  const { alertas } = await carregarOrganograma();
+export async function fetchAlertas(lob) {
+  const { alertas } = await carregarOrganograma(lob);
   return [...alertas].sort((a, b) => (b.data || "").localeCompare(a.data || ""));
 }
 
@@ -145,6 +175,7 @@ export function buildArvore(unidades) {
   unidades.forEach((u) => (porId[u.id] = { ...u, filhos: [] }));
   const raizes = [];
   Object.values(porId).forEach((u) => {
+    if (u.oculto) return; // LOB Nova: ex. DPlaG, absorvida pela DGA (soma nas contagens, não aparece)
     if (u.parent_id && porId[u.parent_id]) {
       porId[u.parent_id].filhos.push(u);
     } else {
@@ -160,9 +191,11 @@ function ordenarArvore(nos) {
   nos.forEach((n) => ordenarArvore(n.filhos));
 }
 
-export function getFilhos(unidades, parentId) {
+// `incluirOcultos`: unidade `oculto` (LOB Nova) só entra em contagens/tabelas
+// (getSubordinados), nunca em lista de exibição.
+export function getFilhos(unidades, parentId, incluirOcultos = false) {
   return unidades
-    .filter((u) => (parentId ? u.parent_id === parentId : !u.parent_id))
+    .filter((u) => (parentId ? u.parent_id === parentId : !u.parent_id) && (incluirOcultos || !u.oculto))
     .sort((a, b) => a.nome.localeCompare(b.nome));
 }
 
@@ -180,7 +213,7 @@ export function getCaminho(unidades, id) {
 
 export function getSubordinados(unidades, id) {
   // todos os descendentes
-  const filhos = getFilhos(unidades, id);
+  const filhos = getFilhos(unidades, id, true);
   let todos = [...filhos];
   filhos.forEach((f) => {
     todos = todos.concat(getSubordinados(unidades, f.id));
@@ -191,7 +224,7 @@ export function getSubordinados(unidades, id) {
 export function contarSubordinados(unidades, id) {
   const mapaFilhos = {};
   unidades.forEach((u) => {
-    if (u.parent_id) {
+    if (u.parent_id && !u.oculto) {
       mapaFilhos[u.parent_id] = (mapaFilhos[u.parent_id] || 0) + 1;
     }
   });

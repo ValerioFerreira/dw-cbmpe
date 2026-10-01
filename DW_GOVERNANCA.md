@@ -492,3 +492,18 @@ Decisões do usuário ao trazer as duas fontes para o DW:
   casamento seção→divisão entrar no DW.
 - **Na Vercel,** enquanto ela existir, o bundle continua com os JSON: o app de
   lá não alcança o backend. É mais uma razão para a transição.
+
+## Atualização 2026-10-01
+
+- **Relatórios com dado nominal não vão para o repositório.** Os anexos e os .docx de
+  `docs/relatorios/` trazem nome e matrícula de militares (QOD) e lançamentos financeiros (DF);
+  estão no `.gitignore`. Só o gerador (`gerar_relatorios.py`) é versionado. Nos relatórios, o
+  campo SEI da planilha de Finanças sai mascarado quando traz texto livre (nome de falecido).
+- **Payload de Finanças sem texto livre.** `marts.painel_df_lancamento` não traz SEI,
+  descrição nem observação.
+- **LOB Nova:** só Administrador, Comandante e Subcomandante Geral (perfis de acesso total)
+  veem o seletor; para os demais o app volta sozinho à LOB Atual. É só visualização.
+- **Papéis:** `bi_reader` continua sem acesso às views nominais (`efetivo_nominal`, etc.); o
+  `marts.painel_df_lancamento` é liberado a `app_reader` e `bi_reader`, por não ter dado pessoal.
+- **Dono das views `chefe_organograma` e `efetivo_nominal`** passou ao `etl_writer` (antes, do
+  superusuário); `app_reader` lê normalmente.

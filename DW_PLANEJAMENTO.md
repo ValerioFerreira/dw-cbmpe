@@ -20,7 +20,25 @@
   trabalhamos toda vez que uma nova fonte de dados é integrada ao DW.
   **Leitura obrigatória antes de propor qualquer integração de fonte.**
 
-## Estado atual — onde retomar (atualizado 2026-09-29)
+## Estado atual — onde retomar (atualizado 2026-10-01)
+
+> **2026-10-01 — o que mudou desde 29/09, em uma tela.** Detalhe nas quatro entradas
+> "2026-10-01" no fim do log de decisões. **Feito:** (1) titular da unidade e matrícula
+> vêm do **Pecúlio** (mais antigo da OME), CPP repete a CPO, DGA "Em construção";
+> (2) regra de **indisponível** (adido, afastado, LTIP, LE ou agregado) e agregado na OME
+> da coluna OME; (3) mocks de **Materiais** e de **Atividades Específicas** removidos
+> (Material Operacional descontinuado); (4) **Finanças inteira no DW**, sem JSON nem
+> extrator: tratamento só de grafia, aba **Diárias** (ex-Despesas Diversas, sem Auxílio
+> Funeral) e aba nova **Despesas Gerais** com filtros de OME, Enquadramento, Situação e
+> Mês; (5) **QOD**: aba `ID_ATUALIZADO` é o catálogo de funções (ID fixo) e o previsto por
+> unidade passou a vir dos **quadros de setembro** (5.249, o efetivo fixado); (6) dois
+> **relatórios** para apresentar (QOD: DPlaG e CPPA; DF: Diretoria de Finanças); (7)
+> **LOB Atual/Nova** no organograma (só Administrador, Comandante e Subcomandante Geral);
+> (8) flow `f/dw/dw_diario` **republicado** no Windmill (primeira execução com o código novo:
+> 05:30 de 02/10). **Em aberto e próximos passos:** seção "Em aberto e próximos passos
+> (2026-10-01)" no fim deste arquivo. **Deploy (CapRover) segue em standby**, à espera
+> da VM que o TI pediu à ATI.
+
 
 > **2026-09-29 — DW v1 desenhado; as fontes Postgres internas entram via
 > `postgres_fdw`.** O plano completo (estrutura v1, fonte a fonte, ordem de
@@ -4729,3 +4747,201 @@ AGGD).
 
 **Windmill:** flow republicado e rodado com sucesso, com o QOD e a
 `ficha_financ` carregados pelo `windmill_etl`.
+
+### 2026-10-01 — Titular pelo Pecúlio, regra de indisponível, mocks removidos, regras do Mapa de Força
+
+Decisões do usuário (a Vercel deixa de ser restrição: o app vai para a VM
+interna, então não se mantém JSON no bundle por causa dela):
+
+- **Fonte da verdade do titular e da matrícula é o Pecúlio.** Titular da unidade
+  = o militar mais antigo da OME na planilha (`stg.peculio.ordem`). Conferido:
+  bate com a marca `Titular` da OBS em **45 de 45** OMEs (só `ADIDO` não tem
+  titular, e não é unidade). ABMG é o Maj JOÃO PAULO (o QOD dizia "Vago") e o
+  Subcomandante Geral é o Cel CURVÊLO (a matrícula do QOD diverge). `CPP` e `DGA`
+  não têm OME no Pecúlio e saem como vagas. `marts.chefe_organograma`
+  (`11_qod.sql`) foi reescrita; o QOD só empresta o nome da função.
+- **Agregado** (marca `Ag` na OBS, 19 pessoas, todas com OME) soma no efetivo
+  **indisponível** da OME da coluna OME; os 6 com OME `ADIDO` ficam na OME
+  fantasma ADIDOS. **Regra de indisponível:** adido, ou afastado (LTS/LM), ou
+  LTIP, ou LE, ou agregado; readaptado sozinho continua disponível. Está em
+  `ehIndisponivel()` (`src/lib/efetivoDashboard.js`) e nas colunas `agregado` e
+  `indisponivel` de `marts.efetivo_nominal` (`12_nominal.sql`). Dos 19 agregados,
+  18 já eram indisponíveis; só o Subten DOS SANTOS (GBS, cargo eletivo) entra.
+- **Painel 09 (Intenção de Movimentação):** o SQL do Metabase das duas
+  agregações inferidas chegou. "Distribuição das solicitações" é o **top 10 de
+  OMEs pelas opções 1, 2 e 3** (soma das três), e não por motivo. "Origem das
+  solicitações" é a contagem por `ome_atual`. **Ainda não reimplementadas.**
+- **Atividades Específicas e Materiais:** removido o número fictício (`acoes` e
+  `materiaisPct`) do `organograma.js`. Os dois indicadores seguem como "Em
+  construção", sem valor, série nem tendência. Atividades Específicas só mostra
+  as famílias com dado real (Mapa de Força, Vacinação, Ocorrências). **Material
+  Operacional está descontinuado:** outro sistema, do Igor, vai substituí-lo.
+- **Mapa de Força:**
+  - o DW deve guardar só os **últimos 30 dias**; quem precisar de mais vai ao
+    sistema próprio do Mapa de Força (**ainda não aplicado**: ver pergunta sobre
+    o histórico de emprego de viatura);
+  - coordenadas sem posto próprio: DGO, CAT/RMR e DIESP usam o QCG; CAT/SE usa o
+    4º GB; CAT/AG e DINTER I usam o 2º GB; **todos os postos do GBMar usam a sede
+    do GBMar até o usuário informar os postos** (regra em
+    `conferir_coordenadas.py`, `REGRA_COORDENADA_POR_OME`);
+  - SBFN (Fernando de Noronha) é a seção `SBFN/GBI` do QOD;
+  - postos `SEDE` lançados por OME que não é a dona são viaturas de uma OME
+    ativadas no quartel de outra (a AR do GBAPH ativa no GBS): o efetivo e o
+    lançamento são da OME de origem, o local é o do quartel;
+  - na DINTER II, os postos "3º GB", "4º GB", "5º GB" e "9º GB" valem como SEDE
+    do GB indicado;
+  - o de-para posto → seção usa o **QOD** como fonte da verdade
+    (`etl/mapa_forca/de_para_posto_qod.csv`, a partir da aba `ID_ATUALIZADO`);
+  - a lista dos 44 postos sem coordenada própria está em
+    `etl/mapa_forca/postos_sem_coordenada.csv`.
+- **QOD:** o link publicado continua no ar (HTTP 200, xlsx, as 8 abas). A aba
+  `QOD_FUNCOES` ainda diz AGOSTO; a de setembro é a `ID_ATUALIZADO`, que corrige,
+  por exemplo, a 2ª SB do 6º GB (Bom Conselho), que em agosto vinha rotulada
+  como a 1ª SB (Garanhuns). O `carga_core.py` ainda lê `QOD_FUNCOES`.
+
+**Não aplicado no banco:** os DDL de `11_qod.sql` e `12_nominal.sql` foram
+editados, mas o controle de permissões da sessão bloqueou aplicá-los no `dw`.
+Ficam para o usuário autorizar ou rodar.
+
+**Mesma data, segunda parte:**
+- DDL aplicado como `datawarehouse-user` (autorizado pelo usuário): `marts.chefe_organograma`
+  e `marts.efetivo_nominal` reescritas, e o dono das duas passou a `etl_writer`
+  (como `etl_writer` não era possível trocar uma view de superusuário). Conferido como
+  `app_reader` e `bi_reader`: 46 chefes, 267 indisponíveis, 19 agregados; `bi_reader`
+  segue sem acesso ao nominal. **A CPP repete o titular da CPO (Maj FRANÇA)**; **a
+  DGA aparece "Em construção" no card do organograma**, sem "Cel XXXX" nem "Vago".
+- QOD: a planilha **QOD CONFERÊNCIA** (link publicado) é o link fixo da DPlaG e da
+  CPPA. O QOD formatado de setembro (`1-teebSQ…`) traz o efetivo fixado por lei
+  (5.249, LC 527/2023) e a distribuição por posto/graduação e por seção. Cruzando
+  as duas, o previsto por unidade bate, exceto: 2º GB (671 × 485), 6º GB (201 × 232)
+  e 1 a 4 vagas em GCG, GSG, 3º GB, DGP, CPPA e DPlaG (29 × 25). No total, as
+  funções FUNCIONAIS do DW somam 5.412 contra 5.249 fixados (163 a mais, 133 delas
+  em Sd, Cb e 3º Sgt). O quadro "GERAL 001" do arquivo novo ainda traz "JULHO 2026".
+
+**Mesma data, terceira parte — relatórios, DF e quadros do QOD:**
+- **Relatórios para apresentar** (em `docs/relatorios/`, com os anexos .xlsx):
+  `Relatorio_QOD_divergencias.docx` (DPlaG e CPPA) e `Relatorio_DF_apontamentos.docx`
+  (Diretoria de Finanças). São gerados por `etl/dw/auditar_qod.py`,
+  `etl/financas/auditar_planilha.py` e `docs/relatorios/gerar_relatorios.py`.
+  Nada foi corrigido: só apontado.
+- **DF (Finanças), tudo no DW; sem JSON.** Regra do usuário: o sistema mostra os dados
+  como estão; só se trata a **grafia** do tipo de gasto (caixa, espaço, hífen, "Globa",
+  "Miliar") e do mês (palavras extras, MAIO/MAI, data do Carnaval gravada como número),
+  em `tratar_grafia_financas()` (`carga_core.py`); o original fica em
+  `ficha_financ_original` e `mes_original`. Colunas novas em `core.fato_financeiro`
+  (`oficio`, `item`, `empenho`, `mes_rotulo`, `mes_ordem`), `stg.financas_destino` e a
+  view `marts.painel_df_lancamento` (sem SEI, descrição nem observação, que trazem nome
+  de falecido). Dashboard DF: módulos mantidos; **"Despesas Diversas" virou "Diárias"** (sem o
+  gráfico de Auxílio Funeral) e nasceu a aba **"Despesas Gerais"**, com filtros por OME,
+  Enquadramento, Situação e Mês. Removidos `financas.json`, `financas_dashboard.json`,
+  `extract_financas.py` e `extract_dashboard_df.py`.
+  `Plan1` é ignorada; "Banco de Dados - NÃO MEXER" é a consolidação das outras abas.
+- **Quadros do QOD (previsto).** Decisão do usuário: nomenclatura e ocupantes vêm da
+  QOD CONFERÊNCIA (QOD_CONSOLIDADA); a distribuição por OME/seção vem da planilha de
+  quadros de setembro. Implementado o **previsto por unidade a partir do GERAL 001**
+  (`raw_qod_quadros`, `core.qod_quadro_unidade`, `marts.previsto_quadro`, que o backend
+  passou a ler). O schema `raw_qod_quadros` precisou de superusuário (o `etl_writer` não
+  tem CREATE no banco) e foi criado na quarta parte. Nomenclatura das funções a partir da
+  QOD_CONSOLIDADA: **não feita** (ver "Em aberto" no fim).
+
+### 2026-10-01 (quarta parte) — LOB Nova no organograma; ID_ATUALIZADO; quadros do QOD no DW
+
+- **ID_ATUALIZADO é a aba com o ID fixo das funções** (usuário). O `carga_core.py` passou
+  a ler `raw_qod.id_atualizado` (e não mais `qod_funcoes`): 1.855 funções, 2.761 das 2.772
+  ocupações casam com uma função (11 códigos órfãos na QOD_CONSOLIDADA).
+- **Quadros do QOD no DW.** Schema `raw_qod_quadros` criado (superusuário, autorizado),
+  planilha de quadros carregada, `core.qod_quadro_unidade` com 46 quadros e **previsto
+  total 5.249** (o efetivo fixado). O backend lê `marts.previsto_quadro` (com
+  fallback às vagas da DPlaG se a tabela estiver vazia). Diferem das vagas da DPlaG:
+  2º GB 485 (671), 6º GB 232 (201), 3º GB 305 (306), DGP 62 (65), DPLAG 25 (29).
+  Fonte `qod_quadros` publicada no Windmill.
+- **LOB Atual/Nova.** Seletor no canto superior direito do organograma, só para
+  Administrador, Comandante e Subcomandante Geral (e o login local AGGD); default Atual;
+  guardado no navegador; quem não tem o direito volta sozinho para a Atual
+  (`LobGuard.jsx`). A Nova é uma segunda árvore (`NODES_NOVA`, em `src/data/organograma.js`) e
+  vale para **o app inteiro**: cards, contagens (rollup pela nova hierarquia), tabelas de
+  Efetivo e Viaturas, dashboards. Regras: unidades com função de Coronel ficam com o card
+  dourado (o asterisco do pedido era só para situar e **não aparece na tela**);
+  DEIP→DECI, DLOG→DAL, CINT→CSM/INT, CMAN→CSM/MOTO levam os dados da sigla antiga;
+  ARI, AJ, DINTER III, GI, CEI, CFO, CAEBM, CCBM e CRESEP nascem "Em construção"; AJ é nova
+  e a AJG segue com seus dados (DGA); **DPlaG extinta e absorvida pela DGA**: fica como nó
+  `oculto` (soma nas contagens da DGA, não aparece) e seu diretor não vira diretor da DGA.
+  A DINTER III fica sem subordinados, sobre a DIESP (4 colunas). Estado-Maior e os
+  subordinados de DIM, DINTER I e II não mudam. A LOB Nova não é editável em /adm.
+- **Ajustes da LOB (mesmo dia).** **LOB Atual** (só visualização, sem mexer no banco;
+  `ajustarLobAtual` em `src/lib/cbmpe.js`): sem o Estado-Maior Geral e suas subordinadas
+  ("ainda não existem"); a **DGA, extinta, some**: a DGO fica **como estava** e as
+  subordinadas da DGA mantêm **exatamente** as colunas de antes (DLOG, DEIP e as duas
+  colunas de diretorias), só que **sem o quadro e o card da DGA**, na linha dela, ao lado
+  da DGO (`colunasSoltas` em `Organograma.jsx`); elas passam a ser filhas diretas do
+  Subcomando Geral (nível 5), e os totais dele não mudam; AECI com a cor de função de Coronel.
+  **LOB Nova, DGA:** GI dentro do grupo da DGP; o grupo da DGP fica embaixo do da DAL (mesma
+  coluna); DF, DTIC, DVP e DAS na 3ª coluna; só a AJG na 4ª; fundo mais escuro nas
+  subordinadas da ABMG (CEI, CFO, CAEBM).
+
+## Em aberto e próximos passos (2026-10-01)
+
+**Falta fazer, por tema (em ordem do que mais destrava):**
+
+1. **Dimensionamento da VM e pedido de firewall à ATI.** Não feito. Já medido: o banco `dw`
+   tem **626 MB** (Mapa de Força 236 MB; `core` 206 MB; Frota 105 MB). Falta: vCPU/RAM/disco
+   para o front (nginx) e o backend, IOPS, backup, **lista de portas** (DW 54301, Frota
+   54329, ROE 15432, SGP/escala em 10.193.0.16, mapa de força/vacina/SGU em 10.193.0.20,
+   Windmill, DNS, NTP) e as perguntas ao TI (raiz de host ou subcaminho; TLS; hostname).
+   Quadro final em `docs/deploy-solicitacao-ti.md`. **Deploy no CapRover em standby.**
+2. **Primeira execução do flow novo.** O `f/dw/dw_diario` foi republicado, mas só roda sozinho às
+   05:30 de 02/10. Conferir `stg.carga` e o `validar.py`; se preferir testar antes,
+   `python etl/windmill/publicar_dw.py --rodar`.
+3. **QOD.**
+   - Nomenclatura das funções a partir da **QOD_CONSOLIDADA** (decisão do usuário):
+     não feita. Hoje o nome da função vem da `ID_ATUALIZADO`; 11 códigos de função da
+     QOD_CONSOLIDADA não existem nela.
+   - Os quadros por **seção/SB** estão no `raw_qod_quadros` mas **não alimentam nada**
+     (só o GERAL 001, por unidade, é usado). O previsto por divisão ainda vem do
+     `efetivo_previsto_divisoes.json` (extrator antigo).
+   - Divergências a levar à DPlaG e à CPPA: ver `Relatorio_QOD_divergencias.docx`
+     (2º GB 485 × 671, 6º GB 232 × 201, 163 vagas funcionais acima do fixado, matrícula do
+     Subcomandante Geral, 47 postos desatualizados, IDs que mudam, numeração de quadros).
+4. **Mapa de Força.**
+   - **Retenção de 30 dias** (decisão do usuário) **não aplicada**: o DW guarda desde 2019.
+     Manter o **resumo agregado** (`emprego_viatura_resumo`) antes de cortar o `raw`/`core`.
+   - Tirar os **12 MB nominais de `public/dados/mapa-forca/`** do front: rota no backend com
+     recorte por perfil, como as demais.
+   - O arquivo gerado pelo extrator parou em 24/08; reexecutar até a rota existir.
+   - **Coordenadas dos postos: standby** (o usuário monta a tabela). Lista dos 44 sem
+     coordenada em `etl/mapa_forca/postos_sem_coordenada.csv`. Postos de praia do GBMar: o
+     usuário informa depois (por ora, sede do GBMar). Regras de fallback já no código
+     (`REGRA_COORDENADA_POR_OME`).
+   - **De-para posto → seção do QOD** em `etl/mapa_forca/de_para_posto_qod.csv`: 49 casam; 27
+     ficam a decidir (CATs, CMAN, ABMG, QCG, CIODS, DAP, DPCIP, CIAT, CEASA e os postos
+     `SEDE` lançados por outra OME, ex. "GBS (SEDE)": 1ª SBS ou o comando?).
+5. **Painel 09 (Intenção de Movimentação).** O SQL do Metabase das duas agregações inferidas
+   chegou (top 10 de OMEs pelas opções 1+2+3; contagem por `ome_atual`), com filtros de
+   categoria e motivo. **Não reimplementado.**
+6. **Domínios que ainda saem de JSON no front:** painéis pessoais de Efetivo
+   (`efetivo_dashboard/*`) e de Viaturas, lotação por divisão, previsto por divisão. Quando o
+   dashboard de Efetivo passar a ler do DW, ligar o campo `agregado` (já existe em
+   `marts.efetivo_nominal`) à regra `ehIndisponivel()`.
+7. **LOB Nova.** Visualização apenas; quando a nova LOB valer de verdade, a árvore vai para
+   `app.organograma_unidade`. Pendências: testar o seletor com um usuário comandante e
+   subcomandante reais (SGU); dar OME às unidades novas (ARI, AJ, DINTER III, GI, CEI, CFO,
+   CAEBM, CCBM, CRESEP) e, na Nova, o DW seguir as OMEs renomeadas; nas tabelas nominais a LOB
+   Nova só funciona com o backend ligado ao DW.
+8. **DF (Finanças).** Os dois relatórios aguardam a apresentação. Candidatos a unificar o
+   tipo de gasto (a DF decide): "Cota Global" × "Cota Global CBM" × "DEA - COTA GLOBAL",
+   "Gestão das Taxas" × "Gestão de taxas", "Curso" × "Cursos de formação", "Diárias -
+   Operação X" sem o prefixo "EXECUTIVA -". A view `marts.painel_df_funeral` ficou sem uso
+   (pode sair). Revisar visualmente a aba Despesas Gerais com a DF.
+9. **Segurança (antigas, seguem abertas).** Rotacionar as credenciais que passaram pelo
+   chat (DW, Neon e as demais da lista); chaves de service account coladas nos scripts
+   "Material Operacional" e "Controle do tempo de serviço" do Windmill; confirmar que as
+   credenciais lidas nas origens (SGP, mapa de força, Frota, ROE) são somente leitura;
+   `DROP` do `dw_dim_aposentado_20260929` (o Claude não apaga dado); destino do `dw_diesp`.
+10. **Material Operacional: descontinuado.** Aguardar a nova fonte e os painéis do Igor.
+11. **Qualidade do código.** `npm run typecheck` tem 394 erros que já existiam (props de
+    componentes sem tipos); o lint passa. Não há teste automatizado de front.
+
+**Decisões do usuário que valem daqui para frente:** a Vercel não é restrição (sem fallback
+em JSON por causa dela); o Pecúlio é a verdade para matrícula e titular; Atividades
+Específicas só mostra o que tem dado real; o sistema mostra dados como estão e só trata
+grafia; previsto vem do quadro, funções do `ID_ATUALIZADO`, ocupantes da QOD_CONSOLIDADA.

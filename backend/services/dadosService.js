@@ -25,10 +25,14 @@ const CONSULTAS = {
   // Vagas FUNCIONAL do QOD publicado (decisão do usuário, 2026-09-29).
   previsto: `
     select sigla, previsto as valor, null::date as data_referencia
-    from marts.previsto_organograma`,
+    from marts.previsto_quadro
+    union all
+    select sigla, previsto, null::date
+    from marts.previsto_organograma
+    where not exists (select 1 from marts.previsto_quadro)`,
 };
 
-// Titular de cada unidade, do QOD (marts.chefe_organograma). Dado nominal
+// Titular de cada unidade, do Pecúlio (marts.chefe_organograma). Dado nominal
 // institucional — o mesmo que o organograma já exibe para todo usuário logado.
 async function chefesPorSigla() {
   const { rows } = await getPoolDw().query(
@@ -175,30 +179,43 @@ function capitalizarNome(bruto) {
   }).join(" ");
 }
 
-// DF: linhas por unidade recortadas pelo indicador Finanças; diárias e
-// auxílio funeral não têm unidade, então só vão para quem vê Finanças de
-// todas as unidades (acesso total ou perfil DF) — o painel só as mostra na
-// visão do Comando Geral.
+// DF: linhas por unidade recortadas pelo indicador Finanças. As diárias (módulo
+// "Diárias") e os lançamentos sem unidade (folha, contratos, "Aos mesmos"...)
+// só vão para quem vê Finanças de todas as unidades (acesso total ou perfil DF)
+// — o painel só os mostra na visão do Comando Geral. `lancamentos` alimenta a aba
+// "Despesas Gerais": uma linha por lançamento, sem texto livre; quem não vê tudo
+// só recebe as linhas das unidades liberadas.
 export async function painelDf(siglas) {
   const pool = getPoolDw();
   const parametros = [];
   const where = siglas === null ? "" : (parametros.push([...siglas]), "where unidade = any($1)");
-  const [ord, extra, si, diarias, funeral] = await Promise.all([
+  const [ord, extra, si, diarias, lanc] = await Promise.all([
     pool.query(`select unidade, natureza, mes, valor from marts.painel_df_sfi_ordinario ${where}`, parametros),
     pool.query(`select unidade, valor from marts.painel_df_sfi_extra ${where}`, parametros),
     pool.query(`select unidade, valor from marts.painel_df_suprimento_individual ${where}`, parametros),
     siglas === null ? pool.query("select operacao, valor from marts.painel_df_diarias order by valor desc") : { rows: [] },
-    siglas === null ? pool.query("select mes, valor from marts.painel_df_funeral order by ordem, mes") : { rows: [] },
+    pool.query(
+      `select bloco, unidade, destino, enquadramento, situacao, tipo, natureza, mes, mes_ordem, oficio, item, empenho,
+              valor, valor_liquidado, valor_pago, pago_maior_liquidado, liquidado_maior_empenhado, pago_maior_empenhado
+       from marts.painel_df_lancamento ${where} order by mes_ordem nulls last, bloco, oficio, item`,
+      parametros
+    ),
   ]);
   const comValor = (r) => ({ ...r, valor: num(r.valor) });
+  const lancamento = (r) => ({
+    ...r,
+    valor: r.valor === null ? null : num(r.valor),
+    valor_liquidado: r.valor_liquidado === null ? null : num(r.valor_liquidado),
+    valor_pago: r.valor_pago === null ? null : num(r.valor_pago),
+  });
   return {
     fonte: "dw (marts.painel_df_*)",
-    criterio: "situacao=EMPENHADO. SFI = SFI Ordinário (valor liquidado) + Autorização enquadramento=SFI (SFI Extra). Suprimento Individual = Autorização enquadramento=SI. Despesas Diversas = Autorização enquadramento=DIÁRIAS e FUNERAL.",
+    criterio: "situacao=EMPENHADO. SFI = SFI Ordinário (valor liquidado) + Autorização enquadramento=SFI (SFI Extra). Suprimento Individual = Autorização enquadramento=SI. Diárias = Autorização enquadramento=DIÁRIAS. Despesas Gerais = todos os lançamentos da planilha, como estão (só a grafia do tipo de gasto e do mês é tratada).",
     sfi_ordinario: ord.rows.map(comValor),
     sfi_extra: extra.rows.map(comValor),
     suprimento_individual: si.rows.map(comValor),
     diarias: diarias.rows.map(comValor),
-    funeral: funeral.rows.map(comValor),
+    lancamentos: lanc.rows.map(lancamento),
   };
 }
 

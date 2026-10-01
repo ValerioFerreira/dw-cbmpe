@@ -5,6 +5,7 @@ import * as XLSX from "xlsx";
 import { useCbmpe } from "@/lib/cbmpe-context";
 import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import { getCaminho, getSubordinados, fmtNumero } from "@/lib/cbmpe";
+import { siglaDeDados } from "@/data/organograma";
 import EmptyState from "@/components/ui/empty-state";
 import SectionCard from "@/components/ui/section-card";
 import ScrollDuplo from "@/components/ui/scroll-duplo";
@@ -106,7 +107,7 @@ export default function ViaturaDetalhe() {
     if (!unidade) return [];
     const siglas = [unidade.sigla, ...getSubordinados(unidades, unidade.id).map((u) => u.sigla)];
     return siglas.flatMap((sigla) =>
-      (viaturasLista.por_unidade[sigla] || [])
+      (viaturasLista.por_unidade[siglaDeDados(sigla)] || [])
         .filter((r) => r.situacao !== "Descarregada")
         .map((r) => {
           const placa = (r.placa || "").trim();

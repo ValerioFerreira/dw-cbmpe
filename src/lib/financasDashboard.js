@@ -19,7 +19,8 @@ export { fmtMoeda } from "@/lib/cbmpe";
 export const MODULOS_FINANCAS_DASHBOARD = [
   { n: 1, key: "sfi", nome: "Suprimento de Fundo Institucional" },
   { n: 2, key: "individual", nome: "Suprimento Individual" },
-  { n: 3, key: "despesas", nome: "Despesas Diversas" },
+  { n: 3, key: "diarias", nome: "Diárias" },
+  { n: 4, key: "gerais", nome: "Despesas Gerais" },
 ];
 
 // Restringe um array de registros já normalizados (campo `unidade` no

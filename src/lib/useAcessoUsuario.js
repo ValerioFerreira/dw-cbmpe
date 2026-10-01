@@ -57,6 +57,10 @@ export function useAcessoUsuario() {
 
   const ehAdministrador = !restrito || !!acesso?.admin;
 
+  // Seletor "LOB Atual/Nova" do organograma: Administrador, Comandante e
+  // Subcomandante Geral (perfis de acesso total), e o login local AGGD.
+  const podeVerLob = !restrito || !!acesso?.total;
+
   // Token pra rotas de escrita do backend (organograma, atribuições — ver
   // requireAdmin.js): só quando o PRÓPRIO perfil do usuário SGU é
   // ADMINISTRADOR — o backend revalida isso de qualquer forma, mas evitar
@@ -65,5 +69,5 @@ export function useAcessoUsuario() {
   // só na visualização.
   const tokenAdmin = restrito && acesso?.admin ? user?.token : undefined;
 
-  return { restrito, acesso, permiteSigla, permiteIndicador, permiteKpiTopo, ehAdministrador, tokenAdmin };
+  return { restrito, acesso, permiteSigla, permiteIndicador, permiteKpiTopo, ehAdministrador, podeVerLob, tokenAdmin };
 }

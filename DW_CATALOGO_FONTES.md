@@ -682,3 +682,17 @@ levantar fontes para este domínio ainda.
   `core`, sem passar por `raw`/`staging` (ver [`DW_ARQUITETURA.md`](DW_ARQUITETURA.md)).
 - A frequência de atualização varia por domínio/fonte — a definir linha a
   linha nas tabelas acima, não um valor único para o DW inteiro.
+
+## Atualização 2026-10-01
+
+- **QOD CONFERÊNCIA** (link publicado; DPlaG e CPPA): abas lidas — `FUNÇÕES DPLAG` (vagas, só
+  conferência), `ID_ATUALIZADO` (catálogo de funções, ID fixo, mês SETEMBRO) e
+  `QOD_CONSOLIDADA` (ocupantes). `QOD_FUNCOES` (agosto) deixou de ser usada.
+- **QOD de setembro de 2026** (quadros; link de compartilhamento, 95 abas, ~10 MB): fonte nova,
+  `raw_qod_quadros`. Dela só o quadro `GERAL 001` (previsto por unidade e posto) é usado; os
+  quadros por seção e o `EXTRATO` (movimentações) estão carregados e sem uso. Traz o efetivo
+  fixado por lei (5.249, LC 527/2023). O quadro GERAL 001 ainda diz "JULHO 2026".
+- **Planilha de Finanças:** a aba "Banco de Dados - NÃO MEXER" é a consolidação; `Plan1` é
+  ignorada. Campos que o DW passou a guardar: ofício, item e número de empenho.
+- **Material Operacional:** descontinuado (outro sistema, do Igor, vai substituí-lo; a nova
+  fonte será integrada quando chegar).

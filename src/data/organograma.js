@@ -17,7 +17,6 @@ import efetivoPrevistoReal from "./real/efetivo_previsto.json";
 import efetivoPrevistoDivisoesReal from "./real/efetivo_previsto_divisoes.json";
 import lotacaoFuncaoReal from "./real/lotacao_funcao.json";
 import viaturasListaReal from "./real/viaturas_lista.json";
-import financasReal from "./real/financas.json";
 
 const DIACRITICOS_REGEX = new RegExp("[\\u0300-\\u036f]", "g");
 
@@ -68,7 +67,9 @@ const OFICIAIS = {
   '5º GB': { oficial: 'Maj Castro', cargo: 'Comandante' },
   '9º GB': { oficial: 'Maj Lamartine', cargo: 'Comandante' },
   'CAT/SE': { oficial: 'TC Oliveira', cargo: 'Chefe' },
-  'DGA': { oficial: 'Cel XXXX', cargo: 'Diretor' },
+  // DGA: posição confirmada no organograma, unidade ainda não criada — sem
+  // titular, o card mostra "Em construção" (como o Estado-Maior).
+  'DGA': { oficial: 'Em construção', cargo: '' },
   'DPLAG': { oficial: 'TC Barros Leite', cargo: 'Diretor' },
   'DGP': { oficial: 'TC Wagner', cargo: 'Diretor' },
   'DVP': { oficial: 'TC Pablo', cargo: 'Diretor' },
@@ -180,6 +181,82 @@ const NODES_PADRAO = [
   { id: 'cefd', sigla: 'CEFD', nivel: 6, parentId: 'deip', ordem: 460 },
 ];
 
+// ----- LOB Nova (2026-10-01) -----
+// Segunda hierarquia, só para visualização enquanto a nova LOB não é efetivada:
+// o seletor "LOB Atual/Nova" do organograma (só Administrador, Comandante e
+// Subcomandante Geral) troca TODA a árvore do app — organograma, contagens,
+// tabelas — por esta. Fica no código (não é editável em /adm, que edita só a
+// LOB atual). Quando a nova LOB valer de verdade, isto vira a árvore oficial.
+//
+// Regras definidas pelo usuário:
+// - Unidade com função de Coronel ganha o card dourado (`funcaoCoronel`).
+// - Renomeadas (DEIP→DECI, DLOG→DAL, CINT→CSM/INT, CMAN→CSM/MOTO) levam os dados
+//   da unidade de origem (ALIAS_NOVA).
+// - Unidades novas (ARI, AJ, DINTER III, GI, CEI, CFO, CAEBM, CCBM, CRESEP) ainda
+//   não têm OME no SGP: `emConstrucao`, sem dados.
+// - A DPlaG é extinta e absorvida pela DGA: fica na árvore como nó `oculto`
+//   (não aparece no organograma nem nas listas, mas soma nas contagens da DGA) e o
+//   diretor dela NÃO vira diretor da DGA (que segue "Em construção").
+// - Estado-Maior Geral, e os subordinados de DIM, DINTER I e DINTER II, não mudam.
+const ALIAS_NOVA = { 'DECI': 'DEIP', 'DAL': 'DLOG', 'CSM/INT': 'CINT', 'CSM/MOTO': 'CMAN' };
+
+const NODES_NOVA = (() => {
+  // Sai do fallback tudo que é reposicionado/renomeado abaixo.
+  const REFEITOS = new Set(['gcg', 'ci', 'cpo', 'aeci', 'ccs', 'gsg', 'ajg', 'cpp', 'diesp', 'dgp', 'dvp', 'djd', 'df',
+    'das', 'dtic', 'dlog', 'deip', 'dplag', 'cman', 'cint', 'ceao', 'abmg', 'cefd']);
+  const base = NODES_PADRAO.filter((n) => !REFEITOS.has(n.id));
+  const no = (id, sigla, nivel, parentId, ordem, extra = {}) => ({ id, sigla, nivel, parentId, ordem, ...extra });
+  return [
+    ...base,
+    // Subordinados diretos do Comando Geral*
+    no('gcg', 'GCG', 6, 'comando-geral', 30),
+    no('aeci', 'AECI', 6, 'comando-geral', 40, { funcaoCoronel: true }),
+    no('ari', 'ARI', 6, 'comando-geral', 50, { emConstrucao: true }),
+    no('ci', 'CI', 6, 'comando-geral', 60),
+    no('ccs', 'CCS', 6, 'comando-geral', 70),
+    no('cpo', 'CPO', 6, 'comando-geral', 80),
+    no('aj', 'AJ', 6, 'comando-geral', 90, { emConstrucao: true }),
+    // Subordinados diretos do Subcomando Geral* (Estado-Maior, DGO e DGA não mudam de pai)
+    no('gsg', 'GSG', 6, 'subcomando-geral', 80),
+    no('djd', 'DJD', 6, 'subcomando-geral', 90, { funcaoCoronel: true }),
+    no('cpp', 'CPP', 6, 'subcomando-geral', 100),
+    // DGO*: DINTER III fica sem subordinados e acima da DIESP (ver Organograma.jsx: 4 colunas)
+    no('dinter-iii', 'DINTER III', 5, 'dgo', 155, { emConstrucao: true }),
+    no('diesp', 'DIESP', 5, 'dgo', 160),
+    // DGA*
+    no('deci', 'DECI', 5, 'dga', 330),
+    no('abmg', 'ABMG', 6, 'deci', 450, { funcaoCoronel: true }),
+    no('cei', 'CEI', 7, 'abmg', 451, { emConstrucao: true }),
+    no('cfo', 'CFO', 7, 'abmg', 452, { emConstrucao: true }),
+    no('caebm', 'CAEBM', 7, 'abmg', 453, { emConstrucao: true }),
+    no('ccbm', 'CCBM', 6, 'deci', 455, { emConstrucao: true }),
+    no('cefd', 'CEFD', 6, 'deci', 460),
+    no('dal', 'DAL', 5, 'dga', 340),
+    no('csm-int', 'CSM/INT', 6, 'dal', 420),
+    no('csm-moto', 'CSM/MOTO', 6, 'dal', 430),
+    no('ceao', 'CEAO', 6, 'dal', 440),
+    // DGP: grupo posto embaixo do grupo da DAL, na mesma coluna (ver Organograma.jsx).
+    no('dgp', 'DGP', 5, 'dga', 350, { abaixoDe: 'dal' }),
+    no('cresep', 'CRESEP', 6, 'dgp', 351, { emConstrucao: true }),
+    no('df', 'DF', 5, 'dga', 360),
+    no('dtic', 'DTIC', 5, 'dga', 370),
+    no('dvp', 'DVP', 5, 'dga', 380),
+    no('das', 'DAS', 5, 'dga', 390),
+    no('ajg', 'AJG', 6, 'dga', 395),
+    no('gi', 'GI', 6, 'dgp', 352, { emConstrucao: true }),
+    no('dplag', 'DPLAG', 5, 'dga', 410, { oculto: true }),
+  ];
+})();
+
+// Dados (métricas, chefes, divisões) vivem sob a sigla da LOB atual. Na LOB Nova,
+// uma unidade renomeada lê os dados da sigla antiga. Guardado em módulo porque
+// metricasProprias()/metricasDivisoesProprias() são chamadas na hora de
+// renderizar, depois de montarOrganograma().
+let ALIAS_ATIVO = {};
+export function siglaDeDados(sigla) {
+  return ALIAS_ATIVO[sigla] || sigla;
+}
+
 // Siglas subordinadas diretas de `sigla`, segundo a lista de nós `nodes`
 // (que pode ser o fallback estático acima ou a árvore vinda do backend).
 function filhosSiglas(nodes, sigla) {
@@ -190,52 +267,52 @@ function filhosSiglas(nodes, sigla) {
 
 // ----- Métricas próprias (não agregadas) por unidade -----
 const METRICAS = {
-  'COMANDO GERAL': { efetivo: 22, viaturas: 4, materiaisPct: 95, financas: 180000, financaPct: 93, acoes: 120 },
-  'SUBCOMANDO GERAL': { efetivo: 14, viaturas: 3, materiaisPct: 92, financas: 95000, financaPct: 90, acoes: 70 },
-  'GCG': { efetivo: 18, viaturas: 2, materiaisPct: 88, financas: 45000, financaPct: 88, acoes: 40 },
-  'AECI': { efetivo: 12, viaturas: 1, materiaisPct: 90, financas: 35000, financaPct: 91, acoes: 30 },
-  'CPO': { efetivo: 10, viaturas: 1, materiaisPct: 85, financas: 25000, financaPct: 86, acoes: 25 },
-  'CCS': { efetivo: 16, viaturas: 2, materiaisPct: 87, financas: 40000, financaPct: 89, acoes: 45 },
-  'CI': { efetivo: 20, viaturas: 3, materiaisPct: 91, financas: 55000, financaPct: 90, acoes: 50 },
-  'GSG': { efetivo: 15, viaturas: 2, materiaisPct: 89, financas: 38000, financaPct: 88, acoes: 35 },
-  'DIESP': { efetivo: 30, viaturas: 3, materiaisPct: 86, financas: 75000, financaPct: 87, acoes: 90 },
-  'AJG': { efetivo: 14, viaturas: 1, materiaisPct: 90, financas: 32000, financaPct: 89, acoes: 28 },
-  'CPP': { efetivo: 9, viaturas: 1, materiaisPct: 92, financas: 20000, financaPct: 90, acoes: 18 },
-  'DGO': { efetivo: 24, viaturas: 3, materiaisPct: 90, financas: 60000, financaPct: 88, acoes: 55 },
-  'DIM': { efetivo: 20, viaturas: 3, materiaisPct: 90, financas: 55000, financaPct: 88, acoes: 50 },
-  'GBI': { efetivo: 95, viaturas: 12, materiaisPct: 93, financas: 210000, financaPct: 91, acoes: 340 },
-  'GBAPH': { efetivo: 80, viaturas: 10, materiaisPct: 92, financas: 185000, financaPct: 90, acoes: 290 },
-  'GBS': { efetivo: 70, viaturas: 9, materiaisPct: 91, financas: 160000, financaPct: 89, acoes: 260 },
-  'GBMar': { efetivo: 45, viaturas: 6, materiaisPct: 90, financas: 110000, financaPct: 88, acoes: 150 },
-  'CAT/RMR': { efetivo: 38, viaturas: 5, materiaisPct: 89, financas: 95000, financaPct: 87, acoes: 130 },
-  'DINTER I': { efetivo: 18, viaturas: 2, materiaisPct: 88, financas: 50000, financaPct: 86, acoes: 45 },
-  '1º GB': { efetivo: 60, viaturas: 7, materiaisPct: 90, financas: 140000, financaPct: 88, acoes: 210 },
-  '2º GB': { efetivo: 75, viaturas: 9, materiaisPct: 91, financas: 170000, financaPct: 89, acoes: 250 },
-  '6º GB': { efetivo: 50, viaturas: 6, materiaisPct: 88, financas: 115000, financaPct: 87, acoes: 175 },
-  '7º GB': { efetivo: 55, viaturas: 6, materiaisPct: 89, financas: 125000, financaPct: 87, acoes: 190 },
-  'CAT/ZM': { efetivo: 32, viaturas: 4, materiaisPct: 87, financas: 80000, financaPct: 86, acoes: 110 },
-  'CAT/AG': { efetivo: 30, viaturas: 4, materiaisPct: 87, financas: 78000, financaPct: 86, acoes: 105 },
-  'DINTER II': { efetivo: 16, viaturas: 2, materiaisPct: 87, financas: 48000, financaPct: 85, acoes: 40 },
-  '3º GB': { efetivo: 48, viaturas: 6, materiaisPct: 88, financas: 112000, financaPct: 86, acoes: 170 },
-  '4º GB': { efetivo: 52, viaturas: 6, materiaisPct: 89, financas: 118000, financaPct: 87, acoes: 180 },
-  '5º GB': { efetivo: 46, viaturas: 5, materiaisPct: 87, financas: 105000, financaPct: 85, acoes: 160 },
-  '9º GB': { efetivo: 40, viaturas: 5, materiaisPct: 86, financas: 95000, financaPct: 84, acoes: 145 },
-  'CAT/SE': { efetivo: 35, viaturas: 5, materiaisPct: 86, financas: 88000, financaPct: 84, acoes: 120 },
-  'DGA': { efetivo: 22, viaturas: 3, materiaisPct: 90, financas: 65000, financaPct: 90, acoes: 60 },
-  'DPLAG': { efetivo: 18, viaturas: 2, materiaisPct: 88, financas: 48000, financaPct: 88, acoes: 50 },
-  'DGP': { efetivo: 28, viaturas: 2, materiaisPct: 88, financas: 70000, financaPct: 89, acoes: 75 },
-  'DVP': { efetivo: 20, viaturas: 2, materiaisPct: 87, financas: 52000, financaPct: 88, acoes: 55 },
-  'DJD': { efetivo: 16, viaturas: 1, materiaisPct: 89, financas: 38000, financaPct: 90, acoes: 40 },
-  'DF': { efetivo: 24, viaturas: 2, materiaisPct: 91, financas: 95000, financaPct: 92, acoes: 65 },
-  'DAS': { efetivo: 18, viaturas: 2, materiaisPct: 86, financas: 42000, financaPct: 87, acoes: 48 },
-  'DTIC': { efetivo: 20, viaturas: 1, materiaisPct: 93, financas: 60000, financaPct: 91, acoes: 52 },
-  'DLOG': { efetivo: 26, viaturas: 4, materiaisPct: 89, financas: 80000, financaPct: 88, acoes: 70 },
-  'CMAN': { efetivo: 34, viaturas: 8, materiaisPct: 90, financas: 98000, financaPct: 89, acoes: 95 },
-  'CINT': { efetivo: 22, viaturas: 3, materiaisPct: 87, financas: 60000, financaPct: 86, acoes: 60 },
-  'CEAO': { efetivo: 19, viaturas: 2, materiaisPct: 88, financas: 55000, financaPct: 87, acoes: 52 },
-  'DEIP': { efetivo: 20, viaturas: 2, materiaisPct: 90, financas: 58000, financaPct: 89, acoes: 58 },
-  'ABMG': { efetivo: 65, viaturas: 5, materiaisPct: 91, financas: 150000, financaPct: 90, acoes: 220 },
-  'CEFD': { efetivo: 14, viaturas: 1, materiaisPct: 88, financas: 30000, financaPct: 87, acoes: 35 },
+  'COMANDO GERAL': { efetivo: 22, viaturas: 4, financas: 180000, financaPct: 93 },
+  'SUBCOMANDO GERAL': { efetivo: 14, viaturas: 3, financas: 95000, financaPct: 90 },
+  'GCG': { efetivo: 18, viaturas: 2, financas: 45000, financaPct: 88 },
+  'AECI': { efetivo: 12, viaturas: 1, financas: 35000, financaPct: 91 },
+  'CPO': { efetivo: 10, viaturas: 1, financas: 25000, financaPct: 86 },
+  'CCS': { efetivo: 16, viaturas: 2, financas: 40000, financaPct: 89 },
+  'CI': { efetivo: 20, viaturas: 3, financas: 55000, financaPct: 90 },
+  'GSG': { efetivo: 15, viaturas: 2, financas: 38000, financaPct: 88 },
+  'DIESP': { efetivo: 30, viaturas: 3, financas: 75000, financaPct: 87 },
+  'AJG': { efetivo: 14, viaturas: 1, financas: 32000, financaPct: 89 },
+  'CPP': { efetivo: 9, viaturas: 1, financas: 20000, financaPct: 90 },
+  'DGO': { efetivo: 24, viaturas: 3, financas: 60000, financaPct: 88 },
+  'DIM': { efetivo: 20, viaturas: 3, financas: 55000, financaPct: 88 },
+  'GBI': { efetivo: 95, viaturas: 12, financas: 210000, financaPct: 91 },
+  'GBAPH': { efetivo: 80, viaturas: 10, financas: 185000, financaPct: 90 },
+  'GBS': { efetivo: 70, viaturas: 9, financas: 160000, financaPct: 89 },
+  'GBMar': { efetivo: 45, viaturas: 6, financas: 110000, financaPct: 88 },
+  'CAT/RMR': { efetivo: 38, viaturas: 5, financas: 95000, financaPct: 87 },
+  'DINTER I': { efetivo: 18, viaturas: 2, financas: 50000, financaPct: 86 },
+  '1º GB': { efetivo: 60, viaturas: 7, financas: 140000, financaPct: 88 },
+  '2º GB': { efetivo: 75, viaturas: 9, financas: 170000, financaPct: 89 },
+  '6º GB': { efetivo: 50, viaturas: 6, financas: 115000, financaPct: 87 },
+  '7º GB': { efetivo: 55, viaturas: 6, financas: 125000, financaPct: 87 },
+  'CAT/ZM': { efetivo: 32, viaturas: 4, financas: 80000, financaPct: 86 },
+  'CAT/AG': { efetivo: 30, viaturas: 4, financas: 78000, financaPct: 86 },
+  'DINTER II': { efetivo: 16, viaturas: 2, financas: 48000, financaPct: 85 },
+  '3º GB': { efetivo: 48, viaturas: 6, financas: 112000, financaPct: 86 },
+  '4º GB': { efetivo: 52, viaturas: 6, financas: 118000, financaPct: 87 },
+  '5º GB': { efetivo: 46, viaturas: 5, financas: 105000, financaPct: 85 },
+  '9º GB': { efetivo: 40, viaturas: 5, financas: 95000, financaPct: 84 },
+  'CAT/SE': { efetivo: 35, viaturas: 5, financas: 88000, financaPct: 84 },
+  'DGA': { efetivo: 22, viaturas: 3, financas: 65000, financaPct: 90 },
+  'DPLAG': { efetivo: 18, viaturas: 2, financas: 48000, financaPct: 88 },
+  'DGP': { efetivo: 28, viaturas: 2, financas: 70000, financaPct: 89 },
+  'DVP': { efetivo: 20, viaturas: 2, financas: 52000, financaPct: 88 },
+  'DJD': { efetivo: 16, viaturas: 1, financas: 38000, financaPct: 90 },
+  'DF': { efetivo: 24, viaturas: 2, financas: 95000, financaPct: 92 },
+  'DAS': { efetivo: 18, viaturas: 2, financas: 42000, financaPct: 87 },
+  'DTIC': { efetivo: 20, viaturas: 1, financas: 60000, financaPct: 91 },
+  'DLOG': { efetivo: 26, viaturas: 4, financas: 80000, financaPct: 88 },
+  'CMAN': { efetivo: 34, viaturas: 8, financas: 98000, financaPct: 89 },
+  'CINT': { efetivo: 22, viaturas: 3, financas: 60000, financaPct: 86 },
+  'CEAO': { efetivo: 19, viaturas: 2, financas: 55000, financaPct: 87 },
+  'DEIP': { efetivo: 20, viaturas: 2, financas: 58000, financaPct: 89 },
+  'ABMG': { efetivo: 65, viaturas: 5, financas: 150000, financaPct: 90 },
+  'CEFD': { efetivo: 14, viaturas: 1, financas: 30000, financaPct: 87 },
 };
 
 // ----- Overlay de Efetivo real (fonte: Neon, ver etl/efetivo/) -----
@@ -284,20 +361,14 @@ Object.keys(METRICAS).forEach((sigla) => {
   METRICAS[sigla] = { ...METRICAS[sigla], viaturas: veiculos.filter((v) => v.situacao !== "Descarregada").length };
 });
 
-// ----- Overlay de Finanças real (fonte: planilha de Finanças → Postgres
-// interno → Neon, ver etl/financas/) -----
-// Mesmo princípio dos overlays acima: substitui o valor fictício de TODAS
-// as unidades pelo valor real (0 incluído) para nunca misturar número real
-// com mock na mesma tela. Valor = soma de "valor pago" das linhas EMPENHADO
-// (Autorização/Carnaval só enquadramento "Suprimento Individual"; SFI
-// Ordinário completo) — rubricas institucionais centrais (folha de
-// pagamento, aquisição de viaturas) e auxílio funeral a pessoa física ficam
-// de fora por não representarem gasto de uma unidade específica — decisão
-// registrada em DW_PLANEJAMENTO.md. O percentual de execução (financaPct)
-// não é sobreposto — o usuário pediu para não mostrar percentual por
-// enquanto, então ele é suprimido mais abaixo (ver executadoPct).
+// ----- Finanças: sem número fictício (2026-10-01) -----
+// O valor real vem do DW (aplicarMetricasDw, domínio "financas": soma do valor
+// PAGO das linhas EMPENHADO — Autorização/Carnaval só enquadramento SI; SFI
+// Ordinário completo). Antes do DW responder, o card mostra 0, nunca o mock.
+// O percentual de execução (financaPct) não é sobreposto — o usuário pediu para
+// não mostrar percentual por enquanto (ver executadoPct).
 Object.keys(METRICAS).forEach((sigla) => {
-  METRICAS[sigla] = { ...METRICAS[sigla], financas: financasReal.por_unidade[sigla] ?? 0 };
+  METRICAS[sigla] = { ...METRICAS[sigla], financas: 0 };
 });
 
 // ----- Overlay do DW (GET /dados/metricas, ver backend/services/dadosService.js) -----
@@ -323,6 +394,10 @@ function nomeExibicao(nome) {
     .join(" ");
 }
 
+// Unidades que o organograma mostra "Em construção" no lugar do titular, e que
+// o DW não deve preencher nem marcar como "Vago".
+const SEM_TITULAR_EM_CONSTRUCAO = new Set(['DGA']);
+
 export function aplicarMetricasDw({ metricas = {}, chefes = null, dominios = {} } = {}) {
   const aplicados = Object.keys(dominios).filter((d) => CAMPO_POR_DOMINIO[d]);
   aplicados.forEach((dominio) => {
@@ -336,6 +411,7 @@ export function aplicarMetricasDw({ metricas = {}, chefes = null, dominios = {} 
   // um nome que não está no QOD.
   if (chefes) {
     Object.entries(chefes).forEach(([sigla, c]) => {
+      if (SEM_TITULAR_EM_CONSTRUCAO.has(sigla)) return;
       const oficial = c.vago ? "Vago" : [c.posto, nomeExibicao(c.nome)].filter(Boolean).join(" ") || "—";
       OFICIAIS[sigla] = { oficial, cargo: c.cargo || OFICIAIS[sigla]?.cargo || "Titular" };
     });
@@ -417,7 +493,7 @@ const TIPO_POR_SIGLA = {
 // nunca vão ter uma entrada aqui (TIPO_POR_SIGLA é decoração visual estática,
 // fora do escopo do organograma editável).
 function tipoDaSigla(sigla, nivel) {
-  if (TIPO_POR_SIGLA[sigla]) return TIPO_POR_SIGLA[sigla];
+  if (TIPO_POR_SIGLA[siglaDeDados(sigla)]) return TIPO_POR_SIGLA[siglaDeDados(sigla)];
   if (nivel != null) {
     if (nivel <= 3) return 'comando';
     if (nivel === 4 || nivel === 5) return 'diretoria';
@@ -438,7 +514,7 @@ const CATEGORIA_POR_TIPO = {
   comando: 'gestao', diretoria: 'gestao', departamento: 'gestao', escola: 'ensino', grupamento: 'operacional',
 };
 function categoriaDaSigla(sigla, tipo) {
-  return CATEGORIA_POR_SIGLA[sigla] || CATEGORIA_POR_TIPO[tipo] || 'gestao';
+  return CATEGORIA_POR_SIGLA[siglaDeDados(sigla)] || CATEGORIA_POR_TIPO[tipo] || 'gestao';
 }
 
 // ----- PRNG determinístico (mesmo seed => mesmos números a cada carregamento) -----
@@ -503,7 +579,7 @@ function statusPorAtingimento(valor, meta) {
 // fictício e, antes disto, somava no total do Subcomando Geral. Por `id`
 // (estável), não por sigla, pra sobreviver a uma renomeação.
 const RAIZES_EM_CONSTRUCAO = new Set(['estado-maior']);
-const METRICAS_ZERO = { efetivo: 0, efetivoPrevisto: 0, viaturas: 0, materiaisPct: 0, financas: 0, financaPct: 0, acoes: 0 };
+const METRICAS_ZERO = { efetivo: 0, efetivoPrevisto: 0, viaturas: 0, financas: 0, financaPct: 0 };
 
 function idsEmConstrucao(nodes) {
   const ids = new Set();
@@ -512,11 +588,11 @@ function idsEmConstrucao(nodes) {
     ids.add(id);
     nodes.filter((n) => n.parentId === id).forEach((n) => visitar(n.id));
   };
-  nodes.filter((n) => RAIZES_EM_CONSTRUCAO.has(n.id)).forEach((n) => visitar(n.id));
+  nodes.filter((n) => RAIZES_EM_CONSTRUCAO.has(n.id) || n.emConstrucao).forEach((n) => visitar(n.id));
   return ids;
 }
 
-const METRICAS_PADRAO = { efetivo: 20, efetivoPrevisto: 22, viaturas: 2, materiaisPct: 88, financas: 40000, financaPct: 88, acoes: 40 };
+const METRICAS_PADRAO = { efetivo: 20, efetivoPrevisto: 22, viaturas: 2, financas: 40000, financaPct: 88 };
 
 // Totais agregados (própria unidade + toda a descendência), replicando a
 // lógica do organograma de referência — segue os filhos da árvore ATIVA
@@ -530,10 +606,9 @@ function totaisDaSigla(sigla, nodes, cache, siglasEmConstrucao = new Set()) {
     cache[sigla] = { ...METRICAS_ZERO };
     return cache[sigla];
   }
-  const proprio = METRICAS[sigla] || METRICAS_PADRAO;
+  const proprio = METRICAS[siglaDeDados(sigla)] || METRICAS_PADRAO;
   const filhos = filhosSiglas(nodes, sigla);
-  let total = { efetivo: proprio.efetivo, efetivoPrevisto: proprio.efetivoPrevisto, viaturas: proprio.viaturas, financas: proprio.financas, acoes: proprio.acoes };
-  let pesoMat = proprio.materiaisPct * proprio.efetivo;
+  let total = { efetivo: proprio.efetivo, efetivoPrevisto: proprio.efetivoPrevisto, viaturas: proprio.viaturas, financas: proprio.financas };
   let pesoFin = proprio.financaPct * proprio.efetivo;
   let pesoBase = proprio.efetivo;
   filhos.forEach((filho) => {
@@ -542,12 +617,9 @@ function totaisDaSigla(sigla, nodes, cache, siglasEmConstrucao = new Set()) {
     total.efetivoPrevisto += ct.efetivoPrevisto;
     total.viaturas += ct.viaturas;
     total.financas += ct.financas;
-    total.acoes += ct.acoes;
-    pesoMat += ct.materiaisPct * ct.efetivo;
     pesoFin += ct.financaPct * ct.efetivo;
     pesoBase += ct.efetivo;
   });
-  total.materiaisPct = pesoBase > 0 ? Math.round(pesoMat / pesoBase) : proprio.materiaisPct;
   total.financaPct = pesoBase > 0 ? Math.round(pesoFin / pesoBase) : proprio.financaPct;
   cache[sigla] = total;
   return total;
@@ -555,15 +627,13 @@ function totaisDaSigla(sigla, nodes, cache, siglasEmConstrucao = new Set()) {
 
 // Métricas próprias (não agregadas com subordinadas) de uma unidade, por sigla.
 export function metricasProprias(sigla) {
-  const m = METRICAS[sigla] || METRICAS_PADRAO;
+  const m = METRICAS[siglaDeDados(sigla)] || METRICAS_PADRAO;
   return {
     efetivo: m.efetivo,
     efetivoPrevisto: m.efetivoPrevisto,
     viaturas: m.viaturas,
-    materiaisPct: m.materiaisPct,
     financas: m.financas,
     financaPct: m.financaPct,
-    acoes: m.acoes,
   };
 }
 
@@ -579,10 +649,12 @@ const PADRAO_SECAO_OPERACIONAL = /\bSB(APH|SA|FN|I|S)?\b|\bSATec\b/i;
 // editável (não tem entrada pra unidade nova nenhuma, e só filtra
 // duplicidade de filhos das ~46 unidades originais) — ver cabeçalho de
 // NODES_PADRAO.
+const SIGLAS_DE_NO = new Set([...NODES_PADRAO, ...NODES_NOVA].map((n) => n.sigla));
 function divisoesDaSigla(sigla) {
   const filhos = filhosSiglas(NODES_PADRAO, sigla);
-  const divisoes = (SUBSETORES[sigla] || [])
-    .filter((item) => !filhos.includes(item))
+  // Item que é sigla de unidade de QUALQUER das duas LOBs nunca é "divisão".
+  const divisoes = (SUBSETORES[siglaDeDados(sigla)] || [])
+    .filter((item) => !filhos.includes(item) && !SIGLAS_DE_NO.has(item))
     .map((item) => item.replace(/^↳\s*/, ''));
   const administrativas = divisoes.filter((d) => !PADRAO_SECAO_OPERACIONAL.test(d));
   const operacionais = divisoes.filter((d) => PADRAO_SECAO_OPERACIONAL.test(d));
@@ -607,16 +679,16 @@ export function metricasDivisoesProprias(sigla) {
   const divisoes = divisoesDaSigla(sigla);
   if (!divisoes.length) return [];
   const previstoPorNome = new Map(
-    (efetivoPrevistoDivisoesReal.por_unidade[sigla] || []).map((d) => [d.nome, d.previsto])
+    (efetivoPrevistoDivisoesReal.por_unidade[siglaDeDados(sigla)] || []).map((d) => [d.nome, d.previsto])
   );
   const atualPorNome = new Map(
-    Object.entries(lotacaoFuncaoReal.por_unidade_divisao[sigla] || {}).map(([nome, matriculas]) => [nome, matriculas.length])
+    Object.entries(lotacaoFuncaoReal.por_unidade_divisao[siglaDeDados(sigla)] || {}).map(([nome, matriculas]) => [nome, matriculas.length])
   );
   // Setor vinculado que é OME própria na fonte (ex. CPPA dentro da DGP):
   // o efetivo atual vem da contagem direta por OME, não da Repercussão
   // Financeira — é dado completo, não amostra parcial. Ver
   // etl/efetivo/extract_efetivo.py (OME_SETOR_VINCULADO).
-  const vinculadoPorNome = efetivoReal.por_setor_vinculado?.[sigla] || {};
+  const vinculadoPorNome = efetivoReal.por_setor_vinculado?.[siglaDeDados(sigla)] || {};
   return divisoes.map((nome) => ({
     nome,
     efetivoPrevisto: previstoPorNome.get(nome) ?? 0,
@@ -647,6 +719,7 @@ function construirUnidades(nodes, totaisPorSigla, emConstrucao = new Set()) {
         ordem: no.ordem ?? 0,
         fixo: !!no.fixo,
         funcaoCoronel: !!no.funcaoCoronel,
+        oculto: !!no.oculto,
         emConstrucao: true,
         descricao: 'Em construção.',
         responsavel: 'Em construção',
@@ -656,7 +729,7 @@ function construirUnidades(nodes, totaisPorSigla, emConstrucao = new Set()) {
         ativo: true,
       };
     }
-    const { oficial, cargo } = OFICIAIS[sigla] || { oficial: '—', cargo: 'Titular' };
+    const { oficial, cargo } = OFICIAIS[siglaDeDados(sigla)] || { oficial: '—', cargo: 'Titular' };
     const tipo = tipoDaSigla(sigla, no.nivel);
     const totais = totaisPorSigla.get(sigla) || METRICAS_PADRAO;
     const divisoes = divisoesDaSigla(sigla);
@@ -674,6 +747,8 @@ function construirUnidades(nodes, totaisPorSigla, emConstrucao = new Set()) {
       // em Organograma.jsx), mesmo quando seu nível normalmente usaria o
       // card branco de OME "folha" — independe de onde ela está na árvore.
       funcaoCoronel: !!no.funcaoCoronel,
+      oculto: !!no.oculto,
+      abaixoDe: no.abaixoDe || null,
       descricao: `${cargo}: ${oficial}.${divisoes.length ? ` Divisões internas: ${divisoes.join('; ')}.` : ''}`,
       responsavel: oficial,
       cargo,
@@ -703,9 +778,9 @@ function construirIndicadores(unidades, totaisPorSigla) {
     const specs = [
       { base: 'Efetivo', valor: totais.efetivo, max: null, metaReal: totais.efetivoPrevisto },
       { base: 'Viaturas', valor: totais.viaturas, max: null },
-      { base: 'Materiais', valor: totais.materiaisPct, max: 100 },
+      { base: 'Materiais', valor: null, max: null },
       { base: 'Finanças', valor: totais.financas, max: null },
-      { base: 'Atividades Específicas', valor: totais.acoes, max: null },
+      { base: 'Atividades Específicas', valor: null, max: null },
     ];
     specs.forEach(({ base, valor, max, metaReal }) => {
       const seed = `${u.id}:${base}`;
@@ -720,8 +795,12 @@ function construirIndicadores(unidades, totaisPorSigla) {
           meta = Math.round(valor * fatorMeta);
         }
       }
-      const serie = gerarSerie(valor, seed, { max });
-      const { variacao, tendencia } = calcularVariacaoTendencia(serie);
+      // Sem fonte real (Materiais: sistema novo em desenvolvimento; Atividades
+      // Específicas: o número vem do SGAT, ainda não levantado): sem valor,
+      // sem série e sem tendência. A tela mostra "Em construção".
+      const semDado = valor == null;
+      const serie = semDado ? [] : gerarSerie(valor, seed, { max });
+      const { variacao, tendencia } = semDado ? { variacao: 0, tendencia: 'estavel' } : calcularVariacaoTendencia(serie);
       indicadores.push({
         id: `${u.id}--${slugify(base)}`,
         nome: base,
@@ -735,7 +814,7 @@ function construirIndicadores(unidades, totaisPorSigla) {
         variacao_percentual: variacao,
         tendencao: tendencia,
         serie: JSON.stringify(serie),
-        status: semMeta ? null : statusPorAtingimento(valor, meta),
+        status: semMeta || semDado ? null : statusPorAtingimento(valor, meta),
         // financaPct não é sobreposto com dado real (ver overlay de
         // Finanças acima) — nunca expor o percentual fictício do mock ao
         // lado do valor real de financas.
@@ -810,7 +889,8 @@ function construirAlertas(unidades) {
 // organograma, controle de acesso (accessControl.js), Atividades
 // Específicas (atividadesEspecificas.js) — sem duplicar a lógica de
 // derivação em outro lugar.
-export function montarOrganograma(nodes) {
+export function montarOrganograma(nodes, { lob = 'atual' } = {}) {
+  ALIAS_ATIVO = lob === 'nova' ? ALIAS_NOVA : {};
   const cache = {};
   const totaisPorSigla = new Map();
   const emConstrucao = idsEmConstrucao(nodes);
@@ -824,4 +904,4 @@ export function montarOrganograma(nodes) {
   return { unidades, indicadores, dashboards, alertas };
 }
 
-export { NODES_PADRAO };
+export { NODES_PADRAO, NODES_NOVA };

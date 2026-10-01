@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fmtNumero } from "@/lib/cbmpe";
 import {
-  FAIXA_ORDER, REGIOES, CLASSES, groupCount, paraSerie, pctTexto,
+  FAIXA_ORDER, REGIOES, CLASSES, groupCount, paraSerie, pctTexto, ehIndisponivel,
   useFiltrosEfetivo, linkEfetivoTabela, faixaParaIntervalo, OFICIAIS_POSTOS, PRACAS_POSTOS,
 } from "@/lib/efetivoDashboard";
 import SectionCard from "@/components/ui/section-card";
@@ -26,8 +26,8 @@ export default function ModuloEfetivoGeral({ indId, militares, previsto, filtros
   const [topNQcg, setTopNQcg] = useState(null);
 
   const total = filtrados.length;
-  const disponivel = filtrados.filter((r) => r.disponibilidade === "Disponível").length;
-  const indisponivel = total - disponivel;
+  const indisponivel = filtrados.filter(ehIndisponivel).length;
+  const disponivel = total - indisponivel;
   const byRegiao = useMemo(() => groupCount(filtrados, (r) => r.regiao), [filtrados]);
   const byCategoria = useMemo(() => groupCount(filtrados, (r) => r.categoria), [filtrados]);
   const bySexo = useMemo(() => groupCount(filtrados, (r) => r.sexo), [filtrados]);

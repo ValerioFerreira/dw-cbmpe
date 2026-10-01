@@ -99,6 +99,15 @@ PLANILHAS = {
         "formato": "xlsx",
         "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRLXuwu8Q9WIe3OBC7A5CC_95t6yjniWITLEg-8OD09-ytRjV-Yphb7Pcbze7Gd5MZmhbk1r7riO0Dn/pub?output=xlsx",
     },
+    # QOD formatado ("SETEMBRO 2026"): um quadro por aba (unidade e secao, por posto e
+    # graduacao). Link de compartilhamento FIXO informado pelo usuario em 2026-10-01;
+    # nao e "publicar na web" -- baixa pelo export. Dele sai o previsto por unidade.
+    "qod_quadros": {
+        "schema": "raw_qod_quadros",
+        "tabela": None,           # uma tabela por aba
+        "formato": "xlsx",
+        "url": "https://docs.google.com/spreadsheets/d/1-teebSQgPopwP_MH_X1qbE2rdwMoNLjZsngmEiVo1wU/export?format=xlsx",
+    },
     # "CIM_pedidos_e_atendidos": intencao de movimentacao.
     "cim_pedidos": {
         "schema": "raw_cim",

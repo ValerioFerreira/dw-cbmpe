@@ -124,3 +124,13 @@ no catálogo de fontes quando confirmada.
   o domínio em questão.
 - O schema de destino (`core`) depende do modelo de dados
   ([`DW_MODELO_DADOS.md`](DW_MODELO_DADOS.md)) estar fechado.
+
+## Atualização 2026-10-01
+
+O flow `f/dw/dw_diario` (05:30, America/Recife) foi **republicado** no Windmill. Mudanças no
+pipeline: nova fonte `qod_quadros` em `raw_planilhas.py` (schema `raw_qod_quadros`); a carga do
+core lê `raw_qod.id_atualizado`, carrega os quadros (`carregar_quadro_qod`) e trata a grafia de
+Finanças (`tratar_grafia_financas`). Scripts de apoio (rodam na máquina de quem administra,
+não no Windmill): `etl/dw/auditar_qod.py`, `etl/financas/auditar_planilha.py` e
+`docs/relatorios/gerar_relatorios.py`. O `publicar_dw.py` leva alguns minutos, porque o
+Windmill resolve as dependências de cada script.

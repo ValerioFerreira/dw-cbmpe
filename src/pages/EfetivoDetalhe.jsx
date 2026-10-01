@@ -5,6 +5,7 @@ import * as XLSX from "xlsx";
 import { useCbmpe } from "@/lib/cbmpe-context";
 import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import { getCaminho, getSubordinados, fmtNumero } from "@/lib/cbmpe";
+import { siglaDeDados } from "@/data/organograma";
 import EmptyState from "@/components/ui/empty-state";
 import SectionCard from "@/components/ui/section-card";
 import ScrollDuplo from "@/components/ui/scroll-duplo";
@@ -209,7 +210,7 @@ export default function EfetivoDetalhe() {
     const porAntiguidade = (a, b) =>
       (a.ordem ?? Number.POSITIVE_INFINITY) - (b.ordem ?? Number.POSITIVE_INFINITY);
     if (setor) {
-      const daUnidade = efetivoLista.por_unidade[unidade.sigla] || [];
+      const daUnidade = efetivoLista.por_unidade[siglaDeDados(unidade.sigla)] || [];
       // Setor vinculado que é OME própria na fonte (ex. CPPA dentro da
       // DGP): os militares contam no efetivo da mãe mas guardam a OME de
       // origem em omeExibicao — filtra por ela, e não pela função lançada
@@ -219,7 +220,7 @@ export default function EfetivoDetalhe() {
       if (porOme.length) {
         return porOme.map((r) => ({ ...r, ome: r.omeExibicao })).sort(porAntiguidade);
       }
-      const matriculasDoSetor = new Set(lotacaoFuncao.por_unidade_divisao[unidade.sigla]?.[setor] || []);
+      const matriculasDoSetor = new Set(lotacaoFuncao.por_unidade_divisao[siglaDeDados(unidade.sigla)]?.[setor] || []);
       return daUnidade
         .filter((r) => matriculasDoSetor.has(r.matricula))
         .map((r) => ({ ...r, ome: r.omeExibicao || unidade.sigla }))
@@ -228,7 +229,7 @@ export default function EfetivoDetalhe() {
     const siglas = [unidade.sigla, ...getSubordinados(unidades, unidade.id).map((u) => u.sigla)];
     return siglas
       .flatMap((sigla) =>
-        (efetivoLista.por_unidade[sigla] || []).map((r) => ({ ...r, ome: r.omeExibicao || sigla }))
+        (efetivoLista.por_unidade[siglaDeDados(sigla)] || []).map((r) => ({ ...r, ome: r.omeExibicao || sigla }))
       )
       .sort(porAntiguidade);
   }, [unidade, unidades, setor]);

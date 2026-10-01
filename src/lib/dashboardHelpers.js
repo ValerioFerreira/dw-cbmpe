@@ -2,6 +2,7 @@
 // Pessoal" (Efetivo e Viaturas) — extraídos de efetivoDashboard.js quando o
 // mesmo padrão de módulos-em-abas passou a valer para um segundo domínio.
 import { getSubordinados } from "@/lib/cbmpe";
+import { siglaDeDados } from "@/data/organograma";
 
 // Escopo de dado por unidade — usado pelos dois Dashboards Pessoais
 // (Efetivo e Viaturas) pra restringir o que é mostrado à unidade sendo
@@ -33,7 +34,8 @@ import { getSubordinados } from "@/lib/cbmpe";
 // permitidos pra ninguém, nem pro Comando Geral/DGP.
 export function siglasPermitidas(unidade, unidades) {
   if (!unidade) return new Set();
-  const set = new Set([unidade.sigla, ...getSubordinados(unidades, unidade.id).map((u) => u.sigla)]);
+  // siglaDeDados: na LOB Nova, DECI/DAL/CSM lêem os dados de DEIP/DLOG/CINT/CMAN.
+  const set = new Set([unidade.sigla, ...getSubordinados(unidades, unidade.id).map((u) => u.sigla)].map(siglaDeDados));
   if (set.has("COMANDO GERAL")) set.add("ADIDO");
   if (set.has("DGP")) set.add("CPPA");
   return set;

@@ -346,3 +346,12 @@ máquina de desenvolvimento.
 
 **Condição para subir:** publicar só na rede interna enquanto o login não
 passar pelo SGU. Ver seção 5.1.
+
+## Atualização de 01/10/2026
+
+O deploy está em **standby**: o TI informou que está pedindo à ATI uma VM com os acessos ao
+firewall interno. Dados já medidos para o pedido: banco `dw` com 626 MB; o app não
+armazena nada além do banco (o backend é Node/Express, sem estado em disco desde 25/09). O
+**quadro de recursos** (vCPU, RAM, disco, IOPS, backup) e a **lista de portas de firewall**
+ainda precisam ser fechados antes do envio. Novidade para o TI: o JSON de Finanças saiu do
+pacote; os demais domínios seguem a migração para o DW.

@@ -93,6 +93,27 @@ SEDE_CONFIRMADA = {
     "CAT/SE": "PETROLINA",
 }
 
+# Regras do usuario (2026-10-01) para onde o balao cai quando o posto nao tem
+# coordenada propria. Chave: sigla do organograma da OME que lanca; valor:
+# (quando, sigla do organograma da OME cuja coordenada vale).
+#   "sempre"      vale mesmo que o posto tenha coordenada -- GBMar: os postos de
+#                 praia serao informados depois pelo usuario, ate la todos
+#                 usam a sede do GBMar.
+#   "sem_propria" so entra quando o posto nao tem coordenada propria valida.
+# "COMANDO GERAL" aqui e o QCG (a coordenada do CG no DW e a do QCG, no
+# Recife). As OMEs que lancam em instalacao de outra OME (ex. uma ambulancia do
+# GBAPH ativada no quartel do GBS) NAO entram aqui: o posto SEDE de la ja tem
+# a coordenada fisica do quartel.
+REGRA_COORDENADA_POR_OME = {
+    "GBMar":    ("sempre", "GBMar"),
+    "DGO":      ("sem_propria", "COMANDO GERAL"),
+    "CAT/RMR":  ("sem_propria", "COMANDO GERAL"),
+    "DIESP":    ("sem_propria", "COMANDO GERAL"),
+    "CAT/SE":   ("sem_propria", "4º GB"),
+    "CAT/AG":   ("sem_propria", "2º GB"),
+    "DINTER I": ("sem_propria", "2º GB"),
+}
+
 # Posto de evento nao tem endereco: a operacao acontece onde a demanda estiver,
 # e o campo `municipio` desses registros esta todo gravado como RECIFE, que e
 # so o padrao do formulario. Para eles vale a coordenada da OME, aproximada e
@@ -255,6 +276,15 @@ def resolver_coordenada(posto, contexto):
     alvo = cidade_nome or cidade_campo
     poligono = municipios.get(alvo) if alvo else None
 
+    # 0. regra do usuario que vale mesmo com coordenada propria (GBMar)
+    regra = REGRA_COORDENADA_POR_OME.get(posto["ome"])
+    if regra and regra[0] == "sempre":
+        alvo_regra = contexto["omes"].get(regra[1])
+        if alvo_regra and alvo_regra[0] is not None:
+            notas.append(f"regra: postos do {posto['ome']} usam a coordenada de {regra[1]}")
+            return {"lat": alvo_regra[0], "lon": alvo_regra[1], "origem": "ome",
+                    "cidade": alvo, "notas": notas}
+
     # 1. coordenada propria
     lat, lon, girou = corrigir_sinal(posto["lat"], posto["lon"])
     if girou:
@@ -267,6 +297,15 @@ def resolver_coordenada(posto, contexto):
             notas.append(f"coordenada propria {fora:.1f} km fora de {alvo} -- descartada")
         else:
             return {"lat": lat, "lon": lon, "origem": "posto", "cidade": alvo, "notas": notas}
+
+    # 1b. regra do usuario para quem nao tem coordenada propria (DGO, CAT/RMR,
+    # DIESP -> QCG; CAT/SE -> 4o GB; CAT/AG e DINTER I -> 2o GB)
+    if regra and regra[0] == "sem_propria":
+        alvo_regra = contexto["omes"].get(regra[1])
+        if alvo_regra and alvo_regra[0] is not None:
+            notas.append(f"regra: sem coordenada propria -- usada a de {regra[1]}")
+            return {"lat": alvo_regra[0], "lon": alvo_regra[1], "origem": "ome",
+                    "cidade": alvo, "notas": notas}
 
     # 2. o nome do posto e a sigla de uma unidade que tem coordenada
     sigla = normalizar(posto["nome"])

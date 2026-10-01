@@ -271,8 +271,8 @@ function useArrastarOrganograma({ podeEditar, token, unidades, recarregar }) {
 }
 
 export default function Organograma() {
-  const { unidades, indicadores, loading, recarregar } = useCbmpe();
-  const { restrito, acesso, tokenAdmin } = useAcessoUsuario();
+  const { unidades, indicadores, loading, recarregar, lob, setLob } = useCbmpe();
+  const { restrito, acesso, tokenAdmin, podeVerLob } = useAcessoUsuario();
   const navigate = useNavigate();
 
   // Modo de edição: o arrastar-e-soltar só fica habilitado depois que o
@@ -282,7 +282,7 @@ export default function Organograma() {
   // estava em modo de edição.
   const [modoEdicao, setModoEdicao] = useState(false);
   const [resumoSalvo, setResumoSalvo] = useState(null); // { itens: string[] } | null
-  const drag = useArrastarOrganograma({ podeEditar: !!tokenAdmin && modoEdicao, token: tokenAdmin, unidades, recarregar });
+  const drag = useArrastarOrganograma({ podeEditar: !!tokenAdmin && modoEdicao && lob === "atual", token: tokenAdmin, unidades, recarregar });
 
   // Clicar de novo desliga o modo de edição — é o momento de "salvar": cada
   // arrastar já persistiu na hora (ver useArrastarOrganograma), então não há
@@ -305,7 +305,7 @@ export default function Organograma() {
   // Estrutura calculada a partir da árvore ao vivo (ver cabeçalho do
   // arquivo) — nunca hardcoded por sigla.
   const estrutura = useMemo(() => {
-    const filhosDe = (parentId) => unidades.filter((u) => u.parent_id === parentId);
+    const filhosDe = (parentId) => unidades.filter((u) => u.parent_id === parentId && !u.oculto);
     const comandoGeral = unidades.find((u) => u.nivel === 1) || null;
     const subcomandoGeral = unidades.find((u) => u.nivel === 2) || null;
     // Estado-Maior Geral (nível 3) — desde 2026-09-25 renderizado como uma
@@ -337,20 +337,46 @@ export default function Organograma() {
     // pacote de 1 item isolado, sem violar a ordem pedida pra DGO (lá só
     // existe UMA folha — DIESP —, que já cai naturalmente por último).
     function gruposDaDiretoriaGeral(dg) {
-      const nivel5 = filhosDe(dg.id).filter((u) => u.nivel === 5).sort(ordenarPorOrdem);
+      // Nível 5, mais as unidades de nível 6 penduradas direto na diretoria geral
+      // (LOB Nova: AJG sob a DGA) — entram como "folhas". Para o Subcomando Geral (nível 2) só
+      // entram as de nível 5: as de nível 6 dele ficam ao lado do balão.
+      const nivel5 = filhosDe(dg.id).filter((u) => u.nivel === 5 || (u.nivel === 6 && dg.nivel === 4)).sort(ordenarPorOrdem);
       const comFilhos = [];
       const folhas = [];
       nivel5.forEach((u) => {
-        const filhos = filhosDe(u.id).filter((f) => f.nivel === 6).sort(ordenarPorOrdem);
+        const filhos = u.nivel === 5 ? filhosDe(u.id).filter((f) => f.nivel === 6).sort(ordenarPorOrdem) : [];
         if (filhos.length > 0) comFilhos.push({ unidade: u, filhos });
         else folhas.push(u);
       });
-      const colunas = comFilhos.map(({ unidade, filhos }) => ({ tipo: "grupo", unidade, filhos }));
-      splitEmColunas(folhas, 2).forEach((pacote) => colunas.push({ tipo: "pacote", unidades: pacote }));
+      const netosDe = (id) => filhosDe(id).sort(ordenarPorOrdem);
+      // Grupo com `abaixoDe` (LOB Nova: DGP sob a DAL) vai na MESMA coluna do grupo
+      // indicado, empilhado embaixo dele.
+      const colunas = [];
+      comFilhos.forEach(({ unidade, filhos }) => {
+        const grupo = { tipo: "grupo", unidade, filhos, netosDe };
+        const alvo = unidade.abaixoDe && colunas.find((c) => c.grupos?.some((g) => g.unidade.id === unidade.abaixoDe));
+        if (alvo) alvo.grupos.push(grupo);
+        else colunas.push({ tipo: "pilha", grupos: [grupo] });
+      });
+      // Folhas de nível 5 (diretorias) numa coluna; folhas de nível 6 (assessorias) em outra.
+      // Grade de até 4 colunas: DGO nova = DIM, DINTER I, DINTER II + DINTER III sobre a DIESP;
+      // DGA nova = DECI, DAL/DGP, DF/DTIC/DVP/DAS e só a AJG.
+      const folhas5 = folhas.filter((u) => u.nivel === 5);
+      const folhas6 = folhas.filter((u) => u.nivel === 6);
+      const livres = Math.max(1, Math.min(2, 4 - colunas.length - (folhas6.length ? 1 : 0)));
+      splitEmColunas(folhas5, livres).forEach((pacote) => colunas.push({ tipo: "pacote", unidades: pacote }));
+      if (folhas6.length) colunas.push({ tipo: "pacote", unidades: folhas6 });
       return colunas;
     }
 
-    return { comandoGeral, subcomandoGeral, estadoMaior, diretoriasGerais, aoLadoDe, gruposDaDiretoriaGeral };
+    // LOB Atual: com a DGA extinta, as subordinadas dela são filhas de nível 5 do Subcomando
+    // Geral. Saem na linha das diretorias, ao lado da DGO, com as mesmas colunas de antes
+    // mas sem o quadro nem o card da DGA.
+    const colunasSoltas = subcomandoGeral && filhosDe(subcomandoGeral.id).some((u) => u.nivel === 5)
+      ? gruposDaDiretoriaGeral(subcomandoGeral)
+      : [];
+
+    return { comandoGeral, subcomandoGeral, estadoMaior, diretoriasGerais, aoLadoDe, gruposDaDiretoriaGeral, colunasSoltas };
   }, [unidades]);
 
   const kpisComandoGeral = useMemo(() => {
@@ -393,6 +419,19 @@ export default function Organograma() {
   if (loading && unidades.length === 0) {
     return <div className="h-96 animate-pulse rounded-xl bg-muted/40" />;
   }
+
+  const renderColunas = (colunas) => colunas.map((coluna, idx) =>
+    coluna.tipo === "pacote" ? (
+      <ColunaEmpilhada key={`col-${idx}`} unidades={coluna.unidades} goto={goto} acessoDe={acessoDe} drag={drag} />
+    ) : coluna.grupos.length === 1 ? (
+      <GrupoDiretoria key={coluna.grupos[0].unidade.id} {...coluna.grupos[0]} goto={goto} acessoDe={acessoDe} drag={drag} />
+    ) : (
+      <div key={`pilha-${idx}`} className={`flex ${COLUNA_FLEX} flex-col gap-2`}>
+        {coluna.grupos.map((g) => (
+          <GrupoDiretoria key={g.unidade.id} {...g} empilhado goto={goto} acessoDe={acessoDe} drag={drag} />
+        ))}
+      </div>
+    ));
 
   return (
     <div className="space-y-3 animate-fade-in">
@@ -482,18 +521,43 @@ export default function Organograma() {
           retraída (pt-3/pt-6 iguais ao restante do padding, não mais um
           bloco extra) — o body agora começa direto no COMANDO GERAL. */}
       <div className="relative overflow-x-auto rounded-xl border border-border bg-card p-3 scrollbar-thin sm:p-6">
-        {!!tokenAdmin && (
-          <button
-            onClick={alternarModoEdicao}
-            title={modoEdicao ? "Sair do modo de edição" : "Editar organograma"}
-            className={`absolute right-3 top-3 z-30 inline-flex h-9 w-9 items-center justify-center rounded-full border shadow-sm transition-colors ${
-              modoEdicao
-                ? "border-primary bg-primary text-primary-foreground hover:opacity-90"
-                : "border-border bg-card text-muted-foreground hover:border-primary hover:text-primary"
-            }`}
-          >
-            {modoEdicao ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
-          </button>
+        {(podeVerLob || (!!tokenAdmin && lob === "atual")) && (
+          <div className="absolute right-3 top-3 z-30 flex items-center gap-2">
+            {podeVerLob && (
+              <div
+                role="group"
+                aria-label="LOB"
+                className="inline-flex items-center overflow-hidden rounded-full border border-border bg-card text-[11px] font-semibold shadow-sm"
+              >
+                <span className="px-2.5 text-muted-foreground">LOB</span>
+                {[["atual", "Atual"], ["nova", "Nova"]].map(([valor, rotuloLob]) => (
+                  <button
+                    key={valor}
+                    onClick={() => { if (modoEdicao) setModoEdicao(false); setLob(valor); }}
+                    aria-pressed={lob === valor}
+                    className={`px-3 py-1.5 transition-colors ${
+                      lob === valor ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {rotuloLob}
+                  </button>
+                ))}
+              </div>
+            )}
+            {!!tokenAdmin && lob === "atual" && (
+              <button
+                onClick={alternarModoEdicao}
+                title={modoEdicao ? "Sair do modo de edição" : "Editar organograma"}
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border shadow-sm transition-colors ${
+                  modoEdicao
+                    ? "border-primary bg-primary text-primary-foreground hover:opacity-90"
+                    : "border-border bg-card text-muted-foreground hover:border-primary hover:text-primary"
+                }`}
+              >
+                {modoEdicao ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+              </button>
+            )}
+          </div>
         )}
         <div className="mx-auto flex w-full max-w-[1520px] flex-col items-center gap-6 py-2 sm:gap-8">
           {/* ===== Comando Geral ===== */}
@@ -577,17 +641,16 @@ export default function Organograma() {
                       linhas se não couber, em vez de espremer o conteúdo dos
                       cards — pedido de 2026-09-25. */}
                   <div className="mt-4 flex w-full flex-wrap items-start justify-center gap-2">
-                    {colunas.map((coluna, idx) =>
-                      coluna.tipo === "pacote" ? (
-                        <ColunaEmpilhada key={`col-${idx}`} unidades={coluna.unidades} goto={goto} acessoDe={acessoDe} drag={drag} />
-                      ) : (
-                        <GrupoDiretoria key={coluna.unidade.id} unidade={coluna.unidade} filhos={coluna.filhos} goto={goto} acessoDe={acessoDe} drag={drag} />
-                      )
-                    )}
+                    {renderColunas(colunas)}
                   </div>
                 </div>
               );
             })}
+            {estrutura.colunasSoltas.length > 0 && (
+              <div className="flex max-w-full flex-[1_1_30rem] flex-wrap items-start justify-center gap-2 p-3 sm:p-4">
+                {renderColunas(estrutura.colunasSoltas)}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -622,7 +685,7 @@ function NoEstrela({ unidade, tom, onClick, acessoOk, drag }) {
         <p className="whitespace-nowrap text-lg font-black uppercase tracking-wider text-white">{unidade.nome}</p>
         <Star className={`h-4 w-4 fill-current ${isAmber ? "text-amber-200" : "text-yellow-200"}`} />
       </div>
-      <p className={`mt-0.5 whitespace-nowrap text-[11px] tracking-widest ${isAmber ? "text-amber-200" : "text-yellow-200"}`}>{unidade.responsavel} - {unidade.cargo}</p>
+      <p className={`mt-0.5 whitespace-nowrap text-[11px] tracking-widest ${isAmber ? "text-amber-200" : "text-yellow-200"}`}>{unidade.responsavel}{unidade.cargo ? ` - ${unidade.cargo}` : ""}</p>
       <div className={`mt-2 inline-flex items-center gap-1 rounded-full bg-black/20 px-3 py-1 text-[10px] font-semibold ${isAmber ? "text-amber-100" : "text-yellow-100"}`}>
         <TrendingUp className="h-3 w-3" /> Detalhar
       </div>
@@ -801,13 +864,15 @@ function ColunaEmpilhada({ unidades, goto, acessoDe, drag }) {
   return (
     <div className={`flex ${COLUNA_FLEX} flex-col gap-2`}>
       {unidades.map((u) => (
-        <CardDiretoria key={u.id} unidade={u} onClick={() => goto(u.sigla)} acessoOk={acessoDe(u.sigla)} drag={drag} largura="col" />
+        u.nivel === 6
+          ? <CardFolha key={u.id} unidade={u} onClick={() => goto(u.sigla)} acessoOk={acessoDe(u.sigla)} drag={drag} largura="col" />
+          : <CardDiretoria key={u.id} unidade={u} onClick={() => goto(u.sigla)} acessoOk={acessoDe(u.sigla)} drag={drag} largura="col" />
       ))}
     </div>
   );
 }
 
-function GrupoDiretoria({ unidade, filhos, goto, acessoDe, drag }) {
+function GrupoDiretoria({ unidade, filhos, netosDe, empilhado = false, goto, acessoDe, drag }) {
   // Fundo um pouco mais escuro que o #F5F5F5 do container-pai, pra dar
   // contraste (pedido de 2026-08-19 — DIM, DINTER I/II, DLOG, DEIP). Largura
   // fixa (w-28, mesma de ColunaEmpilhada — reduzida de w-40/44 em
@@ -817,13 +882,26 @@ function GrupoDiretoria({ unidade, filhos, goto, acessoDe, drag }) {
   // de segurança) porque aqui não há como crescer sem quebrar o
   // alinhamento das colunas da diretoria.
   return (
-    <div className={`flex ${COLUNA_FLEX} flex-col items-stretch rounded-xl border border-border bg-black/[0.05] p-1.5`}>
+    <div className={`flex ${empilhado ? "w-full" : COLUNA_FLEX} flex-col items-stretch rounded-xl border border-border bg-black/[0.05] p-1.5`}>
       <CardDiretoria unidade={unidade} onClick={() => goto(unidade.sigla)} acessoOk={acessoDe(unidade.sigla)} drag={drag} largura="col" />
       {filhos.length > 0 && (
         <div className="mt-2 flex flex-col gap-1.5">
-          {filhos.map((f) => (
-            <CardFolha key={f.id} unidade={f} onClick={() => goto(f.sigla)} acessoOk={acessoDe(f.sigla)} drag={drag} largura="col" />
-          ))}
+          {filhos.map((f) => {
+            const netos = netosDe ? netosDe(f.id) : [];
+            if (netos.length === 0) {
+              return <CardFolha key={f.id} unidade={f} onClick={() => goto(f.sigla)} acessoOk={acessoDe(f.sigla)} drag={drag} largura="col" />;
+            }
+            // Subordinada que tem subordinadas próprias (LOB Nova: ABMG → CEI, CFO,
+            // CAEBM): vira um quadro menor dentro da coluna.
+            return (
+              <div key={f.id} className="flex flex-col gap-1 rounded-lg border border-border bg-black/[0.16] p-1">
+                <CardFolha unidade={f} onClick={() => goto(f.sigla)} acessoOk={acessoDe(f.sigla)} drag={drag} largura="col" />
+                {netos.map((n) => (
+                  <CardFolha key={n.id} unidade={n} onClick={() => goto(n.sigla)} acessoOk={acessoDe(n.sigla)} drag={drag} largura="col" />
+                ))}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

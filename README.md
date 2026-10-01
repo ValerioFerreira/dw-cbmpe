@@ -211,3 +211,13 @@ sem máscara.
 
 Passo a passo, decisões pendentes do TI e a ressalva de segurança:
 [`docs/deploy-solicitacao-ti.md`](docs/deploy-solicitacao-ti.md).
+
+## Novidades de 2026-10-01
+
+- **LOB Atual/Nova** no organograma (só Administrador, Comandante e Subcomandante Geral). A
+  Nova é uma segunda hierarquia, só para visualização, em `src/data/organograma.js`
+  (`NODES_NOVA`); a Atual é ajustada em `src/lib/cbmpe.js` (`ajustarLobAtual`).
+- **Finanças** inteira no DW; abas Diárias e Despesas Gerais no Dashboard DF.
+- **Relatórios** de divergências (QOD e DF): rodar `docs/relatorios/gerar_relatorios.py` (ver
+  `DW_ETL.md`). Os arquivos gerados não são versionados.
+- Pendências e próximos passos: `DW_PLANEJAMENTO.md`, "Em aberto e próximos passos (2026-10-01)".

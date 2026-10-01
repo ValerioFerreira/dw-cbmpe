@@ -383,7 +383,7 @@ papéis       etl_writer · app_reader (marts + app) · bi_reader (marts)
 | QOD (previsto + lotação) | Google Sheets publicada (xlsx) | Python (`raw_planilhas.py`) | raw_qod | diária | **no DW desde 2026-09-29** (8 abas); ainda sem core/marts |
 | Inativos, escolaridade | Abas da **mesma pasta do Pecúlio** | Python (`raw_planilhas.py`) | raw_inativos, raw_escolaridade | diária | **no DW desde 2026-09-29** (1.981 e 2.654 linhas) |
 | CIM (pedidos, atendidos) | Planilha própria | Python (`raw_planilhas.py`) | raw_cim | diária | **no DW desde 2026-09-29** (2.667 e 388) |
-| Material operacional | 5 planilhas (SMO, VT, CP, natureza, uso) | Python (`raw_planilhas.py`) | raw_materiais | — | **Standby** (decisão do usuário, 2026-09-29). Carga única de smo, vt e uso; CP e natureza despublicadas (HTTP 410) |
+| Material operacional | 5 planilhas (SMO, VT, CP, natureza, uso) | Python (`raw_planilhas.py`) | raw_materiais | — | **Descontinuada** (usuário, 2026-10-01): outro sistema, do Igor, vai substituir estas planilhas; a nova fonte será integrada quando chegar. Hoje em pausa no `raw_planilhas.py` (CP e natureza despublicadas, HTTP 410) |
 | IBGE, KMZ | arquivo / API | carga pontual | raw_ref | pontual | fora (JSON) |
 
 ### Os scripts do Windmill do usuário (lidos em 2026-09-29, só leitura)
@@ -533,3 +533,46 @@ São a próxima leva.
    Os scripts do Windmill "ETL - Frotas" e "ETL - Finanças", que alimentam o
    Neon, **já não estão agendados**. O "Pecúlio Metabase V1" continua, porque
    alimenta o sistema de Reserva e o Metabase.
+
+## 12. Finanças, QOD e LOB (2026-10-01)
+
+### Finanças: inteira no DW
+- **Caminho:** planilha de Finanças (aba "Banco de Dados - NÃO MEXER", a consolidação das
+  outras abas; `Plan1` ignorada) → `raw_financas` → `core.fato_financeiro` (950 lançamentos)
+  → `stg.financas_destino` → `marts.painel_df_*` e `marts.painel_df_lancamento` → backend
+  `GET /dados/painel/df` → front (`usePainelDw`).
+- **Removidos:** `financas.json`, `financas_dashboard.json`, `extract_financas.py` e
+  `extract_dashboard_df.py`, mais o stub do Vite. O card de Finanças do organograma mostra 0
+  até o DW responder (nunca um número fictício).
+- **Tratamento só de grafia** (`tratar_grafia_financas()` em `etl/dw/carga_core.py`; o
+  auditor `etl/financas/auditar_planilha.py` usa as mesmas funções): tipo de gasto (caixa,
+  espaço, hífen; "Globa", "Miliar") e mês (palavras extras; MAIO = MAI; data do Carnaval
+  gravada como número de série do Excel). O original fica em `ficha_financ_original` e
+  `mes_original`. Nada de valor, situação, OME ou enquadramento é corrigido.
+- **Dashboard DF:** SFI, Suprimento Individual, **Diárias** (ex-Despesas Diversas, sem o
+  gráfico de Auxílio Funeral) e **Despesas Gerais** (todos os lançamentos, filtros por OME,
+  Enquadramento, Situação e Mês, e os alertas de pago > liquidado, liquidado > empenhado e
+  pago > empenhado). Linhas sem OME (folha, contratos, "Aos mesmos") só vão a quem vê Finanças
+  de todas as unidades. A view não traz SEI, descrição nem observação (nome de falecido).
+
+### QOD: quem alimenta o quê
+| Informação | Fonte |
+|---|---|
+| Funções (catálogo, ID fixo) | aba `ID_ATUALIZADO` da QOD CONFERÊNCIA (DPlaG) |
+| Ocupantes de cada função | aba `QOD_CONSOLIDADA` (CPPA) |
+| Previsto por unidade | quadro **GERAL 001** do QOD de setembro (`raw_qod_quadros` → `core.qod_quadro_unidade` → `marts.previsto_quadro`); total 5.249 |
+| Titular da unidade e matrícula | **Pecúlio** (mais antigo da OME) → `marts.chefe_organograma`; CPP repete a CPO |
+| Vagas da DPlaG (`FUNÇÕES DPLAG`) | só conferência (`marts.previsto_organograma`) |
+
+O QOD de setembro é lido pelo **link de compartilhamento** (`.../export?format=xlsx`), não
+por "publicar na web". Fonte `qod_quadros` em `raw_planilhas.py`.
+
+### Rotas e views novas ou alteradas
+`marts.efetivo_nominal` ganhou `agregado` e `indisponivel`; `marts.chefe_organograma` lê o
+Pecúlio; `GET /dados/metricas` lê `marts.previsto_quadro` (com fallback às vagas da DPlaG
+se a tabela estiver vazia); `GET /dados/painel/df` devolve também `lancamentos`.
+
+### Transição para o CapRover: continua em standby
+O checklist da seção 11 vale, com duas mudanças: **não há mais JSON de Finanças** a apagar, e o
+deploy aguarda a **VM** que o TI pediu à ATI. A lista de pendências está em
+`DW_PLANEJAMENTO.md`, seção "Em aberto e próximos passos (2026-10-01)".

@@ -26,7 +26,7 @@ export default function DashboardDetalhe() {
   const kpis = useMemo(() => {
     if (!dash) return [];
     const subIds = [dash.unidade_id];
-    unidades.filter((u) => u.parent_id === dash.unidade_id).forEach((u) => subIds.push(u.id));
+    unidades.filter((u) => u.parent_id === dash.unidade_id && !u.oculto).forEach((u) => subIds.push(u.id));
     return indicadores.filter((i) => subIds.includes(i.unidade_id));
   }, [dash, indicadores, unidades]);
 
@@ -44,7 +44,7 @@ export default function DashboardDetalhe() {
 
   // ranking por unidade subordinada
   const ranking = useMemo(() => {
-    const filhos = unidades.filter((u) => dash && u.parent_id === dash.unidade_id);
+    const filhos = unidades.filter((u) => dash && u.parent_id === dash.unidade_id && !u.oculto);
     return filhos.map((f) => {
       const ks = indicadores.filter((i) => i.unidade_id === f.id);
       const total = ks.reduce((a, k) => a + (k.valor || 0), 0);
@@ -71,7 +71,7 @@ export default function DashboardDetalhe() {
   ];
 
   const linhas = useMemo(() => {
-    const filhos = dash ? unidades.filter((u) => u.parent_id === dash.unidade_id) : [];
+    const filhos = dash ? unidades.filter((u) => u.parent_id === dash.unidade_id && !u.oculto) : [];
     const alvo = filhos.length > 0 ? filhos : (unidade ? [unidade] : []);
     return alvo.flatMap((u) =>
       indicadores

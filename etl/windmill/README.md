@@ -113,3 +113,10 @@ por dia: rodando diariamente, ele acumula a série temporal que a fonte não
 tem — mas hoje a limpeza apaga o histórico junto. **Pendência conhecida**: a
 limpeza precisa preservar snapshots de dias anteriores antes de o agendamento
 entrar no ar.
+
+## Atualização 2026-10-01
+
+Fonte nova em `dw/raw_planilhas.py`: `qod_quadros` (QOD formatado, link de compartilhamento
+`.../export?format=xlsx`, schema `raw_qod_quadros`, criado uma vez por superusuário). Flow
+republicado com `publicar_dw.py` (a etapa de dependências demora; sem `--rodar` ele não dispara o
+flow). Primeira execução agendada com o código novo: 02/10 às 05:30.

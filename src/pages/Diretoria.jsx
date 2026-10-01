@@ -105,7 +105,7 @@ export default function Diretoria() {
   const unidade = porId[id];
   const subordinados = useMemo(() => getSubordinados(unidades, id), [unidades, id]);
   const filhosDiretos = useMemo(() => {
-    const diretos = subordinados.filter((u) => u.parent_id === id);
+    const diretos = subordinados.filter((u) => u.parent_id === id && !u.oculto);
     return unidade ? ordenarSetoresVinculados(diretos, unidade.sigla) : diretos;
   }, [subordinados, id, unidade]);
 

@@ -24,9 +24,6 @@ const JSON_SERVIDOS_PELO_DW = {
   'src/data/real/ocorrencias_dashboard.json': (d) => ({
     ...Object.fromEntries(Object.entries(d).map(([k, v]) => [k, Array.isArray(v) ? [] : v])),
   }),
-  'src/data/real/financas_dashboard.json': (d) => ({
-    ...Object.fromEntries(Object.entries(d).map(([k, v]) => [k, Array.isArray(v) ? [] : v])),
-  }),
 }
 
 function semDadoPessoalNoBundle() {

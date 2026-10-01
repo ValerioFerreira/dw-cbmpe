@@ -29,6 +29,7 @@ Uso:
 import os
 import re
 import unicodedata
+from datetime import date, timedelta
 
 import psycopg2
 from psycopg2.extras import execute_values
@@ -1389,21 +1390,121 @@ def carregar_fatos_reserva(cur):
 BLOCOS_FINANCAS = {
     # bloco: {campo: (posicao 1-based, trecho(s) aceito(s) no nome da coluna)}
     # O bloco Autorizacao chama o destino de "OME"; os outros, de "DESTINO".
-    "autorizacao": {"ficha_financ": (7, "ficha"), "valor": (8, "valor"), "destino": (10, ("destino", "ome")),
+    "autorizacao": {"oficio": (1, "ofic"), "item": (2, "item"), "empenho": (14, "empenho"),
+                    "ficha_financ": (7, "ficha"), "valor": (8, "valor"), "destino": (10, ("destino", "ome")),
                     "enquadramento": (11, "enquadr"), "situacao": (12, "situa"),
                     "mes": (13, "mes"), "valor_liquidado": (15, "liquid"),
                     "valor_pago": (16, "pago")},
-    "carnaval_2026": {"ficha_financ": (26, "ficha"), "valor": (27, "valor"), "destino": (29, "destino"),
+    "carnaval_2026": {"oficio": (20, "ofic"), "item": (21, "item"), "empenho": (33, "empenho"),
+                      "ficha_financ": (26, "ficha"), "valor": (27, "valor"), "destino": (29, "destino"),
                       "enquadramento": (30, "enquadr"), "situacao": (31, "situa"),
                       "mes": (32, "mes"), "valor_liquidado": (34, "liquid"),
                       "valor_pago": (35, "pago")},
-    "sfi_ordinario": {"natureza": (42, "natureza"), "ficha_financ": (43, "ficha"), "valor": (44, "valor"),
+    "sfi_ordinario": {"empenho": (48, "empenho"), "natureza": (42, "natureza"), "ficha_financ": (43, "ficha"), "valor": (44, "valor"),
                       "destino": (45, "destino"), "situacao": (46, "situa"),
                       "mes": (47, "mes"), "valor_liquidado": (49, "liquid"),
                       "valor_pago": (50, "pago")},
 }
-CAMPOS_TEXTO = ("destino", "enquadramento", "situacao", "natureza", "mes", "ficha_financ")
+CAMPOS_TEXTO = ("destino", "enquadramento", "situacao", "natureza", "mes", "ficha_financ", "oficio", "item", "empenho")
 CAMPOS_VALOR = ("valor", "valor_liquidado", "valor_pago")
+
+
+# --- Tratamento de GRAFIA da planilha de Financas (2026-10-01) ---------------
+# Regra do usuario: o sistema apresenta os dados como estao -- nao corrige valor,
+# situacao, destino nem enquadramento. So se tratam erros de digitacao de
+# nomenclatura: caixa, espaco e hifen do tipo de gasto (ficha financeira) e o mes
+# escrito com palavras extras. O resto vira apontamento no relatorio
+# (etl/financas/auditar_planilha.py, que importa estas mesmas funcoes).
+MESES = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"]
+EXERCICIO = 2026  # a planilha e do exercicio de 2026; o ano explicito no texto vence
+_MES = re.compile(r"^\s*(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)[A-ZÇ]*\b(?:\s*/\s*(20\d\d))?", re.I)
+
+
+def tratar_mes(texto):
+    """'JAN (ASA BRANCA R$ ...)' -> ('JAN', 202601); 'MAIO'/'MAI' -> MAI; 'NOV/2025' ->
+    ('NOV/2025', 202511); numero de serie do Excel (bloco Carnaval) -> o mes da data;
+    'CANCELADO' ou vazio -> (None, None). Devolve (rotulo, ordem aaaamm)."""
+    t = str(texto).strip() if texto is not None else ""
+    if re.fullmatch(r"\d{5}", t):
+        d = date(1899, 12, 30) + timedelta(days=int(t))
+        t = f"{MESES[d.month - 1]}/{d.year}"
+    m = _MES.match(t)
+    if not m:
+        return None, None
+    abrev = m.group(1).upper()
+    ano = int(m.group(2)) if m.group(2) else None
+    rotulo = f"{abrev}/{ano}" if ano and ano != EXERCICIO else abrev
+    return rotulo, (ano or EXERCICIO) * 100 + MESES.index(abrev) + 1
+
+
+PALAVRAS_CORRIGIDAS = {"globa": "global", "miliar": "militar"}
+PREFIXOS_FICHA = ["CUSTEIO", "EXECUTIVA PRIORITÁRIA", "EXECUTIVA", "PESSOAL E ENCARGOS SOCIAIS",
+                  "OPERAÇÕES DE CRÉDITO", "AUXÍLIOS DE FOLHA"]
+
+
+def _corrigir_palavras(texto):
+    def troca(m):
+        certa = PALAVRAS_CORRIGIDAS.get(m.group(0).lower())
+        if not certa:
+            return m.group(0)
+        return certa.upper() if m.group(0).isupper() else certa.capitalize() if m.group(0)[0].isupper() else certa
+    return re.sub(r"[A-Za-zÀ-ú]+", troca, texto)
+
+
+def _chave_ficha(texto):
+    sem = unicodedata.normalize("NFKD", texto).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", " ", sem.lower()).strip()
+
+
+def _estrutura_ficha(texto):
+    t = re.sub(r"\s+", " ", (texto or "").strip())
+    for p in sorted(PREFIXOS_FICHA, key=len, reverse=True):
+        m = re.match(rf"^{re.escape(p)}\s*-\s*(.*)$", t, re.I)
+        if m:
+            return p, m.group(1).strip()
+        if t.upper() == p:
+            return p, ""
+    return None, t
+
+
+def construir_mapa_tipos(valores):
+    """{texto original: texto tratado}. Grafias que so diferem em caixa, espaco, hifen ou
+    acento (ou nas PALAVRAS_CORRIGIDAS) viram a grafia mais frequente do grupo. NAO funde
+    tipos diferentes ('Cota Global' e 'Cota Global CBM' seguem separados)."""
+    from collections import Counter
+    cont = Counter(v for v in valores if v and str(v).strip())
+    grupos = {}
+    for original, n in cont.items():
+        prefixo, resto = _estrutura_ficha(original)
+        resto = re.sub(r"\s-(?=\S)", " - ", _corrigir_palavras(resto))
+        grupos.setdefault((prefixo or "", _chave_ficha(resto)), []).append((n, original, prefixo, resto))
+    mapa = {}
+    for itens in grupos.values():
+        corpo = Counter()
+        for n, _, _, resto in itens:
+            corpo[resto] += n
+        vencedora = corpo.most_common(1)[0][0]
+        for _, original, prefixo, _ in itens:
+            mapa[original] = f"{prefixo} - {vencedora}" if prefixo and vencedora else (prefixo or vencedora)
+    return mapa
+
+
+def tratar_grafia_financas(cur):
+    """Guarda o texto original (ficha_financ_original, mes_original) e grava o tratado."""
+    cur.execute("""UPDATE core.fato_financeiro
+                   SET ficha_financ_original = ficha_financ, mes_original = mes""")
+    cur.execute("SELECT DISTINCT ficha_financ_original FROM core.fato_financeiro WHERE ficha_financ_original IS NOT NULL")
+    mapa = construir_mapa_tipos([r[0] for r in cur.fetchall()])
+    if mapa:
+        execute_values(cur, """UPDATE core.fato_financeiro f SET ficha_financ = v.tratado
+                               FROM (VALUES %s) AS v(original, tratado)
+                               WHERE f.ficha_financ_original = v.original""", list(mapa.items()))
+    cur.execute("SELECT DISTINCT mes_original FROM core.fato_financeiro WHERE mes_original IS NOT NULL")
+    meses = [(m, *tratar_mes(m)) for (m,) in cur.fetchall()]
+    if meses:
+        execute_values(cur, """UPDATE core.fato_financeiro f SET mes_rotulo = v.rotulo, mes_ordem = v.ordem::int
+                               FROM (VALUES %s) AS v(original, rotulo, ordem)
+                               WHERE f.mes_original = v.original""", meses)
 
 
 def carregar_fato_financeiro(cur):
@@ -1443,14 +1544,16 @@ def carregar_fato_financeiro(cur):
         cur.execute(f"""
             INSERT INTO core.fato_financeiro
                 (bloco, linha, destino, enquadramento, situacao, natureza, mes,
-                 valor, valor_liquidado, valor_pago, ficha_financ)
+                 valor, valor_liquidado, valor_pago, ficha_financ, oficio, item, empenho)
             SELECT %s, linha, {expr('destino')}, {expr('enquadramento')}, {expr('situacao')},
                    {expr('natureza')}, {expr('mes')},
                    {expr('valor')}, {expr('valor_liquidado')}, {expr('valor_pago')},
-                   {expr('ficha_financ')}
+                   {expr('ficha_financ')}, {expr('oficio')}, {expr('item')}, {expr('empenho')}
             FROM raw_financas.banco_de_dados_nao_mexer
             WHERE {preenchido}
         """, (bloco,))
+
+    tratar_grafia_financas(cur)
 
     cur.execute("SELECT bloco, count(*) FROM core.fato_financeiro GROUP BY 1 ORDER BY 1")
     resumo = ", ".join(f"{b}={n}" for b, n in cur.fetchall())
@@ -1468,7 +1571,9 @@ def carregar_fato_financeiro(cur):
 # sumiu, em vez de gravar NULL em silencio.
 COLUNAS_QOD = {
     "funcoes_dplag": ["col_01_ome", "col_02_cod_func", "col_03_funcao", "col_05_tipo_vaga"],
-    "qod_funcoes": ["col_01_id_funcao", "col_02_tipo_funcao", "col_04_ome_completa", "col_05_ome",
+    # ID_ATUALIZADO: aba com o ID fixo das funcoes (decisao do usuario, 2026-10-01); a
+    # QOD_FUNCOES (agosto) tinha IDs renumerados todo mes.
+    "id_atualizado": ["col_01_id_funcao", "col_02_tipo_funcao", "col_04_ome_completa", "col_05_ome",
                     "col_06_localidade", "col_07_secao",
                     "col_08_funcao", "col_09_funcao_completa", "col_10_ordem_exibicao",
                     "col_16_mes", "col_17_ano", "col_18_ativo"],
@@ -1516,7 +1621,7 @@ def carregar_qod(cur):
                upper(trim(col_18_ativo)) = 'SIM',
                nullif(trim(concat_ws('/', col_16_mes, col_17_ano)), ''),
                nullif(trim(col_04_ome_completa), ''), nullif(trim(col_06_localidade), '')
-        FROM raw_qod.qod_funcoes
+        FROM raw_qod.id_atualizado
         WHERE nullif(trim(col_01_id_funcao), '') IS NOT NULL
         ORDER BY trim(col_01_id_funcao), linha
     """)
@@ -1549,6 +1654,73 @@ def carregar_qod(cur):
     extra = f"  !! OME do QOD sem sigla no organograma: {fora}" if fora else ""
     print(f"  qod                          {vagas} vagas funcionais, {ocup} ocupacoes "
           f"em {funcoes} funcoes{extra}")
+
+
+# ---------------------------------------------------------------------------
+# Quadros do QOD (previsto por unidade e posto) -- ver 15_qod_quadros.sql
+# ---------------------------------------------------------------------------
+# Colunas do quadro GERAL 001 (posicao 1-based na aba): A = rotulo, B..G = QOC
+# (Cel..2o Ten), H = soma, I..L = QOA (Maj..2o Ten), M = soma, N..S = pracas
+# (Subten..Sd), T = soma, U = TOTAL.
+POSICAO_QUADRO = {"cel": 2, "ten_cel": 3, "maj_qoc": 4, "cap_qoc": 5, "ten1_qoc": 6, "ten2_qoc": 7,
+                  "maj_qoa": 9, "cap_qoa": 10, "ten1_qoa": 11, "ten2_qoa": 12,
+                  "subten": 14, "sgt1": 15, "sgt2": 16, "sgt3": 17, "cb": 18, "sd": 19, "total": 21}
+# Primeira palavra do rotulo do quadro -> sigla do organograma. "Comando Geral" e
+# "Subcomando Geral" somam no gabinete; CPPA na DGP.
+SIGLA_DO_QUADRO = {
+    "COMANDO": "GCG", "SUBCOMANDO": "GSG", "GCG": "GCG", "GSG": "GSG", "CI": "CI", "CPO": "CPO",
+    "AECI": "AECI", "CCS": "CCS", "AJG": "AJG", "CPP": "CPP", "DGO": "DGO", "DIM": "DIM",
+    "GBI": "GBI", "GBAPH": "GBAPH", "GBS": "GBS", "GBMAR": "GBMar", "CAT/RMR": "CAT/RMR",
+    "CAT/ZM": "CAT/ZM", "CAT/AG": "CAT/AG", "CAT/SE": "CAT/SE", "DIESP": "DIESP", "DAS": "DAS",
+    "DGP": "DGP", "CPPA": "DGP", "DJD": "DJD", "DVP": "DVP", "DTIC": "DTIC", "DPLAG": "DPLAG",
+    "DLOG": "DLOG", "CMAN": "CMAN", "CINT": "CINT", "CEAO": "CEAO", "DF": "DF", "DEIP": "DEIP",
+    "ABMG": "ABMG", "CEFD": "CEFD",
+}
+
+
+def sigla_do_quadro(rotulo):
+    t = re.sub(r"^\d+(\.\d+)*[\.\)]?\s*", "", str(rotulo).strip())
+    m = re.match(r"(\d+)\s*º\s*GB", t)
+    if m:
+        return f"{m.group(1)}º GB"
+    palavras = t.split()
+    if palavras and palavras[0].upper() == "DINTER" and len(palavras) > 1:
+        return {"I": "DINTER I", "II": "DINTER II"}.get(palavras[1].upper())
+    return SIGLA_DO_QUADRO.get(palavras[0].upper()) if palavras else None
+
+
+def carregar_quadro_qod(cur):
+    cur.execute("""
+        SELECT column_name FROM information_schema.columns
+        WHERE table_schema = 'raw_qod_quadros' AND table_name = 'geral_001' AND column_name LIKE 'col%'
+    """)
+    col = {int(c[4:6]): c for (c,) in cur.fetchall()}
+    if not col:
+        print("  qod_quadro_unidade           (raw_qod_quadros.geral_001 ausente -- pulado)")
+        return
+    campos = ", ".join(f'"{col[p]}"' for p in [1] + list(POSICAO_QUADRO.values()))
+    cur.execute(f"SELECT {campos} FROM raw_qod_quadros.geral_001")
+    nomes = list(POSICAO_QUADRO)
+    linhas, sem_sigla = [], []
+    for r in cur.fetchall():
+        rotulo = (r[0] or "").strip()
+        if not re.match(r"^\d", rotulo):
+            continue
+        try:
+            valores = [int(float(x)) if x not in (None, "") else 0 for x in r[1:]]
+        except ValueError:
+            continue
+        sigla = sigla_do_quadro(rotulo)
+        if sigla is None:
+            sem_sigla.append(rotulo)
+        linhas.append((rotulo, sigla, *valores))
+    cur.execute("DELETE FROM core.qod_quadro_unidade")
+    if linhas:
+        execute_values(cur, f"INSERT INTO core.qod_quadro_unidade (rotulo, sigla_organograma, {', '.join(nomes)}) VALUES %s", linhas)
+    cur.execute("SELECT count(*), coalesce(sum(total), 0) FROM core.qod_quadro_unidade")
+    n, total = cur.fetchone()
+    extra = f"  !! quadro sem sigla no organograma: {sem_sigla}" if sem_sigla else ""
+    print(f"  qod_quadro_unidade           {n} quadros, previsto {total}{extra}")
 
 
 def main():
@@ -1587,6 +1759,7 @@ def main():
     carregar_fatos_reserva(cur)
     carregar_fato_financeiro(cur)
     carregar_qod(cur)
+    carregar_quadro_qod(cur)
     conn.commit()
 
     cur.close()

@@ -6,28 +6,29 @@ import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import { getCaminho } from "@/lib/cbmpe";
 import { MODULOS_FINANCAS_DASHBOARD, filtrarPorEscopoFinancas, siglasPermitidas } from "@/lib/financasDashboard";
 import EmptyState from "@/components/ui/empty-state";
-import financasDashboardEmbutido from "@/data/real/financas_dashboard.json";
 import { usePainelDw } from "@/lib/usePainelDw";
 
 import ModuloSfi from "./ModuloSfi";
 import ModuloSuprimentoIndividual from "./ModuloSuprimentoIndividual";
-import ModuloDespesasDiversas from "./ModuloDespesasDiversas";
+import ModuloDiarias from "./ModuloDiarias";
+import ModuloDespesasGerais from "./ModuloDespesasGerais";
 
 // Casca do "Dashboard DF" — mesma estrutura de EfetivoDashboard/
 // ViaturasDashboard: breadcrumb, checagem de acesso, escopo por unidade, e
 // o módulo da aba atual dentro. Indicador reaproveitado: "Finanças" (já
 // existe por unidade em organograma.js, ver INDICADORES).
 //
-// Fonte: src/data/real/financas_dashboard.json, gerado por
-// etl/financas/extract_dashboard_df.py — Postgres interno do DW
-// (fin_sfi_ordinario/fin_autorizacao), não a tabela Neon "FinancaLancamento"
-// que alimenta o KPI de Finanças na página da unidade (fontes diferentes,
-// mesma origem em última instância).
+// Fonte: GET /dados/painel/df (marts.painel_df_*, no DW), carregado de
+// planilha de Finanças pelo flow diário do Windmill — ver usePainelDw.
 const COMPONENTES = {
   sfi: ModuloSfi,
   individual: ModuloSuprimentoIndividual,
-  despesas: ModuloDespesasDiversas,
+  diarias: ModuloDiarias,
+  gerais: ModuloDespesasGerais,
 };
+
+// Sem JSON embutido (removido em 2026-10-01): o painel vem só do DW, pelo backend.
+const SEM_DADOS = { sfi_ordinario: [], sfi_extra: [], suprimento_individual: [], diarias: [], lancamentos: [] };
 
 export default function FinancasDashboard() {
   const { id, modulo } = useParams();
@@ -42,7 +43,7 @@ export default function FinancasDashboard() {
   // Escopo por unidade — mesma regra dos outros Dashboards Pessoais.
   const permitidas = useMemo(() => siglasPermitidas(unidade, unidades), [unidade, unidades]);
   // JSON embutido ou DW (GET /dados/painel/df) — ver src/lib/usePainelDw.js.
-  const financasDashboardReal = usePainelDw("df", financasDashboardEmbutido);
+  const financasDashboardReal = usePainelDw("df", SEM_DADOS);
   const sfiOrdinario = useMemo(() => filtrarPorEscopoFinancas(financasDashboardReal.sfi_ordinario, permitidas), [financasDashboardReal, permitidas]);
   const sfiExtra = useMemo(() => filtrarPorEscopoFinancas(financasDashboardReal.sfi_extra, permitidas), [financasDashboardReal, permitidas]);
   const suprimentoIndividual = useMemo(() => filtrarPorEscopoFinancas(financasDashboardReal.suprimento_individual, permitidas), [financasDashboardReal, permitidas]);
@@ -126,7 +127,8 @@ export default function FinancasDashboard() {
 
       <Conteudo
         sfiOrdinario={sfiOrdinario} sfiExtra={sfiExtra} suprimentoIndividual={suprimentoIndividual}
-        diarias={financasDashboardReal.diarias} funeral={financasDashboardReal.funeral}
+        diarias={financasDashboardReal.diarias}
+        lancamentos={financasDashboardReal.lancamentos} permitidas={permitidas}
         unidadesDisponiveis={unidadesDisponiveis} escopoTotal={escopoTotal}
       />
     </div>

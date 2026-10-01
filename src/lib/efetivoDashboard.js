@@ -10,6 +10,15 @@ export { CIDADE_POR_OME, omesDaCidade } from "@/lib/omeGeografia";
 // já vêm com as dimensões derivadas prontas (categoria, disponibilidade,
 // regiao, faixa, cidade — ver militares.json), então aqui só agregamos.
 
+// Regra de "indisponível" (decisão do usuário, 2026-10-01): adido, ou afastado
+// (LTS/LM), ou LTIP, ou LE, ou agregado. Readaptado sozinho continua
+// disponível. É a mesma regra da coluna `indisponivel` de marts.efetivo_nominal
+// (etl/dw/ddl/12_nominal.sql) — mude as duas juntas. `agregado` ainda não vem
+// no militares.json estático; entra quando o dashboard passar a ler do DW.
+export function ehIndisponivel(m) {
+  return m.ome === "ADIDO" || Boolean(m.afastamento) || Boolean(m.ltip) || Boolean(m.le) || Boolean(m.agregado);
+}
+
 export const FAIXA_ORDER = ["18-22", "23-27", "28-32", "33-37", "38-42", "43-47", "48-52", "53-57", "58-59", "60+"];
 export const REGIOES = ["QCG", "DIM", "DINTER 1", "DINTER 2"];
 export const TEMPO_BUCKET_ORDER = ["0-5", "6-10", "11-15", "15+"];

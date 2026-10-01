@@ -295,3 +295,9 @@ produção. As duas coisas envelhecem em silêncio e só aparecem no dia em que
 alguém precisa recriar o sistema. Vale conferir periodicamente que o nosso
 `.env.example` acompanha o `.env.local` — ele estava defasado até 2026-08-24.
 
+## Dimensionamento (medidas de 2026-10-01, base para o pedido de VM)
+
+Banco `dw`: **626 MB** (raw do Mapa de Força 236 MB, `core` 206 MB, raw da Frota 105 MB, raw do
+ROE 48 MB). Os últimos 30 dias do Mapa de Força são cerca de 9 mil lançamentos (~6 MB); a
+retenção de 30 dias, decidida, ainda não foi aplicada. O quadro completo (vCPU, RAM, disco,
+firewall) **ainda não foi fechado**: ver `DW_PLANEJAMENTO.md`, "Em aberto e próximos passos".

@@ -1030,3 +1030,22 @@ quando as fontes chegarem (mesmo processo do SGP):
 4. Sessão com o gestor principal da corporação para definir visualizações
    e KPIs — confirma ou refuta o grão hipotético de cada entidade acima.
 5. Só então escrever o DDL definitivo do schema `core`.
+
+## Atualização 2026-10-01 — objetos novos ou alterados
+
+- `core.fato_financeiro`: `oficio`, `item`, `empenho`, `ficha_financ_original`, `mes_original`,
+  `mes_rotulo` (JAN..DEZ, ou NOV/2025) e `mes_ordem` (aaaamm). `ficha_financ` e `mes_rotulo`
+  são os valores **tratados** (só grafia).
+- `core.qod_quadro_unidade` (`15_qod_quadros.sql`): um quadro por unidade do GERAL 001, com as
+  16 colunas de posto/graduação e o total. `sigla_organograma` liga ao organograma (Comando
+  Geral soma no GCG, Subcomando Geral no GSG, CPPA na DGP).
+- `core.qod_funcao` passa a vir de `raw_qod.id_atualizado`.
+- Views `marts`: `previsto_quadro`, `painel_df_lancamento` (`14_financas_detalhe.sql`),
+  `chefe_organograma` (Pecúlio; dono passou a `etl_writer`) e `efetivo_nominal` com
+  `agregado` e `indisponivel`.
+- **Regra de indisponível:** adido, ou afastado (LTS/LM), ou LTIP, ou LE, ou agregado (marca
+  `Ag` na coluna OBS do Pecúlio). Readaptado sozinho continua disponível. Fica em
+  `marts.efetivo_nominal.indisponivel` e em `ehIndisponivel()` (`src/lib/efetivoDashboard.js`).
+- **Titular da unidade:** o mais antigo da OME pela ordem do Pecúlio (`stg.peculio.ordem`).
+  Conferido contra a marca `Titular` da OBS: 45 de 45. Unidade sem OME no Pecúlio (DGA) sai
+  vaga; a CPP repete o titular da CPO.

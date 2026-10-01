@@ -31,7 +31,7 @@ export default function CommandPalette({ open, onClose }) {
       };
     }
     return {
-      unidades: unidades.filter((u) =>
+      unidades: unidades.filter((u) => !u.oculto &&
         (u.nome + " " + (u.sigla || "")).toLowerCase().includes(termo)).slice(0, 6),
       dashboards: dashboards.filter((d) =>
         (d.nome + " " + (d.descricao || "")).toLowerCase().includes(termo)).slice(0, 5),

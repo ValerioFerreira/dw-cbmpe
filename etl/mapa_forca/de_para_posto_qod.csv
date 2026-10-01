@@ -1,0 +1,186 @@
+﻿id_posto;nome_posto;ome_do_posto;municipio;lancamentos_30d;secao_qod;regra
+156;SEDE;11º GB;RECIFE;0;;sem equivalente no QOD -- a decidir
+71;1ªSB / VITÓRIA;1º GB;VITÓRIA DE SANTO ANTÃO;123;1ª SB/1º GB;nome do posto + OME
+86;2ªSB / PALMARES;1º GB;PALMARES;180;2ª SB/1º GB;nome do posto + OME
+70;3ªSB / GRAVATÁ;1º GB;GRAVATÁ;180;3ª SB/1º GB;nome do posto + OME
+65;1ªSB / CARUARU;2º GB;CARUARU;180;1ª SB/2º GB;nome do posto + OME
+17;2ªSB / BEZERROS;2º GB;BEZERROS;84;2ª SB/2º GB;nome do posto + OME
+25;3ªSB / BELO JARDIM;2º GB;BELO JARDIM;60;3ª SB/2º GB;nome do posto + OME
+67;4ªSB / BONITO;2º GB;PALMARES;31;4ª SB/2º GB;nome do posto + OME
+127;5ªSB / SANTA CRUZ DO CAPIBARIBE;2º GB;SANTA CRUZ DO CAPIBARIBE;60;5ª SB/2º GB;nome do posto + OME
+128;6ªSB / TORITAMA;2º GB;TORITAMA;60;6ª SB/2º GB;nome do posto + OME
+151;7ªSB / CARUARU;2º GB;CARUARU;60;7ª SB/2º GB;nome do posto + OME
+19;1ªSB / SERRA TALHADA;3º GB;SERRA TALHADA;364;1ª SB/3º GB;nome do posto + OME
+75;2ªSB / AFOGADOS DA INGAZEIRA;3º GB;AFOGADOS DA INGAZEIRA;136;2ª SB/3º GB;nome do posto + OME
+76;3ªSB / SÃO JOSÉ DO EGITO;3º GB;SÃO JOSÉ DO EGITO;139;3ª SB/3º GB;nome do posto + OME
+20;4ªSB / PETROLÂNDIA;3º GB;PETROLÂNDIA;148;4ª SB/3º GB;nome do posto + OME
+181;OPERAÇÃO EXPOSSERRA;3º GB;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+180;OPERAÇÃO FESTA D SETEMBRO - SERRA TALHADA;3º GB;RECIFE;1;;operacao/evento -- sem equivalente no QOD
+64;1ªSB / PETROLINA;4º GB;PETROLINA;324;1ª SB/4º GB;nome do posto + OME
+63;2ªSB / SANTA MARIA DA BOA VISTA;4º GB;PETROLINA;62;2ª SB/4º GB;nome do posto + OME
+62;4ªSB / AERÓDROMO;4º GB;PETROLINA;0;;sem equivalente no QOD -- a decidir
+21;SEDE;4º GB;PETROLINA;1;;sem equivalente no QOD -- a decidir
+22;1ªSB / SALGUEIRO;5º GB;SALGUEIRO;293;1ª SB/5º GB;nome do posto + OME
+77;2ªSB / SÃO JOSÉ DO BELMONTE;5º GB;SÃO JOSÉ DO BELMONTE;94;2ª SB/5º GB;nome do posto + OME
+68;3ªSB / ARARIPINA;5º GB;ARARIPINA;141;3ª SB/5º GB;nome do posto + OME
+69;4ªSB / OURICURI;5º GB;OURICURI;87;4ª SB/5º GB;nome do posto + OME
+182;OPERAÇÃO MISSA DO VAQUEIRO;5º GB;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+11;SB JARDIM ATLÂNTICO;5º GB;OLINDA;0;;sem equivalente no QOD -- a decidir
+27;TESTE;5º GB;RECIFE;0;;sem equivalente no QOD -- a decidir
+72;2ªSB / BOM CONSELHO;6º GB;BOM CONSELHO;152;2ª SB/6º GB;nome do posto + OME
+178;OPERAÇÃO NATAL LUZ GARANHUNS;6º GB;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+179;OPERAÇÃO VIVA DOMINGUINHOS;6º GB;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+24;SEDE / GARANHUNS;6º GB;GARANHUNS;119;1ª SB/6º GB;SEDE / GARANHUNS e a 1a SB do 6o GB (usuario)
+73;1ªSB / CARPINA;7º GB;CARPINA;262;1ª SB/7º GB;nome do posto + OME
+16;2ªSB / GOIANA;7º GB;GOIANA;120;2ª SB/7º GB;nome do posto + OME
+74;3ªSB / MACAPARANA;7º GB;MACAPARANA;60;3ª SB/7º GB;nome do posto + OME
+126;4ªSB / SURUBIM;7º GB;SURUBIM;114;4ª SB/7º GB;nome do posto + OME
+78;8°GB / 1ªSB - SURUBIM;8º GB;SURUBIM;0;;sem equivalente no QOD -- a decidir
+18;8°GB / 2ªSB - SANTA CRUZ DO CAPIBARIBE;8º GB;SANTA CRUZ DO CAPIBARIBE;0;;sem equivalente no QOD -- a decidir
+79;8° GB/3ª SB - TORITAMA;8º GB;TORITAMA;0;;sem equivalente no QOD -- a decidir
+87;1ªSB / SEDE;9º GB;ARCOVERDE;244;1ª SB/9º GB;nome do posto + OME
+66;2ªSB / PESQUEIRA;9º GB;PESQUEIRA;151;2ª SB/9º GB;nome do posto + OME
+133;3ªSB / CUSTÓDIA;9º GB;CUSTÓDIA;130;3ª SB/9º GB;nome do posto + OME
+145;ABMG;ABMG;RECIFE;84;;sem equivalente no QOD -- a decidir
+54;GUARDA/AJG;AJG;RECIFE;0;;sem equivalente no QOD -- a decidir
+95;CAT/AGRESTE 1;CAT / AGRESTE;CARUARU;84;;sem equivalente no QOD -- a decidir
+94;CAT/AGRESTE 2;CAT / AGRESTE 2;GARANHUNS;0;;sem equivalente no QOD -- a decidir
+98;CAT/AGRESTE 3;CAT / AGRESTE 3;SURUBIM;0;;sem equivalente no QOD -- a decidir
+136;CAT / RMR - 1ª SATEC;CAT / RMR;RECIFE;64;;sem equivalente no QOD -- a decidir
+137;CAT / RMR - 2ª SATEC;CAT / RMR;RECIFE;90;;sem equivalente no QOD -- a decidir
+138;CAT / RMR - 3ª SATEC;CAT / RMR;RECIFE;24;;sem equivalente no QOD -- a decidir
+139;CAT / RMR - 4ª SATEC;CAT / RMR;RECIFE;93;;sem equivalente no QOD -- a decidir
+90;QCG;CAT / RMR;RECIFE;0;;sem equivalente no QOD -- a decidir
+97;CAT/SERTÃO;CAT / SERTÃO;PETROLINA;135;;sem equivalente no QOD -- a decidir
+96;CAT/SERTÃO - 1ª SATEC;CAT / SERTÃO;SERRA TALHADA;0;;sem equivalente no QOD -- a decidir
+91;5°GB - 1ªSB / SALGUEIRO;CAT / SERTÃO 3;SALGUEIRO;0;;sem equivalente no QOD -- a decidir
+107;CAT/SERTÃO 5;CAT / SERTÃO 5;PETROLÂNDIA;0;;sem equivalente no QOD -- a decidir
+108;CAT/SERTÃO 6;CAT / SERTÃO 6;OURICURI;0;;sem equivalente no QOD -- a decidir
+92;1ª SATEC / GOIANA/ CAT ZM;CAT / ZM;CARPINA;32;;sem equivalente no QOD -- a decidir
+104;2ª SATEC / CARPINA / CAT ZM;CAT / ZM;CARPINA;68;;sem equivalente no QOD -- a decidir
+125;4ª SATEC / SURUBIM/ CAT ZM;CAT / ZM;CARPINA;44;;sem equivalente no QOD -- a decidir
+118;ALIANÇA / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
+124;BUENOS AIRES / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
+112;CAMUTANGA / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
+93;CAT/ZM;CAT / ZM;VITÓRIA DE SANTO ANTÃO;67;;sem equivalente no QOD -- a decidir
+110;CONDADO / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
+111;FERREIROS / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
+109;ITAMBÉ / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
+113;ITAQUATINGA / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
+119;LAGOA DE ITAENGA / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
+120;LAGOA DO CARRO / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
+115;MACAPARANA / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
+123;NAZARÉ DA MATA / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
+121;PAUDALHO / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
+116;SÃO VICENTE FÉRRER / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
+114;TIMBAÚBA / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
+122;TRACUNHAÉM / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
+117;VICÊNCIA / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
+88;CMAN;CMAN;RECIFE;131;;sem equivalente no QOD -- a decidir
+1;1º GB;DGO;VITÓRIA DE SANTO ANTÃO;0;;sem equivalente no QOD -- a decidir
+106;CIODS;DGO;RECIFE;210;;sem equivalente no QOD -- a decidir
+161;OPERAÇÃO CARNAVAL;DGO;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+165;OPERAÇÃO DIA DA INDEPENDENCIA;DGO;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+176;OPERAÇÃO ENCANTOS DO NATAL RECIFE;DGO;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+173;OPERAÇÃO EXPOSIÇÃO DE ANIMAIS;DGO;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+171;OPERAÇÃO FENEART;DGO;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+184;OPERAÇÃO FESTA DA PITOMBA;DGO;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+172;OPERAÇÃO FESTIVAL DA SERESTA;DGO;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+183;OPERAÇÃO FIG;DGO;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+167;OPERAÇÃO GUARDIÕES DO BIOMA;DGO;RECIFE;182;;operacao/evento -- sem equivalente no QOD
+175;OPERAÇÃO NOSSA SENHORA DA CONCEIÇÃO;DGO;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+177;OPERAÇÃO NOSSA SENHORA DO CARMO;DGO;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+170;OPERAÇÃO PAPAI NOEL;DGO;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+168;OPERAÇÃO PARADAS DA DIVERSIDADE;DGO;RECIFE;7;;operacao/evento -- sem equivalente no QOD
+164;OPERAÇÃO PERNAMBUCO MEU PAÍS;DGO;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+159;OPERAÇÃO PERNAMBUCO SEGURO;DGO;RECIFE;74;;operacao/evento -- sem equivalente no QOD
+160;OPERAÇÃO PRÉVIAS CARNAVALESCAS;DGO;RECIFE;3;;operacao/evento -- sem equivalente no QOD
+169;OPERAÇÃO RÉVEILLON;DGO;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+163;OPERAÇÃO SÃO JOÃO;DGO;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+162;OPERAÇÃO SEMANA SANTA;DGO;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+166;OPERAÇÃO VERÃO;DGO;RECIFE;1;;operacao/evento -- sem equivalente no QOD
+174;OPERAÇÃO VITÓRIA RÉGIA;DGO;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+89;QCG;DGO;RECIFE;209;;sem equivalente no QOD -- a decidir
+15;SB PALMARES;DGO;PALMARES;0;;sem equivalente no QOD -- a decidir
+188;CIAT;DIESP;RECIFE;6;;sem equivalente no QOD -- a decidir
+187;DAP;DIESP;RECIFE;28;;sem equivalente no QOD -- a decidir
+186;DPCIP;DIESP;RECIFE;62;;sem equivalente no QOD -- a decidir
+153;EQUIPE DE OPERAÇÃO - CARNAVAL 2025;DIESP;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+155;EQUIPE DE OPERAÇÃO - CARNAVAL 2025;DIESP;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+154;EQUIPE DE OPERAÇÃO - CARNAVAL 2025;DIESP;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+152;EQUIPE DE OPERAÇÃO - CARNAVAL 2025;DIESP;RECIFE;0;;operacao/evento -- sem equivalente no QOD
+140;QCG;DIM;RECIFE;0;;sem equivalente no QOD -- a decidir
+105;DINTER 1;DINTER/1;CARUARU;0;;sem equivalente no QOD -- a decidir
+147;3° GB;DINTER/2;SERRA TALHADA;43;1ª SB/3º GB;DINTER 2 lanca na SEDE do GB indicado (usuario)
+148;4° GB;DINTER/2;PETROLINA;54;1ª SB/4º GB;DINTER 2 lanca na SEDE do GB indicado (usuario)
+149;5° GB;DINTER/2;SALGUEIRO;31;1ª SB/5º GB;DINTER 2 lanca na SEDE do GB indicado (usuario)
+150;9° GB;DINTER/2;ARCOVERDE;35;1ª SB/9º GB;DINTER 2 lanca na SEDE do GB indicado (usuario)
+12;CEMET II;DINTER/2;JABOATÃO DOS GUARARAPES;0;;sem equivalente no QOD -- a decidir
+185;QCG;DTIC;RECIFE;0;;sem equivalente no QOD -- a decidir
+6;2ªSBAPH / IGARASSU;GBAPH;IGARASSU;121;2ª SBAPH/GBAPH;nome do posto + OME
+7;3ªSBAPH / SÃO LOURENÇO;GBAPH;SÃO LOURENÇO DA MATA;120;3ª SBAPH/GBAPH;nome do posto + OME
+146;ABMG;GBAPH;RECIFE;0;;sem equivalente no QOD -- a decidir
+33;CABO / SEDE DA GUARDA MUNICIPAL;GBAPH;CABO DE SANTO AGOSTINHO;0;;sem equivalente no QOD -- a decidir
+32;CEASA / Recife;GBAPH;RECIFE;99;;sem equivalente no QOD -- a decidir
+13;GBAPH (SEDE);GBAPH;OLINDA;282;;sem equivalente no QOD -- a decidir
+80;GBI (SEDE);GBAPH;JABOATÃO DOS GUARARAPES;75;;sem equivalente no QOD -- a decidir
+158;GBMAR (SEDE);GBAPH;JABOATÃO DOS GUARARAPES;1;;sem equivalente no QOD -- a decidir
+81;GBS (SEDE);GBAPH;ABREU E LIMA;5;;sem equivalente no QOD -- a decidir
+132;QCG;GBAPH;RECIFE;1;;sem equivalente no QOD -- a decidir
+84;POSTO 01 - NORONHA - PORTO;GBFN;FERNANDO DE NORONHA;0;;sem equivalente no QOD -- a decidir
+85;POSTO 02 - NORONHA - CONCEIÇÃO;GBFN;FERNANDO DE NORONHA;0;;sem equivalente no QOD -- a decidir
+143;POSTO 03 - NORONHA - PRAIA DO CACHORRO;GBFN;FERNANDO DE NORONHA;0;;sem equivalente no QOD -- a decidir
+3;SBAFN / AERÓDROMO;GBFN;FERNANDO DE NORONHA;0;;sem equivalente no QOD -- a decidir
+30;1ªSBI / ABMG;GBI;JABOATÃO DOS GUARARAPES;0;1ª SBI/GBI;nome do posto + OME
+100;1ªSBI / CEASA;GBI;RECIFE;94;1ª SBI/GBI;nome do posto + OME
+8;1ªSBI / GBI (SEDE);GBI;JABOATÃO DOS GUARARAPES;180;1ª SBI/GBI;nome do posto + OME
+99;1ªSBI / SÃO LOURENÇO;GBI;SÃO LOURENÇO DA MATA;0;1ª SBI/GBI;nome do posto + OME
+101;2ªSBI / CMAN;GBI;RECIFE;0;2ª SBI/GBI;nome do posto + OME
+102;2ªSBI / GBS (SEDE);GBI;ABREU E LIMA;30;2ª SBI/GBI;nome do posto + OME
+134;2ªSBI / IGARASSU;GBI;IGARASSU;0;2ª SBI/GBI;nome do posto + OME
+4;2ªSBI / QCG;GBI;RECIFE;92;2ª SBI/GBI;nome do posto + OME
+9;3ªSBI / SUAPE;GBI;IPOJUCA;120;3ª SBI/GBI;nome do posto + OME
+14;4ªSBI / AEROPORTO;GBI;RECIFE;108;4ª SBI/GBI;nome do posto + OME
+129;SBFN - FERNANDO DE NORONHA (AERÓDROMO);GBI;FERNANDO DE NORONHA;245;SBFN/GBI;SBFN e secao do GBI (decisao do usuario)
+131;SBFN - FERNANDO DE NORONHA (CONCEIÇÃO);GBI;FERNANDO DE NORONHA;60;SBFN/GBI;SBFN e secao do GBI (decisao do usuario)
+130;SBFN - FERNANDO DE NORONHA (PORTO);GBI;FERNANDO DE NORONHA;59;SBFN/GBI;SBFN e secao do GBI (decisao do usuario)
+144;SBFN - FERNANDO DE NORONHA (PRAIA DO CACHORRO);GBI;FERNANDO DE NORONHA;58;SBFN/GBI;SBFN e secao do GBI (decisao do usuario)
+23;SB OURICURI;GBI;OURICURI;0;;sem equivalente no QOD -- a decidir
+5;CMAN / RECIFE;GBMAR;RECIFE;0;;sem equivalente no QOD -- a decidir
+157;EXTRA - GOIANA - PONTA DE PEDRA;GBMAR;JABOATÃO DOS GUARARAPES;0;;sem equivalente no QOD -- a decidir
+10;GBMAR (SEDE);GBMAR;JABOATÃO DOS GUARARAPES;233;;posto de praia do GBMar -- usuario informa depois
+53;GBMAR/SEDE-PJES;GBMAR;JABOATÃO DOS GUARARAPES;0;;posto de praia do GBMar -- usuario informa depois
+49;POSTO 01 - FORTE ORANGE - ITAMARACÁ;GBMAR;ILHA DE ITAMARACÁ;0;;posto de praia do GBMar -- usuario informa depois
+60;POSTO 01 - JABOATÃO - HOTEL BARRAMARES;GBMAR;JABOATÃO DOS GUARARAPES;0;;posto de praia do GBMar -- usuario informa depois
+50;POSTO 01 - OLINDA - PRAIA DO QUARTEL;GBMAR;OLINDA;71;;posto de praia do GBMar -- usuario informa depois
+29;POSTO 01 - RECIFE - BURACO DA VELHA;GBMAR;RECIFE;31;;posto de praia do GBMar -- usuario informa depois
+43;POSTO 02 - JABOATÃO - GBMAR/SEDE;GBMAR;JABOATÃO DOS GUARARAPES;34;;posto de praia do GBMar -- usuario informa depois
+48;POSTO 02 - JAGUARIBE - ITAMARACÁ;GBMAR;ILHA DE ITAMARACÁ;0;;posto de praia do GBMar -- usuario informa depois
+51;POSTO 02 - OLINDA - COLÉGIO DOM;GBMAR;OLINDA;0;;posto de praia do GBMar -- usuario informa depois
+34;POSTO 02 - RECIFE - PINA;GBMAR;RECIFE;49;;posto de praia do GBMar -- usuario informa depois
+61;POSTO 03 - JABOATÃO - HONDA PIEDADE;GBMAR;JABOATÃO DOS GUARARAPES;0;;posto de praia do GBMar -- usuario informa depois
+52;POSTO 03 - OLINDA - SAMSARA;GBMAR;OLINDA;30;;posto de praia do GBMar -- usuario informa depois
+35;POSTO 03 - RECIFE - 3º JARDIM;GBMAR;RECIFE;28;;posto de praia do GBMar -- usuario informa depois
+40;POSTO 04 - JABOATÃO - IGREJINHA;GBMAR;JABOATÃO DOS GUARARAPES;30;;posto de praia do GBMar -- usuario informa depois
+36;POSTO 04 - RECIFE - 2º JARDIM;GBMAR;RECIFE;9;;posto de praia do GBMar -- usuario informa depois
+39;POSTO 05 – JABOATÃO – HOTEL DAN INN.;GBMAR;JABOATÃO DOS GUARARAPES;6;;posto de praia do GBMar -- usuario informa depois
+37;POSTO 05 – RECIFE – EDF. CATAMARÃ 2334;GBMAR;RECIFE;31;;posto de praia do GBMar -- usuario informa depois
+38;POSTO 06 - JABOATÃO - BARRA DE JANGADA;GBMAR;JABOATÃO DOS GUARARAPES;39;;posto de praia do GBMar -- usuario informa depois
+41;POSTO 06 - RECIFE - EDF. ACAIACA;GBMAR;RECIFE;60;;posto de praia do GBMar -- usuario informa depois
+42;POSTO 07 – RECIFE – EDF. AMBRÓSIO 3650;GBMAR;RECIFE;20;;posto de praia do GBMar -- usuario informa depois
+44;POSTO 08 - RECIFE - CASA DO BRIGADEIRO;GBMAR;RECIFE;31;;posto de praia do GBMar -- usuario informa depois
+45;POSTO 09 - RECIFE - CASTELINHO;GBMAR;RECIFE;4;;posto de praia do GBMar -- usuario informa depois
+46;POSTO 10 - RECIFE - PRAÇA DE BOA VIAGEM;GBMAR;RECIFE;32;;posto de praia do GBMar -- usuario informa depois
+57;POSTO 11 - RECIFE - HOTEL ATLANTE PLAZA;GBMAR;RECIFE;1;;posto de praia do GBMar -- usuario informa depois
+55;POSTO 12 - RECIFE - PARQUE DONA LINDU;GBMAR;RECIFE;1;;posto de praia do GBMar -- usuario informa depois
+47;POSTO 13 - RECIFE - ARMINDO MOURA;GBMAR;RECIFE;1;;posto de praia do GBMar -- usuario informa depois
+59;POSTO EXTRA - JABOATÃO - BAR DA GALINHA;GBMAR;JABOATÃO DOS GUARARAPES;0;;posto de praia do GBMar -- usuario informa depois
+58;POSTO EXTRA - JABOATÃO - MERCADO DO PEIXE;GBMAR;JABOATÃO DOS GUARARAPES;3;;posto de praia do GBMar -- usuario informa depois
+56;POSTO EXTRA - OLINDA - CARMO;GBMAR;OLINDA;0;;posto de praia do GBMar -- usuario informa depois
+135;POSTO EXTRA - OLINDA - ZÉ PEQUENO;GBMAR;OLINDA;3;;posto de praia do GBMar -- usuario informa depois
+103;CMAN;GBS;RECIFE;0;;sem equivalente no QOD -- a decidir
+83;GBAPH (SEDE);GBS;OLINDA;0;;sem equivalente no QOD -- a decidir
+82;GBI (SEDE);GBS;JABOATÃO DOS GUARARAPES;73;;sem equivalente no QOD -- a decidir
+141;GBMAR (SEDE);GBS;JABOATÃO DOS GUARARAPES;3;;sem equivalente no QOD -- a decidir
+2;GBS (SEDE);GBS;ABREU E LIMA;339;;sem equivalente no QOD -- a decidir
+142;QCG;GBS;RECIFE;0;;sem equivalente no QOD -- a decidir

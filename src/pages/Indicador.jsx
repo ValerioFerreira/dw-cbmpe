@@ -20,7 +20,7 @@ const QTD_MODULOS_PLACEHOLDER = 4;
 // cards "em construção".
 //
 // Atividades Específicas é um caso misto, de propósito: o NÚMERO do indicador
-// continua sendo mock (a fonte real, o SGAT, ainda não foi levantada), mas
+// não existe (a fonte real, o SGAT, ainda não foi levantada; o mock foi removido em 2026-10-01), mas
 // Mapa de Força/Vacinação/Ocorrências já são dado real do DW. Por isso o card
 // de valor segue dizendo "Em construção" enquanto os módulos abaixo
 // funcionam. Diferente dos outros indicadores, ela não lista `modulos` aqui

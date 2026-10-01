@@ -45,3 +45,10 @@ CBMPE - Repositório de Insígnias*/
 
 # worktrees temporarios de agentes do Claude Code
 .claude/worktrees/
+
+# Relatorios gerados (docs/relatorios): trazem nome e matricula de militares e
+# lancamentos financeiros -- ficam so na maquina de quem gera. O gerador
+# (gerar_relatorios.py) vai para o repositorio.
+docs/relatorios/*.docx
+docs/relatorios/*.xlsx
+docs/relatorios/*.json

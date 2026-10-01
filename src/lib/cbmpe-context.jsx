@@ -14,12 +14,18 @@ export function CbmpeProvider({ children }) {
   const [alertas, setAlertas] = useState([]);
   const [atribuicoes, setAtribuicoes] = useState({});
   const [loading, setLoading] = useState(true);
+  // LOB (Lei de Organização Básica) em exibição: "atual" ou "nova". Só
+  // Administrador, Comandante e Subcomandante Geral podem trocar (ver
+  // LobGuard.jsx, que volta a "atual" para os demais). Guardada no navegador.
+  const [lob, setLobEstado] = useState(() => {
+    try { return localStorage.getItem("cbmpe_lob") === "nova" ? "nova" : "atual"; } catch { return "atual"; }
+  });
   const [recentes, setRecentes] = useState(() => {
     try { return JSON.parse(localStorage.getItem("cbmpe_recentes") || "[]"); }
     catch { return []; }
   });
 
-  async function carregar() {
+  async function carregar(lobAlvo = lob) {
     setLoading(true);
     // Sempre busca a árvore de novo — importante pra recarregar() (chamada
     // depois de criar/editar/mover/excluir uma OME em /adm) não devolver o
@@ -28,7 +34,7 @@ export function CbmpeProvider({ children }) {
     invalidarCacheAtribuicoes();
     try {
       const [u, i, d, a, atr] = await Promise.all([
-        fetchUnidades(), fetchIndicadores(), fetchDashboards(), fetchAlertas(), fetchAtribuicoes()
+        fetchUnidades(lobAlvo), fetchIndicadores(lobAlvo), fetchDashboards(lobAlvo), fetchAlertas(lobAlvo), fetchAtribuicoes()
       ]);
       setUnidades(u);
       setIndicadores(i);
@@ -44,6 +50,14 @@ export function CbmpeProvider({ children }) {
 
   useEffect(() => { carregar(); }, []);
 
+  function setLob(novo) {
+    const alvo = novo === "nova" ? "nova" : "atual";
+    if (alvo === lob) return;
+    try { localStorage.setItem("cbmpe_lob", alvo); } catch { /* sem armazenamento: vale só nesta sessão */ }
+    setLobEstado(alvo);
+    carregar(alvo);
+  }
+
   const { raizes, porId } = buildArvore(unidades);
 
   function registrarRecente(id) {
@@ -57,7 +71,7 @@ export function CbmpeProvider({ children }) {
   return (
     <CbmpeContext.Provider value={{
       unidades, indicadores, dashboards, alertas, atribuicoes,
-      raizes, porId, loading, recarregar: carregar,
+      raizes, porId, loading, recarregar: () => carregar(), lob, setLob,
       recentes, registrarRecente
     }}>
       {children}
