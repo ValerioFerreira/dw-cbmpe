@@ -54,10 +54,20 @@
 > Comando; nome de quem aplicou vacina vira "Nome S."). `src/lib/dadosClient.js` usa o snapshot
 > **só quando não há backend** (sem `VITE_AUTH_API_URL`, sem token — login local AGGD — ou
 > backend fora do ar/5xx); 401/403 não cai no snapshot, e no build interno (`VITE_APP_INTERNO=1`)
-> ele nunca é usado. Uma faixa avisa a data do snapshot. `etl/snapshot/publicar_snapshot.py` gera,
+> ele nunca é usado. (A faixa que avisava a data do snapshot foi removida a pedido, 2026-10-06; a data segue em `snapshot_gerado_em` de cada arquivo.) `etl/snapshot/publicar_snapshot.py` gera,
 > copia o commit atual (HEAD) + snapshot para uma branch descartável **`vercel`** e faz push
 > forçado (a `main` nunca recebe os arquivos — `public/snapshot/` está no `.gitignore` — e o
 > histórico não cresce 30 MB por dia). **A Vercel precisa ter `vercel` como Production Branch.**
+>
+> **Finanças, filtros e gráficos (2026-10-06, mesma noite)**: a página inicial de Finanças
+> (`Indicador.jsx` → `ResumoFinancas.jsx`) mostra três somatórios — Aguardando / Empenhado /
+> Liquidado, soma do `valor` dos lançamentos pela `situacao` — e o link "Exportar tabela completa"
+> (Excel com todos os lançamentos do escopo); a tabela saiu da aba Despesas Gerais, cuja "Evolução
+> mensal" virou gráfico de linhas. Filtros novos: Ocorrências (todas as abas: OME, cidade, período
+> De/Até; Perfil de Vítimas: OME, gênero, faixa etária), Vacinação/Execução (OME, campanha, vacina,
+> período), Finanças (Despesas Gerais: tipo de gasto; SFI: natureza; Diárias: operação), Efetivo
+> (Movimentação e Carreira / Tempo na OME: classe e sexo). `Submodulo`/`Detalhamento` seguem com
+> dado de demonstração e sem filtros.
 > Os três JSON com dado pessoal que ainda iam no pacote (`efetivo_lista`, `vacinacao_dashboard`,
 > `ocorrencias_dashboard`) foram removidos e o plugin de esvaziamento do `vite.config.js` saiu.
 > **Efeitos conhecidos no app publicado:** "Situações Funcionais" (licenças) e a regra de
