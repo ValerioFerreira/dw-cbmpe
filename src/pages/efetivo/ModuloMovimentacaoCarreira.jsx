@@ -5,17 +5,13 @@ import { linkEfetivoTabela } from "@/lib/efetivoDashboard";
 import SectionCard from "@/components/ui/section-card";
 import PanelGrafico from "@/components/charts/PanelGrafico";
 import MultiSelectFiltro from "@/components/ui/multi-select-filtro";
-import saidaPrevisao from "@/data/real/efetivo_dashboard/saida_previsao.json";
 
-// Painel 07 do handoff — 4 de 6 quadrantes prontos (carreira_extra.json,
-// população sem PII derivada de Militar.json) + 2 desbloqueados em
-// 2026-08-19 com o SQL original do Metabase, executado contra o Postgres do
-// data warehouse (ver etl/efetivo/extract_saida_previsao.py — fonte
-// diferente: inativos_metabase / peculio_metabase_v1, população de
-// inativos/projeção, não o efetivo ativo). Por isso "Saída de militares" e
-// "Previsão de saída" não respondem aos filtros desta página (grão
-// agregado, sem posto/OME) nem são clicáveis (população não bate 1:1 com a
-// tabela de Efetivo ativo).
+// Painel 07 do handoff. Os quatro primeiros quadrantes vêm da relação nominal
+// do DW (src/lib/efetivoMilitares.js). "Saída de militares" (inativações por ano,
+// planilha Inativos) e "Previsão de saída" (SQL do Igor no Metabase) vêm de
+// marts.painel_saida_* (etl/dw/ddl/19_painel_efetivo.sql, GET /dados/painel/
+// efetivo): grão agregado da corporação, por isso não respondem aos filtros
+// desta página nem são clicáveis (população não bate 1:1 com o efetivo ativo).
 const TEMPO_SERVICO_BUCKETS = [
   { label: "0-5", min: 0, max: 5 },
   { label: "6-10", min: 6, max: 10 },
@@ -38,7 +34,7 @@ function paramsAtuais({ postos, omes }) {
   return p;
 }
 
-export default function ModuloMovimentacaoCarreira({ indId, carreira, escopoTotal }) {
+export default function ModuloMovimentacaoCarreira({ indId, carreira, saidas, escopoTotal }) {
   const navigate = useNavigate();
   const [postos, setPostos] = useState(new Set());
   const [omes, setOmes] = useState(new Set());
@@ -62,6 +58,8 @@ export default function ModuloMovimentacaoCarreira({ indId, carreira, escopoTota
     return [...m.entries()].sort((a, b) => a[0] - b[0]).map(([label, valor]) => ({ label, valor }));
   }, [filtrados]);
 
+  const semMovimentacao = useMemo(() => filtrados.filter((r) => !r.anoMovimentacao).length, [filtrados]);
+
   const promocaoData = useMemo(() => {
     const m = new Map();
     filtrados.forEach((r) => { if (r.anoPromocao) m.set(r.anoPromocao, (m.get(r.anoPromocao) || 0) + 1); });
@@ -77,6 +75,7 @@ export default function ModuloMovimentacaoCarreira({ indId, carreira, escopoTota
   const tempoServicoData = useMemo(() => {
     const buckets = new Map(TEMPO_SERVICO_BUCKETS.map((b) => [b.label, 0]));
     filtrados.forEach((r) => {
+      if (r.tempoServicoAnos == null) return;
       const k = bucketTempoServico(r.tempoServicoAnos);
       buckets.set(k, (buckets.get(k) || 0) + 1);
     });
@@ -84,13 +83,13 @@ export default function ModuloMovimentacaoCarreira({ indId, carreira, escopoTota
   }, [filtrados]);
 
   const saidaData = useMemo(
-    () => Object.entries(saidaPrevisao.saida_por_ano).sort((a, b) => Number(a[0]) - Number(b[0])).map(([label, valor]) => ({ label, valor })),
-    []
+    () => Object.entries(saidas.saida_por_ano).sort((a, b) => Number(a[0]) - Number(b[0])).map(([label, valor]) => ({ label, valor })),
+    [saidas]
   );
 
   const previsaoData = useMemo(() => {
     const m = new Map();
-    saidaPrevisao.previsao_saida.forEach((r) => {
+    saidas.previsao_saida.forEach((r) => {
       if (!m.has(r.ano)) m.set(r.ano, { Oficiais: 0, Praças: 0 });
       const o = m.get(r.ano);
       if (r.categoria === "oficial") o.Oficiais = r.total; else if (r.categoria === "praca") o.Praças = r.total;
@@ -114,7 +113,7 @@ export default function ModuloMovimentacaoCarreira({ indId, carreira, escopoTota
         <span className="text-[11px] text-muted-foreground">Fonte sem campo de sexo — filtro "Sexo" não se aplica a este painel.</span>
       </div>
 
-      <SectionCard titulo="Movimentações por ano" subtitulo="29 registros sem data de movimentação ficam fora da série.">
+      <SectionCard titulo="Movimentações por ano" subtitulo={semMovimentacao ? `${fmtNumero(semMovimentacao)} registros sem data de movimentação ficam fora da série.` : undefined}>
         <PanelGrafico
           tipo="line" data={movimentacaoData} xKey="label" yKeys={["valor"]} altura={260}
           aoClicarBarra={(d) => irParaTabela({ dataMovimentacaoSp: { min: d.label, max: d.label } })}
@@ -123,7 +122,7 @@ export default function ModuloMovimentacaoCarreira({ indId, carreira, escopoTota
 
       <SectionCard
         titulo="Promoções por ano"
-        subtitulo="Militar.json é um snapshot vivo: anos recentes tendem a subir com o tempo, à medida que novas promoções acontecem — não é um erro de cálculo."
+        subtitulo="O efetivo é lido vivo do DW: anos recentes tendem a subir com o tempo, à medida que novas promoções acontecem — não é um erro de cálculo."
       >
         <PanelGrafico
           tipo="bar" data={promocaoData} xKey="label" yKeys={["valor"]} altura={260}
@@ -157,14 +156,14 @@ export default function ModuloMovimentacaoCarreira({ indId, carreira, escopoTota
         <>
           <SectionCard
             titulo="Saída de militares"
-            subtitulo='Fonte diferente (inativos_metabase, desbloqueada em 2026-08-19) — não responde aos filtros acima e não abre a tabela de Efetivo (população de inativos, não de efetivo ativo).'
+            subtitulo='Fonte diferente (planilha de Inativos, no DW) — não responde aos filtros acima e não abre a tabela de Efetivo (população de inativos, não de efetivo ativo).'
           >
             <PanelGrafico tipo="bar" data={saidaData} xKey="label" yKeys={["valor"]} altura={240} />
           </SectionCard>
 
           <SectionCard
             titulo="Previsão de saída"
-            subtitulo="Projeção por reserva (tempo de serviço ou idade-limite, o que vier primeiro) contra peculio_metabase_v1 — mesma ressalva de fonte do card acima."
+            subtitulo="Projeção por reserva (tempo de serviço ou idade-limite, o que vier primeiro) sobre o efetivo ativo da corporação (SQL do Igor) — mesma ressalva de fonte do card acima."
           >
             <PanelGrafico tipo="bar" data={previsaoData} xKey="label" yKeys={["Oficiais", "Praças"]} altura={260} legenda />
           </SectionCard>

@@ -20,7 +20,7 @@ function paramsAtuais({ postos, omes, sexos }) {
   return p;
 }
 
-export default function ModuloEfetivoGeral({ indId, militares, previsto, filtros, escopoTotal }) {
+export default function ModuloEfetivoGeral({ indId, militares, previsto, filtros }) {
   const navigate = useNavigate();
   const { classes, setClasses, postos, setPostos, omes, setOmes, sexos, setSexos, filtrados, filtroAtivo, limparTudo } = useFiltrosEfetivo(militares);
   const [topNQcg, setTopNQcg] = useState(null);
@@ -35,11 +35,11 @@ export default function ModuloEfetivoGeral({ indId, militares, previsto, filtros
   const byPosto = useMemo(() => groupCount(filtrados, (r) => r.posto), [filtrados]);
 
   const faixaData = FAIXA_ORDER.map((f) => ({ label: f, valor: byFaixa.get(f) || 0 }));
-  // Previsto/Déficit só fazem sentido pro total da corporação — o quadro
-  // fixado (QOD) não é quebrado por unidade — então ficam ocultos tanto com
-  // filtro de OME ativo quanto ao visualizar o dashboard de uma unidade
-  // específica (não Comando Geral).
-  const omeFilterActive = omes.size > 0 || !escopoTotal;
+  // Previsto/Déficit vêm dos quadros do QOD por unidade (somados sobre o escopo
+  // da unidade vista), então valem em qualquer unidade. Ficam ocultos com filtro
+  // de OME ativo (a OME do Pecúlio e a unidade do quadro nem sempre coincidem) e
+  // quando o DW não entregou o previsto.
+  const omeFilterActive = omes.size > 0 || previsto.every(([, n]) => n === 0);
   const base = paramsAtuais({ postos, omes, sexos });
 
   function irParaTabela(paramsExtra) {
@@ -103,7 +103,7 @@ export default function ModuloEfetivoGeral({ indId, militares, previsto, filtros
       <SectionCard
         titulo="Distribuição por Posto/Graduação"
         subtitulo={omeFilterActive
-          ? "Previsto/Déficit ficam ocultos com filtro de OME ativo — o quadro fixado (QOD) ainda não está quebrado por unidade, só o total da corporação."
+          ? "Previsto/Déficit ficam ocultos com filtro de OME ativo (ou sem o quadro do QOD carregado)."
           : `${previsto.length} linhas — clique numa linha para ver os militares desse posto`}
       >
         <div className="overflow-x-auto">

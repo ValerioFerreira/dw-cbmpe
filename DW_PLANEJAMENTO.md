@@ -45,6 +45,24 @@
 > de Efetivo/Viaturas e previsto/lotação por divisão ainda em JSON; DDL 16–18 estão no
 > repositório mas foram aplicados à mão (o `aplicar_ddl.py` os aplica em ordem).
 
+> **2026-10-06 (tarde) — Dashboard Pessoal de Efetivo sem JSON.** Os seis JSON do painel
+> (`militares`, `carreira_extra`, `adidos_extra`, `previsto`, `filtros`, `saida_previsao`; 1,8 MB,
+> no bundle, sem login) foram **removidos**. (1) Os registros por militar são montados no front a
+> partir da **mesma relação nominal** da tabela de Efetivo (`src/lib/efetivoMilitares.js`; DW,
+> recortada por perfil): o painel e a tabela não podem mais divergir; `agregado` passou a
+> vir na resposta de `/dados/efetivo`. O campo `ome` segue na grafia curta do Pecúlio
+> (`omeSiglaCurta`), para o mapa, os filtros e o drill-down não mudarem. (2) `ddl/19`:
+> `marts.previsto_quadro_posto` (previsto dos quadros de setembro por unidade e posto — o
+> **Previsto/Déficit passou a valer em qualquer unidade**, antes só no Comando Geral),
+> `painel_saida_ano` e `painel_saida_previsao` (SQL do Igor reproduzido), por
+> `GET /dados/painel/efetivo`. (3) O painel de Adidos agora conta o tempo na OME em dias/365
+> (reproduz o print do Igor; o JSON dava um a menos). (4) Corrigido um bug de cache: o
+> `Cache-Control: max-age` era definido ANTES da consulta, então um erro 500 ficava 5 min no
+> navegador; agora só sai depois de o dado carregar. **Observações de dado:** o Pecúlio não
+> tem nenhum "Cap QOC" (o quadro prevê 97 → déficit 100%); a previsão de saída do SQL do Igor
+> também ignora essa patente. **Ainda em JSON no front:** Viaturas (`viaturas*.json`),
+> lotação por divisão e previsto por divisão.
+
 > **2026-10-01 — o que mudou desde 29/09, em uma tela.** Detalhe nas quatro entradas
 > "2026-10-01" no fim do log de decisões. **Feito:** (1) titular da unidade e matrícula
 > vêm do **Pecúlio** (mais antigo da OME), CPP repete a CPO, DGA "Em construção";
@@ -4942,10 +4960,9 @@ Ficam para o usuário autorizar ou rodar.
    do DW, com o SQL do Metabase (top 10 por opção; origem por `ome_atual`) e filtros de
    categoria e motivo. Falta só conferir os números com o Metabase do Igor (hoje 19
    solicitações com matrícula e 389 atendidas na planilha).
-6. **Domínios que ainda saem de JSON no front:** painéis pessoais de Efetivo
-   (`efetivo_dashboard/*`) e de Viaturas, lotação por divisão, previsto por divisão. Quando o
-   dashboard de Efetivo passar a ler do DW, ligar o campo `agregado` (já existe em
-   `marts.efetivo_nominal`) à regra `ehIndisponivel()`.
+6. **Domínios que ainda saem de JSON no front:** painéis pessoais de Viaturas
+   (`viaturas*.json`), lotação por divisão e previsto por divisão. ~~Painéis pessoais de
+   Efetivo~~ **feitos em 2026-10-06** (e `agregado` já entra em `ehIndisponivel()`).
 7. **LOB Nova.** Visualização apenas; quando a nova LOB valer de verdade, a árvore vai para
    `app.organograma_unidade`. Pendências: testar o seletor com um usuário comandante e
    subcomandante reais (SGU); dar OME às unidades novas (ARI, AJ, DINTER III, GI, CEI, CFO,

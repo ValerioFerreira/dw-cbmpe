@@ -141,7 +141,7 @@ python etl/_geo/copiar_insignias.py --copiar
 ```
 
 Outros extratores, menos frequentes: `extract_previsto.py`,
-`extract_previsto_divisoes.py`, `extract_saida_previsao.py` (Efetivo); `reconciliar_viaturas.py` e
+`extract_previsto_divisoes.py` (Efetivo); `reconciliar_viaturas.py` e
 `coordenadas_postos.py` (Mapa de Força); `casar_coordenadas_ome.py` (SGP).
 
 ### Ordem quando tudo estiver vazio

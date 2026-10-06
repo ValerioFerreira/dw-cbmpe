@@ -79,7 +79,7 @@ const SQL_EFETIVO_NOMINAL = (where) => `
          to_char(data_movimentacao_sp, 'YYYY-MM-DD')    as data_movimentacao_sp,
          to_char(data_ingresso, 'YYYY-MM-DD')           as data_ingresso,
          to_char(data_ultima_promocao, 'YYYY-MM-DD')    as data_ultima_promocao,
-         pcnh, to_char(data_referencia, 'YYYY-MM-DD')   as data_referencia
+         pcnh, agregado, to_char(data_referencia, 'YYYY-MM-DD')   as data_referencia
   from marts.efetivo_nominal
   ${where}
   order by ordem nulls last, nome_guerra nulls last`;
@@ -101,6 +101,8 @@ export async function efetivoNominal(siglas) {
       idade: r.idade,
       ordem: r.ordem,
       omeExibicao: r.ome_exibicao,
+      // Marca "Ag" da coluna OBS do Pecúlio — entra na regra de indisponível.
+      agregado: !!r.agregado,
       completo: {
         racaCor: r.raca_cor,
         pcd: r.pcd,
@@ -229,6 +231,25 @@ export async function painelVacinacao() {
   return {
     eventos: eventos.rows.map((r) => ({ ...r, aplicador: capitalizarNome(r.aplicador) })),
     participacao: participacao.rows.map((r) => ({ ...r, militares: Number(r.militares) })),
+  };
+}
+
+// Dashboard Pessoal de Efetivo (etl/dw/ddl/19_painel_efetivo.sql): só agregados —
+// previsto por unidade e posto (o front soma as unidades do escopo), saída de
+// militares por ano e previsão de saída. Os registros por militar vêm da relação
+// nominal (efetivoNominal), já recortada por perfil.
+export async function painelEfetivo() {
+  const pool = getPoolDw();
+  const [prev, saida, previsao] = await Promise.all([
+    pool.query("select sigla, posto, previsto from marts.previsto_quadro_posto"),
+    pool.query("select ano, total from marts.painel_saida_ano order by ano"),
+    pool.query("select ano, categoria, total from marts.painel_saida_previsao order by ano, categoria"),
+  ]);
+  return {
+    fonte: "dw (marts.previsto_quadro_posto, painel_saida_*)",
+    previsto: prev.rows.map((r) => ({ sigla: r.sigla, posto: r.posto, previsto: Number(r.previsto) })),
+    saida_por_ano: Object.fromEntries(saida.rows.map((r) => [String(r.ano), Number(r.total)])),
+    previsao_saida: previsao.rows.map((r) => ({ ano: Number(r.ano), categoria: r.categoria, total: Number(r.total) })),
   };
 }
 

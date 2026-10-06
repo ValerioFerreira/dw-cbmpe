@@ -1,7 +1,7 @@
 import express from "express";
 import {
   metricas, efetivo, lotacao, painelDf, painelVacinacao, painelOcorrencias,
-  painelMovimentacao, mapaForcaIndice, mapaForcaDia,
+  painelEfetivo, painelMovimentacao, mapaForcaIndice, mapaForcaDia,
 } from "../controllers/dadosController.js";
 import validateToken from "../middlewares/validateToken.js";
 
@@ -23,6 +23,7 @@ router.get("/lotacao", validateToken, lotacao);
 router.get("/painel/df", validateToken, painelDf);
 router.get("/painel/vacinacao", validateToken, painelVacinacao);
 router.get("/painel/ocorrencias", validateToken, painelOcorrencias);
+router.get("/painel/efetivo", validateToken, painelEfetivo);
 router.get("/painel/movimentacao", validateToken, painelMovimentacao);
 
 // Mapa de Força: janela de 30 dias; o dia é nominal (recorte por perfil).

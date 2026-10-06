@@ -4,14 +4,11 @@ import { ChevronRight, BarChart3, ArrowLeft, ShieldAlert } from "lucide-react";
 import { useCbmpe } from "@/lib/cbmpe-context";
 import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import { getCaminho } from "@/lib/cbmpe";
-import { MODULOS_EFETIVO_DASHBOARD, siglasPermitidas, filtrarPorEscopo } from "@/lib/efetivoDashboard";
+import { MODULOS_EFETIVO_DASHBOARD, OFICIAIS_POSTOS, PRACAS_POSTOS, siglasPermitidas } from "@/lib/efetivoDashboard";
+import { registrosEfetivo, doEscopo } from "@/lib/efetivoMilitares";
+import { usePainelDw } from "@/lib/usePainelDw";
 import EmptyState from "@/components/ui/empty-state";
-import militaresTodos from "@/data/real/efetivo_dashboard/militares.json";
-import adidosExtraTodos from "@/data/real/efetivo_dashboard/adidos_extra.json";
 import municipios from "@/data/real/efetivo_dashboard/municipios_pe.json";
-import previsto from "@/data/real/efetivo_dashboard/previsto.json";
-import filtrosTodos from "@/data/real/efetivo_dashboard/filtros.json";
-import carreiraTodos from "@/data/real/efetivo_dashboard/carreira_extra.json";
 
 import ModuloEfetivoGeral from "./ModuloEfetivoGeral";
 import ModuloDistribuicaoGeografica from "./ModuloDistribuicaoGeografica";
@@ -35,6 +32,9 @@ const COMPONENTES = {
   intencao: ModuloIntencaoMovimentacao,
 };
 
+// Sem JSON embutido (removido em 2026-10-06): o painel vem só do DW, pelo backend.
+const SEM_PAINEL = { previsto: [], saida_por_ano: {}, previsao_saida: [] };
+
 export default function EfetivoDashboard() {
   const { id, modulo } = useParams();
   const { indicadores, unidades, porId } = useCbmpe();
@@ -51,10 +51,25 @@ export default function EfetivoDashboard() {
   // (ex. 4º GB) mostrava o efetivo da corporação inteira. Os hooks rodam
   // incondicionalmente (antes dos retornos abaixo) por regra do React.
   const permitidas = useMemo(() => siglasPermitidas(unidade, unidades), [unidade, unidades]);
-  const militares = useMemo(() => filtrarPorEscopo(militaresTodos, permitidas), [permitidas]);
-  const carreira = useMemo(() => filtrarPorEscopo(carreiraTodos, permitidas), [permitidas]);
-  const adidosExtra = permitidas.has("ADIDO") ? adidosExtraTodos : [];
-  const filtros = useMemo(() => ({ ...filtrosTodos, omes: [...new Set(militares.map((r) => r.ome))].sort() }), [militares]);
+  // Registros montados da relação nominal do DW (já recortada por perfil no
+  // servidor) — ver src/lib/efetivoMilitares.js. `unidades` na dependência: a
+  // lista é trocada pela do DW junto com o carregamento do organograma.
+  const todos = useMemo(() => registrosEfetivo(), [unidades]);
+  const militares = useMemo(() => doEscopo(todos.militares, permitidas), [todos, permitidas]);
+  const carreira = useMemo(() => doEscopo(todos.carreira, permitidas), [todos, permitidas]);
+  const adidosExtra = useMemo(() => doEscopo(todos.adidosExtra, permitidas), [todos, permitidas]);
+  const filtros = useMemo(
+    () => ({ postos: [...OFICIAIS_POSTOS, ...PRACAS_POSTOS], omes: [...new Set(militares.map((r) => r.ome))].sort() }),
+    [militares]
+  );
+  // Previsto por posto (quadros de setembro/2026) das unidades do escopo, e as
+  // saídas por ano: agregados do DW (GET /dados/painel/efetivo).
+  const painel = usePainelDw("efetivo", SEM_PAINEL);
+  const previsto = useMemo(() => {
+    const por = new Map();
+    painel.previsto.forEach((r) => { if (permitidas.has(r.sigla)) por.set(r.posto, (por.get(r.posto) || 0) + r.previsto); });
+    return filtros.postos.map((p) => [p, por.get(p) || 0]);
+  }, [painel, permitidas, filtros.postos]);
   const escopoTotal = unidade?.sigla === "COMANDO GERAL";
 
   if (!ind || ind.nome !== "Efetivo" || !moduloInfo) {
@@ -131,7 +146,7 @@ export default function EfetivoDashboard() {
 
       <Conteudo
         indId={ind.id} militares={militares} adidosExtra={adidosExtra} municipios={municipios}
-        previsto={previsto} filtros={filtros} carreira={carreira}
+        previsto={previsto} filtros={filtros} carreira={carreira} saidas={painel}
         permitidas={permitidas} escopoTotal={escopoTotal}
       />
     </div>

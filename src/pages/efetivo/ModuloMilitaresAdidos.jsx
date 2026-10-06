@@ -37,15 +37,10 @@ export default function ModuloMilitaresAdidos({ indId, militares, adidosExtra })
 
   const postoData = useMemo(() => paraSerie(groupCount(adidos, (r) => r.posto)), [adidos]);
 
-  // Este quadrante conta pela aproximação da planilha de Pecúlio
-  // (militares.json / tempoObmAnos): 116/36/23/11, um a menos que o print
-  // (117) porque 1 dos 187 adidos tem #NUM! na coluna "Tempo na OBM atual"
-  // da planilha. A coluna exata (tempoObmAtualDias, usada no drill-down
-  // abaixo) reproduz o print na íntegra — 117/36/23/11, 187 de 187, sem
-  // nulo — quando os anos são truncados para inteiro antes de entrar na
-  // faixa. Trocar a fonte deste gráfico muda um número de painel já
-  // validado, então fica como decisão para o Igor, registrada em
-  // dashboards/PENDENCIAS-PAINEIS-CORPORATIVOS.md, não resolvida aqui.
+  // Desde 2026-10-06 os anos vêm de tempoObmAtualDias (dias na OME atual / 365,
+  // truncado), a coluna exata — a mesma do drill-down abaixo. Com ela o painel
+  // reproduz o print do Igor na íntegra (117/36/23/11 sobre 187 adidos, quando foi
+  // validado); o JSON antigo usava os anos da planilha e dava um a menos (116).
   const tempoData = useMemo(() => {
     const buckets = new Map(TEMPO_BUCKET_ORDER.map((k) => [k, 0]));
     adidos.forEach((r) => {
@@ -58,6 +53,8 @@ export default function ModuloMilitaresAdidos({ indId, militares, adidosExtra })
     });
     return TEMPO_BUCKET_ORDER.map((label) => ({ label, valor: buckets.get(label) }));
   }, [adidos]);
+
+  const semTempo = useMemo(() => adidos.filter((r) => r.tempoObmAnos == null).length, [adidos]);
 
   const orgaoData = useMemo(() => paraSerie(groupCount(adidosExtra, (r) => r.orgao)), [adidosExtra]);
   const omeAnteriorData = useMemo(() => paraSerie(groupCount(adidosExtra, (r) => r.omeAnterior)), [adidosExtra]);
@@ -91,7 +88,7 @@ export default function ModuloMilitaresAdidos({ indId, militares, adidosExtra })
         </SectionCard>
         <SectionCard
           titulo="Tempo na Unidade atual"
-          subtitulo="Anos, em faixas. 1 dos 187 adidos fica fora do gráfico (#NUM! na planilha de Pecúlio) — a tabela que abre no clique usa a coluna exata em dias e traz os 187."
+          subtitulo={semTempo ? `Anos, em faixas. ${fmtNumero(semTempo)} adido(s) sem data de movimentação ficam fora do gráfico.` : "Anos, em faixas."}
         >
           <PanelGrafico
             tipo="bar" data={tempoData} xKey="label" yKeys={["valor"]} altura={260}

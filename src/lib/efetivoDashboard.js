@@ -6,15 +6,14 @@ export { CIDADE_POR_OME, omesDaCidade } from "@/lib/omeGeografia";
 
 // Helpers e constantes do "Dashboard Pessoal" (protótipo do colaborador,
 // pasta /dashboards na raiz do repo — spec.md / spec-02/03/04.md) portado
-// para componentes nativos do app. Os dados em src/data/real/efetivo_dashboard/
-// já vêm com as dimensões derivadas prontas (categoria, disponibilidade,
-// regiao, faixa, cidade — ver militares.json), então aqui só agregamos.
+// para componentes nativos do app. Os registros são montados em src/lib/efetivoMilitares.js a partir da relação nominal do
+// DW (categoria, região, faixa etária, cidade derivadas lá), então aqui só agregamos.
 
 // Regra de "indisponível" (decisão do usuário, 2026-10-01): adido, ou afastado
 // (LTS/LM), ou LTIP, ou LE, ou agregado. Readaptado sozinho continua
 // disponível. É a mesma regra da coluna `indisponivel` de marts.efetivo_nominal
-// (etl/dw/ddl/12_nominal.sql) — mude as duas juntas. `agregado` ainda não vem
-// no militares.json estático; entra quando o dashboard passar a ler do DW.
+// (etl/dw/ddl/12_nominal.sql) — mude as duas juntas. `agregado` vem da relação
+// nominal do DW (efetivoMilitares.js).
 export function ehIndisponivel(m) {
   return m.ome === "ADIDO" || Boolean(m.afastamento) || Boolean(m.ltip) || Boolean(m.le) || Boolean(m.agregado);
 }
@@ -77,6 +76,13 @@ const OME_SIGLA_REAL = {
 
 export function omeSiglaReal(sigla) {
   return OME_SIGLA_REAL[sigla] || sigla;
+}
+
+// Caminho inverso: sigla do organograma -> grafia curta do Pecúlio, que é a que
+// os registros do dashboard (efetivoMilitares.js) e o mapa de cidades usam.
+const OME_SIGLA_CURTA = Object.fromEntries(Object.entries(OME_SIGLA_REAL).map(([curta, real]) => [real, curta]));
+export function omeSiglaCurta(sigla) {
+  return OME_SIGLA_CURTA[sigla] || sigla;
 }
 
 // Restringe um array de registros (ome no formato curto de militares.json/
