@@ -31,6 +31,7 @@ const OPCOES_ORDENACAO = [
 export default function ModuloSfi({ sfiOrdinario, sfiExtra, unidadesDisponiveis }) {
   const [unidades, setUnidades] = useState(new Set());
   const [meses, setMeses] = useState(new Set());
+  const [naturezas, setNaturezas] = useState(new Set());
   const [ordenarPor, setOrdenarPor] = useState("total");
   const [ordemAsc, setOrdemAsc] = useState(false);
 
@@ -40,14 +41,14 @@ export default function ModuloSfi({ sfiOrdinario, sfiExtra, unidadesDisponiveis 
   );
 
   const ordinarioFiltrado = useMemo(
-    () => sfiOrdinario.filter((r) => passaMultiSelect(r.unidade, unidades) && passaMultiSelect(r.mes, meses)),
-    [sfiOrdinario, unidades, meses]
+    () => sfiOrdinario.filter((r) => passaMultiSelect(r.unidade, unidades) && passaMultiSelect(r.mes, meses) && passaMultiSelect(r.natureza, naturezas)),
+    [sfiOrdinario, unidades, meses, naturezas]
   );
   const extraFiltrado = useMemo(
     () => sfiExtra.filter((r) => passaMultiSelect(r.unidade, unidades)),
     [sfiExtra, unidades]
   );
-  const filtroAtivo = unidades.size > 0 || meses.size > 0;
+  const filtroAtivo = unidades.size > 0 || meses.size > 0 || naturezas.size > 0;
 
   const totalConsumo = useMemo(() => ordinarioFiltrado.filter((r) => r.natureza === "Consumo").reduce((s, r) => s + r.valor, 0), [ordinarioFiltrado]);
   const totalServico = useMemo(() => ordinarioFiltrado.filter((r) => r.natureza === "Serviço").reduce((s, r) => s + r.valor, 0), [ordinarioFiltrado]);
@@ -78,9 +79,10 @@ export default function ModuloSfi({ sfiOrdinario, sfiExtra, unidadesDisponiveis 
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-2">
         <MultiSelectFiltro label="Mês" valores={filtrosMeses} selecionado={meses} onChange={setMeses} buscavel={false} />
+        <MultiSelectFiltro label="Natureza" valores={["Consumo", "Serviço"]} selecionado={naturezas} onChange={setNaturezas} buscavel={false} />
         <MultiSelectFiltro label="Unidade" valores={unidadesDisponiveis} selecionado={unidades} onChange={setUnidades} />
         {filtroAtivo && (
-          <button onClick={() => { setUnidades(new Set()); setMeses(new Set()); }} className="text-[12px] font-medium text-muted-foreground hover:text-foreground">
+          <button onClick={() => { setUnidades(new Set()); setMeses(new Set()); setNaturezas(new Set()); }} className="text-[12px] font-medium text-muted-foreground hover:text-foreground">
             Limpar filtros
           </button>
         )}

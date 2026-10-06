@@ -65,3 +65,25 @@ export function pctTexto(v, base) {
 export function passaMultiSelect(valor, selecionado) {
   return !selecionado || selecionado.size === 0 || selecionado.has(valor);
 }
+
+// Período De/Até (filtro-periodo-datas.jsx). `data` = "AAAA-MM-DD..." (só os 10 primeiros
+// caracteres contam). Sem limite = passa; registro sem data só passa quando não há filtro.
+export function passaPeriodo(data, periodo) {
+  if (!periodo || (!periodo.de && !periodo.ate)) return true;
+  if (!data) return false;
+  const dia = String(data).slice(0, 10);
+  return (!periodo.de || dia >= periodo.de) && (!periodo.ate || dia <= periodo.ate);
+}
+
+// Menor e maior dia ("AAAA-MM-DD") entre os registros — limites do FiltroPeriodoDatas.
+export function limitesDeData(registros, campo = "data") {
+  let min = null;
+  let max = null;
+  registros.forEach((r) => {
+    const d = r[campo] ? String(r[campo]).slice(0, 10) : null;
+    if (!d) return;
+    if (min === null || d < min) min = d;
+    if (max === null || d > max) max = d;
+  });
+  return { min: min || undefined, max: max || undefined };
+}

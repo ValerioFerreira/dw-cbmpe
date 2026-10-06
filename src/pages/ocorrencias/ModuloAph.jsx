@@ -1,14 +1,14 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { fmtNumero } from "@/lib/cbmpe";
 import {
-  filtrarPorEscopoOcorrencias, serieCampoOcorrencias, situacaoVitimas, passaMultiSelect,
+  filtrarPorEscopoOcorrencias, serieCampoOcorrencias, situacaoVitimas,
 } from "@/lib/ocorrenciasDashboard";
-import { ordenarPorAntiguidadeOme } from "@/lib/antiguidadeOme";
 import SectionCard from "@/components/ui/section-card";
 import KpiCard from "@/components/ui/kpi-card";
 import PanelGrafico from "@/components/charts/PanelGrafico";
 import DonutChart from "@/components/charts/DonutChart";
-import MultiSelectFiltro from "@/components/ui/multi-select-filtro";
+import FiltrosOcorrencias from "./FiltrosOcorrencias";
+import { useFiltrosOcorrencias } from "@/lib/useFiltrosOcorrencias";
 import AguardandoCredencial from "./AguardandoCredencial";
 
 const NATUREZA_APH = "Atendimento Pré-Hospitalar";
@@ -30,17 +30,16 @@ const DATA_CORTE_APH = "2025-11-01";
 // (join com roe_aph_ocorrencias) — ver ressalva na docstring do extrator
 // sobre a chave de join não confirmada.
 export default function ModuloAph({ ocorrencias, aphEstatistica, permitidas, bloqueado }) {
-  const [omes, setOmes] = useState(new Set());
+  const filtros = useFiltrosOcorrencias();
 
   const doEscopo = useMemo(() => filtrarPorEscopoOcorrencias(ocorrencias, permitidas), [ocorrencias, permitidas]);
   const doEscopoAph = useMemo(() => filtrarPorEscopoOcorrencias(aphEstatistica, permitidas), [aphEstatistica, permitidas]);
-  const todasOmes = useMemo(() => ordenarPorAntiguidadeOme([...new Set(doEscopo.map((o) => o.ome).filter(Boolean))]), [doEscopo]);
 
   const filtrados = useMemo(
-    () => doEscopo.filter((o) => o.natureza === NATUREZA_APH && passaMultiSelect(o.ome, omes)),
-    [doEscopo, omes]
+    () => doEscopo.filter((o) => o.natureza === NATUREZA_APH && filtros.passa(o)),
+    [doEscopo, filtros.passa]
   );
-  const filtradosAph = useMemo(() => doEscopoAph.filter((o) => passaMultiSelect(o.ome, omes)), [doEscopoAph, omes]);
+  const filtradosAph = useMemo(() => doEscopoAph.filter(filtros.passaOme), [doEscopoAph, filtros.passaOme]);
 
   const finalizadas = useMemo(
     () => filtrados.filter((o) => o.finalizado && o.protocoloPresente && (!o.data || o.data >= DATA_CORTE_APH)),
@@ -85,14 +84,7 @@ export default function ModuloAph({ ocorrencias, aphEstatistica, permitidas, blo
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-2">
-        <MultiSelectFiltro label="OME" valores={todasOmes} selecionado={omes} onChange={setOmes} />
-        {omes.size > 0 && (
-          <button onClick={() => setOmes(new Set())} className="text-[12px] font-medium text-muted-foreground hover:text-foreground">
-            Limpar filtros
-          </button>
-        )}
-      </div>
+      <FiltrosOcorrencias filtros={filtros} base={doEscopo} />
 
       {/* sm:grid-cols-3 (não -4): só 3 cards aqui — com 4 colunas sobrava uma
           célula vazia E "Vítimas entregues com vida" cortava no título

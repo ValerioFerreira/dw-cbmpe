@@ -6,13 +6,14 @@ import {
 import { useCbmpe } from "@/lib/cbmpe-context";
 import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import {
-  CATEGORIAS, getCaminho, fmtNumero, fmtMoeda
+  CATEGORIAS, getCaminho, fmtNumero
 } from "@/lib/cbmpe";
 import EmptyState from "@/components/ui/empty-state";
 import { MODULOS_EFETIVO_DASHBOARD } from "@/lib/efetivoDashboard";
 import { MODULOS_VIATURAS_DASHBOARD } from "@/lib/viaturasDashboard";
 import { MODULOS_FINANCAS_DASHBOARD } from "@/lib/financasDashboard";
 import { familiasVisiveis } from "@/lib/atividadesEspecificas";
+import ResumoFinancas from "@/pages/financas/ResumoFinancas";
 
 const QTD_MODULOS_PLACEHOLDER = 4;
 
@@ -110,16 +111,18 @@ export default function Indicador() {
 
       {/* Hero valor */}
       <div className="flex flex-col gap-3 rounded-xl border border-primary/20 bg-card p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-        <div>
+        <div className={ind.nome === "Finanças" ? "w-full" : undefined}>
           <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            {ind.nome === "Efetivo" ? "Efetivo Atual / Previsto" : ind.nome}
+            {ind.nome === "Efetivo" ? "Efetivo Atual / Previsto" : ind.nome === "Finanças" ? "Finanças por situação do lançamento" : ind.nome}
           </p>
-          {ind.nome === "Materiais" || ind.nome === "Atividades Específicas" ? (
+          {ind.nome === "Finanças" ? (
+            <div className="mt-2"><ResumoFinancas unidade={unidade} /></div>
+          ) : ind.nome === "Materiais" || ind.nome === "Atividades Específicas" ? (
             <p className="mt-2 font-display text-[22px] font-semibold tracking-tight text-foreground">Em construção</p>
           ) : (
             <p className="mt-2 flex flex-wrap items-baseline gap-x-2">
               <span className="font-display text-[30px] font-semibold tracking-tight text-foreground leading-none">
-                {ind.nome === "Finanças" ? fmtMoeda(ind.valor) : fmtNumero(ind.valor)}
+                {fmtNumero(ind.valor)}
               </span>
               {ind.nome === "Efetivo" && (
                 <>

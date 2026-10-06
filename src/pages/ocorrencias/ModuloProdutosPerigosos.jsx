@@ -4,6 +4,8 @@ import { filtrarPorEscopoOcorrencias, serieCampoOcorrencias } from "@/lib/ocorre
 import SectionCard from "@/components/ui/section-card";
 import KpiCard from "@/components/ui/kpi-card";
 import DonutChart from "@/components/charts/DonutChart";
+import FiltrosOcorrencias from "./FiltrosOcorrencias";
+import { useFiltrosOcorrencias } from "@/lib/useFiltrosOcorrencias";
 import AguardandoCredencial from "./AguardandoCredencial";
 import CardPendente from "./CardPendente";
 
@@ -26,7 +28,8 @@ const NATUREZA_PP = "Produtos Perigosos";
 // tempo (essa decisão é do Valério com Igor, ver status_ocorrencias.md).
 export default function ModuloProdutosPerigosos({ ocorrencias, produtosPerigosos, produtosPerigososDiagnostico, permitidas, bloqueado, pendencias }) {
   const doEscopo = useMemo(() => filtrarPorEscopoOcorrencias(ocorrencias, permitidas), [ocorrencias, permitidas]);
-  const filtrados = useMemo(() => doEscopo.filter((o) => o.natureza === NATUREZA_PP), [doEscopo]);
+  const filtros = useFiltrosOcorrencias();
+  const filtrados = useMemo(() => doEscopo.filter((o) => o.natureza === NATUREZA_PP && filtros.passa(o)), [doEscopo, filtros.passa]);
   const finalizadas = useMemo(() => filtrados.filter((o) => o.finalizado), [filtrados]);
   const aguardando = useMemo(() => filtrados.filter((o) => !o.finalizado), [filtrados]);
   const totalVitimas = useMemo(
@@ -37,13 +40,18 @@ export default function ModuloProdutosPerigosos({ ocorrencias, produtosPerigosos
   // Perfil dos Botijões de GLP: só as linhas que de fato são sobre GLP têm
   // `perfilBotijaoGlp` preenchido (o campo vem nulo pra qualquer outro
   // produto perigoso) — serieCampoOcorrencias já descarta nulo por padrão.
-  const ppEscopo = useMemo(() => filtrarPorEscopoOcorrencias(produtosPerigosos || [], permitidas), [produtosPerigosos, permitidas]);
+  const ppEscopo = useMemo(
+    () => filtrarPorEscopoOcorrencias(produtosPerigosos || [], permitidas).filter(filtros.passa),
+    [produtosPerigosos, permitidas, filtros.passa]
+  );
   const porPerfilGlp = useMemo(() => serieCampoOcorrencias(ppEscopo, "perfilBotijaoGlp"), [ppEscopo]);
 
   if (bloqueado) return <AguardandoCredencial />;
 
   return (
     <div className="space-y-5">
+      <FiltrosOcorrencias filtros={filtros} base={doEscopo} />
+
       {/* sm:grid-cols-3 (não -4): só 3 cards aqui — 4 colunas deixava a
           última vazia (mesmo ajuste feito em ModuloAph.jsx). */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">

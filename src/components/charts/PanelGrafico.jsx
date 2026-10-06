@@ -61,7 +61,7 @@ function TooltipCustom({ active, payload, label, unidade, formatador }) {
 
 export default function PanelGrafico({
   tipo = "bar", data, xKey = "label", yKeys = ["valor"], altura = 240, unidade, cores, stacked = false,
-  aoClicarBarra, legenda = false, formatoValor, formatoTooltip, curva = "monotone",
+  aoClicarBarra, legenda = false, formatoValor, formatoTooltip, curva = "monotone", pontos = false, formatoEixoY,
   anguloEixoX = -35, alturaEixoX = 64, fontEixoX = 11, paddingEixoX = { left: 0, right: 0 },
 }) {
   const palette = useMemo(() => cores || PALETA_PADRAO, [cores]);
@@ -123,7 +123,7 @@ export default function PanelGrafico({
         <BarChart {...propsComuns} margin={{ ...margemBase, top: 24, bottom: 40 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={COR_GRID} vertical={false} />
           {eixoX}
-          <YAxis tick={{ fontSize: 11, fill: COR_TEXTO }} tickLine={false} axisLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: COR_TEXTO }} tickLine={false} axisLine={false} tickFormatter={formatoEixoY} width={formatoEixoY ? 72 : undefined} />
           <Tooltip content={<TooltipCustom unidade={unidade} formatador={formatarTooltip} />} cursor={{ fill: "hsl(var(--muted))" }} />
           {legenda && <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: 12 }} />}
           {yKeys.map((k, i) => (
@@ -175,11 +175,11 @@ export default function PanelGrafico({
         <LineChart {...propsComuns} margin={{ ...margemBase, top: 24 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={COR_GRID} vertical={false} />
           {eixoX}
-          <YAxis tick={{ fontSize: 11, fill: COR_TEXTO }} tickLine={false} axisLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: COR_TEXTO }} tickLine={false} axisLine={false} tickFormatter={formatoEixoY} width={formatoEixoY ? 72 : undefined} />
           <Tooltip content={<TooltipCustom unidade={unidade} formatador={formatarTooltip} />} />
           {legenda && <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: 12 }} />}
           {yKeys.map((k, i) => (
-            <Line key={k} type={curva} dataKey={k} stroke={palette[i % palette.length]} strokeWidth={2} dot={false} activeDot={{ r: 4 }}>
+            <Line key={k} type={curva} dataKey={k} stroke={palette[i % palette.length]} strokeWidth={2} dot={pontos ? { r: 3 } : false} activeDot={{ r: 5 }}>
               {yKeys.length === 1 && !suprimirRotuloPonto && <LabelList dataKey={k} content={criarRotuloLinha(data, k, formatarRotulo)} />}
             </Line>
           ))}

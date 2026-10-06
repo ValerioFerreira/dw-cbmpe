@@ -1,11 +1,12 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { fmtNumero } from "@/lib/cbmpe";
-import { filtrarPorEscopoOcorrencias, passaMultiSelect } from "@/lib/ocorrenciasDashboard";
+import { filtrarPorEscopoOcorrencias } from "@/lib/ocorrenciasDashboard";
 import { ordenarPorAntiguidadeOme } from "@/lib/antiguidadeOme";
 import SectionCard from "@/components/ui/section-card";
 import KpiCard from "@/components/ui/kpi-card";
 import PanelGrafico from "@/components/charts/PanelGrafico";
-import MultiSelectFiltro from "@/components/ui/multi-select-filtro";
+import FiltrosOcorrencias from "./FiltrosOcorrencias";
+import { useFiltrosOcorrencias } from "@/lib/useFiltrosOcorrencias";
 import AguardandoCredencial from "./AguardandoCredencial";
 import CardPendente from "./CardPendente";
 
@@ -28,18 +29,17 @@ function mediaHoras(linhas, campo) {
 // continuam sem nome/SQL citado por extenso no status doc, então continuam
 // como pendência explícita (não inventar qual card é qual).
 export default function ModuloIncendio({ ocorrencias, incendio, permitidas, bloqueado, pendencias }) {
-  const [omes, setOmes] = useState(new Set());
+  const filtros = useFiltrosOcorrencias();
   const doEscopo = useMemo(() => filtrarPorEscopoOcorrencias(ocorrencias, permitidas), [ocorrencias, permitidas]);
-  const todasOmes = useMemo(() => ordenarPorAntiguidadeOme([...new Set(doEscopo.map((o) => o.ome).filter(Boolean))]), [doEscopo]);
   const filtrados = useMemo(
-    () => doEscopo.filter((o) => o.natureza === NATUREZA_INCENDIO && passaMultiSelect(o.ome, omes)),
-    [doEscopo, omes]
+    () => doEscopo.filter((o) => o.natureza === NATUREZA_INCENDIO && filtros.passa(o)),
+    [doEscopo, filtros.passa]
   );
   const finalizadas = useMemo(() => filtrados.filter((o) => o.finalizado), [filtrados]);
   const aguardando = useMemo(() => filtrados.filter((o) => !o.finalizado), [filtrados]);
 
   const incendioEscopo = useMemo(() => filtrarPorEscopoOcorrencias(incendio || [], permitidas), [incendio, permitidas]);
-  const incendioFiltrado = useMemo(() => incendioEscopo.filter((l) => passaMultiSelect(l.ome, omes)), [incendioEscopo, omes]);
+  const incendioFiltrado = useMemo(() => incendioEscopo.filter((l) => filtros.passa(l)), [incendioEscopo, filtros.passa]);
   const duracaoPorOme = useMemo(() => {
     const porOme = new Map();
     incendioFiltrado.forEach((l) => {
@@ -62,14 +62,7 @@ export default function ModuloIncendio({ ocorrencias, incendio, permitidas, bloq
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-2">
-        <MultiSelectFiltro label="OME" valores={todasOmes} selecionado={omes} onChange={setOmes} />
-        {omes.size > 0 && (
-          <button onClick={() => setOmes(new Set())} className="text-[12px] font-medium text-muted-foreground hover:text-foreground">
-            Limpar filtros
-          </button>
-        )}
-      </div>
+      <FiltrosOcorrencias filtros={filtros} base={doEscopo} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <KpiCard nome="Finalizadas" valor={fmtNumero(finalizadas.length)} destaque />

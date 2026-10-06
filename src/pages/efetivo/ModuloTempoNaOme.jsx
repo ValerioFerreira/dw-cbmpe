@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fmtNumero } from "@/lib/cbmpe";
-import { linkEfetivoTabela } from "@/lib/efetivoDashboard";
+import { linkEfetivoTabela, CLASSES, OFICIAIS_POSTOS, PRACAS_POSTOS } from "@/lib/efetivoDashboard";
 import SectionCard from "@/components/ui/section-card";
 import PanelGrafico from "@/components/charts/PanelGrafico";
 import MultiSelectFiltro from "@/components/ui/multi-select-filtro";
@@ -45,6 +45,7 @@ function linhasEfetivo() {
         matricula: r.matricula,
         postoGrad: r.postoGrad,
         nomeGuerra: r.nomeGuerra,
+        sexo: r.sexo,
         ome: r.omeExibicao || sigla,
         tempoOmeAnos: dias != null ? dias / 365 : null,
       });
@@ -54,26 +55,32 @@ function linhasEfetivo() {
   return linhas;
 }
 
-function paramsAtuais({ postos, omes }) {
+function paramsAtuais({ classes, postos, omes, sexos }) {
   const p = {};
   if (postos.size) p.postoGrad = [...postos];
+  else if (classes.size === 1) p.postoGrad = classes.has("Oficiais") ? OFICIAIS_POSTOS : PRACAS_POSTOS;
   if (omes.size) p.ome = [...omes];
+  if (sexos.size) p.sexo = [...sexos];
   return p;
 }
 
 export default function ModuloTempoNaOme({ indId, carreira, permitidas }) {
   const navigate = useNavigate();
+  const [classes, setClasses] = useState(new Set());
   const [postos, setPostos] = useState(new Set());
   const [omes, setOmes] = useState(new Set());
+  const [sexos, setSexos] = useState(new Set());
   const filtrosPostos = useMemo(() => [...new Set(carreira.map((r) => r.posto))].sort(), [carreira]);
   const filtrosOmes = useMemo(() => [...new Set(carreira.map((r) => r.ome))].sort(), [carreira]);
 
   const filtrados = useMemo(
     () => carreira.filter((r) =>
+      (classes.size === 0 || classes.has(r.categoria)) &&
       (postos.size === 0 || postos.has(r.posto)) &&
-      (omes.size === 0 || omes.has(r.ome))
+      (omes.size === 0 || omes.has(r.ome)) &&
+      (sexos.size === 0 || sexos.has(r.sexo))
     ),
-    [carreira, postos, omes]
+    [carreira, classes, postos, omes, sexos]
   );
 
   // LINHAS_EFETIVO vem direto de efetivo_lista.json (não do prop `carreira`,
@@ -81,15 +88,17 @@ export default function ModuloTempoNaOme({ indId, carreira, permitidas }) {
   // escopo aqui (mesma sigla real de `ome`/`omeExibicao`, sem tradução).
   const linhasTabela = useMemo(
     () => linhasEfetivo().filter((r) =>
+      (classes.size === 0 || classes.has(OFICIAIS_POSTOS.includes(r.postoGrad) ? "Oficiais" : "Praças")) &&
       (postos.size === 0 || postos.has(r.postoGrad)) &&
       (omes.size === 0 || omes.has(r.ome)) &&
+      (sexos.size === 0 || sexos.has(r.sexo)) &&
       (!permitidas || permitidas.has(r.ome))
     ),
-    [postos, omes, permitidas]
+    [classes, postos, omes, sexos, permitidas]
   );
 
-  const filtroAtivo = postos.size > 0 || omes.size > 0;
-  const base = paramsAtuais({ postos, omes });
+  const filtroAtivo = classes.size > 0 || postos.size > 0 || omes.size > 0 || sexos.size > 0;
+  const base = paramsAtuais({ classes, postos, omes, sexos });
 
   function irParaTabela(paramsExtra) {
     navigate(linkEfetivoTabela(indId, { ...base, ...paramsExtra }));
@@ -118,11 +127,13 @@ export default function ModuloTempoNaOme({ indId, carreira, permitidas }) {
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-2">
+        <MultiSelectFiltro label="Classe" valores={CLASSES} selecionado={classes} onChange={setClasses} buscavel={false} />
         <MultiSelectFiltro label="Patente" valores={filtrosPostos} selecionado={postos} onChange={setPostos} />
         <MultiSelectFiltro label="OME" valores={filtrosOmes} selecionado={omes} onChange={setOmes} />
+        <MultiSelectFiltro label="Sexo" valores={["M", "F"]} selecionado={sexos} onChange={setSexos} buscavel={false} />
         {filtroAtivo && (
           <button
-            onClick={() => { setPostos(new Set()); setOmes(new Set()); }}
+            onClick={() => { setClasses(new Set()); setPostos(new Set()); setOmes(new Set()); setSexos(new Set()); }}
             className="text-[12px] font-medium text-muted-foreground hover:text-foreground"
           >
             Limpar filtros

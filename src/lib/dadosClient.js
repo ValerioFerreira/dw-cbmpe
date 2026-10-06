@@ -15,19 +15,6 @@ const INTERNO = import.meta.env.VITE_APP_INTERNO === "1";
 const STORAGE_KEY = "cbmpe_auth_user_v2"; // mesma chave de src/lib/authClient.js
 const TIMEOUT_MS = 8000;
 
-// Quando algum dado veio do snapshot, a tela avisa de que data ele é (AvisoSnapshot.jsx).
-let snapshotEm = null;
-const ouvintes = new Set();
-export const snapshotStore = {
-  subscribe(fn) { ouvintes.add(fn); return () => ouvintes.delete(fn); },
-  getSnapshot() { return snapshotEm; },
-};
-function registrarSnapshot(geradoEm) {
-  if (!geradoEm || (snapshotEm && snapshotEm >= geradoEm)) return;
-  snapshotEm = geradoEm;
-  ouvintes.forEach((fn) => fn());
-}
-
 function tokenDaSessao() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null")?.token || null;
@@ -45,7 +32,6 @@ async function lerSnapshot(caminho) {
     // Sem o arquivo, a Vercel devolve o index.html (SPA) com 200: confere o tipo.
     if (!resposta.ok || !(resposta.headers.get("content-type") || "").includes("json")) return null;
     const dados = await resposta.json();
-    registrarSnapshot(dados.snapshot_gerado_em);
     return dados;
   } catch {
     return null;

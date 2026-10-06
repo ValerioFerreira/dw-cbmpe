@@ -1,11 +1,11 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { fmtNumero } from "@/lib/cbmpe";
-import { filtrarPorEscopoOcorrencias, passaMultiSelect, serieCampoOcorrencias } from "@/lib/ocorrenciasDashboard";
-import { ordenarPorAntiguidadeOme } from "@/lib/antiguidadeOme";
+import { filtrarPorEscopoOcorrencias, serieCampoOcorrencias } from "@/lib/ocorrenciasDashboard";
 import SectionCard from "@/components/ui/section-card";
 import KpiCard from "@/components/ui/kpi-card";
 import DonutChart from "@/components/charts/DonutChart";
-import MultiSelectFiltro from "@/components/ui/multi-select-filtro";
+import FiltrosOcorrencias from "./FiltrosOcorrencias";
+import { useFiltrosOcorrencias } from "@/lib/useFiltrosOcorrencias";
 import AguardandoCredencial from "./AguardandoCredencial";
 import CardPendente from "./CardPendente";
 
@@ -25,10 +25,9 @@ function media(linhas, campo) {
 // eventos" era 🔴 print (sem tabela) — com o schema real (area_estimada)
 // os 4 saem do pendente juntos, calculados direto da tabela.
 export default function ModuloPrevencao({ prevencao, permitidas, bloqueado }) {
-  const [omes, setOmes] = useState(new Set());
+  const filtros = useFiltrosOcorrencias();
   const doEscopo = useMemo(() => filtrarPorEscopoOcorrencias(prevencao || [], permitidas), [prevencao, permitidas]);
-  const todasOmes = useMemo(() => ordenarPorAntiguidadeOme([...new Set(doEscopo.map((o) => o.ome).filter(Boolean))]), [doEscopo]);
-  const filtrados = useMemo(() => doEscopo.filter((o) => passaMultiSelect(o.ome, omes)), [doEscopo, omes]);
+  const filtrados = useMemo(() => doEscopo.filter((o) => filtros.passa(o)), [doEscopo, filtros.passa]);
 
   const duracaoMedia = useMemo(() => media(filtrados, "duracaoEventoHoras"), [filtrados]);
   const publicoEstimado = useMemo(() => filtrados.reduce((a, o) => a + (o.publicoEstimado || 0), 0), [filtrados]);
@@ -40,14 +39,7 @@ export default function ModuloPrevencao({ prevencao, permitidas, bloqueado }) {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-2">
-        <MultiSelectFiltro label="OME" valores={todasOmes} selecionado={omes} onChange={setOmes} />
-        {omes.size > 0 && (
-          <button onClick={() => setOmes(new Set())} className="text-[12px] font-medium text-muted-foreground hover:text-foreground">
-            Limpar filtros
-          </button>
-        )}
-      </div>
+      <FiltrosOcorrencias filtros={filtros} base={doEscopo} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <KpiCard nome="Eventos" valor={fmtNumero(filtrados.length)} destaque />

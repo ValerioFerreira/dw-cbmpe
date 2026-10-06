@@ -81,6 +81,7 @@ function montar(porUnidade) {
         sigla,
         posto: r.postoGrad,
         categoria,
+        sexo: r.sexo,
         ome,
         anoMovimentacao: ano(c.dataMovimentacaoSp),
         anoPromocao: ano(c.dataUltimaPromocao),

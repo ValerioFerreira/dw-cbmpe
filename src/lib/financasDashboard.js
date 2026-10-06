@@ -73,3 +73,71 @@ export function fmtMoedaMil(v) {
   if (n === 0) return "R$ 0,00";
   return `R$ ${(n / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} mil`;
 }
+
+// Lançamentos da planilha (aba "Despesas Gerais") que a unidade vista enxerga: as
+// linhas sem OME (folha, contratos, "Aos mesmos"...) só entram na visão do Comando Geral.
+export function lancamentosDoEscopo(lancamentos, permitidas, escopoTotal) {
+  return (lancamentos || []).filter((r) => (r.unidade ? permitidas.has(r.unidade) : escopoTotal));
+}
+
+// Os três somatórios da página inicial de Finanças: o `valor` (coluna VALOR da planilha)
+// de cada lançamento, somado pela situação em que ele está.
+export const SITUACOES_RESUMO = ["AGUARDANDO", "EMPENHADO", "LIQUIDADO"];
+
+export function totaisPorSituacao(lancamentos) {
+  const t = Object.fromEntries(SITUACOES_RESUMO.map((s) => [s, { valor: 0, n: 0 }]));
+  (lancamentos || []).forEach((r) => {
+    const a = t[String(r.situacao || "").toUpperCase()];
+    if (!a) return;
+    a.valor += r.valor || 0;
+    a.n += 1;
+  });
+  return t;
+}
+
+const MES_ROTULO = { JAN: "Jan", FEV: "Fev", MAR: "Mar", ABR: "Abr", MAI: "Mai", JUN: "Jun", JUL: "Jul", AGO: "Ago", SET: "Set", OUT: "Out", NOV: "Nov", DEZ: "Dez" };
+export const rotuloMesLancamento = (m) => (m ? m.replace(/^[A-Z]{3}/, (x) => MES_ROTULO[x] || x) : "");
+
+// Planilha com TODOS os lançamentos do escopo, uma linha por lançamento, como estão no DW.
+// O ofício só sai quando o backend o entrega (o snapshot público não o traz).
+export async function exportarLancamentosExcel(lancamentos, nomeArquivo) {
+  const XLSX = await import("xlsx");
+  const comOficio = lancamentos.some((r) => r.oficio);
+  const linhas = [...lancamentos]
+    .sort((a, b) => (a.mes_ordem ?? 9e9) - (b.mes_ordem ?? 9e9) || (b.valor || 0) - (a.valor || 0))
+    .map((r) => ({
+      Bloco: r.bloco ?? "",
+      ...(comOficio ? { "Ofício": r.oficio ? String(r.oficio).split("\n")[0] : "" } : {}),
+      Item: r.item ?? "",
+      Empenho: r.empenho ?? "",
+      OME: r.unidade || "",
+      Destino: r.destino || "",
+      Enquadramento: r.enquadramento || "",
+      "Situação": r.situacao || "",
+      "Tipo de gasto": r.tipo || "",
+      Natureza: r.natureza || "",
+      "Mês": rotuloMesLancamento(r.mes),
+      Empenhado: r.valor ?? "",
+      Liquidado: r.valor_liquidado ?? "",
+      Pago: r.valor_pago ?? "",
+      Alerta: [
+        r.pago_maior_liquidado && "Pago > liquidado",
+        r.liquidado_maior_empenhado && "Liquidado > empenhado",
+        r.pago_maior_empenhado && "Pago > empenhado",
+      ].filter(Boolean).join("; "),
+    }));
+  const planilha = XLSX.utils.json_to_sheet(linhas);
+  const livro = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(livro, planilha, "Finanças");
+  XLSX.writeFile(livro, nomeArquivo);
+}
+
+// Eixo de gráfico: "R$ 40 mi", "R$ 350 mil" — o valor cheio fica no tooltip.
+export function fmtMoedaCompacta(v) {
+  if (v === null || v === undefined || isNaN(v)) return "";
+  const n = Number(v);
+  const abs = Math.abs(n);
+  if (abs >= 1e6) return `R$ ${(n / 1e6).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} mi`;
+  if (abs >= 1e3) return `R$ ${(n / 1e3).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} mil`;
+  return `R$ ${n.toLocaleString("pt-BR")}`;
+}

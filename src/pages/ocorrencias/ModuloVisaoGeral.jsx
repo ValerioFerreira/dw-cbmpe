@@ -1,14 +1,14 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { fmtNumero } from "@/lib/cbmpe";
 import {
-  filtrarPorEscopoOcorrencias, serieCampoOcorrencias, passaMultiSelect,
+  filtrarPorEscopoOcorrencias, serieCampoOcorrencias,
 } from "@/lib/ocorrenciasDashboard";
-import { ordenarPorAntiguidadeOme } from "@/lib/antiguidadeOme";
 import SectionCard from "@/components/ui/section-card";
 import KpiCard from "@/components/ui/kpi-card";
 import PanelGrafico from "@/components/charts/PanelGrafico";
 import DonutChart from "@/components/charts/DonutChart";
-import MultiSelectFiltro from "@/components/ui/multi-select-filtro";
+import FiltrosOcorrencias from "./FiltrosOcorrencias";
+import { useFiltrosOcorrencias } from "@/lib/useFiltrosOcorrencias";
 import AguardandoCredencial from "./AguardandoCredencial";
 
 // Aba "Visão Geral" (1ª de 9) — ver dashboards/08-ocorrencias/status_ocorrencias.md,
@@ -24,11 +24,10 @@ import AguardandoCredencial from "./AguardandoCredencial";
 // OcorrenciasDashboard.jsx / AtividadesDashboard.jsx para o cálculo de
 // `permitidas` e a checagem de subárvore.
 export default function ModuloVisaoGeral({ ocorrencias, permitidas, bloqueado }) {
-  const [omes, setOmes] = useState(new Set());
+  const filtros = useFiltrosOcorrencias();
 
   const doEscopo = useMemo(() => filtrarPorEscopoOcorrencias(ocorrencias, permitidas), [ocorrencias, permitidas]);
-  const todasOmes = useMemo(() => ordenarPorAntiguidadeOme([...new Set(doEscopo.map((o) => o.ome).filter(Boolean))]), [doEscopo]);
-  const filtrados = useMemo(() => doEscopo.filter((o) => passaMultiSelect(o.ome, omes)), [doEscopo, omes]);
+  const filtrados = useMemo(() => doEscopo.filter((o) => filtros.passa(o)), [doEscopo, filtros.passa]);
 
   const finalizadas = useMemo(() => filtrados.filter((o) => o.finalizado), [filtrados]);
   // "Aguardando finalização" (Visão Geral): SQL original sem filtro de
@@ -50,14 +49,7 @@ export default function ModuloVisaoGeral({ ocorrencias, permitidas, bloqueado })
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-2">
-        <MultiSelectFiltro label="OME" valores={todasOmes} selecionado={omes} onChange={setOmes} />
-        {omes.size > 0 && (
-          <button onClick={() => setOmes(new Set())} className="text-[12px] font-medium text-muted-foreground hover:text-foreground">
-            Limpar filtros
-          </button>
-        )}
-      </div>
+      <FiltrosOcorrencias filtros={filtros} base={doEscopo} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <KpiCard nome="Finalizadas" valor={fmtNumero(finalizadas.length)} destaque />

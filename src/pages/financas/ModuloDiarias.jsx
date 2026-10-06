@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { ShieldAlert } from "lucide-react";
 import { fmtMoeda } from "@/lib/cbmpe";
 import SectionCard from "@/components/ui/section-card";
 import KpiCard from "@/components/ui/kpi-card";
 import PanelGrafico from "@/components/charts/PanelGrafico";
 import EmptyState from "@/components/ui/empty-state";
+import MultiSelectFiltro from "@/components/ui/multi-select-filtro";
+import { passaMultiSelect } from "@/lib/dashboardHelpers";
 
 // Aba Diárias do Dashboard DF (antes "Despesas Diversas") — card de total e
 // barras de diárias por operação. O gráfico de Auxílio Funeral saiu em
@@ -25,6 +27,10 @@ import EmptyState from "@/components/ui/empty-state";
 // gráfico usa todas as operações de enquadramento='DIÁRIAS', então soma
 // exatamente igual ao card.
 export default function ModuloDiarias({ diarias, escopoTotal }) {
+  const [operacoes, setOperacoes] = useState(new Set());
+  const opcoesOperacao = useMemo(() => diarias.map((r) => r.operacao).filter(Boolean).sort((a, b) => a.localeCompare(b, "pt-BR")), [diarias]);
+  const filtradas = useMemo(() => diarias.filter((r) => passaMultiSelect(r.operacao, operacoes)), [diarias, operacoes]);
+
   if (!escopoTotal) {
     return (
       <EmptyState
@@ -35,11 +41,20 @@ export default function ModuloDiarias({ diarias, escopoTotal }) {
     );
   }
 
-  const totalDiarias = diarias.reduce((s, r) => s + r.valor, 0);
-  const diariasData = diarias.map((r) => ({ label: r.operacao, valor: r.valor }));
+  const totalDiarias = filtradas.reduce((s, r) => s + r.valor, 0);
+  const diariasData = filtradas.map((r) => ({ label: r.operacao, valor: r.valor }));
 
   return (
     <div className="space-y-5">
+      <div className="flex flex-wrap items-center gap-2">
+        <MultiSelectFiltro label="Operação" valores={opcoesOperacao} selecionado={operacoes} onChange={setOperacoes} />
+        {operacoes.size > 0 && (
+          <button onClick={() => setOperacoes(new Set())} className="text-[12px] font-medium text-muted-foreground hover:text-foreground">
+            Limpar filtros
+          </button>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 sm:grid-cols-4">
         <KpiCard nome="Total do empenho de diárias em 2026" valor={fmtMoeda(totalDiarias)} destaque />
       </div>

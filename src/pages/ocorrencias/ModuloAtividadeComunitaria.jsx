@@ -1,13 +1,13 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { fmtNumero } from "@/lib/cbmpe";
 import {
-  filtrarPorEscopoOcorrencias, serieCampoOcorrencias, serieDiaria, passaMultiSelect,
+  filtrarPorEscopoOcorrencias, serieCampoOcorrencias, serieDiaria,
 } from "@/lib/ocorrenciasDashboard";
-import { ordenarPorAntiguidadeOme } from "@/lib/antiguidadeOme";
 import SectionCard from "@/components/ui/section-card";
 import KpiCard from "@/components/ui/kpi-card";
 import PanelGrafico from "@/components/charts/PanelGrafico";
-import MultiSelectFiltro from "@/components/ui/multi-select-filtro";
+import FiltrosOcorrencias from "./FiltrosOcorrencias";
+import { useFiltrosOcorrencias } from "@/lib/useFiltrosOcorrencias";
 import AguardandoCredencial from "./AguardandoCredencial";
 
 const NATUREZA_ATIVIDADE_COMUNITARIA = "Atividade Comunitária";
@@ -29,12 +29,11 @@ const NATUREZA_ATIVIDADE_COMUNITARIA = "Atividade Comunitária";
 // por Igor para a aba APH, sem equivalente documentado para Atividade
 // Comunitária, então não é reproduzida por suposição.
 export default function ModuloAtividadeComunitaria({ ocorrencias, permitidas, bloqueado }) {
-  const [omes, setOmes] = useState(new Set());
+  const filtros = useFiltrosOcorrencias();
   const doEscopo = useMemo(() => filtrarPorEscopoOcorrencias(ocorrencias, permitidas), [ocorrencias, permitidas]);
-  const todasOmes = useMemo(() => ordenarPorAntiguidadeOme([...new Set(doEscopo.map((o) => o.ome).filter(Boolean))]), [doEscopo]);
   const filtrados = useMemo(
-    () => doEscopo.filter((o) => o.natureza === NATUREZA_ATIVIDADE_COMUNITARIA && passaMultiSelect(o.ome, omes)),
-    [doEscopo, omes]
+    () => doEscopo.filter((o) => o.natureza === NATUREZA_ATIVIDADE_COMUNITARIA && filtros.passa(o)),
+    [doEscopo, filtros.passa]
   );
   const finalizadas = useMemo(() => filtrados.filter((o) => o.finalizado), [filtrados]);
   const aguardando = useMemo(() => filtrados.filter((o) => !o.finalizado), [filtrados]);
@@ -48,14 +47,7 @@ export default function ModuloAtividadeComunitaria({ ocorrencias, permitidas, bl
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-2">
-        <MultiSelectFiltro label="OME" valores={todasOmes} selecionado={omes} onChange={setOmes} />
-        {omes.size > 0 && (
-          <button onClick={() => setOmes(new Set())} className="text-[12px] font-medium text-muted-foreground hover:text-foreground">
-            Limpar filtros
-          </button>
-        )}
-      </div>
+      <FiltrosOcorrencias filtros={filtros} base={doEscopo} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <KpiCard nome="Finalizadas" valor={fmtNumero(finalizadas.length)} destaque />

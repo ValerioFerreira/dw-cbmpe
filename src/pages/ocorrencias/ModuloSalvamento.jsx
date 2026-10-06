@@ -1,11 +1,11 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { fmtNumero } from "@/lib/cbmpe";
-import { filtrarPorEscopoOcorrencias, passaMultiSelect, serieDiaria, serieCampoOcorrencias } from "@/lib/ocorrenciasDashboard";
-import { ordenarPorAntiguidadeOme } from "@/lib/antiguidadeOme";
+import { filtrarPorEscopoOcorrencias, serieDiaria, serieCampoOcorrencias } from "@/lib/ocorrenciasDashboard";
 import SectionCard from "@/components/ui/section-card";
 import KpiCard from "@/components/ui/kpi-card";
 import PanelGrafico from "@/components/charts/PanelGrafico";
-import MultiSelectFiltro from "@/components/ui/multi-select-filtro";
+import FiltrosOcorrencias from "./FiltrosOcorrencias";
+import { useFiltrosOcorrencias } from "@/lib/useFiltrosOcorrencias";
 import AguardandoCredencial from "./AguardandoCredencial";
 import CardPendente from "./CardPendente";
 
@@ -18,33 +18,25 @@ const NATUREZA_SALVAMENTO = "Salvamento";
 // detalhe) e "Tipo Predominante" (19 categorias — precisa de
 // roe_salvamento_ocorrencias, schema não verificado, fica pendente).
 export default function ModuloSalvamento({ ocorrencias, salvamento, permitidas, bloqueado, pendencias }) {
-  const [omes, setOmes] = useState(new Set());
+  const filtros = useFiltrosOcorrencias();
   const doEscopo = useMemo(() => filtrarPorEscopoOcorrencias(ocorrencias, permitidas), [ocorrencias, permitidas]);
-  const todasOmes = useMemo(() => ordenarPorAntiguidadeOme([...new Set(doEscopo.map((o) => o.ome).filter(Boolean))]), [doEscopo]);
   const filtrados = useMemo(
-    () => doEscopo.filter((o) => o.natureza === NATUREZA_SALVAMENTO && passaMultiSelect(o.ome, omes)),
-    [doEscopo, omes]
+    () => doEscopo.filter((o) => o.natureza === NATUREZA_SALVAMENTO && filtros.passa(o)),
+    [doEscopo, filtros.passa]
   );
   const finalizadas = useMemo(() => filtrados.filter((o) => o.finalizado), [filtrados]);
   const aguardando = useMemo(() => filtrados.filter((o) => !o.finalizado), [filtrados]);
   const diaria = useMemo(() => serieDiaria(filtrados), [filtrados]);
 
   const salvamentoEscopo = useMemo(() => filtrarPorEscopoOcorrencias(salvamento || [], permitidas), [salvamento, permitidas]);
-  const salvamentoFiltrado = useMemo(() => salvamentoEscopo.filter((l) => passaMultiSelect(l.ome, omes)), [salvamentoEscopo, omes]);
+  const salvamentoFiltrado = useMemo(() => salvamentoEscopo.filter((l) => filtros.passa(l)), [salvamentoEscopo, filtros.passa]);
   const porTipo = useMemo(() => serieCampoOcorrencias(salvamentoFiltrado, "tipoPredominante"), [salvamentoFiltrado]);
 
   if (bloqueado) return <AguardandoCredencial />;
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-2">
-        <MultiSelectFiltro label="OME" valores={todasOmes} selecionado={omes} onChange={setOmes} />
-        {omes.size > 0 && (
-          <button onClick={() => setOmes(new Set())} className="text-[12px] font-medium text-muted-foreground hover:text-foreground">
-            Limpar filtros
-          </button>
-        )}
-      </div>
+      <FiltrosOcorrencias filtros={filtros} base={doEscopo} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <KpiCard nome="Finalizadas" valor={fmtNumero(finalizadas.length)} destaque />

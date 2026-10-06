@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fmtNumero } from "@/lib/cbmpe";
-import { linkEfetivoTabela } from "@/lib/efetivoDashboard";
+import { linkEfetivoTabela, CLASSES, OFICIAIS_POSTOS, PRACAS_POSTOS } from "@/lib/efetivoDashboard";
 import SectionCard from "@/components/ui/section-card";
 import PanelGrafico from "@/components/charts/PanelGrafico";
 import MultiSelectFiltro from "@/components/ui/multi-select-filtro";
@@ -27,26 +27,30 @@ function bucketTempoServico(anos) {
   return b ? b.label : "31-35";
 }
 
-function paramsAtuais({ postos, omes }) {
+function paramsAtuais({ classes, postos, omes, sexos }) {
   const p = {};
   if (postos.size) p.postoGrad = [...postos];
+  else if (classes.size === 1) p.postoGrad = classes.has("Oficiais") ? OFICIAIS_POSTOS : PRACAS_POSTOS;
   if (omes.size) p.ome = [...omes];
+  if (sexos.size) p.sexo = [...sexos];
   return p;
 }
 
 export default function ModuloMovimentacaoCarreira({ indId, carreira, saidas, escopoTotal }) {
   const navigate = useNavigate();
+  const [classes, setClasses] = useState(new Set());
   const [postos, setPostos] = useState(new Set());
   const [omes, setOmes] = useState(new Set());
+  const [sexos, setSexos] = useState(new Set());
   const filtrosPostos = useMemo(() => [...new Set(carreira.map((r) => r.posto))].sort(), [carreira]);
   const filtrosOmes = useMemo(() => [...new Set(carreira.map((r) => r.ome))].sort(), [carreira]);
 
   const filtrados = useMemo(
-    () => carreira.filter((r) => (postos.size === 0 || postos.has(r.posto)) && (omes.size === 0 || omes.has(r.ome))),
-    [carreira, postos, omes]
+    () => carreira.filter((r) => (classes.size === 0 || classes.has(r.categoria)) && (postos.size === 0 || postos.has(r.posto)) && (omes.size === 0 || omes.has(r.ome)) && (sexos.size === 0 || sexos.has(r.sexo))),
+    [carreira, classes, postos, omes, sexos]
   );
-  const filtroAtivo = postos.size > 0 || omes.size > 0;
-  const base = paramsAtuais({ postos, omes });
+  const filtroAtivo = classes.size > 0 || postos.size > 0 || omes.size > 0 || sexos.size > 0;
+  const base = paramsAtuais({ classes, postos, omes, sexos });
 
   function irParaTabela(paramsExtra) {
     navigate(linkEfetivoTabela(indId, { ...base, ...paramsExtra }));
@@ -100,17 +104,18 @@ export default function ModuloMovimentacaoCarreira({ indId, carreira, saidas, es
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-2">
+        <MultiSelectFiltro label="Classe" valores={CLASSES} selecionado={classes} onChange={setClasses} buscavel={false} />
         <MultiSelectFiltro label="Patente" valores={filtrosPostos} selecionado={postos} onChange={setPostos} />
         <MultiSelectFiltro label="OME" valores={filtrosOmes} selecionado={omes} onChange={setOmes} />
+        <MultiSelectFiltro label="Sexo" valores={["M", "F"]} selecionado={sexos} onChange={setSexos} buscavel={false} />
         {filtroAtivo && (
-          <button onClick={() => { setPostos(new Set()); setOmes(new Set()); }} className="text-[12px] font-medium text-muted-foreground hover:text-foreground">
+          <button onClick={() => { setClasses(new Set()); setPostos(new Set()); setOmes(new Set()); setSexos(new Set()); }} className="text-[12px] font-medium text-muted-foreground hover:text-foreground">
             Limpar filtros
           </button>
         )}
         {filtroAtivo && (
           <span className="text-[12px] text-muted-foreground">{fmtNumero(filtrados.length)} de {fmtNumero(carreira.length)} militares</span>
         )}
-        <span className="text-[11px] text-muted-foreground">Fonte sem campo de sexo — filtro "Sexo" não se aplica a este painel.</span>
       </div>
 
       <SectionCard titulo="Movimentações por ano" subtitulo={semMovimentacao ? `${fmtNumero(semMovimentacao)} registros sem data de movimentação ficam fora da série.` : undefined}>
