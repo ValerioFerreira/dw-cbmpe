@@ -45,6 +45,50 @@
 > de Efetivo/Viaturas e previsto/lotação por divisão ainda em JSON; DDL 16–18 estão no
 > repositório mas foram aplicados à mão (o `aplicar_ddl.py` os aplica em ordem).
 
+> **2026-10-06 (noite, 4) — Snapshot para o app da Vercel (ponte até o deploy interno).** A
+> Vercel não alcança o backend nem o DW, e os commits do dia tiraram os JSON embutidos, então o
+> app publicado ficou sem Finanças, Viaturas, Mapa de Força etc. (e com o efetivo de 18/08).
+> Solução: `backend/scripts/gerar_snapshot.js` lê do DW com os MESMOS serviços do backend e grava
+> `public/snapshot/*.json` (40 arquivos, ~30 MB; Ocorrências é 21 MB) — **sem nome completo, CPF,
+> telefone, licenças nominais (LE, LTIP, afastamento) e ofício/SEI de Finanças** (decisão do
+> Comando; nome de quem aplicou vacina vira "Nome S."). `src/lib/dadosClient.js` usa o snapshot
+> **só quando não há backend** (sem `VITE_AUTH_API_URL`, sem token — login local AGGD — ou
+> backend fora do ar/5xx); 401/403 não cai no snapshot, e no build interno (`VITE_APP_INTERNO=1`)
+> ele nunca é usado. Uma faixa avisa a data do snapshot. `etl/snapshot/publicar_snapshot.py` gera,
+> copia o commit atual (HEAD) + snapshot para uma branch descartável **`vercel`** e faz push
+> forçado (a `main` nunca recebe os arquivos — `public/snapshot/` está no `.gitignore` — e o
+> histórico não cresce 30 MB por dia). **A Vercel precisa ter `vercel` como Production Branch.**
+> Os três JSON com dado pessoal que ainda iam no pacote (`efetivo_lista`, `vacinacao_dashboard`,
+> `ocorrencias_dashboard`) foram removidos e o plugin de esvaziamento do `vite.config.js` saiu.
+> **Efeitos conhecidos no app publicado:** "Situações Funcionais" (licenças) e a regra de
+> indisponível enxergam LE/LTIP/afastamento vazios (indisponíveis: 198 em vez de 229); a coluna
+> "Nome completo" e o telefone ficam em branco; ofício some da aba Despesas Gerais. Ficam no
+> snapshot (não foram vetados): matrícula, nome de guerra, raça/cor, PCD, readaptado, horário
+> especial, guarnição do Mapa de Força, chassi e renavam. **Rodar de novo a cada atualização**
+> (manual, ou como passo do Windmill com push via API do GitHub).
+
+> **2026-10-06 (noite, 3) — Retenção de 30 dias, views blindadas e auditoria.** (1) **Mapa de
+> Força: corte físico aplicado** (`ddl/22`). A cópia fdw (`stg.copiar_tabela_fdw` +
+> `stg.raw_filtro`) só traz os últimos 30 dias de `launches` e filhas; antes de a carga
+> reconstruir os fatos, `guardar_historico_emprego` (carga_core.py) grava, **agregado por dia e
+> sem matrícula/nome**, o que saiu da janela (`core.emprego_historico_viatura_dia`,
+> `emprego_historico_ome_dia`); `marts.emprego_viatura_resumo` e `emprego_operacional_mes`
+> somam histórico + janela (a série do `validar.py` continua igual: 2021 = 28.592 lançamentos).
+> `militares_distintos` só existe para meses inteiros na janela. O banco `dw` foi de ~626 MB
+> para ~234 MB. Se o passo do histórico falhar, a carga PARA (para não perder o core antigo).
+> (2) **Views não caem mais com a raw**: as três cargas raw (fdw em SQL, `carga_raw.py`,
+> `raw_planilhas.py`) guardam a definição/dono/permissões das views dependentes antes do
+> `DROP ... CASCADE` e as recriam; se uma não puder voltar (coluna sumiu), a carga avisa. As
+> views de `stg`/`marts` passaram a ser do `etl_writer`. (3) Cap QOC entra na previsão de saída;
+> `marts.painel_df_funeral` removida. (4) **Relatórios** QOD (DPlaG / CPPA / em comum) e DF (com
+> dúvidas) regerados e entregues; lista de 28 postos com lançamento e sem seção no QOD em
+> `etl/mapa_forca/postos_sem_secao_qod.csv`. (5) **LOB Nova testada** com os perfis
+> Subcomandante (vê o seletor; Nova mostra AJ, ARI, DECI com os dados da DEIP) e DGP (sem seletor,
+> volta para Atual). (6) **Auditoria de credenciais** em `docs/seguranca-credenciais.md`: as
+> credenciais de SGP, Mapa de Força/Vacina, Frota e ROE são de **superusuário** (inclusive a que o
+> backend usa no SGP) — SQL de papéis só-leitura em `docs/seguranca-origens-grants.sql`; segredos
+> em scripts/variável do Windmill; repositório e histórico limpos.
+
 > **2026-10-06 (noite, 2) — Previsto e lotação por divisão no DW (fim dos JSON do QOD).**
 > `efetivo_previsto_divisoes.json`, `lotacao_funcao.json` e os extratores manuais
 > (`extract_previsto_divisoes.py`, `extract_lotacao_funcao.py`) foram **removidos**. A carga
@@ -4982,10 +5026,9 @@ Ficam para o usuário autorizar ou rodar.
      (2º GB 485 × 671, 6º GB 232 × 201, 163 vagas funcionais acima do fixado, matrícula do
      Subcomandante Geral, 47 postos desatualizados, IDs que mudam, numeração de quadros).
 4. **Mapa de Força.**
-   - **Retenção de 30 dias** (decisão do usuário): **aplicada na apresentação** (views
-     `marts.mapa_forca_*` cobrem os últimos 30 dias, a janela anda com a carga). O **corte
-     físico** do `raw`/`core` (o DW guarda desde 2019) **não foi feito** — depende de
-     confirmar que o resumo agregado (`emprego_viatura_resumo`) basta.
+   - **Retenção de 30 dias** (decisão do usuário): **aplicada** na apresentação e no corte
+     físico (2026-10-06, `ddl/22`): raw e core só têm a janela; o que sai vira histórico agregado
+     por dia (`core.emprego_historico_*`).
    - ~~Tirar os 12 MB nominais de `public/dados/mapa-forca/`~~ **feito em 2026-10-06**
      (rota no backend, recorte por perfil, arquivos removidos).
    - **Coordenadas dos postos: standby** (o usuário monta a tabela). Lista dos 44 sem
@@ -5013,11 +5056,15 @@ Ficam para o usuário autorizar ou rodar.
    "Gestão das Taxas" × "Gestão de taxas", "Curso" × "Cursos de formação", "Diárias -
    Operação X" sem o prefixo "EXECUTIVA -". A view `marts.painel_df_funeral` ficou sem uso
    (pode sair). Revisar visualmente a aba Despesas Gerais com a DF.
-9. **Segurança (antigas, seguem abertas).** Rotacionar as credenciais que passaram pelo
-   chat (DW, Neon e as demais da lista); chaves de service account coladas nos scripts
-   "Material Operacional" e "Controle do tempo de serviço" do Windmill; confirmar que as
-   credenciais lidas nas origens (SGP, mapa de força, Frota, ROE) são somente leitura;
-   `DROP` do `dw_dim_aposentado_20260929` (o Claude não apaga dado); destino do `dw_diesp`.
+9. **Segurança** — auditoria completa em `docs/seguranca-credenciais.md` (2026-10-06).
+   **Achado principal:** as credenciais de SGP (também a do **backend**), Mapa de Força/Vacina,
+   Frota e ROE são de **superusuário** nas bases de produção; SQL de papéis só-leitura pronto em
+   `docs/seguranca-origens-grants.sql` (o DBA aplica e troca a credencial). Segredos colados em
+   scripts do Windmill (chaves privadas em `DGP-ReqComp` e `materialoperacional`, senhas em
+   7 scripts, e a variável **não secreta** `VIABILIDADE_CONFIG` com chave e senhas) — rotacionar
+   e usar variáveis secretas. Rotacionar também as credenciais que passaram pelo chat. Do dono:
+   `DROP` do `dw_dim_aposentado_20260929`; o `dw_diesp` (job do SGAT) fica como está até a
+   DIESP entrar. Repositório e histórico do git estão limpos.
 10. **Material Operacional: descontinuado.** Aguardar a nova fonte e os painéis do Igor.
 11. **Qualidade do código.** `npm run typecheck` tem 394 erros que já existiam (props de
     componentes sem tipos); o lint passa. Não há teste automatizado de front.

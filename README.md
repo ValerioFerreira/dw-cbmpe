@@ -206,7 +206,7 @@ sem máscara.
 
 | Destino | Estado |
 |---|---|
-| Vercel (hoje) | funcionando — projeto Vite padrão, `vercel.json` cuida do fallback de rotas |
+| Vercel (hoje) | projeto Vite padrão, `vercel.json` cuida do fallback de rotas. **Não alcança o DW:** os dados vêm do **snapshot** (`python etl/snapshot/publicar_snapshot.py`, branch `vercel` como Production Branch; sem nome completo, CPF, telefone, licenças nominais nem ofício/SEI) |
 | CapRover interno (`10.193.1.252`) | `Dockerfile`, `nginx.conf` e `captain-definition` prontos, agora com `backend/` como segundo app (auth SGU) e `docker-compose.yml` cobrindo os dois; **imagem nunca construída** |
 
 Passo a passo, decisões pendentes do TI e a ressalva de segurança:

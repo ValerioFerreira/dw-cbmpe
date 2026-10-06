@@ -1,14 +1,32 @@
 // Cliente da camada de dados do DW (backend GET /dados/*, ver
 // backend/routes/dadosRoutes.js).
 //
-// Sempre com fallback: sem backend configurado (VITE_AUTH_API_URL vazio),
-// sem sessão SGU (ex.: login local AGGD, que não tem token) ou com o backend
-// fora do alcance (app na Vercel, fora da rede do CBMPE), devolve null e o
-// app segue com os JSON embutidos no bundle. No CapRover, dentro da rede,
-// passa a ler do DW sem nenhuma mudança de código.
+// Dentro da rede (CapRover/VM): lê do backend, com login SGU e recorte por perfil.
+//
+// App publicado na Vercel, que NÃO alcança o backend nem o banco: lê o SNAPSHOT
+// (arquivos estáticos em /snapshot/*.json, gerados do DW por backend/scripts/
+// gerar_snapshot.js e publicados por etl/snapshot/publicar_snapshot.py — sem nome
+// completo nem CPF). O snapshot só entra quando não há backend: sem VITE_AUTH_API_URL,
+// sem token (login local AGGD) ou backend inalcançável/com erro de servidor. Resposta
+// 401/403 do backend (sessão expirada, perfil sem acesso) NÃO cai no snapshot — o
+// recorte por perfil vale. No build interno (VITE_APP_INTERNO=1) o snapshot nunca é usado.
 const AUTH_API_URL = (import.meta.env.VITE_AUTH_API_URL || "").replace(/\/$/, "");
+const INTERNO = import.meta.env.VITE_APP_INTERNO === "1";
 const STORAGE_KEY = "cbmpe_auth_user_v2"; // mesma chave de src/lib/authClient.js
 const TIMEOUT_MS = 8000;
+
+// Quando algum dado veio do snapshot, a tela avisa de que data ele é (AvisoSnapshot.jsx).
+let snapshotEm = null;
+const ouvintes = new Set();
+export const snapshotStore = {
+  subscribe(fn) { ouvintes.add(fn); return () => ouvintes.delete(fn); },
+  getSnapshot() { return snapshotEm; },
+};
+function registrarSnapshot(geradoEm) {
+  if (!geradoEm || (snapshotEm && snapshotEm >= geradoEm)) return;
+  snapshotEm = geradoEm;
+  ouvintes.forEach((fn) => fn());
+}
 
 function tokenDaSessao() {
   try {
@@ -18,9 +36,25 @@ function tokenDaSessao() {
   }
 }
 
+async function lerSnapshot(caminho) {
+  if (INTERNO) return null;
+  // "painel/df" -> painel-df.json; "mapa-forca/dia/2026-10-06" -> mapa-forca-dia-2026-10-06.json
+  const arquivo = `${caminho.replace(/\//g, "-")}.json`;
+  try {
+    const resposta = await fetch(`/snapshot/${arquivo}`);
+    // Sem o arquivo, a Vercel devolve o index.html (SPA) com 200: confere o tipo.
+    if (!resposta.ok || !(resposta.headers.get("content-type") || "").includes("json")) return null;
+    const dados = await resposta.json();
+    registrarSnapshot(dados.snapshot_gerado_em);
+    return dados;
+  } catch {
+    return null;
+  }
+}
+
 async function getDados(caminho) {
   const token = tokenDaSessao();
-  if (!AUTH_API_URL || !token) return null;
+  if (!AUTH_API_URL || !token) return lerSnapshot(caminho);
 
   const controle = new AbortController();
   const timer = setTimeout(() => controle.abort(), TIMEOUT_MS);
@@ -29,10 +63,12 @@ async function getDados(caminho) {
       headers: { Authorization: `Bearer ${token}` },
       signal: controle.signal,
     });
-    if (!response.ok) return null;
-    return await response.json();
+    if (response.ok) return await response.json();
+    // 401/403: o backend respondeu e negou — vale o recorte, sem snapshot.
+    return response.status >= 500 ? lerSnapshot(caminho) : null;
   } catch {
-    return null;
+    // Backend fora do alcance (Vercel, VPN caída).
+    return lerSnapshot(caminho);
   } finally {
     clearTimeout(timer);
   }

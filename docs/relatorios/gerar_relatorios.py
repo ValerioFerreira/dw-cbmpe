@@ -21,7 +21,7 @@ from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
 AQUI = Path(__file__).resolve().parent
-HOJE = "01/10/2026"
+HOJE = date.today().strftime("%d/%m/%Y")
 VERMELHO = RGBColor(0xB0, 0x1E, 0x1E)
 
 
@@ -121,40 +121,44 @@ def relatorio_qod():
     d = novo_documento("Divergências entre as planilhas do QOD",
                        f"Relatório para a DPlaG e a CPPA — {HOJE} — Projeto CBMPE BI / Data Warehouse")
 
-    d.add_heading("1. O que foi comparado", 1)
+    d.add_heading("1. O que foi comparado e quem responde por quê", 1)
     d.add_paragraph(
         "Para alimentar o sistema do Comando (CBMPE BI), foram cruzadas duas planilhas do QOD e o Pecúlio. "
-        "Nada foi corrigido: este relatório apenas aponta o que não bate, para que cada área decida o que ajustar.")
-    marcador(d, " é a planilha que o sistema lê todos os dias (link publicado), mantida pela DPlaG (funções e vagas) "
-                "e pela CPPA (ocupantes). Abas usadas: FUNÇÕES DPLAG, QOD_FUNCOES, ID_ATUALIZADO e QOD_CONSOLIDADA.",
-             "QOD CONFERÊNCIA")
-    marcador(d, " é o QOD formatado, uma aba por quadro (efetivo fixado por lei, distribuição por unidade e por seção, "
-                "por posto e graduação). Foi lido pelo link de compartilhamento informado pelo usuário.", "QOD de setembro de 2026")
+        "Nada foi corrigido: este relatório apenas aponta o que não bate, para que cada área decida o que ajustar. "
+        "Ele está dividido pela responsabilidade de cada área:")
+    marcador(d, " define quais funções existem e em qual OME e seção ficam (catálogo de funções, vagas e quadros de efetivo "
+                "fixado). Parte A deste relatório.", "DPlaG —")
+    marcador(d, " informa somente quem ocupa cada função (aba QOD_CONSOLIDADA). Parte B deste relatório.", "CPPA —")
+    marcador(d, " o que depende das duas áreas ao mesmo tempo (ex.: lotação acima do previsto). Parte C.", "Em comum —")
+    marcador(d, " é a planilha que o sistema lê todos os dias (link publicado). Abas usadas: FUNÇÕES DPLAG, QOD_FUNCOES, "
+                "ID_ATUALIZADO e QOD_CONSOLIDADA.", "QOD CONFERÊNCIA")
+    marcador(d, " é o QOD formatado, uma aba por quadro (efetivo fixado por lei, distribuição por unidade e por seção, por posto "
+                "e graduação), lido pelo link de compartilhamento.", "QOD de setembro de 2026")
     marcador(d, " é a fonte da verdade para matrícula, posto e lotação dos militares (decisão do Comando).", "Pecúlio")
     d.add_paragraph(
-        "Uso previsto no sistema, por ora: nomenclaturas e ocupantes das funções vêm da aba QOD_CONSOLIDADA; "
-        "a distribuição de funções por seção e por OME vem da planilha de quadros de setembro.")
+        "Uso no sistema: nomenclatura e distribuição das funções por OME e seção vêm do catálogo da DPlaG (ID_ATUALIZADO, "
+        "ID fixo por função) e dos quadros de setembro; os ocupantes vêm da QOD_CONSOLIDADA (CPPA), conferidos pelo Pecúlio.")
 
     d.add_heading("2. Resumo", 1)
     dif = res["unidades_que_diferem"]
+    ag = res["agosto_x_setembro"]
+    oc = res["ocupantes"]
     marcador(d, f" {res['total_funcional_dplag']:,}".replace(",", ".") +
              f" vagas FUNCIONAIS na aba FUNÇÕES DPLAG contra {res['total_geral_quadro']['TOTAL']:,}".replace(",", ".") +
              f" do efetivo fixado (LC nº 527/2023, quadro de setembro): {res['total_funcional_dplag'] - res['total_geral_quadro']['TOTAL']} "
-             "vagas a mais na lista de funções.", "Total:")
+             "vagas a mais na lista de funções.", "DPlaG — total:")
     marcador(d, f" das {res['unidades_comparadas']} unidades comparadas, {len(dif)} têm previsto diferente "
-                "(a maior diferença é o 2º GB, com 186 vagas a mais na lista de funções).", "Por unidade:")
-    marcador(d, " Cel, Ten Cel, Maj QOC, Maj, Cap, 1º Ten e 2º Ten QOA batem exatamente. "
-                "A diferença está em Cap, 1º Ten e 2º Ten QOC e em todas as graduações de praças.", "Por posto:")
-    ag = res["agosto_x_setembro"]
-    marcador(d, f" a aba QOD_FUNCOES ainda está em AGOSTO; a de setembro é a ID_ATUALIZADO. O ID_FUNCAO não é estável entre as duas "
-                f"({ag['ids_que_apontam_para_outra_funcao']:,} de {ag['ids_que_apontam_para_a_mesma_funcao'] + ag['ids_que_apontam_para_outra_funcao']:,} "
-                "IDs apontam para outra função).".replace(",", "."), "Funções:")
-    oc = res["ocupantes"]
+                "(a maior diferença é o 2º GB, com 186 vagas a mais na lista de funções).", "DPlaG — por unidade:")
+    marcador(d, f" o ID_FUNCAO não é estável entre agosto e setembro ({ag['ids_que_apontam_para_outra_funcao']:,} de "
+                f"{ag['ids_que_apontam_para_a_mesma_funcao'] + ag['ids_que_apontam_para_outra_funcao']:,} IDs apontam para outra função)."
+             .replace(",", "."), "DPlaG — funções:")
     marcador(d, f" 1 matrícula diferente da do Pecúlio (mesmo nome), {oc['posto_diferente']} postos diferentes e "
-                f"{oc['fora_do_peculio']} ocupantes que não estão no efetivo ativo do Pecúlio.", "Ocupantes:")
+                f"{oc['fora_do_peculio']} ocupantes que não estão no efetivo ativo do Pecúlio.", "CPPA — ocupantes:")
 
-    d.add_heading("3. Efetivo previsto", 1)
-    d.add_heading("3.1 Por unidade", 2)
+    # ------------------------------------------------------------------ Parte A
+    d.add_heading("PARTE A — Para a DPlaG (funções, OME e quadros)", 1)
+
+    d.add_heading("A1. Efetivo previsto por unidade", 2)
     d.add_paragraph("Vagas FUNCIONAIS da aba FUNÇÕES DPLAG × total do quadro de setembro (aba GERAL 001). "
                     "O Comandante-Geral e o Subcomandante-Geral estão na OME GCG e GSG da lista de funções, por isso "
                     "foram somados aos quadros 1) Comando Geral + 1.1 GCG e 2) Subcomando Geral + 2.1 GSG.")
@@ -165,73 +169,109 @@ def relatorio_qod():
            larguras=[3, 2.2, 2.2, 2.2, 7], destaque=lambda l: l[3] not in (0, None))
     d.add_paragraph("Linhas em amarelo: unidades com diferença. As demais batem.")
 
-    d.add_heading("3.2 Por posto e graduação (corporação inteira)", 2)
+    d.add_heading("A2. Por posto e graduação (corporação inteira)", 2)
     cab, linhas = folha(xl, "Previsto por posto (total)")
     tabela(d, list(cab), [tuple(l) for l in linhas], larguras=[4, 3.5, 3.5, 3], destaque=lambda l: l[3] != 0)
     d.add_paragraph(
         "A diferença de 163 vagas concentra-se nas praças (Sd +41, Cb +54, 3º Sgt +38, 2º Sgt +10, 1º Sgt +8, Subten +4) "
         "e nos oficiais QOC subalternos (Cap +3, 1º Ten +3, 2º Ten +2).")
 
-    d.add_heading("3.3 Unidade × posto", 2)
+    d.add_heading("A3. Unidade × posto", 2)
     d.add_paragraph("Todas as combinações em que as duas planilhas divergem (a lista completa está no anexo).")
     cab, linhas = folha(xl, "Unidade x posto (diferenças)")
     linhas = [(re.sub(r"^(\d)O", r"\1º ", str(l[0])),) + tuple(l[1:]) for l in linhas]
     tabela(d, list(cab), linhas, larguras=[3.2, 3.5, 3, 3.5, 3])
 
-    d.add_heading("4. Aba de funções: QOD_FUNCOES (agosto) × ID_ATUALIZADO (setembro)", 1)
+    d.add_heading("A4. Aba de funções: QOD_FUNCOES (agosto) × ID_ATUALIZADO (setembro)", 2)
     marcador(d, f" QOD_FUNCOES tem {ag['funcoes_agosto']:,} funções e ID_ATUALIZADO tem {ag['funcoes_setembro']:,}.".replace(",", "."),
              "Quantidade:")
     marcador(d, f" {ag['funcoes_so_em_agosto']} funções só existem na aba de agosto e {ag['funcoes_so_em_setembro']} só na de setembro "
                 "(comparando OME, seção e nome da função, não o ID).", "Mudanças:")
     marcador(d, f" o ID_FUNCAO é renumerado: só {ag['ids_que_apontam_para_a_mesma_funcao']} IDs apontam para a mesma função nas duas abas. "
-                "Isso impede acompanhar uma função de um mês para o outro. O ideal é o ID permanecer o mesmo enquanto a função existir.",
-             "IDs instáveis:")
+                "Isso impede acompanhar uma função de um mês para o outro. O ideal é o ID permanecer o mesmo enquanto a função existir "
+                "(o sistema já usa o ID como chave).", "IDs instáveis:")
     marcador(d, " a 2ª SB do 6º GB (Bom Conselho) aparece como “1ª SB/6º GB” na aba de agosto, igual a Garanhuns, "
                 "e como “2ª SB/6º GB” na de setembro. Em ambas, o campo OME_COMPLETA continua dizendo “1ª SEÇÃO DE BOMBEIROS DO 6º GB”.",
              "Seção do 6º GB:")
     marcador(d, " “Núcleo de CJustiça e Disciplina” (agosto) foi corrigido em setembro. Continuam: “Garanhus (Sede)” no campo "
-                "LOCALIDADE (50 linhas, nas duas abas), “Subomando” (QOD_FUNCOES e QOD_CONSOLIDADA) e, novo em setembro, "
-                "“Asessoria de Relações Institucionais” (ID_ATUALIZADO).", "Erros de digitação:")
+                "LOCALIDADE (50 linhas, nas duas abas), “Subomando” (QOD_FUNCOES e QOD_CONSOLIDADA), “Asessoria de Relações "
+                "Institucionais” e “Núcleo de Núcleo de Educação Física e Desportos” (ID_ATUALIZADO).", "Erros de digitação:")
+    marcador(d, " a aba QOD_FUNCOES ainda está em AGOSTO; a de setembro é a ID_ATUALIZADO. Atualizar QOD_FUNCOES ou desativá-la.",
+             "Mês:")
     d.add_paragraph("A lista completa das funções que mudaram está na aba “Agosto x Setembro (funções)” do anexo.")
 
-    d.add_heading("5. Ocupantes (QOD_CONSOLIDADA) × Pecúlio", 1)
-    d.add_paragraph(f"A QOD_CONSOLIDADA tem {res['n_ocupantes_linhas']:,} linhas de ocupantes.".replace(",", "."))
-    cab, linhas = folha(xl, "Ocupantes x Pecúlio")
-    mat = [l for l in linhas if l[1] and l[1].startswith("matrícula diferente")]
-    fora = [l for l in linhas if l[1] and "fora do Pecúlio" in l[1]]
-    posto = [l for l in linhas if l[1] and l[1].startswith("posto diferente")]
-    d.add_heading("5.1 Matrícula diferente da do Pecúlio", 2)
-    tabela(d, ["Linha", "Nome (QOD)", "Matrícula (QOD)", "Matrícula (Pecúlio)", "Unidade (QOD)"],
-           [(l[0], l[3], l[2], l[7], l[6]) for l in mat], larguras=[1.5, 6, 3, 3, 3.5])
-    d.add_paragraph("Vale a matrícula do Pecúlio. A CPPA precisa corrigir a QOD_CONSOLIDADA.")
-    d.add_heading("5.2 Ocupantes que não estão no efetivo ativo do Pecúlio", 2)
-    tabela(d, ["Linha", "Matrícula", "Posto (QOD)", "Função", "Unidade (QOD)"],
-           [(l[0], l[2], l[4], l[5], l[6]) for l in fora], larguras=[1.5, 3, 4, 3, 5])
-    d.add_paragraph("Os nomes foram omitidos deste relatório; estão no anexo. Podem ser militares já inativados ou matrícula digitada errada.")
-    d.add_heading("5.3 Posto diferente do Pecúlio", 2)
-    from collections import Counter
-    c = Counter((l[4], l[8]) for l in posto)
-    tabela(d, ["Posto na QOD", "Posto no Pecúlio", "Ocupantes"],
-           [(a, b, n) for (a, b), n in c.most_common()], larguras=[5, 5, 3])
-    d.add_paragraph("A maior parte (Cb na QOD, 3º Sgt no Pecúlio) é compatível com promoções ainda não refletidas na QOD. "
-                    "A relação nominal está no anexo (aba “Ocupantes x Pecúlio”).")
-    d.add_heading("5.4 Militar em mais de uma função", 2)
-    d.add_paragraph(f"{oc['militar_em_mais_de_uma_funcao']} militares ocupam mais de uma função na QOD_CONSOLIDADA. "
-                    "Pode ser regra (função e encargo), por isso é apenas informativo; a lista está no anexo.")
+    d.add_heading("A5. Seções do catálogo que não existem no quadro da unidade", 2)
+    cab, linhas = folha(xl, "Secoes sem no no quadro")
+    d.add_paragraph(
+        f"{len(linhas)} seções do catálogo de funções (ID_ATUALIZADO) não aparecem, com o mesmo nome, na árvore numerada do "
+        f"quadro da unidade (aba do quadro de setembro). São {sum(l[2] for l in linhas)} funções. Algumas são diferenças de "
+        "digitação (“Div. Op” × “Div. Op.”, “Núcleo de Núcleo…”); outras são seções que o catálogo lista e o quadro não. "
+        "O sistema as casa com a divisão do organograma por aproximação; o ideal é o nome ser o mesmo nas duas planilhas. "
+        "As 30 mais frequentes (lista completa no anexo):")
+    tabela(d, ["Unidade", "Seção no catálogo", "Funções", "Exemplo de ID"], [tuple(l) for l in linhas[:30]],
+           larguras=[2.5, 9.5, 1.8, 3], tam=8)
 
-    d.add_heading("6. O arquivo de quadros de setembro", 1)
+    d.add_heading("A6. O arquivo de quadros de setembro", 2)
     for n, abas in res["numeros_de_quadro_repetidos"].items():
         marcador(d, f" o número {n} foi usado em mais de um quadro: {'; '.join(abas)}.", "Numeração repetida:")
     marcador(d, " " + "; ".join(res["abas_fora_do_padrao"]) + ".", "Nomes de abas fora do padrão:")
     marcador(d, " o quadro GERAL 001 traz “JULHO 2026”, enquanto a CAPA diz “SETEMBRO 2026” (e o número do 2º GB, 485, é o mesmo de antes da "
                 "atualização).", "Mês:")
 
-    d.add_heading("7. Encaminhamentos sugeridos", 1)
-    marcador(d, " confirmar qual é o previsto correto do 2º GB (671 ou 485) e do 6º GB (201 ou 232); explicar as 163 vagas FUNCIONAIS "
-                "acima do efetivo fixado; manter o ID_FUNCAO estável; atualizar QOD_FUNCOES para setembro (ou desativá-la).", "DPlaG:")
-    marcador(d, " corrigir a matrícula do Subcomandante-Geral na QOD_CONSOLIDADA; revisar os 2 ocupantes fora do Pecúlio e os postos "
-                "desatualizados.", "CPPA:")
-    marcador(d, " dar o mesmo número ao quadro GERAL 001 e à CAPA (setembro) e corrigir a numeração repetida dos quadros.", "Quadros de setembro:")
+    # ------------------------------------------------------------------ Parte B
+    d.add_heading("PARTE B — Para a CPPA (ocupantes das funções)", 1)
+    d.add_paragraph(f"A QOD_CONSOLIDADA tem {res['n_ocupantes_linhas']:,} linhas de ocupantes.".replace(",", "."))
+    cab, linhas = folha(xl, "Ocupantes x Pecúlio")
+    mat = [l for l in linhas if l[1] and l[1].startswith("matrícula diferente")]
+    fora = [l for l in linhas if l[1] and "fora do Pecúlio" in l[1]]
+    posto = [l for l in linhas if l[1] and l[1].startswith("posto diferente")]
+    d.add_heading("B1. Matrícula diferente da do Pecúlio", 2)
+    tabela(d, ["Linha", "Nome (QOD)", "Matrícula (QOD)", "Matrícula (Pecúlio)", "Unidade (QOD)"],
+           [(l[0], l[3], l[2], l[7], l[6]) for l in mat], larguras=[1.5, 6, 3, 3, 3.5])
+    d.add_paragraph("Vale a matrícula do Pecúlio. A QOD_CONSOLIDADA precisa ser corrigida.")
+    d.add_heading("B2. Ocupantes que não estão no efetivo ativo do Pecúlio", 2)
+    tabela(d, ["Linha", "Matrícula", "Posto (QOD)", "Função", "Unidade (QOD)"],
+           [(l[0], l[2], l[4], l[5], l[6]) for l in fora], larguras=[1.5, 3, 4, 3, 5])
+    d.add_paragraph("Os nomes foram omitidos deste relatório; estão no anexo. Podem ser militares já inativados ou matrícula digitada errada.")
+    d.add_heading("B3. Posto diferente do Pecúlio", 2)
+    from collections import Counter
+    c = Counter((l[4], l[8]) for l in posto)
+    tabela(d, ["Posto na QOD", "Posto no Pecúlio", "Ocupantes"],
+           [(a, b, n) for (a, b), n in c.most_common()], larguras=[5, 5, 3])
+    d.add_paragraph("A maior parte (Cb na QOD, 3º Sgt no Pecúlio) é compatível com promoções ainda não refletidas na QOD. "
+                    "A relação nominal está no anexo (aba “Ocupantes x Pecúlio”).")
+    d.add_heading("B4. Ocupante lotado, no Pecúlio, em unidade diferente da OME da função", 2)
+    cab, linhas = folha(xl, "Funcao em outra unidade")
+    pares = Counter((l[3], l[4]) for l in linhas)
+    d.add_paragraph(
+        f"{len(linhas)} ocupações estão em função de uma OME diferente da unidade em que o militar está lotado no Pecúlio. "
+        "Parte é esperada (o militar da ABMG que exerce função na DEIP: a ABMG pende da DEIP), mas vale a CPPA conferir se a "
+        "função ou a lotação está desatualizada. Os pares mais frequentes (lista completa no anexo):")
+    tabela(d, ["OME da função", "Unidade no Pecúlio", "Ocupações"], [(a, b, n) for (a, b), n in pares.most_common(15)],
+           larguras=[5.5, 5.5, 3])
+    d.add_heading("B5. Militar em mais de uma função", 2)
+    d.add_paragraph(f"{oc['militar_em_mais_de_uma_funcao']} militares ocupam mais de uma função na QOD_CONSOLIDADA. "
+                    "Pode ser regra (função e encargo), por isso é apenas informativo; a lista está no anexo.")
+
+    # ------------------------------------------------------------------ Parte C
+    d.add_heading("PARTE C — Em comum: lotação acima do previsto", 1)
+    cab, linhas = folha(xl, "Divisoes acima do previsto")
+    d.add_paragraph(
+        f"O sistema casa cada função com a divisão do organograma (por nome e pela hierarquia numerada do quadro) e compara "
+        f"quantos militares a QOD_CONSOLIDADA lota em cada divisão com o previsto no quadro. Em {len(linhas)} divisões a lotação "
+        f"passa do previsto ({sum(l[4] for l in linhas)} pessoas a mais no total). Isso é o QOD ocupando mais gente do que o quadro "
+        "fixa — a DPlaG confere se o quadro está desatualizado, e a CPPA se há ocupante a mais. As 25 maiores diferenças:")
+    tabela(d, ["Unidade", "Divisão", "Previsto", "Lotados", "Diferença"], [tuple(l) for l in linhas[:25]],
+           larguras=[2.3, 8.5, 2, 2, 2], tam=8)
+
+    d.add_heading("Encaminhamentos sugeridos", 1)
+    marcador(d, " confirmar o previsto correto do 2º GB (671 ou 485) e do 6º GB (201 ou 232); explicar as 163 vagas FUNCIONAIS "
+                "acima do efetivo fixado; manter o ID_FUNCAO estável; atualizar QOD_FUNCOES para setembro (ou desativá-la); "
+                "alinhar os nomes de seção entre o catálogo e os quadros; corrigir a numeração repetida dos quadros e o mês do GERAL 001.",
+             "DPlaG:")
+    marcador(d, " corrigir a matrícula do Subcomandante-Geral na QOD_CONSOLIDADA; revisar os 2 ocupantes fora do Pecúlio, os postos "
+                "desatualizados e as ocupações em unidade diferente da lotação.", "CPPA:")
+    marcador(d, " revisar as divisões em que a lotação passa do previsto.", "As duas:")
     d.add_paragraph()
     p = d.add_paragraph("Anexo: QOD_apontamentos.xlsx (todas as linhas dos apontamentos acima).")
     p.runs[0].italic = True
@@ -352,8 +392,43 @@ def relatorio_df():
     cabe = ["Enquadramento", "Lançamentos", "Valor (empenhado)", "Valor liquidado", "Valor pago"]
     tabela(d, cabe, [(a or "(sem enquadramento)", b, float(v or 0), float(l or 0), float(p or 0)) for a, b, v, l, p in enq],
            larguras=[5, 2.2, 3.6, 3.6, 3.6], tam=8)
-    marcador(d, " 123 lançamentos de Autorização não têm mês: 91 AGUARDANDO, 15 CANCELADO e 11 NÃO SE ENQUADRA (esperado), 3 sem situação "
-                "e 3 EMPENHADO (estes aparecem nos apontamentos).", "Mês:")
+    cur.execute("""select coalesce(situacao, '(sem situação)'), count(*) from core.fato_financeiro
+                   where bloco = 'autorizacao' and mes_rotulo is null group by 1 order by 2 desc""")
+    sem_mes = cur.fetchall()
+    total_sem_mes = sum(n for _, n in sem_mes)
+    marcador(d, f" {total_sem_mes} lançamentos de Autorização não têm mês: " +
+             ", ".join(f"{n} {s}" for s, n in sem_mes) +
+             ". Os AGUARDANDO, CANCELADO e NÃO SE ENQUADRA são esperados; os EMPENHADO e os sem situação aparecem nos apontamentos.",
+             "Mês:")
+
+    d.add_heading("7. Dúvidas para a DF", 1)
+    d.add_paragraph(
+        "Pontos em que o sistema precisa de uma definição da Diretoria de Finanças para mostrar o número certo. "
+        "Enquanto não houver resposta, o sistema mostra os dados como estão na planilha.")
+    marcador(d, " o card de Finanças de cada unidade soma o valor PAGO dos lançamentos EMPENHADO (no SFI Ordinário, o valor liquidado, como no painel da DF). "
+                "É essa a métrica correta, ou deveria ser o empenhado ou o liquidado? Quando a DF definir, o sistema se ajusta.",
+             "1. O que é gasto:")
+    marcador(d, " 57 lançamentos têm valor liquidado ou pago em situação diferente de EMPENHADO (por exemplo LIQUIDADO ou "
+                "AGUARDANDO). O painel só soma a situação EMPENHADO. Esses valores devem entrar nos totais?", "2. Liquidado/pago fora de EMPENHADO:")
+    marcador(d, " dois lançamentos têm pago maior que o liquidado (um deles com pago exatamente dez vezes o liquidado: "
+                "R$ 45.000 contra R$ 4.500, ofício 101 item 13). É erro de digitação (um zero a mais)? "
+                "E os 11 com pago acima do empenhado e os 10 com liquidado acima do empenhado (o maior: ofício 29 item 1, DLog, "
+                "empenhado R$ 361.820,64 e liquidado R$ 2.630.151,72)?", "3. Pago e liquidado acima do previsto:")
+    marcador(d, " a folha de pagamento (45 lançamentos, R$ 200 milhões) não tem liquidado nem pago em nenhuma linha. "
+                "A folha é paga e controlada fora desta planilha? O painel deve mostrá-la só como empenhada?", "4. Folha de pagamento:")
+    marcador(d, " “Aos mesmos”, “À mesma” e “Ao mesmo” referem-se a qual unidade? DPAFO, DAFO, SGD e SEGI pertencem a qual "
+                "unidade do organograma? Hoje essas linhas entram só no total da corporação.", "5. Destinos sem unidade:")
+    marcador(d, " 11 lançamentos (R$ 4,9 milhões) estão como “FORA DE ENQUADRAMENTO”. Como devem aparecer nos painéis?",
+             "6. Fora de enquadramento:")
+    marcador(d, " quais destes tipos são o mesmo gasto e podem ser unificados no painel? “Cota Global” × “Cota Global CBM” × "
+                "“DEA - COTA GLOBAL”; “Gestão das Taxas do CBMPE” × “Gestão de taxas do CBMPE”; “Curso de Formação” × "
+                "“Cursos de formação”; “Diárias - Operação X” × “EXECUTIVA - Diárias - Operação X”.", "7. Tipos de gasto:")
+    marcador(d, " 16 pares ofício + item aparecem em mais de uma linha. Quando o SEI e o valor são iguais, é duplicidade? "
+                "Se for, qual linha vale?", "8. Ofício + item repetidos:")
+    marcador(d, " 14 lançamentos têm campos obrigatórios em branco (destino, situação, valor, enquadramento ou tipo de gasto) "
+                "e 3 têm valor com texto no lugar do número. A DF corrige na planilha?", "9. Campos em branco e valores inválidos:")
+    marcador(d, " o painel ainda não mostra percentual de execução (a pedido do Comando). Qual é a base de cálculo que a DF "
+                "considera correta (pago ÷ empenhado, pago ÷ dotação)?", "10. Percentual de execução:")
     p = d.add_paragraph("Anexo: DF_apontamentos.xlsx (todas as linhas de cada apontamento).")
     p.runs[0].italic = True
     d.save(AQUI / "Relatorio_DF_apontamentos.docx")

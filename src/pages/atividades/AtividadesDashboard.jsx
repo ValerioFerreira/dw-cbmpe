@@ -7,8 +7,6 @@ import { getCaminho } from "@/lib/cbmpe";
 import { siglasPermitidas } from "@/lib/dashboardHelpers";
 import { TODOS_MODULOS_ATIVIDADES, familiaDoModulo } from "@/lib/atividadesEspecificas";
 import EmptyState from "@/components/ui/empty-state";
-import vacinacaoDashboardEmbutido from "@/data/real/vacinacao_dashboard.json";
-import ocorrenciasDashboardEmbutido from "@/data/real/ocorrencias_dashboard.json";
 import { usePainelDw } from "@/lib/usePainelDw";
 
 import ModuloMapaForca from "./ModuloMapaForca";
@@ -61,6 +59,14 @@ const COMPONENTES = {
   "ocorrencias-atividade-comunitaria": ModuloAtividadeComunitaria,
 };
 
+// Sem JSON embutido (removidos em 2026-10-06): os painéis vêm do backend (DW) ou, no app
+// publicado na Vercel, do snapshot — ver src/lib/dadosClient.js.
+const VACINACAO_SEM_DADOS = { eventos: [], participacao: [] };
+const OCORRENCIAS_SEM_DADOS = {
+  ocorrencias: [], aphEstatistica: [], incendio: [], salvamento: [], prevencao: [], produtosPerigosos: [],
+  produtosPerigososDiagnostico: { semMatchNaBasico: 0, matchMasDataNula: 0, comData: 0 }, pendenciasSemSql: {},
+};
+
 export default function AtividadesDashboard() {
   const { id, modulo } = useParams();
   const { indicadores, unidades, porId } = useCbmpe();
@@ -79,8 +85,8 @@ export default function AtividadesDashboard() {
 
   // JSON embutido ou DW (GET /dados/painel/*), buscado só quando a família
   // do painel está aberta — ver src/lib/usePainelDw.js.
-  const vacinacaoDashboardReal = usePainelDw("vacinacao", vacinacaoDashboardEmbutido, familiaAtual?.id === "vacinacao");
-  const ocorrenciasDashboardReal = usePainelDw("ocorrencias", ocorrenciasDashboardEmbutido, familiaAtual?.id === "ocorrencias");
+  const vacinacaoDashboardReal = usePainelDw("vacinacao", VACINACAO_SEM_DADOS, familiaAtual?.id === "vacinacao");
+  const ocorrenciasDashboardReal = usePainelDw("ocorrencias", OCORRENCIAS_SEM_DADOS, familiaAtual?.id === "ocorrencias");
 
   if (!ind || ind.nome !== "Atividades Específicas" || !moduloInfo) {
     return (

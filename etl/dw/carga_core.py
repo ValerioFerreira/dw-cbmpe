@@ -2261,12 +2261,72 @@ def carregar_divisoes_qod(cur):
         print(f"  qod_funcao_divisao           !! FALHOU, mantida a rodada anterior: {erro}")
 
 
+# ---------------------------------------------------------------------------
+# Retencao do Mapa de Forca (22_retencao_e_views.sql)
+# ---------------------------------------------------------------------------
+JANELA_MAPA_FORCA_DIAS = 30
+
+
+def guardar_historico_emprego(cur):
+    """Antes de reconstruir os fatos de lancamento, grava (agregado por dia, sem
+    matricula nem nome) o que o core ainda tem de dias que ja SAIRAM da janela de 30
+    dias. A raw so copia a janela (stg.raw_filtro), entao sem isto o corte apagaria a
+    serie historica que o BI e o validar.py usam. Idempotente; na primeira rodada
+    depois da retencao o core ainda tem os anos antigos e eles entram todos aqui."""
+    cur.execute("SELECT to_regclass('core.emprego_historico_ome_dia') IS NOT NULL")
+    if not cur.fetchone()[0]:
+        print("  historico do emprego         (22_retencao_e_views.sql nao aplicado -- pulado)")
+        return
+    cur.execute("SAVEPOINT historico_emprego")
+    try:
+        cur.execute("SELECT max(date) FROM raw_mapa_forca.launches")
+        fim = cur.fetchone()[0]
+        if fim is None:
+            cur.execute("RELEASE SAVEPOINT historico_emprego")
+            print("  historico do emprego         (raw_mapa_forca.launches vazia -- nada a guardar)")
+            return
+        corte = fim - timedelta(days=JANELA_MAPA_FORCA_DIAS - 1)
+        cur.execute("""
+            INSERT INTO core.emprego_historico_viatura_dia (id_frota, data, lancamentos)
+            SELECT v.id_frota, t.data, count(*)
+            FROM core.fato_lancamento_viatura l
+            JOIN core.dim_viatura v ON v.sk_viatura = l.sk_viatura
+            JOIN core.dim_tempo t ON t.sk_tempo = l.sk_tempo
+            WHERE t.data < %s AND v.id_frota IS NOT NULL
+            GROUP BY v.id_frota, t.data
+            ON CONFLICT (id_frota, data) DO UPDATE SET lancamentos = EXCLUDED.lancamentos
+        """, (corte,))
+        n_vtr = cur.rowcount
+        cur.execute("""
+            INSERT INTO core.emprego_historico_ome_dia (sigla, data, lancamentos, militares_escalados)
+            SELECT o.sigla, t.data, count(DISTINCT l.id_lancamento), count(*)
+            FROM core.fato_lancamento_militar l
+            JOIN core.dim_tempo t ON t.sk_tempo = l.sk_tempo
+            JOIN core.dim_ome o ON o.sk_ome = l.sk_ome
+            WHERE t.data < %s
+            GROUP BY o.sigla, t.data
+            ON CONFLICT (sigla, data) DO UPDATE
+                SET lancamentos = EXCLUDED.lancamentos, militares_escalados = EXCLUDED.militares_escalados
+        """, (corte,))
+        n_ome = cur.rowcount
+        cur.execute("RELEASE SAVEPOINT historico_emprego")
+        print(f"  historico do emprego         ate {corte - timedelta(days=1)}: {n_vtr} viatura-dias, {n_ome} unidade-dias gravados")
+    except Exception as erro:  # noqa: BLE001
+        # Diferente das divisoes: aqui a carga PARA. Se seguisse, o core seria reconstruido
+        # so com a janela e o historico que ainda esta nele se perderia para sempre.
+        cur.execute("ROLLBACK TO SAVEPOINT historico_emprego")
+        raise SystemExit(f"historico do emprego falhou -- carga interrompida para nao perder o core antigo: {erro}")
+
+
 def main():
     # role=etl_writer: o que esta carga cria (views em stg) fica com o dono
     # das camadas, seja rodada pelo Windmill (windmill_etl) ou a mao pelo
     # administrador. Ver etl/dw/ddl/07_papeis.sql.
     conn = psycopg2.connect(url_do_dw(), connect_timeout=30, options="-c role=etl_writer")
     cur = conn.cursor()
+
+    print("Historico do emprego operacional (antes do corte da janela):")
+    guardar_historico_emprego(cur)
 
     print("Snapshots diarios (guardados pela chave natural):")
     limpar(cur)

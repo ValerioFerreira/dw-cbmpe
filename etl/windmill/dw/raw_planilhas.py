@@ -25,6 +25,7 @@ Uso:
 """
 import io
 import os
+import re
 import sys
 import unicodedata
 
@@ -183,6 +184,58 @@ def nome_de_coluna(bruto, posicao):
     return f"col_{posicao:02d}_{limpo}" if limpo else f"col_{posicao:02d}"
 
 
+# ---------------------------------------------------------------------------
+# Views que dependem de uma tabela raw
+# ---------------------------------------------------------------------------
+# Quando a origem muda de colunas, a tabela raw e recriada (DROP ... CASCADE), e o
+# CASCADE leva junto toda view que dependia dela -- inclusive as de marts que o app
+# le (marts.viatura_nominal, marts.painel_cim_*, ...). Para isso nao derrubar o app
+# ate alguem reaplicar o DDL, as views dependentes sao guardadas (definicao, dono e
+# permissoes) antes do DROP e recriadas logo depois da tabela. Se uma view usar uma
+# coluna que sumiu, ela nao volta e a carga AVISA (a view some ate o DDL ser ajustado).
+def salvar_views_dependentes(cur, schema, tabela):
+    cur.execute("""
+        WITH RECURSIVE dep(view_oid, nivel) AS (
+            SELECT r.ev_class, 1
+            FROM pg_depend d
+            JOIN pg_rewrite r ON r.oid = d.objid
+            JOIN pg_class v ON v.oid = r.ev_class AND v.relkind = 'v'
+            WHERE d.refobjid = to_regclass(%s) AND d.classid = 'pg_rewrite'::regclass
+              AND r.ev_class <> d.refobjid
+            UNION
+            SELECT r.ev_class, dep.nivel + 1
+            FROM dep
+            JOIN pg_depend d ON d.refobjid = dep.view_oid AND d.classid = 'pg_rewrite'::regclass
+            JOIN pg_rewrite r ON r.oid = d.objid
+            JOIN pg_class v ON v.oid = r.ev_class AND v.relkind = 'v'
+            WHERE r.ev_class <> dep.view_oid
+        )
+        SELECT n.nspname, c.relname, pg_get_viewdef(c.oid, true), c.relacl::text, max(dep.nivel)
+        FROM dep
+        JOIN pg_class c ON c.oid = dep.view_oid
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        GROUP BY n.nspname, c.relname, c.oid, c.relacl
+        ORDER BY max(dep.nivel), n.nspname, c.relname
+    """, (f'"{schema}"."{tabela}"',))
+    return cur.fetchall()
+
+
+def restaurar_views_dependentes(cur, salvas):
+    """Recria as views guardadas (na ordem em que dependem umas das outras)."""
+    for esquema, nome, definicao, acl, _nivel in salvas:
+        cur.execute("SAVEPOINT restaurar_view")
+        try:
+            cur.execute(f'CREATE VIEW "{esquema}"."{nome}" AS {definicao.rstrip().rstrip(";")}')
+            for papel in ("app_reader", "bi_reader"):
+                if acl and re.search(rf"(^|[{{,\"]){papel}=[a-zA-Z*]*r", acl):
+                    cur.execute(f'GRANT SELECT ON "{esquema}"."{nome}" TO {papel}')
+            cur.execute("RELEASE SAVEPOINT restaurar_view")
+            print(f"    view {esquema}.{nome} recriada")
+        except Exception as erro:  # noqa: BLE001 -- a carga nao pode cair por uma view
+            cur.execute("ROLLBACK TO SAVEPOINT restaurar_view")
+            print(f"    !! view {esquema}.{nome} NAO foi recriada ({erro}); ajuste o DDL e reaplique")
+
+
 def gravar(conn, schema, tabela, df, fonte):
     if df.shape[1] == 0:
         print(f"  {schema}.{tabela:<28} vazia na origem -- ignorada")
@@ -220,12 +273,14 @@ def gravar(conn, schema, tabela, df, fonte):
     if [tuple(r) for r in cur.fetchall()] == desejadas:
         cur.execute(f'TRUNCATE "{schema}"."{tabela}"')
     else:
+        salvas = salvar_views_dependentes(cur, schema, tabela)
         cur.execute(f'DROP TABLE IF EXISTS "{schema}"."{tabela}" CASCADE')
         cur.execute(
             f'CREATE TABLE "{schema}"."{tabela}" (\n    linha integer,\n    {corpo},\n'
             f'    carga_id bigint NOT NULL,\n'
             f'    extraido_em timestamptz NOT NULL DEFAULT now()\n)'
         )
+        restaurar_views_dependentes(cur, salvas)
 
     # O cabecalho original, para nao se perder quando a planilha mudar.
     cur.execute("""

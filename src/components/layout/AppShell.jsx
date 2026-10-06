@@ -4,6 +4,7 @@ import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import CommandPalette from "@/components/search/CommandPalette";
 import LobGuard from "./LobGuard";
+import AvisoSnapshot from "./AvisoSnapshot";
 import { useCbmpe } from "@/lib/cbmpe-context";
 import { getCaminho } from "@/lib/cbmpe";
 
@@ -55,6 +56,7 @@ export default function AppShell() {
         <main className="flex-1 overflow-y-auto scrollbar-thin">
           <div className="mx-auto w-full max-w-[1900px] px-4 py-5 sm:px-6 sm:py-7 lg:px-12">
             <LobGuard />
+            <AvisoSnapshot />
             <Outlet />
           </div>
         </main>

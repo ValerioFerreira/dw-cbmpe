@@ -1,5 +1,3 @@
-import efetivoListaEmbutida from "@/data/real/efetivo_lista.json";
-
 // Relação nominal do efetivo usada pelas telas (tabela, ficha, painéis).
 //
 // Começa com o JSON embutido no bundle e, quando o backend alcança o DW
@@ -10,10 +8,13 @@ import efetivoListaEmbutida from "@/data/real/efetivo_lista.json";
 //
 // O que vem do DW já vem recortado pelo perfil do usuário no servidor: quem
 // só pode ver a própria unidade recebe só ela.
+// Sem JSON embutido desde 2026-10-06 (efetivo_lista.json, com nome completo e telefone,
+// ia no pacote da Vercel sem login): começa vazia e é preenchida pelo backend ou pelo
+// snapshot (src/lib/dadosClient.js).
 const efetivoLista = {
-  fonte: efetivoListaEmbutida.fonte,
-  gerado_em: efetivoListaEmbutida.gerado_em,
-  por_unidade: efetivoListaEmbutida.por_unidade,
+  fonte: null,
+  gerado_em: null,
+  por_unidade: {},
   doDw: false,
 };
 

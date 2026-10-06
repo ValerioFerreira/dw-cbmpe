@@ -40,17 +40,16 @@ GROUP BY 1;
 -- (Metabase, 2026-08-19) reproduzido sem reinterpretar: LEAST entre a projecao
 -- por tempo de servico (25 anos mulher / 30 homem, ate 2021-12-31; 35 anos
 -- depois) e a por idade-limite (67 oficial, 65 praca).
--- Nota: a lista de oficiais do SQL original nao tem "Cap QOC". Hoje isso nao muda
--- o resultado, porque o Peculio nao traz nenhum "Cap QOC" (0 dos 2.654 militares;
--- o quadro preve 97). Se algum dia entrar, ele fica fora da previsao -- confirmar
--- com o Igor se a omissao foi proposital.
+-- "Cap QOC" entra na lista de oficiais (decisao do usuario, 2026-10-06): o SQL original
+-- do Igor nao o tinha. Hoje o Peculio nao traz nenhum Cap QOC (o quadro preve 97), entao
+-- o resultado nao muda, mas nao fica de fora quando aparecer.
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE VIEW marts.painel_saida_previsao AS
 WITH base AS (
     SELECT e.data_ingresso AS data_praca, e.sexo,
            CASE
                WHEN e.posto_grad IN ('Cel', 'Cel Promo. Req.', 'Ten Cel', 'Ten Cel Promo. Req.',
-                                     'Maj QOC', 'Maj QOA', 'Maj QOA Promo. Req.', 'Cap QOA',
+                                     'Maj QOC', 'Maj QOA', 'Maj QOA Promo. Req.', 'Cap QOC', 'Cap QOA',
                                      '1ºTen QOC', '1ºTen QOA', '2ºTen QOC', '2ºTen QOA',
                                      '2ºTen QOA Promo. Req.', 'Aspirante') THEN 'oficial'
                WHEN e.posto_grad IN ('Subten', 'Subten Promo. Req.', '1ºSgt', '1ºSgt Promo. Req./Invalidez',

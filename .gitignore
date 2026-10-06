@@ -52,3 +52,6 @@ CBMPE - Repositório de Insígnias*/
 docs/relatorios/*.docx
 docs/relatorios/*.xlsx
 docs/relatorios/*.json
+
+# Snapshot publicado so pela branch `vercel` (etl/snapshot/publicar_snapshot.py)
+public/snapshot/
