@@ -35,6 +35,13 @@ const lotacao = asyncHandler(async (req, res) => {
   res.status(200).json(dados);
 });
 
+const viaturas = asyncHandler(async (req, res) => {
+  const siglas = await siglasDoUsuario(req, "Viaturas");
+  const dados = await dadosService.viaturasNominal(siglas);
+  res.set("Cache-Control", "no-store");
+  res.status(200).json(dados);
+});
+
 // Painéis: mesma regra de visibilidade que src/lib/atividadesEspecificas.js
 // aplica na tela, agora no servidor.
 const painelDf = asyncHandler(async (req, res) => {
@@ -110,5 +117,5 @@ const mapaForcaDia = asyncHandler(async (req, res) => {
 
 export {
   metricas, efetivo, lotacao, painelDf, painelVacinacao, painelOcorrencias,
-  painelEfetivo, painelMovimentacao, mapaForcaIndice, mapaForcaDia,
+  viaturas, painelEfetivo, painelMovimentacao, mapaForcaIndice, mapaForcaDia,
 };

@@ -16,7 +16,6 @@ import efetivoReal from "./real/efetivo.json";
 import efetivoPrevistoReal from "./real/efetivo_previsto.json";
 import efetivoPrevistoDivisoesReal from "./real/efetivo_previsto_divisoes.json";
 import lotacaoFuncaoReal from "./real/lotacao_funcao.json";
-import viaturasListaReal from "./real/viaturas_lista.json";
 
 const DIACRITICOS_REGEX = new RegExp("[\\u0300-\\u036f]", "g");
 
@@ -343,22 +342,14 @@ Object.keys(METRICAS).forEach((sigla) => {
   METRICAS[sigla] = { ...METRICAS[sigla], efetivoPrevisto: efetivoPrevistoReal.por_unidade[sigla] ?? 0 };
 });
 
-// ----- Overlay de Viaturas real (fonte: sistema de frotas → Neon, ver
-// etl/viaturas/) -----
-// Mesmo princípio do overlay de Efetivo: substitui o valor fictício de
-// TODAS as unidades pelo valor real (0 incluído) para nunca misturar
-// número real com mock na mesma tela. Viaturas sem transferência
-// registrada (sem OME conhecida) e a viatura da GTA (unidade fora do
-// organograma, confirmado com o usuário) ficam de fora de qualquer
-// unidade específica — decisão registrada em DW_PLANEJAMENTO.md.
-// A contagem é derivada de viaturas_lista.json (por veículo) em vez do
-// agregado bruto de viaturas.json (COUNT(*) sem filtro de situação no SQL
-// do extrator) — sem isso o card mostrava um total maior do que a tabela
-// de detalhe, que já exclui viaturas em situação "Descarregada" (mesma
-// regra de ViaturaDetalhe.jsx). Bug reportado pelo usuário, 2026-08-19.
+// ----- Viaturas: sem número fictício (2026-10-06) -----
+// O valor real vem do DW (aplicarMetricasDw, domínio "viaturas": veículos da
+// unidade, sem os descarregados e sem os de unidade fora do organograma, como a
+// GTA). Antes do DW responder, o card mostra 0, nunca o mock — mesmo princípio
+// de Finanças logo abaixo. O JSON viaturas_lista.json que alimentava este
+// overlay foi removido.
 Object.keys(METRICAS).forEach((sigla) => {
-  const veiculos = viaturasListaReal.por_unidade[sigla] || [];
-  METRICAS[sigla] = { ...METRICAS[sigla], viaturas: veiculos.filter((v) => v.situacao !== "Descarregada").length };
+  METRICAS[sigla] = { ...METRICAS[sigla], viaturas: 0 };
 });
 
 // ----- Finanças: sem número fictício (2026-10-01) -----

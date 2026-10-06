@@ -12,8 +12,7 @@ import ScrollDuplo from "@/components/ui/scroll-duplo";
 import BadgeSituacao from "@/components/ui/badge-situacao";
 import { FiltroColuna, passaFiltro, valorFiltro, filtrosIniciaisDaUrl } from "@/components/ui/filtro-coluna";
 import { useLarguras, useLarguraContainer, ColGroup, AlcaResize, CELULA_TRUNCADA } from "@/components/ui/tabela-colunas";
-import viaturasLista from "@/data/real/viaturas_lista.json";
-import viaturasDetalhe from "@/data/real/viaturas_detalhe.json";
+import { registrosViaturas } from "@/lib/viaturasDashboard";
 
 const TAMANHOS_PAGINA = [10, 20, 50];
 
@@ -26,8 +25,7 @@ function fmtSimNao(v) {
 // Modelo, Ano, Situação (com badge colorido). As colunas a partir de "Tipo"
 // foram acrescentadas pra sustentar o drill-down do Dashboard de Viaturas
 // (ver linkViaturaTabela em viaturasDashboard.js) — vêm de
-// viaturas_detalhe.json (por placa), não de viaturas_lista.json, então só
-// existem pra viaturas com placa cadastrada (ver junção em registrosBase).
+// relação de viaturas do DW (os mesmos registros do dashboard).
 const COLUNAS = [
   { chave: "nome", rotulo: "Nome", filtravel: true, largura: 160, bruto: (r) => r.nome || null },
   { chave: "ome", rotulo: "OME", filtravel: true, largura: 120, bruto: (r) => r.ome || null },
@@ -92,40 +90,18 @@ export default function ViaturaDetalhe() {
   //
   // Regras de situação (pedido do usuário, 2026-08-18): viaturas
   // "Descarregada" são omitidas da tabela; "Devolvida" é exibida como
-  // "Ativa". A transformação é feita aqui na base pra valer também no
-  // filtro, no badge e na exportação — mesma regra usada em
-  // viaturasDashboard.js (LINHAS_VIATURAS), pro dashboard nunca mostrar um
-  // total que esta tabela não bate.
-  //
-  // Enriquecimento por placa: viaturas_lista.json só tem os campos "de
-  // ficha" (ano/modelo/nome/patrimônio/situação); os campos usados pelos
-  // filtros de drill-down do dashboard (tipo, destinação, posse etc.) vêm
-  // de viaturas_detalhe.json (por placa) — cobertura parcial (só viaturas
-  // com placa cadastrada, 805 de 840), mesmo padrão de junção parcial já
-  // usado em EfetivoDetalhe.jsx (funcaoDoMilitar/lotacaoFuncao).
+  // "Ativa". A transformação vem de registrosViaturas() (viaturasDashboard.js),
+  // a mesma base do dashboard — pra valer também no filtro, no badge e na
+  // exportação, e o dashboard nunca mostrar um total que esta tabela não bate.
+  // Os registros vêm do DW já recortados pelo perfil no servidor.
   const registrosBase = React.useMemo(() => {
     if (!unidade) return [];
-    const siglas = [unidade.sigla, ...getSubordinados(unidades, unidade.id).map((u) => u.sigla)];
-    return siglas.flatMap((sigla) =>
-      (viaturasLista.por_unidade[siglaDeDados(sigla)] || [])
-        .filter((r) => r.situacao !== "Descarregada")
-        .map((r) => {
-          const placa = (r.placa || "").trim();
-          const det = placa ? viaturasDetalhe.por_placa[placa] : null;
-          return {
-            ...r,
-            ome: sigla,
-            situacao: r.situacao === "Devolvida" ? "Ativa" : r.situacao,
-            tipoAcronym: det?.tipoAcronym ?? null,
-            destinacao: det?.destinacao ?? null,
-            posse: det?.posse ?? null,
-            combustivel: det?.combustivel ?? null,
-            rastreado: det?.rastreado ?? null,
-            categoriaHabilitacao: det?.categoriaHabilitacao ?? null,
-            condutores: det?.condutores ?? null,
-          };
-        })
+    const siglas = new Set(
+      [unidade.sigla, ...getSubordinados(unidades, unidade.id).map((u) => u.sigla)].map(siglaDeDados)
     );
+    return registrosViaturas()
+      .filter((r) => siglas.has(r.sigla))
+      .map((r) => ({ ...r, ome: r.sigla }));
   }, [unidade, unidades]);
 
   // Semeia os filtros a partir da URL quando a navegação veio de um clique

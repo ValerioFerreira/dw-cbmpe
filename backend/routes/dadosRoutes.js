@@ -1,7 +1,7 @@
 import express from "express";
 import {
   metricas, efetivo, lotacao, painelDf, painelVacinacao, painelOcorrencias,
-  painelEfetivo, painelMovimentacao, mapaForcaIndice, mapaForcaDia,
+  viaturas, painelEfetivo, painelMovimentacao, mapaForcaIndice, mapaForcaDia,
 } from "../controllers/dadosController.js";
 import validateToken from "../middlewares/validateToken.js";
 
@@ -15,9 +15,10 @@ const router = express.Router();
 router.get("/metricas", validateToken, metricas);
 
 // Nominais — recortados no servidor pelas unidades que o perfil libera
-// (services/acessoService.js), no indicador Efetivo.
+// (services/acessoService.js), no indicador Efetivo (e Viaturas, para a frota).
 router.get("/efetivo", validateToken, efetivo);
 router.get("/lotacao", validateToken, lotacao);
+router.get("/viaturas", validateToken, viaturas);
 
 // Painéis corporativos — recorte por perfil no servidor (ver o controller).
 router.get("/painel/df", validateToken, painelDf);

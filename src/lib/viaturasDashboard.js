@@ -1,18 +1,15 @@
 import { useMemo, useState } from "react";
 import { passaMultiSelect, siglasPermitidas } from "@/lib/dashboardHelpers";
 import { CIDADE_POR_OME } from "@/lib/omeGeografia";
-import viaturasDetalhe from "@/data/real/viaturas_detalhe.json";
-import viaturasLista from "@/data/real/viaturas_lista.json";
+import viaturasLista from "@/data/viaturasLista";
 
 export { groupCount, paraSerie, pctTexto, siglasPermitidas } from "@/lib/dashboardHelpers";
 export { omesDaCidade } from "@/lib/omeGeografia";
 
 // Helpers e constantes do "Dashboard Pessoal de Viaturas" — mesmo padrão de
 // módulos-em-abas já validado no Efetivo (ver efetivoDashboard.js), aplicado
-// à frota. Fonte: viaturas_detalhe.json (805 viaturas com placa, campos
-// ricos por veículo — tipo, combustível, posse, rastreamento etc.), não
-// viaturas_lista.json (que só tem ano/modelo/nome/patrimônio/placa/situação
-// e alimenta a tabela real em ViaturaDetalhe.jsx).
+// à frota. Fonte: relação de viaturas do DW (src/data/viaturasLista.js), com os
+// campos ricos por veículo — tipo, combustível, posse, rastreamento etc.
 
 export const MODULOS_VIATURAS_DASHBOARD = [
   { n: 1, key: "geral", nome: "Frota Geral" },
@@ -25,15 +22,13 @@ export const MODULOS_VIATURAS_DASHBOARD = [
 export const FAIXA_IDADE_ORDER = ["0-5", "6-10", "11-15", "16-20", "21+"];
 export const FAIXA_CONDUTORES_ORDER = ["0", "1", "2-3", "4+"];
 
-// De-para sigla curta de viaturas_detalhe.json (ex. "1ºGB", "DInter/1",
-// "CAT AGRESTE") -> sigla real de viaturas.json/viaturas_lista.json (ex.
-// "1º GB", "DINTER I", "CAT/AG") — mesma natureza do problema já resolvido
-// pra Efetivo em omeSiglaReal (efetivoDashboard.js): duas extrações
-// diferentes, duas grafias diferentes pra mesma OME. Sem essa tradução o
-// drill-down pra tabela real de Viaturas (ViaturaDetalhe.jsx, que lê
-// viaturas_lista.json) não encontraria ninguém nas OMEs cuja grafia diverge.
-// A maioria dos códigos de Guarnição/Diretoria já é idêntica nas duas fontes
-// (ex. "GBI", "DAS") — só entram aqui os que divergem de fato.
+// De-para sigla curta (ex. "1ºGB", "DInter/1", "CAT AGRESTE" — a grafia que as
+// telas e o mapa de cidades usam) <-> sigla do organograma (ex. "1º GB",
+// "DINTER I", "CAT/AG") — mesma natureza do problema já resolvido pra Efetivo em
+// omeSiglaReal (efetivoDashboard.js). O DW entrega a sigla do organograma;
+// `ome` das linhas é a curta, e o drill-down para a tabela traduz de volta.
+// A maioria dos códigos já é idêntica (ex. "GBI", "DAS") — só entram aqui os
+// que divergem de fato.
 const OME_SIGLA_REAL_VIATURAS = {
   "1ºGB": "1º GB", "2ºGB": "2º GB", "3ºGB": "3º GB", "4ºGB": "4º GB",
   "5ºGB": "5º GB", "6ºGB": "6º GB", "7ºGB": "7º GB", "9ºGB": "9º GB",
@@ -47,11 +42,8 @@ export function omeSiglaRealViatura(sigla) {
   return OME_SIGLA_REAL_VIATURAS[sigla] || sigla;
 }
 
-// Inverso de OME_SIGLA_REAL_VIATURAS (real -> curta) — usado só pra
-// escrever a sigla curta nos registros sintéticos abaixo (viaturas sem
-// placa), já que viaturas_lista.json usa a grafia real (chave de
-// por_unidade), mas LINHAS_VIATURAS precisa da grafia curta pra ficar
-// consistente com o resto do dataset (CIDADE_POR_OME, filtros, drill-down).
+// Inverso de OME_SIGLA_REAL_VIATURAS (real -> curta): as linhas do dashboard
+// usam a grafia curta, consistente com CIDADE_POR_OME, os filtros e o drill-down.
 const SIGLA_CURTA_VIATURAS = Object.fromEntries(
   Object.entries(OME_SIGLA_REAL_VIATURAS).map(([curta, real]) => [real, curta])
 );
@@ -59,76 +51,43 @@ function omeSiglaCurtaViatura(siglaReal) {
   return SIGLA_CURTA_VIATURAS[siglaReal] || siglaReal;
 }
 
-// Restringe um array de LINHAS_VIATURAS às siglas reais permitidas (ver
+// Restringe um array de registros de viaturas às siglas reais permitidas (ver
 // siglasPermitidas em dashboardHelpers.js).
 export function filtrarPorEscopoViaturas(registros, permitidas) {
   return registros.filter((r) => permitidas.has(omeSiglaRealViatura(r.ome)));
 }
 
-// Linhas de trabalho do dashboard — achatadas de viaturas_detalhe.por_placa,
-// com duas regras de negócio já aplicadas, pra bater com o resto do app:
-//  - GTA é unidade fora do organograma (ver comentário em organograma.js,
-//    src/data/organograma.js linha ~179) — sua única viatura fica de fora de
-//    qualquer contagem por OME, mesma decisão já tomada pro KPI real.
-//  - Viaturas "Descarregada" somem da lista e "Devolvida" aparece como
-//    "Ativa" — mesma transformação já aplicada em ViaturaDetalhe.jsx, pra o
-//    dashboard nunca mostrar um total que a tabela de baixo não bate.
-// `cidade` é derivado aqui via CIDADE_POR_OME (não vem pronto na fonte, ao
-// contrário de militares.json).
-const LINHAS_COM_PLACA = Object.entries(viaturasDetalhe.por_placa)
-  .map(([placa, r]) => ({ ...r, placa }))
-  .filter((r) => r.ome !== "GTA" && r.situacao !== "Descarregada")
-  .map((r) => ({
-    ...r,
-    situacao: r.situacao === "Devolvida" ? "Ativa" : r.situacao,
-    cidade: CIDADE_POR_OME[r.ome] || null,
-  }));
-
-// viaturas_detalhe.json (por placa) não consegue representar veículos sem
-// placa cadastrada na fonte (embarcações/reboques/motos aquáticas, ex.
-// "SEADOO GTI 170 S", "DB-300") — 35 no total, 771-736 na base de hoje.
-// Achados comparando viaturas_lista.json x viaturas_detalhe.json
-// (2026-08-19): fora essas 35, os dois datasets têm exatamente o mesmo
-// conjunto de veículos (mesmas 736 placas) — não é bug de sincronização,
-// é limitação estrutural de uma fonte que só existe "por placa". Sem
-// incluir esses 35, o Dashboard de Viaturas mostrava um total (736) menor
-// que o card/tabela real (771), que contam pelo registro do bem, com ou
-// sem placa. Entram aqui como registros sintéticos — mesmos campos
-// "de ficha" (ano/modelo/nome/patrimônio/situação, de viaturas_lista.json)
-// que a tabela real já usa; os campos que só existem em viaturas_detalhe
-// (posse/combustível/rastreamento/condutores etc.) ficam null, porque a
-// fonte rica não tem esse veículo — os módulos que dependem deles (Idade,
-// Tipos, Manutenção/Uso) já tratam null como "não informado".
-const PLACAS_COM_DETALHE = new Set(Object.keys(viaturasDetalhe.por_placa).map((p) => p.trim().toUpperCase()));
-const LINHAS_SEM_PLACA = [];
-Object.entries(viaturasLista.por_unidade).forEach(([siglaReal, veiculos]) => {
-  veiculos.forEach((v) => {
-    if (v.situacao === "Descarregada") return;
-    const placa = (v.placa || "").trim();
-    if (placa && PLACAS_COM_DETALHE.has(placa.toUpperCase())) return; // já coberto por LINHAS_COM_PLACA
-    const ome = omeSiglaCurtaViatura(siglaReal);
-    if (ome === "GTA") return;
-    LINHAS_SEM_PLACA.push({
-      placa: placa || null,
-      ome,
-      ano: v.ano ?? null,
-      modelo: v.modelo ?? null,
-      nome: v.nome ?? null,
-      patrimonio: v.patrimonio ?? null,
-      situacao: v.situacao === "Devolvida" ? "Ativa" : v.situacao,
-      tipoAcronym: v.nome ? v.nome.split("-")[0] : null,
-      numeroOrdem: v.nome ? v.nome.split("-")[1] || null : null,
-      marca: null, chassis: null, combustivel: null, condutores: null,
-      destinacao: null, posse: null, rastreado: null, renavam: null,
-      categoriaHabilitacao: null, caracterizado: null,
-      ultimoAbastecimentoData: null, ultimoAbastecimentoValor: null,
-      odometro: null,
-      cidade: CIDADE_POR_OME[ome] || null,
-    });
-  });
-});
-
-export const LINHAS_VIATURAS = [...LINHAS_COM_PLACA, ...LINHAS_SEM_PLACA];
+// Linhas de trabalho do dashboard e da tabela — uma por veículo cadastrado na
+// Frota (DW, GET /dados/viaturas, já recortada pelo perfil), com as regras de
+// negócio aplicadas para bater com o resto do app:
+//  - veículo sem unidade no organograma (GTA) nem chega do servidor;
+//  - "Descarregada" some da lista e "Devolvida" aparece como "Ativa" — a mesma
+//    transformação da tabela (ViaturaDetalhe.jsx), para o dashboard nunca mostrar
+//    um total que a tabela de baixo não bate;
+//  - embarcações, motos aquáticas e reboques sem placa entram como qualquer outro
+//    veículo (a fonte do DW já os traz).
+// `ome` é a sigla do organograma na grafia curta que as telas e o mapa usam
+// (omeSiglaCurtaViatura); `cidade` vem de CIDADE_POR_OME.
+// Refeito só quando a lista troca de fonte.
+let cache = { base: null, linhas: [] };
+export function registrosViaturas() {
+  if (cache.base !== viaturasLista.viaturas) {
+    const linhas = viaturasLista.viaturas
+      .filter((r) => r.situacao !== "Descarregada")
+      .map((r) => {
+        const ome = omeSiglaCurtaViatura(r.sigla);
+        return {
+          ...r,
+          ome,
+          nome: r.tipoAcronym ? `${r.tipoAcronym}-${r.numeroOrdem ?? ""}` : (r.numeroOrdem ?? null),
+          situacao: r.situacao === "Devolvida" ? "Ativa" : r.situacao,
+          cidade: CIDADE_POR_OME[ome] || null,
+        };
+      });
+    cache = { base: viaturasLista.viaturas, linhas };
+  }
+  return cache.linhas;
+}
 
 // Filtro padrão dos 5 módulos do dashboard: OME, Situação, Tipo e
 // Destinação em todas as abas — mesmo princípio do useFiltrosEfetivo.

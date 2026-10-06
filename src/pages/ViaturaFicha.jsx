@@ -4,7 +4,8 @@ import { ChevronLeft, Car, Gauge, Fuel, Info } from "lucide-react";
 import SectionCard from "@/components/ui/section-card";
 import EmptyState from "@/components/ui/empty-state";
 import BadgeSituacao from "@/components/ui/badge-situacao";
-import viaturasDetalhe from "@/data/real/viaturas_detalhe.json";
+import { registrosViaturas } from "@/lib/viaturasDashboard";
+import { useCbmpe } from "@/lib/cbmpe-context";
 
 function fmtSimNao(v) {
   if (v === null || v === undefined) return "—";
@@ -59,7 +60,10 @@ function Widget({ icone: Icone, rotulo, valor, sub }) {
 export default function ViaturaFicha() {
   const { placa } = useParams();
   const navigate = useNavigate();
-  const ficha = viaturasDetalhe.por_placa?.[placa];
+  const { unidades } = useCbmpe();
+  // Da lista do DW (já recortada pelo perfil no servidor). `unidades` na dependência:
+  // a lista é trocada junto com o carregamento do organograma.
+  const ficha = React.useMemo(() => registrosViaturas().find((r) => r.placa === placa), [placa, unidades]);
 
   return (
     <div className="space-y-3 animate-fade-in">
@@ -74,8 +78,8 @@ export default function ViaturaFicha() {
       {!ficha ? (
         <EmptyState
           icon={Car}
-          titulo="Detalhamento pendente de sincronização"
-          descricao={`A ficha completa da viatura ${placa} depende de uma extensão da sincronização Frota → Neon que ainda não foi publicada/rodada (ver DW_PLANEJAMENTO.md).`}
+          titulo="Viatura não encontrada"
+          descricao={`Não há ficha da viatura ${placa} na frota que o seu perfil enxerga (ou ela está descarregada).`}
           acao={<Link to="/organograma" className="text-[13px] font-medium text-primary hover:underline">Voltar ao organograma</Link>}
         />
       ) : (
@@ -102,7 +106,7 @@ export default function ViaturaFicha() {
 
           <SectionCard titulo="Resumo">
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-              <Campo rotulo="OME" valor={ficha.ome} />
+              <Campo rotulo="OME" valor={ficha.sigla} />
               <Campo rotulo="Posse" valor={ficha.posse} />
               <Campo rotulo="Tipo" valor={ficha.tipoAcronym} />
               <Campo rotulo="Nº de Ordem" valor={ficha.numeroOrdem} />
@@ -122,7 +126,7 @@ export default function ViaturaFicha() {
               <Campo rotulo="Rastreado?" valor={fmtSimNao(ficha.rastreado)} />
               <Campo rotulo="Chassis" valor={ficha.chassis} />
               <Campo rotulo="Caracterizado?" valor={fmtSimNao(ficha.caracterizado)} />
-              <Campo rotulo="Condutores" valor="—" />
+              <Campo rotulo="Condutores" valor={ficha.condutores ?? "—"} nota="Contagem de condutores distintos nas transações de combustível — hipótese ainda não confirmada com a Frota." />
               <Campo rotulo="Categoria de Habilitação" valor={ficha.categoriaHabilitacao} />
             </div>
           </SectionCard>

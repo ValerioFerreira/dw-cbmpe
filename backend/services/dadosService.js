@@ -234,6 +234,50 @@ export async function painelVacinacao() {
   };
 }
 
+// Frota por viatura (etl/dw/ddl/20_viatura_nominal.sql) — a tabela e o dashboard de
+// Viaturas, a ficha de cada uma. Recortada pelas unidades que o perfil libera no
+// indicador Viaturas. `siglas` null = todas; Set vazio = nenhuma.
+export async function viaturasNominal(siglas) {
+  if (siglas && siglas.size === 0) return { fonte: "dw (marts.viatura_nominal)", viaturas: [] };
+  const parametros = [];
+  const { rows } = await getPoolDw().query(
+    `select sigla, id, placa, tipo, tipo_acronym, numero_ordem, marca, modelo, ano, patrimonio, renavam,
+            chassis, rastreado, caracterizado, posse, destinacao, combustivel, categoria_habilitacao,
+            situacao, odometro, ultimo_abastecimento_valor, ultimo_abastecimento_data, condutores
+     from marts.viatura_nominal ${filtroSiglas(siglas, parametros)}
+     order by sigla, tipo_acronym, numero_ordem`,
+    parametros
+  );
+  return {
+    fonte: "dw (marts.viatura_nominal)",
+    viaturas: rows.map((r) => ({
+      sigla: r.sigla,
+      id: r.id,
+      placa: r.placa,
+      tipo: r.tipo,
+      tipoAcronym: r.tipo_acronym,
+      numeroOrdem: r.numero_ordem,
+      marca: r.marca,
+      modelo: r.modelo,
+      ano: r.ano,
+      patrimonio: r.patrimonio,
+      renavam: r.renavam,
+      chassis: r.chassis,
+      rastreado: r.rastreado,
+      caracterizado: r.caracterizado,
+      posse: r.posse,
+      destinacao: r.destinacao,
+      combustivel: r.combustivel,
+      categoriaHabilitacao: r.categoria_habilitacao,
+      situacao: r.situacao,
+      odometro: num(r.odometro),
+      ultimoAbastecimentoValor: num(r.ultimo_abastecimento_valor),
+      ultimoAbastecimentoData: r.ultimo_abastecimento_data ? new Date(r.ultimo_abastecimento_data).toISOString() : null,
+      condutores: r.condutores,
+    })),
+  };
+}
+
 // Dashboard Pessoal de Efetivo (etl/dw/ddl/19_painel_efetivo.sql): só agregados —
 // previsto por unidade e posto (o front soma as unidades do escopo), saída de
 // militares por ano e previsão de saída. Os registros por militar vêm da relação

@@ -39,7 +39,7 @@ e as regras para chegar lá.
 | ~~`efetivo_dashboard/saida_previsao.json`~~ | **removido em 2026-10-06** — `marts.painel_saida_ano` (planilha Inativos) e `painel_saida_previsao` (SQL do Igor sobre `marts.efetivo_nominal`), ddl/19, por `GET /dados/painel/efetivo` | `raw_inativos` + DW | **Sim** | Diária |
 | ~~`efetivo_dashboard/{militares,filtros,adidos_extra,carreira_extra,previsto}.json`~~ | **removidos em 2026-10-06** — o front monta os registros da relação nominal do DW (`src/lib/efetivoMilitares.js`, de `GET /dados/efetivo`, recortada por perfil); o previsto por unidade e posto vem de `marts.previsto_quadro_posto` (ddl/19) | `marts.efetivo_nominal` | **Sim** | Diária |
 | `efetivo_dashboard/municipios_pe.json` | `etl/_geo/baixar_malha_ibge.py` + `projetar_municipios.py` | API de malhas do IBGE | Não (dado de referência) | Pontual |
-| `viaturas.json`, `viaturas_lista.json`, `viaturas_detalhe.json` | `etl/viaturas/extract_viaturas.py` (+ `mapa_forca/reconciliar_viaturas.py`) | **Neon** `Viatura` ← Windmill `apps/frota_para_neon.py` ← sistema de Frotas | Não (o DW lê a Frota direto em `raw_frota`) | Manual |
+| ~~`viaturas.json`, `viaturas_lista.json`, `viaturas_detalhe.json`~~ | **removidos em 2026-10-06** — a frota por viatura vem de `marts.viatura_nominal` (ddl/20, regras do `frota_para_neon.py` sobre `raw_frota`) por `GET /dados/viaturas`, recortada pelo perfil; o card por unidade (`marts.frota_organograma`) passa a contar da mesma view | `raw_frota` (Frota) | **Sim** | Diária |
 | `financas.json` | `etl/financas/extract_financas.py` | **Neon** `FinancaLancamento` ← `public.fin_*` ← planilha de Finanças | Não | Manual |
 | `financas_dashboard.json` | `etl/financas/extract_dashboard_df.py` | Banco `postgres`, `public.fin_sfi_ordinario`/`fin_autorizacao` | Não (o DW tem a planilha em `raw_financas`, sem uso) | Manual |
 | `vacinacao_dashboard.json` | `etl/das/extract_dashboard_vacinacoes.py` | Fonte original `vaccine_control_production` (10.193.0.20) | Não | Manual |
@@ -526,7 +526,7 @@ São a próxima leva.
 4. **Depois de validado:**
    - desligar a Vercel;
    - aposentar os extratores `etl/efetivo/extract_efetivo.py`,
-     `etl/viaturas/extract_viaturas.py`, `etl/financas/extract_financas.py`,
+     `etl/financas/extract_financas.py`,
      `extract_dashboard_df.py`, `etl/das/…` e `etl/ocorrencias/…`;
    - apagar os JSON correspondentes de `src/data/real/`.
 

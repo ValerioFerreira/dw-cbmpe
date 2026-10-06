@@ -4,7 +4,7 @@ import { ChevronRight, BarChart3, ArrowLeft, ShieldAlert } from "lucide-react";
 import { useCbmpe } from "@/lib/cbmpe-context";
 import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import { getCaminho } from "@/lib/cbmpe";
-import { MODULOS_VIATURAS_DASHBOARD, LINHAS_VIATURAS, siglasPermitidas, filtrarPorEscopoViaturas } from "@/lib/viaturasDashboard";
+import { MODULOS_VIATURAS_DASHBOARD, registrosViaturas, siglasPermitidas, filtrarPorEscopoViaturas } from "@/lib/viaturasDashboard";
 import EmptyState from "@/components/ui/empty-state";
 
 import ModuloFrotaGeral from "./ModuloFrotaGeral";
@@ -35,7 +35,8 @@ export default function ViaturasDashboard() {
   // EfetivoDashboard.jsx): só mostra a frota da unidade sendo visualizada
   // (+ subordinadas), igual a tabela real (ViaturaDetalhe.jsx) já faz.
   const permitidas = useMemo(() => siglasPermitidas(unidade, unidades), [unidade, unidades]);
-  const viaturas = useMemo(() => filtrarPorEscopoViaturas(LINHAS_VIATURAS, permitidas), [permitidas]);
+  // `unidades` na dependência: a lista é trocada pela do DW junto com o carregamento do organograma.
+  const viaturas = useMemo(() => filtrarPorEscopoViaturas(registrosViaturas(), permitidas), [permitidas, unidades]);
 
   if (!ind || ind.nome !== "Viaturas" || !moduloInfo) {
     return (

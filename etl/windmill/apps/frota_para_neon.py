@@ -11,7 +11,8 @@ schema de "vehicles" na fonte (vehicles.year, vehicles.patrimony) antes
 de escrever esta extensão (ver DW_PLANEJAMENTO.md). NOME (nome do tipo de
 viatura, ex. "Auto Bomba Tanque") já vinha sincronizado como "tipo" —
 não precisou de mudança aqui, só passou a ser exposto em
-etl/viaturas/extract_viaturas.py.
+etl/viaturas/extract_viaturas.py (removido em 2026-10-06: o app
+lê a frota do DW, marts.viatura_nominal; o Neon "Viatura" deixou de alimentar o app).
 
 **Resolvido em 2026-08-18**: usuário publicou e rodou esta versão —
 ano/patrimonio já estão no Neon, populados.

@@ -47,6 +47,9 @@ export const fetchEfetivoDw = () => getDados("efetivo");
 /** Lotação por função (QOD), já recortada pelo perfil no servidor. */
 export const fetchLotacaoDw = () => getDados("lotacao");
 
+/** Frota por viatura (tabela, dashboard e ficha), recortada pelo perfil no servidor. */
+export const fetchViaturasDw = () => getDados("viaturas");
+
 /** Painel corporativo: "df", "vacinacao" ou "ocorrencias". 403 (painel fora
  *  do perfil) também devolve null — a tela segue com o que já tinha. */
 export const fetchPainelDw = (nome) => getDados(`painel/${nome}`);

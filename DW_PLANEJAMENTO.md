@@ -45,6 +45,26 @@
 > de Efetivo/Viaturas e previsto/lotação por divisão ainda em JSON; DDL 16–18 estão no
 > repositório mas foram aplicados à mão (o `aplicar_ddl.py` os aplica em ordem).
 
+> **2026-10-06 (noite) — Viaturas sem JSON.** `viaturas.json`, `viaturas_lista.json` e
+> `viaturas_detalhe.json` (no bundle, sem login, com placa, chassi e renavam), o extrator
+> `extract_viaturas.py` e o protótipo `reconciliar_viaturas.py` (que lia o JSON) foram
+> **removidos**. `ddl/20`: `marts.viatura_nominal` (uma linha por veículo cadastrado na Frota,
+> inclusive os 35 sem placa que a `core.dim_viatura` não tem; regras do `frota_para_neon.py`:
+> última transferência, último status, combustível mais recente, condutores distintos) e
+> `GET /dados/viaturas`, recortada no servidor pelo perfil no indicador Viaturas. A tabela, o
+> dashboard (5 abas) e a ficha leem a mesma lista (`src/data/viaturasLista.js` →
+> `registrosViaturas()`). **O card de Viaturas por unidade** (`marts.frota_organograma`)
+> passou a contar da mesma view: o total subiu de 771 para **806** (inclui embarcações e
+> reboques sem placa, como a tabela sempre mostrou; sem os descarregados). O baseline do
+> organograma agora é 0 até o DW responder (sem mock). **Atenção:** `viatura_nominal` e
+> `frota_organograma` dependem de `raw_frota.*`; se a Frota mudar o cabeçalho de alguma
+> tabela e a carga a recriar, as views caem e o `ddl/20` precisa ser reaplicado (o card de
+> Viaturas some até lá). **Achado de dado:** a última transação de combustível da Frota é de
+> **19/01/2026** — o feed (Maxifrota) parou; por isso 78% da frota aparece "sem abastecer há
+> 90+ dias" (o painel usa essa data como referência). Confirmar com a Frota. **Ainda em JSON:**
+> lotação por divisão e previsto por divisão (`efetivo_previsto_divisoes.json`,
+> `lotacao_funcao.json` por divisão) e os mocks de métricas de `organograma.js`.
+
 > **2026-10-06 (tarde) — Dashboard Pessoal de Efetivo sem JSON.** Os seis JSON do painel
 > (`militares`, `carreira_extra`, `adidos_extra`, `previsto`, `filtros`, `saida_previsao`; 1,8 MB,
 > no bundle, sem login) foram **removidos**. (1) Os registros por militar são montados no front a
@@ -4960,9 +4980,9 @@ Ficam para o usuário autorizar ou rodar.
    do DW, com o SQL do Metabase (top 10 por opção; origem por `ome_atual`) e filtros de
    categoria e motivo. Falta só conferir os números com o Metabase do Igor (hoje 19
    solicitações com matrícula e 389 atendidas na planilha).
-6. **Domínios que ainda saem de JSON no front:** painéis pessoais de Viaturas
-   (`viaturas*.json`), lotação por divisão e previsto por divisão. ~~Painéis pessoais de
-   Efetivo~~ **feitos em 2026-10-06** (e `agregado` já entra em `ehIndisponivel()`).
+6. **Domínios que ainda saem de JSON no front:** lotação por divisão e previsto por divisão.
+   ~~Painéis pessoais de Efetivo e de Viaturas~~ **feitos em 2026-10-06** (e `agregado` já
+   entra em `ehIndisponivel()`).
 7. **LOB Nova.** Visualização apenas; quando a nova LOB valer de verdade, a árvore vai para
    `app.organograma_unidade`. Pendências: testar o seletor com um usuário comandante e
    subcomandante reais (SGU); dar OME às unidades novas (ARI, AJ, DINTER III, GI, CEI, CFO,
