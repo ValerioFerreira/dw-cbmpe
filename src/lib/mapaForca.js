@@ -1,34 +1,32 @@
 // Carga e filtro do painel de Mapa de Força.
 //
-// É o primeiro dado do app que NÃO vem do bundle. Todos os outros
-// (efetivo_lista.json, viaturas_detalhe.json...) são `import`ados, e o Vite
-// os embute no JS — o navegador baixa tudo antes do login. O mapa de força
-// não cabe nesse modelo: são ~280 lançamentos por dia, com guarnição nominal,
-// e o painel precisa de qualquer data dentro da janela.
+// O dado é NOMINAL (guarnição de cada viatura, com matrícula e nome de guerra)
+// e vem do DW pelo backend — GET /dados/mapa-forca/indice e /dia/:data, com
+// login SGU e recorte por perfil no servidor (backend/services/dadosService.js,
+// views marts.mapa_forca_*). Antes eram arquivos de public/dados/mapa-forca/,
+// servidos sem autenticação. O painel só apresenta os últimos 30 dias.
 //
-// Então aqui o dado é BUSCADO em tempo de execução, de `public/dados/
-// mapa-forca/`, um arquivo por dia (~130 KB). O bundle não cresce, e a
-// janela muda sem tocar em código.
-//
-// Quando existir servidor com autenticação, só a URL abaixo muda — o painel
-// não sabe de onde o dado veio. É o mesmo seam que src/data/organograma.js
-// usa para os JSONs estáticos.
-//
-// Os arquivos são gerados por etl/mapa_forca/extract_mapa_forca.py.
+// Sem token SGU (login local) ou com o backend fora de alcance, o painel
+// avisa em vez de mostrar dado velho.
 
-const BASE = "/dados/mapa-forca";
+import { fetchMapaForcaIndice, fetchMapaForcaDia } from "@/lib/dadosClient";
 
 export const MODULOS_ATIVIDADES_DASHBOARD = [
   { n: 1, key: "mapa-forca", nome: "Mapa de Força" },
 ];
 
-// Cache em memória por dia. Trocar de data e voltar não rebusca — e um dia
-// já fechado nunca muda, então não há o que invalidar.
+const SEM_BACKEND =
+  "O Mapa de Força é lido do DW pelo servidor do app (login SGU). Entre com a conta SGU " +
+  "e confirme que o backend alcança o DW.";
+
+// Cache em memória por dia. Um dia fechado não muda, então não há o que
+// invalidar; o índice (que anda com a carga) vale enquanto a aba estiver aberta.
 const cache = new Map();
 
 export async function carregarIndice() {
   if (!cache.has("indice")) {
-    cache.set("indice", fetch(`${BASE}/indice.json`).then(aceitarJson));
+    cache.set("indice", fetchMapaForcaIndice().then(exigir));
+    cache.get("indice").catch(() => cache.delete("indice"));
   }
   return cache.get("indice");
 }
@@ -36,27 +34,15 @@ export async function carregarIndice() {
 export async function carregarDia(data) {
   if (!data) return null;
   if (!cache.has(data)) {
-    cache.set(data, fetch(`${BASE}/${data}.json`).then(aceitarJson));
+    cache.set(data, fetchMapaForcaDia(data).then(exigir));
+    cache.get(data).catch(() => cache.delete(data));
   }
   return cache.get(data);
 }
 
-// `fetch` não rejeita em 404 — e neste app o 404 vem com cara de sucesso: a
-// Vercel e o nginx reescrevem qualquer rota desconhecida para /index.html
-// (SPA), então um arquivo faltando devolve 200 com HTML. Sem esta checagem o
-// erro apareceria como "Unexpected token '<'", que não diz nada.
-async function aceitarJson(resposta) {
-  if (!resposta.ok) {
-    throw new Error(`Arquivo do mapa de força não encontrado (HTTP ${resposta.status}).`);
-  }
-  const tipo = resposta.headers.get("content-type") || "";
-  if (!tipo.includes("json")) {
-    throw new Error(
-      "O servidor devolveu HTML no lugar do JSON — provavelmente os arquivos " +
-      "de public/dados/mapa-forca/ não foram publicados neste deploy."
-    );
-  }
-  return resposta.json();
+function exigir(resposta) {
+  if (!resposta) throw new Error(SEM_BACKEND);
+  return resposta;
 }
 
 // ---------------------------------------------------------------------------

@@ -125,13 +125,13 @@ ressalva no próprio subtítulo, em vez de a diferença ficar silenciosa.
 | Dado sensível em arquivo público | `src/data/real/efetivo_lista.json` | **Continua exposto.** Conferi os campos: `racaCor`, `pcd` (categoria especial, LGPD art. 11), `telefone1` e `telefone2` estão no JSON servido ao navegador, contrariando a denylist do Caminho A. Registrado como pendência desde 2026-08-19 e ainda não removido |
 | Valor de sentinela no tempo na OME | tabela nominal do painel 08 | Alguns militares aparecem com ~126 anos de tempo na OME atual (`completo.tempoObmAtualDias`). Os 3 cards agregados usam outro campo e não são afetados. Origem não investigada |
 | Regra de **Agregado** | `DW_MODELO_DADOS.md` | A regra de **Adido** foi definida (conta para o órgão externo, para a OME fantasma ADIDOS, para o rollup do Comando Geral e para o total). A de **Agregado** não: os 18 militares marcados `Ag`/`Ag - READAP`/`CARGO ELETIVO - Ag` na coluna OBS do Pecúlio estão carregados como texto em `dim_militar.observacao`, sem virar regra. Nenhuma view oficial de "efetivo ativo" deve ser criada antes disso |
-| 2 agregações do painel 09 | `ModuloIntencaoMovimentacao.jsx` | "Distribuição das solicitações" (hoje por `motivo`) e "Origem das solicitações" (hoje por `ome`) são inferência nossa — o SQL original se perdeu num resumo de contexto. Declarado no subtítulo dos dois cards |
+| ~~2 agregações do painel 09~~ | `ModuloIntencaoMovimentacao.jsx` | **Resolvido em 2026-10-06**: o usuário enviou o SQL do Metabase; "Distribuição das solicitações" = top 10 OMEs pela soma das 3 opções (por opção) e "Origem das solicitações" = por `ome_atual`, com filtros Categoria e Motivo |
 
 ### Uma pergunta do pedido que já tem resposta no código
 
 O `categoria` de `cim_pedidos`/`cim_atendidos` **não** corresponde ao filtro
 de *Patente*, e sim ao de *Classe* (Oficiais/Praças) — está confirmado no
-cabeçalho de `etl/efetivo/extract_intencao_movimentacao.py`. O que continua
+cabeçalho do extrator antigo (removido) — a view `marts.painel_cim_pedido` guarda `categoria`. O que continua
 faltando do painel 09 é o SQL do card "Solicitações por Posto e Graduação" e
 o export bruto das duas tabelas.
 

@@ -41,8 +41,10 @@ npm run dev
 ```
 
 O app sobe sem nenhuma variável de ambiente e sem VPN: todos os dados que ele
-lê já estão commitados (`src/data/real/` e `public/dados/`). VPN e `.env.local`
-só são necessários para **regerar** esses dados.
+lê já estão commitados (`src/data/real/`) — **exceto** o que já vem do DW pelo
+backend (Mapa de Força, Painel 09, Finanças, Vacinação, Ocorrências, efetivo
+nominal), que só aparece com o backend ligado e login SGU. VPN e `.env.local`
+só são necessários para **regerar** os JSON e para o backend ler o DW.
 
 ### 2. `.env.local` — o que precisa existir
 
@@ -118,7 +120,9 @@ python etl/dw/carga_raw.py
 python etl/dw/carga_core.py
 python etl/dw/validar.py          # a verificação de regra de negócio
 
-# Mapa de Força — 90 dias, um arquivo por dia em public/dados/mapa-forca/
+# Mapa de Força — só o CATÁLOGO de postos (coordenadas conferidas), em
+# backend/data/mapa_forca_postos.json; o dado nominal vem das views
+# marts.mapa_forca_* (ddl/16), pelo backend, janela de 30 dias
 python etl/mapa_forca/extract_mapa_forca.py
 python etl/mapa_forca/conferir_coordenadas.py    # varredura das coordenadas
 
@@ -137,8 +141,7 @@ python etl/_geo/copiar_insignias.py --copiar
 ```
 
 Outros extratores, menos frequentes: `extract_previsto.py`,
-`extract_previsto_divisoes.py`, `extract_intencao_movimentacao.py`,
-`extract_saida_previsao.py` (Efetivo); `reconciliar_viaturas.py` e
+`extract_previsto_divisoes.py`, `extract_saida_previsao.py` (Efetivo); `reconciliar_viaturas.py` e
 `coordenadas_postos.py` (Mapa de Força); `casar_coordenadas_ome.py` (SGP).
 
 ### Ordem quando tudo estiver vazio
@@ -152,7 +155,7 @@ os Neon direto.
 | Onde | Como chega ao navegador | Contém |
 |---|---|---|
 | `src/data/real/*.json` | **importado** — vai dentro do pacote JS | efetivo, viaturas, finanças, lotação, geometria |
-| `public/dados/mapa-forca/*.json` | **buscado em execução** (`fetch`) | 90 dias de escala, um arquivo por dia |
+| `GET /dados/mapa-forca/*` (backend) | **buscado em execução**, com login SGU e recorte por perfil | últimos 30 dias de escala, do DW (`marts.mapa_forca_*`) |
 | `public/insignias/*.png` | arquivo estático | 39 brasões, reduzidos para 256px |
 | `src/data/organograma.js` | código | hierarquia, siglas, cargos — a espinha dorsal |
 

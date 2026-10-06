@@ -50,3 +50,9 @@ export const fetchLotacaoDw = () => getDados("lotacao");
 /** Painel corporativo: "df", "vacinacao" ou "ocorrencias". 403 (painel fora
  *  do perfil) também devolve null — a tela segue com o que já tinha. */
 export const fetchPainelDw = (nome) => getDados(`painel/${nome}`);
+
+/** Mapa de Força: catálogo dos postos + dias da janela de 30 dias. */
+export const fetchMapaForcaIndice = () => getDados("mapa-forca/indice");
+
+/** Mapa de Força de um dia (AAAA-MM-DD), nominal e já recortado pelo perfil. */
+export const fetchMapaForcaDia = (data) => getDados(`mapa-forca/dia/${encodeURIComponent(data)}`);

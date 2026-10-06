@@ -581,6 +581,26 @@ def carregar_dimensoes_pessoal(cur):
 
 
 # ---------------------------------------------------------------------------
+# stg.peculio_titular (titular de cada OME, para marts.chefe_organograma)
+# ---------------------------------------------------------------------------
+def carregar_peculio_titular(cur):
+    """Titular de cada OME do DW: o militar mais antigo dela no Peculio (pela
+    ordem da planilha). marts.chefe_organograma le DAQUI e nao de stg.peculio,
+    porque a carga recria essa view a cada rodada e o DROP falharia se uma view
+    de marts dependesse dela (ver etl/dw/ddl/18_peculio_titular.sql)."""
+    cur.execute("TRUNCATE stg.peculio_titular")
+    cur.execute("""
+        INSERT INTO stg.peculio_titular (sk_ome, matricula, ordem)
+        SELECT DISTINCT ON (dp.sk_ome) dp.sk_ome, p.matricula, p.ordem::int
+        FROM stg.peculio p
+        JOIN stg.de_para_ome dp ON dp.sistema = 'peculio' AND dp.valor_origem = p.ome
+        WHERE p.matricula IS NOT NULL AND p.matricula <> ''
+        ORDER BY dp.sk_ome, p.ordem
+    """)
+    print(f"  stg.peculio_titular: {cur.rowcount} OME(s) com titular")
+
+
+# ---------------------------------------------------------------------------
 # dim_viatura
 # ---------------------------------------------------------------------------
 def carregar_dim_viatura(cur):
@@ -1160,11 +1180,22 @@ def limpar(cur):
     caso do militar que deixou de existir na fonte entre uma carga e outra.
     """
     for tabela, coluna, dim, natural in SNAPSHOTS:
+        # Alem da chave principal, as outras chaves substitutas do snapshot
+        # (posto, orgao externo, tipo de afastamento) tambem sao guardadas pelo
+        # valor natural: essas dimensoes numeram por row_number() e a numeracao
+        # muda quando o Peculio ganha ou perde um valor. Sem isso o snapshot
+        # voltava com a chave velha -- apontando para outro orgao, ou para
+        # nenhum (violacao de FK em 2026-10-06, quando um orgao saiu da lista).
+        extras = SNAPSHOT_FKS.get(tabela, [])
+        sel_extra = "".join(f", x{i}.{nat} AS nat_{col}" for i, (col, d2, nat) in enumerate(extras))
+        join_extra = "".join(
+            f" LEFT JOIN core.{d2} x{i} ON x{i}.{col} = f.{col}" for i, (col, d2, nat) in enumerate(extras)
+        )
         cur.execute(f"""
             CREATE TEMP TABLE tmp_{tabela} ON COMMIT DROP AS
-            SELECT f.*, d.{natural} AS chave_natural
+            SELECT f.*, d.{natural} AS chave_natural{sel_extra}
             FROM core.{tabela} f
-            JOIN core.{dim} d ON d.{coluna} = f.{coluna}
+            JOIN core.{dim} d ON d.{coluna} = f.{coluna}{join_extra}
         """)
         cur.execute(f"SELECT count(*) FROM tmp_{tabela}")
         guardadas = cur.fetchone()[0]
@@ -1200,6 +1231,18 @@ SNAPSHOTS = [
 ]
 
 
+# Outras chaves substitutas de cada snapshot, que tambem precisam ser traduzidas
+# pelo valor natural: (coluna, dimensao, coluna natural). sk_ome fica de fora
+# porque vem do id do SGP e nao muda entre cargas.
+SNAPSHOT_FKS = {
+    "fato_efetivo_diario": [
+        ("sk_posto_grad", "dim_posto_grad", "sigla"),
+        ("sk_orgao_externo", "dim_orgao_externo", "nome"),
+        ("sk_tipo_afastamento", "dim_tipo_afastamento", "sigla"),
+    ],
+}
+
+
 def restaurar_snapshots(cur):
     """Devolve os snapshots guardados por limpar(), traduzindo a chave natural
     de volta para a chave substituta nova. Chamado depois das dimensoes."""
@@ -1214,15 +1257,24 @@ def restaurar_snapshots(cur):
             WHERE table_schema = 'core' AND table_name = '{tabela}'
         """)
         colunas = cur.fetchone()[0]
-        seleto = ", ".join(
-            f"d.{coluna}" if c.strip() == coluna else f"t.{c.strip()}"
-            for c in colunas.split(",")
+        extras = {col: (i, d2, nat) for i, (col, d2, nat) in enumerate(SNAPSHOT_FKS.get(tabela, []))}
+        def expressao(c):
+            c = c.strip()
+            if c == coluna:
+                return f"d.{coluna}"
+            if c in extras:
+                return f"x{extras[c][0]}.{c}"
+            return f"t.{c}"
+        seleto = ", ".join(expressao(c) for c in colunas.split(","))
+        join_extra = "".join(
+            f" LEFT JOIN core.{d2} x{i} ON x{i}.{nat} = t.nat_{col}"
+            for col, (i, d2, nat) in extras.items()
         )
         cur.execute(f"""
             INSERT INTO core.{tabela} ({colunas})
             SELECT {seleto}
             FROM tmp_{tabela} t
-            JOIN core.{dim} d ON d.{natural} = t.chave_natural{filtro_versao}
+            JOIN core.{dim} d ON d.{natural} = t.chave_natural{filtro_versao}{join_extra}
             ON CONFLICT DO NOTHING
         """)
         restauradas = cur.rowcount
@@ -1749,6 +1801,7 @@ def main():
 
     print("\nDe-para:")
     carregar_de_para_ome(cur)
+    carregar_peculio_titular(cur)
     carregar_de_para_viatura(cur)
     conn.commit()
 

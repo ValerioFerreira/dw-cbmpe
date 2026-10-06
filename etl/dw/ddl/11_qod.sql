@@ -113,57 +113,8 @@ LANGUAGE sql IMMUTABLE AS $$
                                           '\s+(do|da|de|dos|das)\s+', '|', 'i'), '|', 1))
 $$;
 
--- Titular de cada unidade: a FONTE DA VERDADE E O PECULIO (decisao do usuario,
--- 2026-10-01), tanto para a matricula quanto para quem e o titular -- o militar
--- mais antigo da OME, pela ordem em que aparece na planilha (stg.peculio.ordem,
--- que ja e a precedencia). A regra bate com a marca "Titular" da coluna OBS em
--- 45 de 45 OMEs. O QOD so empresta o NOME DA FUNCAO ("Comandante do 1o GB").
--- Unidade sem OME no Peculio sai como vaga, sem pessoa: hoje so a DGA (o
--- organograma mostra "Em construcao"); a CPP repete o titular da CPO.
-CREATE OR REPLACE VIEW marts.chefe_organograma AS
-WITH funcoes AS (
-    SELECT f.*, m.sigla,
-           row_number() OVER (PARTITION BY m.sigla ORDER BY f.ordem_exibicao, f.id_funcao) AS ordem
-    FROM core.qod_funcao f
-    JOIN stg.qod_ome_organograma m ON m.ome_qod = f.ome_qod
-    WHERE f.ativo AND f.tipo_funcao ILIKE 'FUN%'
-),
--- Qual funcao do QOD da nome ao cargo: a 1a da propria OME, salvo as duas
--- unidades de gabinete (a chefia e a 2a funcao).
-alvo AS (
-    SELECT DISTINCT d.valor_origem AS sigla, d.sk_ome,
-           CASE d.valor_origem
-                WHEN 'COMANDO GERAL'    THEN 'GCG'
-                WHEN 'SUBCOMANDO GERAL' THEN 'GSG'
-                ELSE d.valor_origem END  AS sigla_funcao,
-           CASE d.valor_origem
-                WHEN 'GCG' THEN 2
-                WHEN 'GSG' THEN 2
-                ELSE 1 END               AS ordem
-    FROM stg.de_para_ome d
-    WHERE d.sistema = 'organograma'
-),
-titular AS (
-    SELECT DISTINCT ON (dp.sk_ome) dp.sk_ome, p.matricula
-    FROM stg.peculio p
-    JOIN stg.de_para_ome dp ON dp.sistema = 'peculio' AND dp.valor_origem = p.ome
-    ORDER BY dp.sk_ome, p.ordem
-)
-SELECT a.sigla,
-       f.funcao                                        AS funcao,
-       stg.cargo_curto(f.funcao)                       AS cargo,
-       t.matricula,
-       stg.posto_curto(pg.sigla)                       AS posto,
-       coalesce(dm.nome_guerra, dm.nome)               AS nome_guerra,
-       (t.matricula IS NULL)                           AS vago
-FROM alvo a
-LEFT JOIN funcoes f ON f.sigla = a.sigla_funcao AND f.ordem = a.ordem
--- CPP (Comissao de Promocoes de Praças) nao tem OME no Peculio; a
--- presidencia e a mesma da CPO (decisao do usuario, 2026-10-01: Maj FRANÇA).
-LEFT JOIN titular t ON t.sk_ome = CASE WHEN a.sigla = 'CPP'
-                                       THEN (SELECT sk_ome FROM alvo WHERE sigla = 'CPO')
-                                       ELSE a.sk_ome END
-LEFT JOIN core.dim_militar dm ON dm.matricula = t.matricula
-LEFT JOIN core.dim_posto_grad pg ON pg.sk_posto_grad = dm.sk_posto_grad;
+-- marts.chefe_organograma (titular de cada unidade, do Pecuario) vive em
+-- 18_peculio_titular.sql: ela depende de uma tabela que a carga recarrega, e
+-- precisa ser criada depois dela.
 
 GRANT SELECT ON ALL TABLES IN SCHEMA marts TO app_reader, bi_reader;

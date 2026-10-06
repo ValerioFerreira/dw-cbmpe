@@ -10,6 +10,7 @@
 // Um domínio que falhar (view ainda não criada, erro pontual) não derruba os
 // outros: ele simplesmente não vem na resposta, e o front mantém para ele o
 // valor que já tinha (JSON embutido). O erro vai para o log do servidor.
+import { readFile } from "node:fs/promises";
 import { getPoolDw } from "../config/db.js";
 
 const CONSULTAS = {
@@ -231,6 +232,19 @@ export async function painelVacinacao() {
   };
 }
 
+// Painel 09 (Intenção de Movimentação, etl/dw/ddl/17_cim.sql): uma linha por
+// solicitação/transferência, SEM matrícula nem nome. As agregações e os filtros
+// de categoria e motivo são feitos na tela. Visão corporativa — só quem vê o
+// Efetivo de todas as unidades recebe (ver o controller).
+export async function painelMovimentacao() {
+  const pool = getPoolDw();
+  const [pedidos, atendidos] = await Promise.all([
+    pool.query("select posto_grad, categoria, ome, ome_atual, opcao_1, opcao_2, opcao_3, motivo from marts.painel_cim_pedido"),
+    pool.query("select posto_grad, categoria, ome, ome_atual, motivo from marts.painel_cim_atendido"),
+  ]);
+  return { fonte: "dw (marts.painel_cim_*)", pedidos: pedidos.rows, atendidos: atendidos.rows };
+}
+
 // Ocorrências: recortadas pelas unidades liberadas (ome OU diretoria da
 // ocorrência dentro do conjunto). `siglas` null = todas.
 export async function painelOcorrencias(siglas) {
@@ -291,6 +305,110 @@ export async function painelOcorrencias(siglas) {
       produtos_perigosos_total_por_produto: "Igor sinalizou suspeita de erro de qualidade na fonte: 656 dos 672 produtos apareciam com contagem exatamente 20, a maioria com rótulo no formato \"X (ver Y)\" — indício de lista de referência carregada junto com o dado de incidente. Card retido até confirmação com quem administra a base.",
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// Mapa de Força (etl/dw/ddl/16_mapa_forca.sql) — dado NOMINAL (guarnição de cada
+// viatura/posto, por dia), sempre recortado pelas unidades que o perfil libera.
+// O app só apresenta os últimos 30 dias (a janela está nas views).
+//
+// O catálogo de postos (nome, município, AIS e coordenada conferida) não é
+// pessoal e vem de backend/data/mapa_forca_postos.json, gerado por
+// etl/mapa_forca/extract_mapa_forca.py — até a tabela de coordenadas dos
+// postos existir no DW.
+// ---------------------------------------------------------------------------
+const ARQUIVO_POSTOS = new URL("../data/mapa_forca_postos.json", import.meta.url);
+let catalogoPostos = null;
+
+async function lerCatalogoPostos() {
+  if (!catalogoPostos) {
+    try {
+      catalogoPostos = JSON.parse(await readFile(ARQUIVO_POSTOS, "utf-8"));
+    } catch (err) {
+      console.error("dados/mapa-forca: catálogo de postos indisponível —", err.message);
+      return { gerado_em: null, postos: {}, omes: {} };
+    }
+  }
+  return catalogoPostos;
+}
+
+const ISO = "to_char(data, 'YYYY-MM-DD')";
+
+// Dias com lançamento dentro da janela + catálogo dos postos. Não é nominal:
+// vale para qualquer usuário logado (o recorte vem na hora de pedir o dia).
+export async function mapaForcaIndice() {
+  const [{ rows: dias }, catalogo] = await Promise.all([
+    getPoolDw().query(`select distinct ${ISO} as data from marts.mapa_forca_lancamento order by 1`),
+    lerCatalogoPostos(),
+  ]);
+  return {
+    gerado_em: catalogo.gerado_em,
+    fonte: "dw (marts.mapa_forca_*), janela de 30 dias",
+    datas: dias.map((r) => r.data),
+    postos: catalogo.postos,
+    omes: catalogo.omes,
+  };
+}
+
+// Um dia inteiro: lançamento → viaturas + guarnição (mesmo formato dos
+// arquivos que o painel lia). `siglas` null = todas; Set vazio = nenhuma.
+export async function mapaForcaDia(data, siglas) {
+  const vazio = { data, fonte: "dw (marts.mapa_forca_*)", lancamentos: [] };
+  if (siglas && siglas.size === 0) return vazio;
+  const parametros = [data];
+  let recorte = "";
+  if (siglas) {
+    parametros.push([...siglas]);
+    recorte = "and l.sigla = any($2)";
+  }
+  const pool = getPoolDw();
+  const [lanc, vtr, gua] = await Promise.all([
+    pool.query(
+      `select l.id_lancamento, coalesce(l.sigla, l.ome_dw) as ome, l.id_posto, l.tipo_servico, l.turno
+       from marts.mapa_forca_lancamento l
+       where l.data = $1 ${recorte}
+       order by l.id_lancamento desc`,
+      parametros
+    ),
+    pool.query(
+      `select v.id_lancamento, v.placa, v.tipo, v.acronimo, v.numero
+       from marts.mapa_forca_viatura v
+       join marts.mapa_forca_lancamento l using (id_lancamento)
+       where l.data = $1 ${recorte}`,
+      parametros
+    ),
+    pool.query(
+      `select g.id_lancamento, g.matricula, g.posto_grad, g.nome_guerra, g.funcao
+       from marts.mapa_forca_guarnicao g
+       join marts.mapa_forca_lancamento l using (id_lancamento)
+       where l.data = $1 ${recorte}`,
+      parametros
+    ),
+  ]);
+
+  const porId = new Map();
+  for (const r of lanc.rows) {
+    porId.set(String(r.id_lancamento), {
+      id: Number(r.id_lancamento),
+      ome: r.ome,
+      posto: r.id_posto == null ? null : String(r.id_posto),
+      tipoServico: r.tipo_servico,
+      turno: r.turno,
+      viaturas: [],
+      guarnicao: [],
+    });
+  }
+  for (const r of vtr.rows) {
+    porId.get(String(r.id_lancamento))?.viaturas.push({
+      placa: r.placa, tipo: r.tipo, acronimo: r.acronimo, numero: r.numero,
+    });
+  }
+  for (const r of gua.rows) {
+    porId.get(String(r.id_lancamento))?.guarnicao.push({
+      matricula: r.matricula, postoGrad: r.posto_grad, nomeGuerra: r.nome_guerra, funcao: r.funcao,
+    });
+  }
+  return { ...vazio, lancamentos: [...porId.values()] };
 }
 
 // { metricas: { [sigla]: { efetivo?, viaturas?, financas?, previsto? } },

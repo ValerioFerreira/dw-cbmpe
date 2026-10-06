@@ -17,7 +17,7 @@
 | # | Caminho | O que passa por ele | Problema |
 |---|---|---|---|
 | A | **Extrator Python → JSON em `src/data/real/` → embutido no bundle do app** | Quase todos os números do app (Efetivo, Viaturas, Finanças, Vacinação, Ocorrências, QOD, Lotação, painéis de Efetivo) | Rodado **à mão**, sem agenda. O JSON vai dentro do JavaScript que o navegador baixa **antes do login** — inclusive dado nominal. Cada extrator lê uma origem diferente (Neon, fonte original, banco `postgres`, planilha local), e só alguns passam pelo DW |
-| B | **Extrator Python → `public/dados/`, baixado pelo app sob demanda** | Mapa de Força (1 arquivo por dia) | Já lê do DW, mas `public/` é servido sem autenticação — a guarnição é nominal |
+| B | ~~Extrator Python → `public/dados/`~~ — **extinto em 2026-10-06**: o Mapa de Força nominal passou para o backend (`GET /dados/mapa-forca/*`, views `marts.mapa_forca_*`, recorte por perfil, janela de 30 dias) | Mapa de Força | — |
 | C | **Backend Node (`backend/`) consultando ao vivo** | Login (SGU), CPF → matrícula (SGP), matrícula → OME (`dw.core`), nome/CPF no /adm (SGP) | É o único caminho autenticado. Usa o **superusuário** do DW |
 | D | **Hardcoded / fictício no código** | Chefes das unidades, divisões internas, séries históricas, alertas, Materiais, Atividades Específicas, métricas de unidades sem dado | Não é dado: é protótipo de UI. Precisa ser trocado por fonte real ou marcado "Em construção" |
 
@@ -35,7 +35,7 @@ e as regras para chegar lá.
 | `efetivo_previsto.json` | `etl/efetivo/extract_previsto.py` | **Arquivo `.xlsx` local** do QOD (passado na linha de comando) | Não | Manual, por arquivo recebido |
 | `efetivo_previsto_divisoes.json` | `etl/efetivo/extract_previsto_divisoes.py` | Mesmo `.xlsx` do QOD + `SUBSETORES` de `src/data/organograma.js` | Não | Manual |
 | `lotacao_funcao.json` | `etl/efetivo/extract_lotacao_funcao.py` | QOD publicado (link Google, `.xlsx`) ou arquivo local | Não | Manual |
-| `efetivo_dashboard/intencao_movimentacao.json` | `etl/efetivo/extract_intencao_movimentacao.py` | Banco `postgres`, `public.cim_pedidos`/`cim_atendidos` (carregados de planilha por terceiro — Igor/Metabase) | Não (mesmo servidor, **outro banco**) | Manual |
+| ~~`efetivo_dashboard/intencao_movimentacao.json`~~ | **removido em 2026-10-06** — Painel 09 lê `marts.painel_cim_pedido`/`painel_cim_atendido` (ddl/17, de `raw_cim`) por `GET /dados/painel/movimentacao` | planilhas CIM → `raw_cim` (flow `dw_diario`) | **Sim** | Diária |
 | `efetivo_dashboard/saida_previsao.json` | `etl/efetivo/extract_saida_previsao.py` | Banco `postgres`, `public.inativos_metabase` + `peculio_metabase_v1` | Não | Manual |
 | `efetivo_dashboard/{militares,filtros,adidos_extra,carreira_extra,previsto}.json` | derivados do efetivo (ver `DW_PLANEJAMENTO.md`, 2026-08-19) | Neon `Militar` | Não | Manual |
 | `efetivo_dashboard/municipios_pe.json` | `etl/_geo/baixar_malha_ibge.py` + `projetar_municipios.py` | API de malhas do IBGE | Não (dado de referência) | Pontual |
@@ -44,7 +44,7 @@ e as regras para chegar lá.
 | `financas_dashboard.json` | `etl/financas/extract_dashboard_df.py` | Banco `postgres`, `public.fin_sfi_ordinario`/`fin_autorizacao` | Não (o DW tem a planilha em `raw_financas`, sem uso) | Manual |
 | `vacinacao_dashboard.json` | `etl/das/extract_dashboard_vacinacoes.py` | Fonte original `vaccine_control_production` (10.193.0.20) | Não | Manual |
 | `ocorrencias_dashboard.json`, `ocorrencias_municipios.json` | `etl/ocorrencias/extract_dashboard_ocorrencias.py` | Fonte original `roe_api_production` (10.193.1.252:15432) | Não | Manual |
-| `public/dados/mapa-forca/*.json` (91 dias) | `etl/mapa_forca/extract_mapa_forca.py` | **`dw`** (`core.fato_lancamento_*`) | **Sim** | Manual |
+| `backend/data/mapa_forca_postos.json` (catálogo de postos, 38 KB, sem dado pessoal) | `etl/mapa_forca/extract_mapa_forca.py` | **`dw`** (`core.dim_posto_servico`) + KMZ/município (`conferir_coordenadas.py`) | **Sim** | Manual (até a tabela de coordenadas existir no DW) |
 | Insígnias (`public/insignias/`) | `etl/_geo/copiar_insignias.py` | Pasta de imagens recebida | — (arquivo estático) | Pontual |
 | Coordenadas das OMEs | `etl/mapa_forca/coordenadas_postos.py`, KMZ, `etl/sgp/casar_coordenadas_ome.py` | KMZ + `ovrsgp.tb_ome` | Parcial — `--aplicar` nunca rodou (bloqueado pelo usuário) | Pontual |
 
@@ -222,7 +222,7 @@ Em ordem; cada etapa entrega algo usável e não quebra o que já funciona.
    1. **Efetivo** (`marts.efetivo_por_ome`, `marts.militar`) — substitui
       `efetivo.json`/`efetivo_lista.json` e tira o dado nominal do bundle.
    2. **Viaturas** (`marts.frota_por_ome`, `core.dim_viatura`).
-   3. **Mapa de Força** (`marts.emprego_*`) — troca `public/dados/` por endpoint.
+   3. **Mapa de Força** (`marts.mapa_forca_*`) — ~~troca `public/dados/` por endpoint~~ **feito em 2026-10-06**.
    4. **Finanças** — nova view em `marts` sobre `raw_financas`.
    5. **QOD (previsto/lotação)**, **Vacinação**, **Ocorrências**, **Intenção
       de Movimentação**, **Inativos** — primeiro entram em `raw_*` (D1/D3),
@@ -509,7 +509,7 @@ O bundle cai de 27 MB para 3,9 MB. Na Vercel nada muda.
   extrator Python.
 - Os painéis do Dashboard Pessoal de Efetivo (`efetivo_dashboard/*`) e de
   Viaturas.
-- O Mapa de Força (`public/dados/`).
+- ~~O Mapa de Força (`public/dados/`)~~ — migrado em 2026-10-06 (e o Painel 09).
 
 São a próxima leva.
 

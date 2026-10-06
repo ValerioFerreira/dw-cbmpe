@@ -1,39 +1,28 @@
 # requirements:
 # psycopg2-binary
-"""Gera os arquivos do painel de Mapa de Forca, a partir do DW.
+"""Gera o CATALOGO do painel de Mapa de Forca (postos de servico e OMEs), do DW.
 
-MECANISMO DIFERENTE DOS OUTROS EXTRATORES, de proposito. Os demais gravam em
-src/data/real/ e sao IMPORTADOS pelo app -- o Vite embute o conteudo no
-bundle, que o navegador baixa inteiro antes do login. O mapa de forca nao
-cabe nesse modelo: sao ~170 lancamentos de viatura e ~830 de militar POR DIA,
-e o painel precisa de qualquer data.
+Desde 2026-10-06 o que e NOMINAL (os lancamentos do dia, com a guarnicao) nao
+passa mais por arquivo: o backend le marts.mapa_forca_* (etl/dw/ddl/
+16_mapa_forca.sql) e recorta pelo perfil do usuario no servidor -- ver
+GET /dados/mapa-forca/*. Antes, ~90 arquivos de public/dados/mapa-forca/
+(12 MB, matricula + nome de guerra) eram servidos sem login.
 
-Entao aqui a saida vai para public/dados/mapa-forca/, um arquivo por dia, e o
-app BUSCA o dia pedido em tempo de execucao. Consequencias:
-
-- o bundle nao cresce (continua sem o mapa de forca dentro);
-- a janela e configuravel sem tocar em codigo;
-- quando existir servidor, troca-se a URL do fetch por uma chamada de API e o
-  painel nao muda -- e o mesmo seam que src/data/organograma.js ja usa.
-
-O que este arquivo NAO resolve: o dado continua publico enquanto o app estiver
-na Vercel, porque public/ e servido sem autenticacao. A guarnicao e nominal.
-Por isso o recorte abaixo e o minimo que o painel precisa -- matricula, posto,
-nome de guerra e funcao. Nome completo nao entra (o app ja o tem em
-efetivo_lista.json, mas nao ha motivo de repetir), e CPF nunca entrou no DW
-(ver carga_raw.py).
+O que continua aqui e o que NAO e pessoal e depende de Python: nome, municipio,
+AIS e COORDENADA de cada posto de servico, conferida contra o municipio
+(conferir_coordenadas.py). A saida e um unico arquivo,
+backend/data/mapa_forca_postos.json, que o backend junta a resposta. Quando a
+tabela de coordenadas dos postos (em standby) existir no DW, este script deixa
+de ser necessario.
 
 Uso:
     DATABASE_URL_DW=postgresql://... python extract_mapa_forca.py
-    ... --dias 180        # janela (padrao: 90)
-    ... --desde 2026-01-01 --ate 2026-03-31
 """
-import argparse
 import json
 import os
 import re
 import unicodedata
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 import psycopg2
@@ -42,7 +31,7 @@ import conferir_coordenadas as conferir
 
 RAIZ = Path(__file__).resolve().parents[2]
 MAPEAMENTO = Path(__file__).resolve().parent / "mapeamento_unidades.json"
-SAIDA = RAIZ / "public" / "dados" / "mapa-forca"
+SAIDA = RAIZ / "backend" / "data" / "mapa_forca_postos.json"
 
 # Siglas do organograma (src/data/organograma.js). Duplicadas aqui de
 # proposito: este script roda em Python, offline, e nao vai parsear um modulo
@@ -178,132 +167,25 @@ def catalogo(cur, de_para):
     return postos, omes, diagnostico
 
 
-def lancamentos_do_dia(cur, dia, de_para):
-    """Um dia inteiro: lancamento -> viaturas + guarnicao.
-
-    Tres consultas em vez de um join so, porque um join de viatura com militar
-    multiplicaria as linhas (uma viatura x oito militares = oito linhas) e o
-    Python teria que desfazer isso depois.
-    """
-    cur.execute("""
-        SELECT DISTINCT f.id_lancamento, o.sigla, f.sk_posto_servico,
-               ts.nome, tu.nome
-        FROM core.fato_lancamento_militar f
-        JOIN core.dim_tempo t ON t.sk_tempo = f.sk_tempo
-        LEFT JOIN core.dim_ome o ON o.sk_ome = f.sk_ome
-        LEFT JOIN core.dim_tipo_servico ts ON ts.sk_tipo_servico = f.sk_tipo_servico
-        LEFT JOIN core.dim_turno tu ON tu.sk_turno = f.sk_turno
-        WHERE t.data = %s
-        UNION
-        SELECT DISTINCT f.id_lancamento, o.sigla, f.sk_posto_servico,
-               ts.nome, tu.nome
-        FROM core.fato_lancamento_viatura f
-        JOIN core.dim_tempo t ON t.sk_tempo = f.sk_tempo
-        LEFT JOIN core.dim_ome o ON o.sk_ome = f.sk_ome
-        LEFT JOIN core.dim_tipo_servico ts ON ts.sk_tipo_servico = f.sk_tipo_servico
-        LEFT JOIN core.dim_turno tu ON tu.sk_turno = f.sk_turno
-        WHERE t.data = %s
-    """, (dia, dia))
-    lancamentos = {}
-    omes_vistas = set()
-    for id_lanc, sigla, sk_posto, tipo_servico, turno in cur.fetchall():
-        omes_vistas.add(sigla)
-        lancamentos[id_lanc] = {
-            "id": id_lanc,
-            "ome": de_para.get(sigla, sigla),
-            "posto": str(sk_posto) if sk_posto else None,
-            "tipoServico": tipo_servico,
-            "turno": turno,
-            "viaturas": [],
-            "guarnicao": [],
-        }
-
-    cur.execute("""
-        SELECT f.id_lancamento, v.placa, v.tipo, v.tipo_acronym, v.numero_ordem,
-               f.acronimo_origem, f.numero_origem
-        FROM core.fato_lancamento_viatura f
-        JOIN core.dim_tempo t ON t.sk_tempo = f.sk_tempo
-        LEFT JOIN core.dim_viatura v ON v.sk_viatura = f.sk_viatura
-        WHERE t.data = %s
-        ORDER BY f.sk_lancamento_viatura
-    """, (dia,))
-    for id_lanc, placa, tipo, acronimo, numero, acr_origem, num_origem in cur.fetchall():
-        if id_lanc not in lancamentos:
-            continue
-        lancamentos[id_lanc]["viaturas"].append({
-            # placa nula = viatura que o mapa de forca lancou e a Frota nao
-            # conhece (1,0% do volume). Mostrar assim mesmo, sem link para a
-            # ficha, e melhor que sumir com a viatura do mapa.
-            "placa": placa,
-            "tipo": tipo,
-            "acronimo": acronimo or acr_origem,
-            "numero": numero or num_origem,
-        })
-
-    cur.execute("""
-        SELECT f.id_lancamento, f.matricula_origem, m.matricula_exibida,
-               coalesce(f.posto_origem, pg.sigla), m.nome_guerra, fs.nome
-        FROM core.fato_lancamento_militar f
-        JOIN core.dim_tempo t ON t.sk_tempo = f.sk_tempo
-        LEFT JOIN core.dim_militar m ON m.sk_militar = f.sk_militar
-        LEFT JOIN core.dim_posto_grad pg ON pg.sk_posto_grad = m.sk_posto_grad
-        LEFT JOIN core.dim_funcao_servico fs ON fs.sk_funcao_servico = f.sk_funcao_servico
-        WHERE t.data = %s
-        ORDER BY f.sk_lancamento_militar
-    """, (dia,))
-    for id_lanc, matricula, exibida, posto, nome_guerra, funcao in cur.fetchall():
-        if id_lanc not in lancamentos:
-            continue
-        lancamentos[id_lanc]["guarnicao"].append({
-            # matricula_origem vem sem hifen; matricula_exibida e a formatada
-            # da dimensao. A rota /militar/:matricula usa a do efetivo_lista,
-            # que e a exibida -- entao ela e a chave de link.
-            "matricula": exibida or matricula,
-            "postoGrad": posto,
-            "nomeGuerra": nome_guerra,
-            "funcao": funcao,
-        })
-
-    return list(lancamentos.values()), omes_vistas
-
-
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--dias", type=int, default=90)
-    ap.add_argument("--desde")
-    ap.add_argument("--ate")
-    args = ap.parse_args()
-
     conn = psycopg2.connect(url_do_dw(), connect_timeout=30)
     cur = conn.cursor()
-
-    cur.execute("SELECT max(t.data) FROM core.fato_lancamento_militar f "
-                "JOIN core.dim_tempo t ON t.sk_tempo = f.sk_tempo")
-    ultimo = cur.fetchone()[0] or date.today()
-    fim = date.fromisoformat(args.ate) if args.ate else ultimo
-    inicio = date.fromisoformat(args.desde) if args.desde else fim - timedelta(days=args.dias - 1)
 
     cur.execute("SELECT DISTINCT sigla FROM core.dim_ome")
     de_para, sem_resposta, descartadas = construir_de_para([s for (s,) in cur.fetchall()])
 
-    # A exigencia de mapeamento vale so para quem LANCA na janela pedida. A
-    # dim_ome tem 82 linhas -- inativos, CG, comissoes, unidades extintas -- e
-    # a maioria nunca apareceu num mapa de forca. Exigir de-para para todas
-    # transformaria o extrator num bloqueio permanente por unidades que o
-    # painel jamais vai desenhar.
+    # So as OMEs que lancam na janela de 30 dias do app (marts.mapa_forca_*)
+    # precisam de correspondencia no organograma; a dim_ome tem 82 linhas --
+    # inativos, CG, comissoes, unidades extintas -- e exigir de-para para todas
+    # transformaria o extrator num bloqueio permanente.
     cur.execute("""
         SELECT DISTINCT o.sigla
         FROM core.fato_lancamento_militar f
         JOIN core.dim_tempo t ON t.sk_tempo = f.sk_tempo
         JOIN core.dim_ome o ON o.sk_ome = f.sk_ome
-        WHERE t.data BETWEEN %s AND %s
-        UNION
-        SELECT DISTINCT o.sigla
-        FROM core.fato_lancamento_viatura f
-        JOIN core.dim_tempo t ON t.sk_tempo = f.sk_tempo
-        JOIN core.dim_ome o ON o.sk_ome = f.sk_ome
-        WHERE t.data BETWEEN %s AND %s
-    """, (inicio, fim, inicio, fim))
+        WHERE t.data >= (SELECT max(t2.data) - 29 FROM core.fato_lancamento_militar f2
+                         JOIN core.dim_tempo t2 ON t2.sk_tempo = f2.sk_tempo)
+    """)
     siglas_na_janela = {s for (s,) in cur.fetchall()}
 
     faltando = sorted(siglas_na_janela & set(sem_resposta))
@@ -311,63 +193,28 @@ def main():
         raise SystemExit(
             f"OMEs que lancam na janela e nao tem correspondencia no "
             f"organograma: {faltando}. Acrescente cada uma a "
-            f"{MAPEAMENTO.name} antes de gerar os arquivos (use null se a "
+            f"{MAPEAMENTO.name} antes de gerar o catalogo (use null se a "
             "unidade nao existe mais e o destino nao foi confirmado)."
+        )
+    descartadas_na_janela = sorted(siglas_na_janela & set(descartadas))
+    if descartadas_na_janela:
+        raise SystemExit(
+            f"OMEs marcadas como null no mapeamento apareceram na janela: "
+            f"{descartadas_na_janela}. Confirme o destino de cada uma antes de "
+            "publicar -- somar na unidade errada e pior que falhar."
         )
 
     postos, omes, diagnostico = catalogo(cur, de_para)
-    SAIDA.mkdir(parents=True, exist_ok=True)
+    SAIDA.parent.mkdir(parents=True, exist_ok=True)
+    SAIDA.write_text(json.dumps({
+        "gerado_em": datetime.now(timezone.utc).isoformat(),
+        "fonte": "core.dim_posto_servico + core.dim_ome (DW), coordenadas conferidas",
+        "postos": postos,
+        "omes": omes,
+    }, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 
-    gerado_em = datetime.now(timezone.utc).isoformat()
-    datas, total_lanc, total_vtr, total_mil = [], 0, 0, 0
-    omes_descartadas_na_janela = set()
-
-    dia = inicio
-    while dia <= fim:
-        lancamentos, omes_vistas = lancamentos_do_dia(cur, dia, de_para)
-        omes_descartadas_na_janela |= (omes_vistas & set(descartadas))
-        if lancamentos:
-            (SAIDA / f"{dia.isoformat()}.json").write_text(
-                # Sem "gerado_em" aqui, de proposito: o carimbo faria os 90
-                # arquivos mudarem a cada rodada, e o git guardaria 12 MB de
-                # delta por execucao mesmo quando nada no dado mudou. Um dia
-                # ja fechado produz sempre o mesmo arquivo. O carimbo fica no
-                # indice.json, que e onde a pergunta "de quando e isso?" cabe.
-                json.dumps({
-                    "data": dia.isoformat(),
-                    "fonte": "core.fato_lancamento_* (mapa_forca_api_development, via DW)",
-                    "lancamentos": lancamentos,
-                }, ensure_ascii=False, separators=(",", ":")),
-                encoding="utf-8")
-            datas.append(dia.isoformat())
-            total_lanc += len(lancamentos)
-            total_vtr += sum(len(l["viaturas"]) for l in lancamentos)
-            total_mil += sum(len(l["guarnicao"]) for l in lancamentos)
-        dia += timedelta(days=1)
-
-    if omes_descartadas_na_janela:
-        raise SystemExit(
-            f"OMEs marcadas como null no mapeamento apareceram na janela: "
-            f"{sorted(omes_descartadas_na_janela)}. Confirme o destino de cada "
-            "uma antes de publicar -- somar na unidade errada e pior que falhar."
-        )
-
-    (SAIDA / "indice.json").write_text(
-        json.dumps({
-            "gerado_em": gerado_em,
-            "fonte": "core.fato_lancamento_* (mapa_forca_api_development, via DW)",
-            "datas": datas,
-            "postos": postos,
-            "omes": omes,
-        }, ensure_ascii=False, separators=(",", ":")),
-        encoding="utf-8")
-
-    tamanho = sum(f.stat().st_size for f in SAIDA.glob("*.json"))
-    print(f"Mapa de Forca gravado em {SAIDA.relative_to(RAIZ)}")
-    print(f"  {len(datas)} dias ({datas[0]} a {datas[-1]})" if datas else "  nenhum dia com lancamento")
-    print(f"  {total_lanc} lancamentos, {total_vtr} viaturas, {total_mil} militares")
-    print(f"  {tamanho / 1024 / 1024:.2f} MB no total, "
-          f"{tamanho / len(datas) / 1024:.0f} KB por dia" if datas else "")
+    print(f"Catalogo gravado em {SAIDA.relative_to(RAIZ)} "
+          f"({SAIDA.stat().st_size / 1024:.0f} KB, {len(postos)} postos, {len(omes)} OMEs)")
     por_origem = {}
     for p in postos.values():
         por_origem[p["origemCoord"]] = por_origem.get(p["origemCoord"], 0) + 1
@@ -376,7 +223,6 @@ def main():
               "municipio": "centroide do municipio",
               "ome": "coordenada da OME (aproximada)",
               None: "sem coordenada -- fica fora do mapa"}
-    print(f"  postos: {len(postos)}")
     for origem, n in sorted(por_origem.items(), key=lambda x: -x[1]):
         print(f"    {n:>4}  {rotulo.get(origem, origem)}")
     if diagnostico:

@@ -51,8 +51,10 @@ dois limites que motivam este deploy:
 3. **Há um segundo caminho, mais direto que o primeiro, aberto depois que este
    documento foi escrito.** O painel de Mapa de Força não embute os dados no
    pacote: ele os **busca em tempo de execução** de arquivos servidos como
-   conteúdo estático, em `/dados/mapa-forca/`. São **91 arquivos, 11,5 MB**,
-   um por dia dos últimos 90 dias.
+   conteúdo estático, em `/dados/mapa-forca/`. **(Resolvido em 2026-10-06: os
+   arquivos foram removidos; o Mapa de Força passou a vir do backend, com login
+   e recorte por perfil.)** Eram **91 arquivos, 11,5 MB**, um por dia dos
+   últimos 90 dias.
 
    Cada lançamento traz a guarnição nominal — **matrícula, posto/graduação,
    nome de guerra e função** de cada militar escalado. Em 24/08/2026 são 570

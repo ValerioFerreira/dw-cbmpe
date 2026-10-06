@@ -20,7 +20,30 @@
   trabalhamos toda vez que uma nova fonte de dados é integrada ao DW.
   **Leitura obrigatória antes de propor qualquer integração de fonte.**
 
-## Estado atual — onde retomar (atualizado 2026-10-01)
+## Estado atual — onde retomar (atualizado 2026-10-06)
+
+> **2026-10-06 — Windmill destravado, flow rodando e mais dois domínios no DW.**
+> (1) O worker do Windmill estava parado desde 01/10 (11:00 em Recife; TI reiniciou).
+> A fila andou e a 1ª rodada com o código novo **falhou no `carga_core`** por culpa nossa:
+> `marts.chefe_organograma` dependia de `stg.peculio`, e a carga faz `DROP VIEW` dela. Corrigido
+> com `ddl/18_peculio_titular.sql` (tabela `stg.peculio_titular`, recarregada por
+> `carregar_peculio_titular()`; a view lê dela). A 2ª rodada falhou por um **bug antigo**: os
+> snapshots diários só traduziam `sk_militar`/`sk_viatura` pela chave natural, e voltavam com
+> `sk_orgao_externo`/`sk_posto_grad`/`sk_tipo_afastamento` antigos — que mudam quando o Pecúlio
+> ganha ou perde um valor (um órgão saiu → violação de FK; antes disso, o histórico podia
+> apontar para o órgão errado sem aviso). Agora `SNAPSHOT_FKS` traduz todas pelo valor
+> natural. **A 3ª rodada passou inteira** (raw, core, validar: "todas as verificações
+> passaram"; 15.922 snapshots restaurados). (2) **Mapa de Força nominal saiu do front**: views
+> `marts.mapa_forca_*` (`ddl/16`, janela de 30 dias), rotas `GET /dados/mapa-forca/indice` e
+> `/dia/:data` (login SGU, recorte por perfil como Ocorrências); `public/dados/mapa-forca/`
+> (91 arquivos, 11,5 MB, públicos) **removido**; o catálogo de postos (sem dado pessoal) vai
+> em `backend/data/mapa_forca_postos.json`. (3) **Painel 09** passou a vir do DW
+> (`ddl/17`, `marts.painel_cim_*`, `GET /dados/painel/movimentacao`, só acesso total ou
+> perfil DGP) com os **dois cards reais do Metabase** (top 10 OMEs por opção; origem por
+> `ome_atual`) e filtros Categoria e Motivo; JSON e extrator removidos. **Ainda em aberto**
+> (ver "Em aberto e próximos passos"): corte físico dos 30 dias no `core`; painéis pessoais
+> de Efetivo/Viaturas e previsto/lotação por divisão ainda em JSON; DDL 16–18 estão no
+> repositório mas foram aplicados à mão (o `aplicar_ddl.py` os aplica em ordem).
 
 > **2026-10-01 — o que mudou desde 29/09, em uma tela.** Detalhe nas quatro entradas
 > "2026-10-01" no fim do log de decisões. **Feito:** (1) titular da unidade e matrícula
@@ -4889,9 +4912,8 @@ Ficam para o usuário autorizar ou rodar.
    54329, ROE 15432, SGP/escala em 10.193.0.16, mapa de força/vacina/SGU em 10.193.0.20,
    Windmill, DNS, NTP) e as perguntas ao TI (raiz de host ou subcaminho; TLS; hostname).
    Quadro final em `docs/deploy-solicitacao-ti.md`. **Deploy no CapRover em standby.**
-2. **Primeira execução do flow novo.** O `f/dw/dw_diario` foi republicado, mas só roda sozinho às
-   05:30 de 02/10. Conferir `stg.carga` e o `validar.py`; se preferir testar antes,
-   `python etl/windmill/publicar_dw.py --rodar`.
+2. **Primeira execução do flow novo.** ~~Pendente~~ **Feita em 2026-10-06** (ver o bloco
+   "2026-10-06" no topo). Falta acompanhar a agenda das 05:30 de 07/10 sozinha.
 3. **QOD.**
    - Nomenclatura das funções a partir da **QOD_CONSOLIDADA** (decisão do usuário):
      não feita. Hoje o nome da função vem da `ID_ATUALIZADO`; 11 códigos de função da
@@ -4903,11 +4925,12 @@ Ficam para o usuário autorizar ou rodar.
      (2º GB 485 × 671, 6º GB 232 × 201, 163 vagas funcionais acima do fixado, matrícula do
      Subcomandante Geral, 47 postos desatualizados, IDs que mudam, numeração de quadros).
 4. **Mapa de Força.**
-   - **Retenção de 30 dias** (decisão do usuário) **não aplicada**: o DW guarda desde 2019.
-     Manter o **resumo agregado** (`emprego_viatura_resumo`) antes de cortar o `raw`/`core`.
-   - Tirar os **12 MB nominais de `public/dados/mapa-forca/`** do front: rota no backend com
-     recorte por perfil, como as demais.
-   - O arquivo gerado pelo extrator parou em 24/08; reexecutar até a rota existir.
+   - **Retenção de 30 dias** (decisão do usuário): **aplicada na apresentação** (views
+     `marts.mapa_forca_*` cobrem os últimos 30 dias, a janela anda com a carga). O **corte
+     físico** do `raw`/`core` (o DW guarda desde 2019) **não foi feito** — depende de
+     confirmar que o resumo agregado (`emprego_viatura_resumo`) basta.
+   - ~~Tirar os 12 MB nominais de `public/dados/mapa-forca/`~~ **feito em 2026-10-06**
+     (rota no backend, recorte por perfil, arquivos removidos).
    - **Coordenadas dos postos: standby** (o usuário monta a tabela). Lista dos 44 sem
      coordenada em `etl/mapa_forca/postos_sem_coordenada.csv`. Postos de praia do GBMar: o
      usuário informa depois (por ora, sede do GBMar). Regras de fallback já no código
@@ -4915,9 +4938,10 @@ Ficam para o usuário autorizar ou rodar.
    - **De-para posto → seção do QOD** em `etl/mapa_forca/de_para_posto_qod.csv`: 49 casam; 27
      ficam a decidir (CATs, CMAN, ABMG, QCG, CIODS, DAP, DPCIP, CIAT, CEASA e os postos
      `SEDE` lançados por outra OME, ex. "GBS (SEDE)": 1ª SBS ou o comando?).
-5. **Painel 09 (Intenção de Movimentação).** O SQL do Metabase das duas agregações inferidas
-   chegou (top 10 de OMEs pelas opções 1+2+3; contagem por `ome_atual`), com filtros de
-   categoria e motivo. **Não reimplementado.**
+5. **Painel 09 (Intenção de Movimentação).** ~~Não reimplementado~~ **Feito em 2026-10-06**,
+   do DW, com o SQL do Metabase (top 10 por opção; origem por `ome_atual`) e filtros de
+   categoria e motivo. Falta só conferir os números com o Metabase do Igor (hoje 19
+   solicitações com matrícula e 389 atendidas na planilha).
 6. **Domínios que ainda saem de JSON no front:** painéis pessoais de Efetivo
    (`efetivo_dashboard/*`) e de Viaturas, lotação por divisão, previsto por divisão. Quando o
    dashboard de Efetivo passar a ler do DW, ligar o campo `agregado` (já existe em

@@ -49,6 +49,17 @@ const painelVacinacao = asyncHandler(async (req, res) => {
   res.status(200).json(await dadosService.painelVacinacao());
 });
 
+// Intenção de Movimentação: visão corporativa, sem quebra por unidade — só para
+// quem enxerga o Efetivo de todas as unidades (acesso total ou perfil DGP).
+const painelMovimentacao = asyncHandler(async (req, res) => {
+  const acesso = await acessoDoUsuario(req.user?.matricula);
+  if (siglasParaIndicador(acesso, "Efetivo") !== null) {
+    return res.status(403).json({ message: "Painel de Intenção de Movimentação restrito ao Comando Geral." });
+  }
+  res.set("Cache-Control", "private, max-age=300");
+  res.status(200).json(await dadosService.painelMovimentacao());
+});
+
 // Ocorrências: só as linhas das unidades liberadas (a tela ainda recorta
 // pela cadeia da DGO por cima disso).
 const painelOcorrencias = asyncHandler(async (req, res) => {
@@ -58,4 +69,27 @@ const painelOcorrencias = asyncHandler(async (req, res) => {
   res.status(200).json(await dadosService.painelOcorrencias(siglas));
 });
 
-export { metricas, efetivo, lotacao, painelDf, painelVacinacao, painelOcorrencias };
+// Mapa de Força: catálogo e dias da janela de 30 dias para qualquer usuário
+// logado (sem dado pessoal); o dia (guarnição nominal) só com as linhas das
+// unidades liberadas — mesma regra de Ocorrências: acesso total ou o que a
+// subárvore do perfil libera.
+const mapaForcaIndice = asyncHandler(async (req, res) => {
+  res.set("Cache-Control", "private, max-age=300");
+  res.status(200).json(await dadosService.mapaForcaIndice());
+});
+
+const mapaForcaDia = asyncHandler(async (req, res) => {
+  const { data } = req.params;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+    return res.status(400).json({ message: "Data inválida (use AAAA-MM-DD)." });
+  }
+  const acesso = await acessoDoUsuario(req.user?.matricula);
+  const siglas = acesso.total ? null : acesso.siglas;
+  res.set("Cache-Control", "no-store");
+  res.status(200).json(await dadosService.mapaForcaDia(data, siglas));
+});
+
+export {
+  metricas, efetivo, lotacao, painelDf, painelVacinacao, painelOcorrencias,
+  painelMovimentacao, mapaForcaIndice, mapaForcaDia,
+};
