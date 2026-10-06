@@ -61,7 +61,7 @@ async function consultar(nome, sql) {
 // Dado NOMINAL — sempre recortado pelas unidades que o perfil libera
 // (services/acessoService.js). `siglas` null = todas; Set vazio = nenhuma.
 // O formato é o dos JSON que o front já consome (efetivo_lista.json e
-// lotacao_funcao.json), para a troca de fonte não mexer nas telas.
+// lotacao_funcao.json, removido em 2026-10-06), para a troca de fonte não mexer nas telas.
 // ---------------------------------------------------------------------------
 function filtroSiglas(siglas, parametros) {
   if (siglas === null) return "";
@@ -132,12 +132,13 @@ export async function efetivoNominal(siglas) {
 }
 
 export async function lotacaoNominal(siglas) {
-  if (siglas && siglas.size === 0) return { por_matricula: {}, funcoes: {} };
+  if (siglas && siglas.size === 0) return { por_matricula: {}, funcoes: {}, por_unidade_divisao: {} };
   const parametros = [];
+  const onde = filtroSiglas(siglas, parametros);
   const { rows } = await getPoolDw().query(
     `select matricula, id_funcao, antiguidade, bge, cursos, portaria, posto_funcao,
-            tipo, funcao, secao, ome, ome_completa, localidade
-     from marts.lotacao_militar ${filtroSiglas(siglas, parametros)}`,
+            tipo, funcao, secao, ome, ome_completa, localidade, divisao
+     from marts.lotacao_militar ${onde}`,
     parametros
   );
   const porMatricula = {};
@@ -154,11 +155,24 @@ export async function lotacaoNominal(siglas) {
     if (r.id_funcao && !funcoes[r.id_funcao]) {
       funcoes[r.id_funcao] = {
         funcao: r.funcao, secao: r.secao, ome: r.ome, omeCompleta: r.ome_completa,
-        localidade: r.localidade, tipo: r.tipo,
+        localidade: r.localidade, tipo: r.tipo, divisao: r.divisao,
       };
     }
   }
-  return { fonte: "dw (marts.lotacao_militar)", por_matricula: porMatricula, funcoes };
+  // Quem está lotado em cada divisão do organograma (por unidade do militar), para
+  // filtrar a tabela de Efetivo pelo setor — recortado pelo perfil como o resto.
+  const divisoes = await getPoolDw().query(
+    `select sigla, divisao, matricula from marts.lotacao_divisao ${onde}`,
+    parametros
+  );
+  const porUnidadeDivisao = {};
+  for (const r of divisoes.rows) ((porUnidadeDivisao[r.sigla] ||= {})[r.divisao] ||= []).push(r.matricula);
+  return {
+    fonte: "dw (marts.lotacao_militar, lotacao_divisao)",
+    por_matricula: porMatricula,
+    funcoes,
+    por_unidade_divisao: porUnidadeDivisao,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -478,6 +492,7 @@ export async function mapaForcaDia(data, siglas) {
 
 // { metricas: { [sigla]: { efetivo?, viaturas?, financas?, previsto? } },
 //   chefes:   { [sigla]: { posto, nome, cargo, vago } } | null,
+//   divisoes: { previsto: { [sigla]: [{ nome, previsto, extra }] }, atual: { [sigla]: { [divisao]: n } } } | null,
 //   dominios: { efetivo: { data_referencia, carregado_em }, ... } }
 export async function metricasPorSigla() {
   const metricas = {};
@@ -525,5 +540,21 @@ export async function metricasPorSigla() {
     console.error("dados/metricas: carga_status indisponível —", err.message);
   }
 
-  return { metricas, chefes, dominios };
+  // Divisões do organograma (ddl/21): previsto dos quadros e quantos militares estão
+  // lotados em cada uma — agregados, como as demais métricas.
+  let divisoes = null;
+  try {
+    const [prev, atual] = await Promise.all([
+      getPoolDw().query("select sigla, nome, previsto, extra from marts.previsto_divisao order by sigla, ordem"),
+      getPoolDw().query("select sigla, divisao, count(*)::int as n from marts.lotacao_divisao group by 1, 2"),
+    ]);
+    divisoes = { previsto: {}, atual: {} };
+    for (const r of prev.rows) (divisoes.previsto[r.sigla] ||= []).push({ nome: r.nome, previsto: Number(r.previsto), extra: r.extra });
+    for (const r of atual.rows) (divisoes.atual[r.sigla] ||= {})[r.divisao] = r.n;
+    dominios.divisoes = { fonte: "qod" };
+  } catch (err) {
+    console.error("dados/metricas: divisões indisponíveis —", err.message);
+  }
+
+  return { metricas, chefes, divisoes, dominios };
 }

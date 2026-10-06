@@ -12,7 +12,7 @@ import ScrollDuplo from "@/components/ui/scroll-duplo";
 import { FiltroColuna, passaFiltro, valorFiltro, filtrosIniciaisDaUrl } from "@/components/ui/filtro-coluna";
 import { useLarguras, useLarguraContainer, ColGroup, AlcaResize, CELULA_TRUNCADA } from "@/components/ui/tabela-colunas";
 import efetivoLista from "@/data/efetivoLista"; // JSON embutido ou DW (ver o módulo)
-import lotacaoFuncao, { funcaoDoMilitar, secaoDoMilitar } from "@/lib/lotacaoFuncao";
+import { funcaoDoMilitar, secaoDoMilitar, matriculasDaDivisao } from "@/lib/lotacaoFuncao";
 
 const TAMANHOS_PAGINA = [10, 20, 50];
 
@@ -220,7 +220,7 @@ export default function EfetivoDetalhe() {
       if (porOme.length) {
         return porOme.map((r) => ({ ...r, ome: r.omeExibicao })).sort(porAntiguidade);
       }
-      const matriculasDoSetor = new Set(lotacaoFuncao.por_unidade_divisao[siglaDeDados(unidade.sigla)]?.[setor] || []);
+      const matriculasDoSetor = new Set(matriculasDaDivisao(siglaDeDados(unidade.sigla), setor));
       return daUnidade
         .filter((r) => matriculasDoSetor.has(r.matricula))
         .map((r) => ({ ...r, ome: r.omeExibicao || unidade.sigla }))

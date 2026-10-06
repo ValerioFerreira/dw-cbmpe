@@ -40,7 +40,7 @@ dois limites que motivam este deploy:
    telefone (2.043), PCD, readaptado, licenças (LE/LTIP), afastamento acima de
    90 dias e datas de ingresso, promoção e movimentação**
    (`efetivo_lista.json`, 2,7 MB). Some-se a função por matrícula de outros
-   2.356 (`lotacao_funcao.json`, 1,0 MB). Raça/cor e dado de saúde são
+   2.356 (`lotacao_funcao.json`, 1,0 MB — **removido em 2026-10-06**, agora só pelo backend). Raça/cor e dado de saúde são
    categoria especial pela LGPD.
 
    Isso foi uma exceção deliberada, registrada em `DW_PLANEJAMENTO.md`

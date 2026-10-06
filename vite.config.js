@@ -17,9 +17,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // quebrarem antes de a resposta do DW chegar.
 const JSON_SERVIDOS_PELO_DW = {
   'src/data/real/efetivo_lista.json': (d) => ({ fonte: d.fonte, gerado_em: d.gerado_em, por_unidade: {} }),
-  // por_unidade_divisao continua: é o casamento seção do QOD -> divisão do
-  // organograma, que o DW ainda não reproduz (só matrículas, sem nome).
-  'src/data/real/lotacao_funcao.json': (d) => ({ ...d, por_matricula: {} }),
   'src/data/real/vacinacao_dashboard.json': () => ({ eventos: [], participacao: [] }),
   'src/data/real/ocorrencias_dashboard.json': (d) => ({
     ...Object.fromEntries(Object.entries(d).map(([k, v]) => [k, Array.isArray(v) ? [] : v])),

@@ -62,7 +62,7 @@ function celulaPrevistoDivisao(d) {
 
 // Nome de uma seção/divisão em "Setores Vinculados" — vira link pra
 // tabela de Efetivo já filtrada naquela seção (mesma tabela, filtrando
-// por src/data/real/lotacao_funcao.json) quando existe indicador de
+// pela lotação por divisão do DW, marts.lotacao_divisao) quando existe indicador de
 // Efetivo pra essa unidade; senão fica só texto.
 function CelulaSetor({ efetivoId, nome }) {
   if (!efetivoId) return nome;

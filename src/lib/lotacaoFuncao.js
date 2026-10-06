@@ -1,34 +1,29 @@
-import lotacaoFuncao from "@/data/real/lotacao_funcao.json";
-
 // Leitura da lotação/função por militar.
 //
-// A fonte é o QOD publicado pela DPlaG (ver etl/efetivo/extract_lotacao_funcao.py).
-// O arquivo é NORMALIZADO: `por_matricula` guarda só o que varia por pessoa
-// (portaria, BGE, posto da função) e aponta para `funcoes` pelo idFuncao, que
-// é onde moram nome, seção, divisão, OME e localidade. Sem isso os mesmos
-// textos se repetiriam nas 2.600 ocupações e o arquivo — que é `import`ado,
-// logo entra no bundle — ficava ~1 MB maior.
+// A fonte é o QOD publicado pela DPlaG, pelo DW (GET /dados/lotacao, já recortado
+// pelo perfil do usuário no servidor; marts.lotacao_militar). `por_matricula` guarda
+// só o que varia por pessoa (portaria, BGE, posto da função) e aponta para `funcoes`
+// pelo idFuncao, que é onde moram nome, seção, divisão, OME e localidade.
 //
-// Cobertura parcial e conhecida: 2.356 dos 2.658 militares ativos (88,6%).
-// Militar sem função lançada devolve null, e isso significa "ainda não
-// lançado no QOD", não "sem função".
-
-// Estado corrente: começa no JSON embutido e é trocado pelo do DW (GET
-// /dados/lotacao) em src/lib/cbmpe.js quando o backend responde — já
-// recortado pelo perfil do usuário no servidor. A `divisao` do catálogo
-// embutido é mantida: é o casamento seção do QOD -> divisão do organograma,
-// feito pelo extrator e que o DW ainda não reproduz.
-let porMatricula = lotacaoFuncao.por_matricula || {};
-let CATALOGO = lotacaoFuncao.funcoes || {};
+// Sem JSON embutido desde 2026-10-06 (lotacao_funcao.json foi removido): é
+// preenchido em src/lib/cbmpe.js (aplicarLotacaoDw) antes de as telas renderizarem.
+// Militar sem função lançada devolve null, e isso significa "ainda não lançado no
+// QOD", não "sem função".
+let porMatricula = {};
+let CATALOGO = {};
+let POR_UNIDADE_DIVISAO = {};
 
 export function aplicarLotacaoDw(remoto) {
   if (!remoto?.por_matricula) return false;
-  const embutido = lotacaoFuncao.funcoes || {};
-  CATALOGO = Object.fromEntries(
-    Object.entries(remoto.funcoes || {}).map(([id, f]) => [id, { divisao: embutido[id]?.divisao ?? null, ...f }])
-  );
+  CATALOGO = remoto.funcoes || {};
   porMatricula = remoto.por_matricula;
+  POR_UNIDADE_DIVISAO = remoto.por_unidade_divisao || {};
   return true;
+}
+
+/** Matrículas lotadas numa divisão do organograma, na unidade dada (já recortadas pelo perfil). */
+export function matriculasDaDivisao(sigla, divisao) {
+  return POR_UNIDADE_DIVISAO[sigla]?.[divisao] || [];
 }
 
 /** Ocupações de um militar, já com os dados da função resolvidos. */
@@ -49,8 +44,8 @@ export function funcaoDoMilitar(matricula) {
 
 /**
  * Seção do QOD onde o militar está lotado — granularidade que o organograma
- * do app não tem (ele para na divisão). Ver a nota sobre seção x divisão em
- * etl/efetivo/extract_lotacao_funcao.py.
+ * do app não tem (ele para na divisão). A carga casa seção com divisão em
+ * etl/dw/carga_core.py (carregar_divisoes_qod).
  */
 export function secaoDoMilitar(matricula) {
   const secoes = [...new Set(
@@ -59,5 +54,3 @@ export function secaoDoMilitar(matricula) {
   return secoes.length ? secoes.join(" + ") : null;
 }
 
-export const COBERTURA_LOTACAO = lotacaoFuncao.cobertura;
-export default lotacaoFuncao;

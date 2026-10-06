@@ -14,8 +14,6 @@
 
 import efetivoReal from "./real/efetivo.json";
 import efetivoPrevistoReal from "./real/efetivo_previsto.json";
-import efetivoPrevistoDivisoesReal from "./real/efetivo_previsto_divisoes.json";
-import lotacaoFuncaoReal from "./real/lotacao_funcao.json";
 
 const DIACRITICOS_REGEX = new RegExp("[\\u0300-\\u036f]", "g");
 
@@ -389,7 +387,7 @@ function nomeExibicao(nome) {
 // o DW não deve preencher nem marcar como "Vago".
 const SEM_TITULAR_EM_CONSTRUCAO = new Set(['DGA']);
 
-export function aplicarMetricasDw({ metricas = {}, chefes = null, dominios = {} } = {}) {
+export function aplicarMetricasDw({ metricas = {}, chefes = null, divisoes = null, dominios = {} } = {}) {
   const aplicados = Object.keys(dominios).filter((d) => CAMPO_POR_DOMINIO[d]);
   aplicados.forEach((dominio) => {
     const campo = CAMPO_POR_DOMINIO[dominio];
@@ -408,8 +406,17 @@ export function aplicarMetricasDw({ metricas = {}, chefes = null, dominios = {} 
     });
     aplicados.push("chefes");
   }
+  // Previsto (quadros do QOD) e lotados por divisão, por unidade (ddl/21).
+  if (divisoes) {
+    DIVISOES_DW = divisoes;
+    aplicados.push("divisoes");
+  }
   return aplicados;
 }
+
+// Previsto e lotação por divisão, do DW (GET /dados/metricas → divisoes). Vazio até o
+// backend responder: a divisão aparece sem número, nunca com número inventado.
+let DIVISOES_DW = { previsto: {}, atual: {} };
 
 // ----- Divisões/seções internas por unidade (inclui itens que também são
 // nós próprios da árvore — filtrados na leitura abaixo) -----
@@ -652,29 +659,30 @@ function divisoesDaSigla(sigla) {
   return [...administrativas, ...operacionais];
 }
 
-// Efetivo previsto por divisão/seção interna de uma unidade — fonte real
-// (QOD, ver etl/efetivo/extract_previsto_divisoes.py).
+// Efetivo previsto por divisão/seção interna de uma unidade — dos quadros do QOD
+// (marts.previsto_divisao, calculado pela carga: etl/dw/carga_core.py,
+// carregar_divisoes_qod).
 //
-// Efetivo ATUAL por divisão vem do QOD publicado pela DPlaG (ver
-// etl/efetivo/extract_lotacao_funcao.py), que cobre 88,6% do efetivo.
+// Efetivo ATUAL por divisão vem do QOD (QOD_CONSOLIDADA × catálogo de funções,
+// marts.lotacao_divisao, mesma carga).
 // "efetivoAtual" fica null (não 0) pra divisão cuja função ainda não foi
 // lançada — evita mostrar "0" como se a seção estivesse vazia quando na
 // verdade é só falta de lançamento. A UI decide como exibir esse "sem
 // dado ainda" (ver Diretoria.jsx).
 //
 // Atenção: o QOD é um nível MAIS FINO que este organograma (ele lista
-// seções dentro das divisões), e só 980 das 1.823 funções do catálogo
-// casam com uma divisão daqui. As outras contam no total da unidade mas
-// não em divisão nenhuma — daí divisão com efetivoAtual abaixo do real.
+// seções dentro das divisões). A carga casa a seção com a divisão pelo nome e,
+// quando não casa, pela hierarquia do quadro; a função que ainda assim não casa
+// conta no total da unidade mas não em divisão nenhuma — daí divisão com
+// efetivoAtual abaixo do real. Também pode passar do previsto: é o QOD ocupando
+// mais gente do que o quadro fixa (ver o relatório de divergências do QOD).
 export function metricasDivisoesProprias(sigla) {
   const divisoes = divisoesDaSigla(sigla);
   if (!divisoes.length) return [];
   const previstoPorNome = new Map(
-    (efetivoPrevistoDivisoesReal.por_unidade[siglaDeDados(sigla)] || []).map((d) => [d.nome, d.previsto])
+    (DIVISOES_DW.previsto[siglaDeDados(sigla)] || []).map((d) => [d.nome, d.previsto])
   );
-  const atualPorNome = new Map(
-    Object.entries(lotacaoFuncaoReal.por_unidade_divisao[siglaDeDados(sigla)] || {}).map(([nome, matriculas]) => [nome, matriculas.length])
-  );
+  const atualPorNome = new Map(Object.entries(DIVISOES_DW.atual[siglaDeDados(sigla)] || {}));
   // Setor vinculado que é OME própria na fonte (ex. CPPA dentro da DGP):
   // o efetivo atual vem da contagem direta por OME, não da Repercussão
   // Financeira — é dado completo, não amostra parcial. Ver

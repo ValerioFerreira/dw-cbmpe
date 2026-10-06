@@ -33,8 +33,8 @@ e as regras para chegar lá.
 |---|---|---|---|---|
 | `efetivo.json`, `efetivo_lista.json` | `etl/efetivo/extract_efetivo.py` | **Neon** `Militar` ← Windmill `apps/peculio_para_metabase_e_neon.py` ← planilha Google do Pecúlio | Não (o DW tem a mesma planilha em `raw_peculio`, carregada à parte) | Manual |
 | `efetivo_previsto.json` | `etl/efetivo/extract_previsto.py` | **Arquivo `.xlsx` local** do QOD (passado na linha de comando) | Não | Manual, por arquivo recebido |
-| `efetivo_previsto_divisoes.json` | `etl/efetivo/extract_previsto_divisoes.py` | Mesmo `.xlsx` do QOD + `SUBSETORES` de `src/data/organograma.js` | Não | Manual |
-| `lotacao_funcao.json` | `etl/efetivo/extract_lotacao_funcao.py` | QOD publicado (link Google, `.xlsx`) ou arquivo local | Não | Manual |
+| ~~`efetivo_previsto_divisoes.json`~~ | **removido em 2026-10-06** — `core.qod_previsto_divisao` / `marts.previsto_divisao` (ddl/21), calculado pela carga sobre as abas de unidade dos quadros de setembro e a lista `stg.divisao_organograma` (cópia de `SUBSETORES`; regenerar com `etl/dw/gerar_divisoes.py`); sai em `GET /dados/metricas` | `raw_qod_quadros` | **Sim** | Diária |
+| ~~`lotacao_funcao.json`~~ | **removido em 2026-10-06** — `GET /dados/lotacao` (`marts.lotacao_militar`, agora com `divisao`) + `marts.lotacao_divisao` (quem está em cada divisão); a divisão de cada função é calculada pela carga (`core.qod_funcao_divisao`) | QOD publicado → `raw_qod` | **Sim** | Diária |
 | ~~`efetivo_dashboard/intencao_movimentacao.json`~~ | **removido em 2026-10-06** — Painel 09 lê `marts.painel_cim_pedido`/`painel_cim_atendido` (ddl/17, de `raw_cim`) por `GET /dados/painel/movimentacao` | planilhas CIM → `raw_cim` (flow `dw_diario`) | **Sim** | Diária |
 | ~~`efetivo_dashboard/saida_previsao.json`~~ | **removido em 2026-10-06** — `marts.painel_saida_ano` (planilha Inativos) e `painel_saida_previsao` (SQL do Igor sobre `marts.efetivo_nominal`), ddl/19, por `GET /dados/painel/efetivo` | `raw_inativos` + DW | **Sim** | Diária |
 | ~~`efetivo_dashboard/{militares,filtros,adidos_extra,carreira_extra,previsto}.json`~~ | **removidos em 2026-10-06** — o front monta os registros da relação nominal do DW (`src/lib/efetivoMilitares.js`, de `GET /dados/efetivo`, recortada por perfil); o previsto por unidade e posto vem de `marts.previsto_quadro_posto` (ddl/19) | `marts.efetivo_nominal` | **Sim** | Diária |
@@ -470,7 +470,7 @@ nominais **têm de filtrar as OMEs pelo perfil no servidor**.
 |---|---|---|---|
 | `GET /dados/metricas` | `efetivo_organograma`, `frota_organograma`, `financas_organograma`, `previsto_organograma`, `chefe_organograma`, `carga_status` | nenhum: são os agregados e titulares que o organograma mostra a qualquer usuário logado | `efetivo.json`, `viaturas_lista.json` (contagem), `financas.json`, `efetivo_previsto.json`, `OFICIAIS` fixo |
 | `GET /dados/efetivo` | `efetivo_nominal` | indicador Efetivo | `efetivo_lista.json` |
-| `GET /dados/lotacao` | `lotacao_militar` | indicador Efetivo | `lotacao_funcao.json` (por matrícula) |
+| `GET /dados/lotacao` | `lotacao_militar`, `lotacao_divisao` | indicador Efetivo | (era `lotacao_funcao.json`, removido) |
 | `GET /dados/painel/df` | `painel_df_*` | indicador Finanças; diárias e funeral só com Finanças de todas as unidades | `financas_dashboard.json` |
 | `GET /dados/painel/vacinacao` | `painel_vacinacao_*` | só quem enxerga a DAS (senão 403) | `vacinacao_dashboard.json` |
 | `GET /dados/painel/ocorrencias` | `painel_roe_*` | só linhas das unidades liberadas | `ocorrencias_dashboard.json` |

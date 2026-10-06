@@ -89,8 +89,8 @@ PLANILHAS = {
         "formato": "csv",
         "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQijAJBzH4CsNdlBBTpx6VPFRXAXNeITi7WxOmwHIN6gqLLnOEHgTWIv8VSZl_37ULf0zBeapJOwUBZ/pub?gid=752893521&single=true&output=csv",
     },
-    # QOD publicado pela DPlaG (mesmo link de etl/efetivo/
-    # extract_lotacao_funcao.py): catalogo de funcoes (QOD_FUNCOES), quem
+    # QOD publicado pela DPlaG (o extrator manual extract_lotacao_funcao.py foi
+    # removido em 2026-10-06; a carga faz o casamento): catalogo de funcoes (QOD_FUNCOES), quem
     # ocupa cada uma (QOD_CONSOLIDADA) e as demais abas. Base do efetivo
     # previsto, da lotacao por funcao e dos chefes das unidades.
     "qod": {

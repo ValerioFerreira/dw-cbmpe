@@ -1775,6 +1775,492 @@ def carregar_quadro_qod(cur):
     print(f"  qod_quadro_unidade           {n} quadros, previsto {total}{extra}")
 
 
+# ---------------------------------------------------------------------------
+# Divisoes do organograma: previsto e lotacao por divisao -- ver 21_divisoes.sql
+# ---------------------------------------------------------------------------
+# O QOD e UM NIVEL MAIS FINO que o organograma do app: lista "Secao de
+# Tesouraria - STes", que no organograma esta dentro de "Divisao Administrativa".
+# As divisoes que o app mostra por unidade estao em stg.divisao_organograma
+# (copia de SUBSETORES, de src/data/organograma.js, sem as unidades-filhas). Estas
+# duas cargas casam o QOD com elas e gravam o resultado:
+#   core.qod_previsto_divisao    previsto por unidade e divisao (quadros de setembro)
+#   core.qod_funcao_divisao      divisao de cada funcao do catalogo
+#   core.qod_lotacao_divisao     quem esta lotado em cada divisao (por unidade do militar)
+# Casamento por texto, com heuristica -- o que nao casa fica sem divisao e conta so
+# no total da unidade: numero errado no painel e pior que numero ausente. As duas
+# cargas rodam dentro de um SAVEPOINT (ver carregar_divisoes_qod): se quebrarem, o
+# resto da carga segue e a divisao fica com o valor da rodada anterior.
+
+# Aba de unidade dos quadros (raw_qod_quadros.<nome>_<numero>) -> sigla.
+ABA_DO_QUADRO = {
+    "gcg": "GCG", "ci": "CI", "cpo": "CPO", "aeci": "AECI", "ccs": "CCS", "gsg": "GSG",
+    "ajg": "AJG", "cpp": "CPP", "dgo": "DGO", "dim": "DIM", "gbi": "GBI", "gbaph": "GBAPH",
+    "gbs": "GBS", "gbmar": "GBMar", "diesp": "DIESP", "cat_rmr": "CAT/RMR",
+    "dinter_i": "DINTER I", "1o_gb": "1º GB", "2o_gb": "2º GB", "6o_gb": "6º GB",
+    "7o_gb": "7º GB", "cat_zm": "CAT/ZM", "cat_ag": "CAT/AG", "dinter_ii": "DINTER II",
+    "3o_gb": "3º GB", "4o_gb": "4º GB", "5o_gb": "5º GB", "9o_gb": "9º GB",
+    "cat_ser": "CAT/SE", "das": "DAS", "dgp": "DGP", "djd": "DJD", "dvp": "DVP",
+    "dtic": "DTIC", "dplag": "DPLAG", "dlog": "DLOG", "cman": "CMAN", "cint": "CINT",
+    "ceao": "CEAO", "df": "DF", "deip": "DEIP", "abmg": "ABMG", "cefd": "CEFD",
+}
+# Abas "satelite" que somam em outra unidade como divisao extra (CPPA soma na DGP --
+# decisao registrada em DW_PLANEJAMENTO.md).
+ABA_SATELITE = {"cppa": ("DGP", "CPPA")}
+
+PADRAO_SECAO_OPERACIONAL = re.compile(r"\bSB(APH|SA|FN|I|S)?\b|\bSATec\b", re.IGNORECASE)
+PADRAO_CABECALHO = re.compile(r"^(\d+(?:\.\d+)*)\)\s*(.+)$")
+PADRAO_CORPO = re.compile(r"^[a-z]\.\s")
+
+
+def _norm_quadro(s):
+    s = str(s or "").strip()
+    s = re.sub(r"^↳\s*", "", s)
+    s = re.sub(r"\s*\([^)]*\)\s*$", "", s)
+    s = unicodedata.normalize("NFD", s)
+    s = "".join(c for c in s if unicodedata.category(c) != "Mn").lower()
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def _variantes_quadro(titulo):
+    """Texto completo, so a abreviacao (depois do ultimo hifen) e o nome sem ela --
+    cada uma tambem numa forma "solta" (sem espacos/hifens), porque o QOD tem
+    inconsistencias de digitacao."""
+    vs = {_norm_quadro(titulo)}
+    partes = re.split(r"\s*-\s*", str(titulo))
+    if len(partes) >= 2:
+        vs.add(_norm_quadro(partes[-1]))
+        vs.add(_norm_quadro(" - ".join(partes[:-1])))
+    return vs | {re.sub(r"[\s-]+", "", v) for v in vs}
+
+
+class _NoQuadro:
+    __slots__ = ("titulo", "nivel", "proprio", "filhos", "claimed", "pai", "alvo")
+
+    def __init__(self, titulo, nivel):
+        self.titulo, self.nivel = titulo, nivel
+        self.proprio, self.filhos, self.claimed = 0.0, [], False
+        self.pai, self.alvo = None, None
+
+
+def _numero(valor):
+    try:
+        return float(str(valor).strip().replace(",", "."))
+    except (TypeError, ValueError):
+        return None
+
+
+def _arvore_quadro(linhas):
+    """linhas = [(discriminacao, total)] a partir da linha 6 da aba. Devolve as
+    raizes da arvore numerada ("1)", "4.1)") e o TOTAL da planilha. As linhas-filho
+    ("a. Chefe") somam seu total no no que as abre."""
+    raizes, pilha, total_planilha = [], [], None
+    for discriminacao, total in linhas:
+        a = str(discriminacao or "").strip()
+        if not a:
+            continue
+        if a.upper().startswith("TOTAL"):
+            total_planilha = _numero(total)
+            break
+        m = PADRAO_CABECALHO.match(a)
+        if m:
+            no = _NoQuadro(m.group(2).strip(), len(m.group(1).split(".")))
+            while pilha and pilha[-1].nivel >= no.nivel:
+                pilha.pop()
+            if pilha:
+                no.pai = pilha[-1]
+                pilha[-1].filhos.append(no)
+            else:
+                raizes.append(no)
+            pilha.append(no)
+        elif PADRAO_CORPO.match(a) and pilha:
+            n = _numero(total)
+            if n is not None:
+                pilha[-1].proprio += n
+    return raizes, total_planilha
+
+
+def _achatar_quadro(raizes):
+    saida = []
+
+    def visitar(no):
+        saida.append(no)
+        for f in no.filhos:
+            visitar(f)
+
+    for r in raizes:
+        visitar(r)
+    return saida
+
+
+def _rollup_quadro(no):
+    """Soma do no e dos descendentes que NENHUMA outra divisao reivindicou."""
+    return no.proprio + sum(_rollup_quadro(f) for f in no.filhos if not f.claimed)
+
+
+def calcular_previsto_divisao(linhas, alvos):
+    """Previsto de cada divisao `alvos` (nomes de stg.divisao_organograma) numa aba
+    de unidade. Devolve (divisoes, extras, soma, total_da_planilha, nao_casados, heranca)."""
+    raizes, total_planilha = _arvore_quadro(linhas)
+    nos = _achatar_quadro(raizes)
+    resultado, nao_casados = {}, []
+
+    # Passo 1: casamento por texto (so quando ha um unico candidato).
+    for alvo in alvos:
+        vs_alvo = _variantes_quadro(alvo)
+        candidatos = [n for n in nos if not n.claimed and (_variantes_quadro(n.titulo) & vs_alvo)]
+        if len(candidatos) == 1:
+            candidatos[0].claimed = True
+            candidatos[0].alvo = alvo
+            resultado[alvo] = candidatos[0]
+        else:
+            nao_casados.append(alvo)
+
+    # Passo 2: secoes operacionais (SB/SATec) restantes casam por posicao -- cobre
+    # rotulos duplicados por erro de digitacao no QOD.
+    alvos_op = [a for a in nao_casados if PADRAO_SECAO_OPERACIONAL.search(a)]
+    nos_op = [n for n in nos if not n.claimed and PADRAO_SECAO_OPERACIONAL.search(n.titulo)]
+    for alvo, no in zip(alvos_op, nos_op):
+        no.claimed = True
+        no.alvo = alvo
+        resultado[alvo] = no
+        nao_casados.remove(alvo)
+
+    # Heranca: cada no do quadro pertence a divisao do ancestral mais proximo que
+    # alguma divisao reivindicou. Serve para a lotacao: "Nucleo de Justica e
+    # Disciplina" nao e divisao do app, mas o quadro o pendura em "Secretaria e Apoio
+    # do Comando". Titulo que aparece em divisoes diferentes fica de fora (ambiguo).
+    heranca, ambiguos = {}, set()
+    for no in nos:
+        ancestral = no
+        while ancestral is not None and ancestral.alvo is None:
+            ancestral = ancestral.pai
+        if ancestral is None:
+            continue
+        chave = _norm_quadro(no.titulo)
+        if heranca.setdefault(chave, ancestral.alvo) != ancestral.alvo:
+            ambiguos.add(chave)
+    heranca = {k: v for k, v in heranca.items() if k not in ambiguos}
+
+    divisoes = [(alvo, int(round(_rollup_quadro(resultado[alvo]))) if alvo in resultado else 0) for alvo in alvos]
+    extras = [(r.titulo, int(round(_rollup_quadro(r)))) for r in raizes if not r.claimed]
+    soma = sum(p for _, p in divisoes) + sum(p for _, p in extras)
+    return divisoes, extras, soma, total_planilha, nao_casados, heranca
+
+
+def _linhas_da_aba(cur, tabela):
+    """[(discriminacao, total)] da aba, na ordem da planilha, a partir da linha 6."""
+    cur.execute("""
+        SELECT column_name FROM information_schema.columns
+        WHERE table_schema = 'raw_qod_quadros' AND table_name = %s AND column_name LIKE 'col\\_%%'
+    """, (tabela,))
+    col = {int(c[4:6]): c for (c,) in cur.fetchall()}
+    if 1 not in col or 21 not in col:
+        return None
+    cur.execute(f'SELECT "{col[1]}", "{col[21]}" FROM raw_qod_quadros."{tabela}" WHERE linha >= 6 ORDER BY linha')
+    return cur.fetchall()
+
+
+def previsto_das_divisoes(cur):
+    """({sigla: [(nome, previsto, extra)]}, avisos, {sigla: {titulo: divisao}}), lendo as
+    abas de unidade dos quadros (raw_qod_quadros). Somente leitura."""
+    cur.execute("""
+        SELECT sigla, nome FROM stg.divisao_organograma ORDER BY sigla, ordem
+    """)
+    alvos_por_sigla = {}
+    for sigla, nome in cur.fetchall():
+        alvos_por_sigla.setdefault(sigla, []).append(nome)
+
+    cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'raw_qod_quadros'")
+    tabelas = {}
+    for (t,) in cur.fetchall():
+        m = re.match(r"^(.+)_(\d{3})$", t)
+        if m:
+            tabelas[m.group(1)] = t
+
+    resultado, avisos, herancas = {}, [], {}
+    # O satelite (CPPA) nao entra como alvo da aba da unidade: soma a parte.
+    satelites = {sigla: rotulo for sigla, rotulo in ABA_SATELITE.values()}
+    for chave, sigla in ABA_DO_QUADRO.items():
+        tabela = tabelas.get(chave)
+        if not tabela:
+            avisos.append(f"{sigla}: aba '{chave}' ausente em raw_qod_quadros")
+            continue
+        linhas = _linhas_da_aba(cur, tabela)
+        if linhas is None:
+            avisos.append(f"{sigla}: aba {tabela} sem as colunas esperadas")
+            continue
+        alvos = [a for a in alvos_por_sigla.get(sigla, []) if a != satelites.get(sigla)]
+        divisoes, extras, soma, total, nao_casados, heranca = calcular_previsto_divisao(linhas, alvos)
+        herancas[sigla] = heranca
+        resultado[sigla] = [(n, p, False) for n, p in divisoes] + [(n, p, True) for n, p in extras]
+        if nao_casados:
+            avisos.append(f"{sigla}: divisoes sem correspondencia na aba: {nao_casados}")
+        if total is not None and abs(soma - total) > 0.01:
+            avisos.append(f"{sigla}: soma das divisoes ({soma}) != TOTAL da aba ({total})")
+    for chave, (sigla, rotulo) in ABA_SATELITE.items():
+        tabela = tabelas.get(chave)
+        linhas = _linhas_da_aba(cur, tabela) if tabela else None
+        if linhas is None:
+            avisos.append(f"{rotulo}: aba '{chave}' ausente em raw_qod_quadros")
+            continue
+        _, total = _arvore_quadro(linhas)
+        valor = int(round(total or 0))
+        itens = resultado.setdefault(sigla, [])
+        # Se o app ja lista o satelite como divisao (CPPA na DGP), o valor vai nela;
+        # senao entra como divisao extra.
+        existente = next((i for i, (n, _, _) in enumerate(itens) if n == rotulo), None)
+        if existente is not None:
+            itens[existente] = (rotulo, valor, False)
+        else:
+            itens.append((rotulo, valor, True))
+    return resultado, avisos, herancas
+
+
+# --- Lotacao: casa a secao/funcao do QOD com a divisao do organograma -------------
+OME_ALIAS_DIVISAO = {
+    "ajg": "AJG", "diesp": "DIESP", "cat rmr": "CAT/RMR", "dinter 1": "DINTER I",
+    "dinter ii": "DINTER II", "cat ser": "CAT/SE", "dlog": "DLOG", "dplag": "DPLAG",
+    "gsg": "GSG", "cint": "CINT", "cman": "CMAN", "cppa": "DGP",
+}
+# Prefixos que resolvem o topo da unidade, onde o texto nao cita o nome da divisao
+# (as duas primeiras olham a FUNCAO; as demais, a SECAO).
+PREFIXOS_COMANDO = [
+    (re.compile(r"^subcomand"), "subcomand"), (re.compile(r"^comand"), "comand"),
+    (re.compile(r"^diretor"), "diretor"), (re.compile(r"^chefia\b"), "chefia"),
+    (re.compile(r"^gabinete do (sub)?comando"), "chefia"),
+]
+# Cargo que E a unidade (Comandante Geral, Subcomandante Geral, Diretor): se a
+# unidade nao tem divisao propria para ele, fica SEM divisao de proposito.
+CARGO_DE_TOPO = re.compile(r"^(comandante|subcomandante|diretor)")
+# ...mas so quando a SECAO tambem e a caixa de topo ("Comandante da 1a SATec" nao).
+SECAO_DE_TOPO = re.compile(r"^(comando|subcomando|gabinete|chefia|diretoria)\b")
+# Divisoes de vaga unica: so as regras de prefixo podem preenche-las.
+DIVISOES_SINGULARES = {"comando", "subcomando", "diretoria", "chefia"}
+
+
+def _norm_lot(s):
+    s = str(s or "").strip()
+    s = unicodedata.normalize("NFD", s)
+    s = "".join(c for c in s if unicodedata.category(c) != "Mn").lower()
+    s = s.replace("divisao", "div").replace("secao", "sec").replace("nucleo", "nuc")
+    s = re.sub(r"[^a-z0-9 ]+", " ", s)
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def _contem_palavra(maior, menor):
+    return bool(maior and menor and re.search(r"\b" + re.escape(menor) + r"\b", maior))
+
+
+def _variantes_lot(titulo):
+    partes = re.split(r"\s*-\s*", titulo)
+    formas = {titulo}
+    if len(partes) >= 2:
+        formas.add(partes[-1])
+        formas.add(" - ".join(partes[:-1]))
+    # "1ª SBI/GBI (Jaboatao)" -> "1ª SBI": o QOD nomeia a secao sem a cidade.
+    formas.add(re.sub(r"\s*/\s*\S+\s*\([^)]*\)\s*$", "", titulo))
+    formas.add(re.sub(r"\s*\([^)]*\)\s*$", "", titulo))
+    return {_norm_lot(f) for f in formas if _norm_lot(f)}
+
+
+def casar_divisao(texto, divisoes):
+    """Casa um titulo (secao do QOD ou nome da funcao) com as divisoes do
+    organograma. Devolve o nome como esta em stg.divisao_organograma, ou None."""
+    core = _norm_lot(texto)
+    if not core:
+        return None
+    candidatos = [(d, _variantes_lot(d)) for d in divisoes]
+
+    melhores = []
+    for divisao, variantes in candidatos:
+        if _norm_lot(divisao) in DIVISOES_SINGULARES:
+            continue
+        for v in variantes:
+            if len(v) >= 4 and (_contem_palavra(core, v) or _contem_palavra(v, core)):
+                melhores.append((len(v), divisao))
+    if melhores:
+        return sorted(melhores, reverse=True)[0][1]
+
+    # Cargo de topo da unidade: a funcao nao cita a divisao, so o cargo.
+    for padrao, prefixo in PREFIXOS_COMANDO:
+        if padrao.match(core):
+            for divisao, variantes in candidatos:
+                if any(v.startswith(prefixo) for v in variantes):
+                    return divisao
+    m = re.match(r"^chefe d[oae]\s+(.+)$", core)
+    if m and len(m.group(1)) <= 6:
+        for divisao, variantes in candidatos:
+            if any(v.startswith("chefia") for v in variantes):
+                return divisao
+
+    # Sobreposicao de palavras (>= 70%) -- uma palavra a mais no meio quebra a
+    # contencao literal, mas o conjunto ainda bate.
+    alvo_tokens = set(core.split())
+    melhores = []
+    for divisao, variantes in candidatos:
+        if _norm_lot(divisao) in DIVISOES_SINGULARES:
+            continue
+        for v in variantes:
+            v_tokens = set(v.split())
+            if len(v_tokens) < 2:
+                continue
+            menor = min(len(alvo_tokens), len(v_tokens))
+            razao = len(alvo_tokens & v_tokens) / menor if menor else 0
+            if razao >= 0.7:
+                melhores.append((razao, len(v), divisao))
+    if melhores:
+        return sorted(melhores, reverse=True)[0][2]
+    return None
+
+
+def unidade_pai_do_qod(ome, siglas_validas):
+    """Sigla do organograma para a OME do catalogo. Secoes operacionais vem como
+    "1ª SB/4º GB": a unidade-mae e a parte depois da ultima barra."""
+    ome = str(ome or "").strip()
+    chave = _norm_lot(ome)
+    if chave in OME_ALIAS_DIVISAO:
+        return OME_ALIAS_DIVISAO[chave]
+    if ome in siglas_validas:
+        return ome
+    if "/" in ome:
+        parte = ome.rsplit("/", 1)[-1].strip()
+        if parte in siglas_validas:
+            return parte
+    return ome
+
+
+def resolver_divisao_da_funcao(item, divisoes_da_sigla, herancas=None):
+    """Divisao do organograma de uma funcao do catalogo (ou None). Se o texto nao
+    casa com nenhuma divisao, tenta a hierarquia do quadro (`herancas`): a secao da
+    funcao e um no do quadro, e a divisao dele e a do ancestral mais proximo."""
+    divisao = _resolver_por_texto(item, divisoes_da_sigla)
+    if divisao is None and herancas and item["ome"] == item["sigla"]:
+        divisao = herancas.get(item["sigla"], {}).get(_norm_quadro(item["secao"]))
+    return divisao
+
+
+def _resolver_por_texto(item, divisoes_da_sigla):
+    sigla, divisoes = item["sigla"], divisoes_da_sigla.get(item["sigla"], [])
+    if not divisoes:
+        return None
+    # Secao que e sub-OME propria ("1a SB/1o GB") casa pelo NOME DA OME: o comandante
+    # da SB pertence a caixa da SB, nao ao "Comando" do GB.
+    if item["ome"] != sigla:
+        return casar_divisao(item["ome"], divisoes)
+    # Cargo que E a unidade: resolvido pelo nome da FUNCAO, nunca pela secao.
+    if SECAO_DE_TOPO.match(_norm_lot(item["secao"])) and CARGO_DE_TOPO.match(_norm_lot(item["funcao"])):
+        return casar_divisao(item["funcao"], divisoes)
+    return casar_divisao(item["secao"], divisoes)
+
+
+def lotacao_das_divisoes(cur):
+    """(divisao de cada funcao, {(sigla do militar, divisao): {matriculas}}, avisos).
+    Somente leitura."""
+    cur.execute("SELECT sigla, nome FROM stg.divisao_organograma ORDER BY sigla, ordem")
+    divisoes_da_sigla = {}
+    for sigla, nome in cur.fetchall():
+        divisoes_da_sigla.setdefault(sigla, []).append(nome)
+    cur.execute("SELECT valor_origem FROM stg.de_para_ome WHERE sistema = 'organograma'")
+    siglas_validas = {s for (s,) in cur.fetchall()} | set(divisoes_da_sigla)
+
+    cur.execute("""
+        SELECT id_funcao, tipo_funcao, ome_qod, coalesce(secao, ''), coalesce(funcao, ''), ordem_exibicao
+        FROM core.qod_funcao
+    """)
+    catalogo = {}
+    for id_funcao, tipo, ome, secao, funcao, ordem in cur.fetchall():
+        ome = (ome or "").strip()
+        catalogo[id_funcao] = {"tipo": tipo, "ome": ome, "secao": secao.strip(), "funcao": funcao.strip(),
+                               "ordem": float(ordem or 0), "sigla": unidade_pai_do_qod(ome, siglas_validas)}
+    _, _, herancas = previsto_das_divisoes(cur)
+    for item in catalogo.values():
+        item["divisao"] = resolver_divisao_da_funcao(item, divisoes_da_sigla, herancas)
+
+    # Funcao lancada mais de uma vez (mesma OME, secao e nome) vira UMA: a de menor
+    # ordem de exibicao e a canonica.
+    por_tripla = {}
+    for chave, item in sorted(catalogo.items(), key=lambda kv: kv[1]["ordem"]):
+        por_tripla.setdefault((item["ome"], item["secao"], item["funcao"]), []).append(chave)
+    canonico = {rep: ids[0] for ids in por_tripla.values() if len(ids) > 1 for rep in ids[1:]}
+
+    # Unidade de cada militar do efetivo ativo (a mesma do app: marts.efetivo_nominal).
+    cur.execute("SELECT matricula_normalizada, sigla FROM marts.efetivo_nominal")
+    sigla_do_militar = dict(cur.fetchall())
+
+    cur.execute("SELECT matricula, id_funcao FROM core.qod_ocupacao WHERE matricula IS NOT NULL AND id_funcao IS NOT NULL")
+    funcoes_do_militar = {}
+    for matricula, id_funcao in cur.fetchall():
+        id_funcao = canonico.get(id_funcao, id_funcao)
+        item = catalogo.get(id_funcao)
+        if item is not None and matricula in sigla_do_militar:
+            funcoes_do_militar.setdefault(matricula, []).append(item)
+
+    # Conta so FUNCAO, mais o ENCARGO de quem nao tem nenhuma funcao lancada --
+    # senao quem acumula contaria duas vezes na secao.
+    lotacao, sem_divisao = {}, 0
+    for matricula, itens in funcoes_do_militar.items():
+        sigla = sigla_do_militar[matricula]
+        divisoes_do_militar = divisoes_da_sigla.get(sigla, [])
+        for item in ([i for i in itens if i["tipo"] == "FUNÇÃO"] or itens):
+            divisao = item["divisao"]
+            # A divisao foi resolvida contra a unidade DO CATALOGO; se o Peculio lota o
+            # militar em outra unidade, so vale a divisao que exista la. Divisao ja nula
+            # fica nula (foi anulada de proposito).
+            if divisao and divisao not in divisoes_do_militar:
+                divisao = casar_divisao(item["secao"], divisoes_do_militar)
+            if divisao:
+                lotacao.setdefault((sigla, divisao), set()).add(matricula)
+            else:
+                sem_divisao += 1
+    return {k: v["divisao"] for k, v in catalogo.items()}, lotacao, sem_divisao
+
+
+def carregar_divisoes_qod(cur):
+    """Roda as duas cargas dentro de SAVEPOINTs: se uma quebrar, a carga segue."""
+    cur.execute("SELECT to_regclass('stg.divisao_organograma') IS NOT NULL")
+    if not cur.fetchone()[0]:
+        print("  divisoes do organograma      (stg.divisao_organograma ausente -- aplique ddl/21; pulado)")
+        return
+    cur.execute("SELECT count(*) FROM stg.divisao_organograma")
+    if not cur.fetchone()[0]:
+        print("  divisoes do organograma      (stg.divisao_organograma vazia -- pulado)")
+        return
+
+    cur.execute("SAVEPOINT divisoes_previsto")
+    try:
+        previsto, avisos, _herancas = previsto_das_divisoes(cur)
+        linhas = [(sigla, i, nome, prev, extra)
+                  for sigla, itens in previsto.items() for i, (nome, prev, extra) in enumerate(itens, 1)]
+        if linhas:
+            cur.execute("DELETE FROM core.qod_previsto_divisao")
+            execute_values(cur, "INSERT INTO core.qod_previsto_divisao (sigla, ordem, divisao, previsto, extra) VALUES %s", linhas)
+        print(f"  qod_previsto_divisao         {len(linhas)} linhas, previsto {sum(l[3] for l in linhas)}")
+        for a in avisos:
+            print(f"    !! {a}")
+        cur.execute("RELEASE SAVEPOINT divisoes_previsto")
+    except Exception as erro:  # noqa: BLE001 -- a carga principal nao pode cair por isto
+        cur.execute("ROLLBACK TO SAVEPOINT divisoes_previsto")
+        print(f"  qod_previsto_divisao         !! FALHOU, mantida a rodada anterior: {erro}")
+
+    cur.execute("SAVEPOINT divisoes_lotacao")
+    try:
+        divisao_da_funcao, lotacao, sem_divisao = lotacao_das_divisoes(cur)
+        cur.execute("DELETE FROM core.qod_funcao_divisao")
+        execute_values(cur, "INSERT INTO core.qod_funcao_divisao (id_funcao, divisao) VALUES %s",
+                       [(k, v) for k, v in divisao_da_funcao.items() if v])
+        cur.execute("DELETE FROM core.qod_lotacao_divisao")
+        execute_values(cur, "INSERT INTO core.qod_lotacao_divisao (sigla, divisao, matricula) VALUES %s",
+                       [(s, d, m) for (s, d), mats in lotacao.items() for m in sorted(mats)])
+        com = sum(1 for v in divisao_da_funcao.values() if v)
+        print(f"  qod_funcao_divisao           {com} de {len(divisao_da_funcao)} funcoes com divisao; "
+              f"{sum(len(m) for m in lotacao.values())} lotacoes em {len(lotacao)} divisoes "
+              f"({sem_divisao} funcoes de militares sem divisao)")
+        cur.execute("RELEASE SAVEPOINT divisoes_lotacao")
+    except Exception as erro:  # noqa: BLE001
+        cur.execute("ROLLBACK TO SAVEPOINT divisoes_lotacao")
+        print(f"  qod_funcao_divisao           !! FALHOU, mantida a rodada anterior: {erro}")
+
+
 def main():
     # role=etl_writer: o que esta carga cria (views em stg) fica com o dono
     # das camadas, seja rodada pelo Windmill (windmill_etl) ou a mao pelo
@@ -1813,6 +2299,7 @@ def main():
     carregar_fato_financeiro(cur)
     carregar_qod(cur)
     carregar_quadro_qod(cur)
+    carregar_divisoes_qod(cur)
     conn.commit()
 
     cur.close()

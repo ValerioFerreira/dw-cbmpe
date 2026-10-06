@@ -45,6 +45,25 @@
 > de Efetivo/Viaturas e previsto/lotação por divisão ainda em JSON; DDL 16–18 estão no
 > repositório mas foram aplicados à mão (o `aplicar_ddl.py` os aplica em ordem).
 
+> **2026-10-06 (noite, 2) — Previsto e lotação por divisão no DW (fim dos JSON do QOD).**
+> `efetivo_previsto_divisoes.json`, `lotacao_funcao.json` e os extratores manuais
+> (`extract_previsto_divisoes.py`, `extract_lotacao_funcao.py`) foram **removidos**. A carga
+> (`carga_core.py`, `carregar_divisoes_qod`, dentro de SAVEPOINT: se quebrar, a carga segue e a
+> divisão fica com a rodada anterior) casa o QOD de setembro com as divisões do organograma
+> (`stg.divisao_organograma`, cópia de `SUBSETORES` — `ddl/21`; regenerar com
+> `etl/dw/gerar_divisoes.py` quando `SUBSETORES` mudar): **previsto** das abas de unidade dos
+> quadros (`raw_qod_quadros`; soma 5.247 de 5.249, só difere do JSON de agosto onde o QOD mudou:
+> CAT/ZM, DGP, DPLAG, DEIP); **lotação** por texto (mesmas regras do extrator antigo) e, quando
+> o texto não casa, pela **hierarquia numerada do quadro** (a seção herda a divisão do ancestral
+> mais próximo — o caminho que o extrator antigo dizia faltar): 1.622 de 1.855 funções com
+> divisão (antes ~65%) e **1.694 militares lotados em 145 divisões**. Sai em `GET /dados/metricas`
+> (`divisoes.previsto` e `.atual`, agregados) e `GET /dados/lotacao` (`por_unidade_divisao`, com
+> matrículas, recortado por perfil, para o filtro por setor da tabela de Efetivo). **Para a
+> DPlaG:** em 54 divisões a lotação passa do previsto (367 pessoas a mais) — é o QOD ocupando
+> mais gente do que o quadro fixa (ex.: 5º GB, SAC: 38 lotados para 4 previstos). **Ainda em
+> JSON no front:** só os mocks de métricas de `organograma.js` (e `efetivo.json`,
+> `efetivo_previsto.json`, `efetivo_lista.json` como valor de partida).
+
 > **2026-10-06 (noite) — Viaturas sem JSON.** `viaturas.json`, `viaturas_lista.json` e
 > `viaturas_detalhe.json` (no bundle, sem login, com placa, chassi e renavam), o extrator
 > `extract_viaturas.py` e o protótipo `reconciliar_viaturas.py` (que lia o JSON) foram
@@ -4980,9 +4999,10 @@ Ficam para o usuário autorizar ou rodar.
    do DW, com o SQL do Metabase (top 10 por opção; origem por `ome_atual`) e filtros de
    categoria e motivo. Falta só conferir os números com o Metabase do Igor (hoje 19
    solicitações com matrícula e 389 atendidas na planilha).
-6. **Domínios que ainda saem de JSON no front:** lotação por divisão e previsto por divisão.
-   ~~Painéis pessoais de Efetivo e de Viaturas~~ **feitos em 2026-10-06** (e `agregado` já
-   entra em `ehIndisponivel()`).
+6. **Domínios que ainda saem de JSON no front:** só os valores de partida de
+   `organograma.js` (`efetivo.json`, `efetivo_previsto.json`, `efetivo_lista.json`).
+   ~~Painéis pessoais de Efetivo e de Viaturas, lotação e previsto por divisão~~ **feitos em
+   2026-10-06** (e `agregado` já entra em `ehIndisponivel()`).
 7. **LOB Nova.** Visualização apenas; quando a nova LOB valer de verdade, a árvore vai para
    `app.organograma_unidade`. Pendências: testar o seletor com um usuário comandante e
    subcomandante reais (SGU); dar OME às unidades novas (ARI, AJ, DINTER III, GI, CEI, CFO,
