@@ -363,7 +363,12 @@ export default function Organograma() {
       // DGA nova = DECI, DAL/DGP, DF/DTIC/DVP/DAS e só a AJG.
       const folhas5 = folhas.filter((u) => u.nivel === 5);
       const folhas6 = folhas.filter((u) => u.nivel === 6);
-      const livres = Math.max(1, Math.min(2, 4 - colunas.length - (folhas6.length ? 1 : 0)));
+      // DGO (LOB Nova): DINTER III e DIESP cada uma na sua coluna, ao lado de DIM/DINTER I/
+      // DINTER II — 5 colunas, nenhuma diretoria embaixo da outra. Na LOB Atual a DGO só tem
+      // a DIESP como folha, então continua com uma coluna.
+      const livres = dg.sigla === "DGO"
+        ? Math.max(1, folhas5.length)
+        : Math.max(1, Math.min(2, 4 - colunas.length - (folhas6.length ? 1 : 0)));
       splitEmColunas(folhas5, livres).forEach((pacote) => colunas.push({ tipo: "pacote", unidades: pacote }));
       if (folhas6.length) colunas.push({ tipo: "pacote", unidades: folhas6 });
       return colunas;
@@ -420,9 +425,11 @@ export default function Organograma() {
     return <div className="h-96 animate-pulse rounded-xl bg-muted/40" />;
   }
 
-  const renderColunas = (colunas) => colunas.map((coluna, idx) =>
+  // `alinhar`: colunas sem moldura (pacotes) ganham o mesmo recuo lateral das colunas com moldura
+  // (GrupoDiretoria: borda 1px + p-1.5), pra todos os cards da linha terem a mesma largura.
+  const renderColunas = (colunas, alinhar = false) => colunas.map((coluna, idx) =>
     coluna.tipo === "pacote" ? (
-      <ColunaEmpilhada key={`col-${idx}`} unidades={coluna.unidades} goto={goto} acessoDe={acessoDe} drag={drag} />
+      <ColunaEmpilhada key={`col-${idx}`} unidades={coluna.unidades} goto={goto} acessoDe={acessoDe} drag={drag} alinhar={alinhar} />
     ) : coluna.grupos.length === 1 ? (
       <GrupoDiretoria key={coluna.grupos[0].unidade.id} {...coluna.grupos[0]} goto={goto} acessoDe={acessoDe} drag={drag} />
     ) : (
@@ -633,22 +640,42 @@ export default function Organograma() {
           <div className="flex w-full flex-wrap justify-center gap-6 2xl:gap-8">
             {estrutura.diretoriasGerais.map((dg) => {
               const colunas = estrutura.gruposDaDiretoriaGeral(dg);
+              // Largura uniforme entre as diretorias: cada coluna vale a mesma coisa em qualquer caixa.
+              // A caixa cresce e parte de uma base proporcional ao nº de colunas (flex-grow = nº de
+              // colunas; base = n × COLUNA_MIN + padding da caixa), então DGO (5) e DGA (4) dividem
+              // a linha e terminam com colunas — e cards — do mesmo tamanho.
+              const n = Math.max(1, colunas.length);
               return (
-                <div key={dg.id} className="flex max-w-full flex-[1_1_30rem] flex-col items-center rounded-2xl border border-border bg-background p-3 sm:p-4">
+                <div
+                  key={dg.id}
+                  style={{ flex: `${n} 1 calc(${n} * ${COLUNA_MIN} + 2rem)` }}
+                  className="flex max-w-full flex-col items-center rounded-2xl border border-border bg-background p-3 sm:p-4"
+                >
                   <CardDiretoria unidade={dg} onClick={() => goto(dg.sigla)} acessoOk={acessoDe(dg.sigla)} drag={drag} />
-                  {/* flex-wrap (não mais grid de colunas fixas): cada coluna
-                      tem sua própria largura natural e se reagrupa em mais
-                      linhas se não couber, em vez de espremer o conteúdo dos
-                      cards — pedido de 2026-09-25. */}
-                  <div className="mt-4 flex w-full flex-wrap items-start justify-center gap-2">
-                    {renderColunas(colunas)}
+                  {/* Trilhas de largura IGUAL (grade, não flex): com flex, o padding de cada tipo de
+                      coluna deixava uma 3px mais larga que a outra. auto-fit mantém o comportamento
+                      de antes — só quebra de linha quando nem COLUNA_MIN cabe — pedido de 2026-09-25. */}
+                  <div
+                    className="mt-4 grid w-full items-start justify-center gap-2 [&>*]:min-w-0"
+                    style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${COLUNA_MIN}, 1fr))` }}
+                  >
+                    {renderColunas(colunas, true)}
                   </div>
                 </div>
               );
             })}
             {estrutura.colunasSoltas.length > 0 && (
-              <div className="flex max-w-full flex-[1_1_30rem] flex-wrap items-start justify-center gap-2 p-3 sm:p-4">
-                {renderColunas(estrutura.colunasSoltas)}
+              // LOB Atual: subordinadas da DGA extinta, sem quadro nem card. Mesma regra de largura
+              // das caixas acima (base e flex-grow pelo nº de colunas, trilhas iguais), pra os cards
+              // saírem do mesmo tamanho que os da DGO.
+              <div
+                className="grid max-w-full items-start justify-center gap-2 p-3 sm:p-4 [&>*]:min-w-0"
+                style={{
+                  flex: `${estrutura.colunasSoltas.length} 1 calc(${estrutura.colunasSoltas.length} * ${COLUNA_MIN} + 2rem)`,
+                  gridTemplateColumns: `repeat(auto-fit, minmax(${COLUNA_MIN}, 1fr))`,
+                }}
+              >
+                {renderColunas(estrutura.colunasSoltas, true)}
               </div>
             )}
           </div>
@@ -859,10 +886,12 @@ function EstadoMaiorBox({ unidade, filhos, goto, acessoOk, acessoDe, drag }) {
 // e crescem por igual pra preencher a largura da diretoria, até max-w (a
 // partir daí justify-center centraliza o conjunto, bordas simétricas).
 const COLUNA_FLEX = "flex-1 basis-0 max-w-[15rem]";
+// Largura mínima de uma coluna de diretoria — o mesmo valor de `min-w-[6.5rem]` na linha de colunas.
+const COLUNA_MIN = "6.5rem";
 
-function ColunaEmpilhada({ unidades, goto, acessoDe, drag }) {
+function ColunaEmpilhada({ unidades, goto, acessoDe, drag, alinhar = false }) {
   return (
-    <div className={`flex ${COLUNA_FLEX} flex-col gap-2`}>
+    <div className={`flex ${COLUNA_FLEX} flex-col gap-2 ${alinhar ? "px-[7px]" : ""}`}>
       {unidades.map((u) => (
         u.nivel === 6
           ? <CardFolha key={u.id} unidade={u} onClick={() => goto(u.sigla)} acessoOk={acessoDe(u.sigla)} drag={drag} largura="col" />

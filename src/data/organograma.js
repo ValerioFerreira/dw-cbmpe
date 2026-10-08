@@ -33,7 +33,7 @@ function slugify(s) {
 const OFICIAIS = {
   'COMANDO GERAL': { oficial: 'Cel Araripe', cargo: 'Comandante Geral' },
   'SUBCOMANDO GERAL': { oficial: 'Cel Curvêlo', cargo: 'Subcomandante Geral' },
-  // Estado-Maior Geral (e 1º/2º/3º EMG) NÃO entram aqui — ver
+  // Estado-Maior Geral (e 1º/2º/3º/4º EMG) NÃO entram aqui — ver
   // RAIZES_EM_CONSTRUCAO abaixo.
   'GCG': { oficial: 'Maj Rafael', cargo: 'Chefe' },
   'AECI': { oficial: 'Cel Jailton', cargo: 'Assessor Especial' },
@@ -140,6 +140,7 @@ const NODES_PADRAO = [
   { id: '1-emg', sigla: '1º EMG', nivel: 6, parentId: 'estado-maior', ordem: 10 },
   { id: '2-emg', sigla: '2º EMG', nivel: 6, parentId: 'estado-maior', ordem: 20 },
   { id: '3-emg', sigla: '3º EMG', nivel: 6, parentId: 'estado-maior', ordem: 30 },
+  { id: '4-emg', sigla: '4º EMG', nivel: 6, parentId: 'estado-maior', ordem: 40 },
   { id: 'dgo', sigla: 'DGO', nivel: 4, parentId: 'subcomando-geral', ordem: 110 },
   { id: 'dga', sigla: 'DGA', nivel: 4, parentId: 'subcomando-geral', ordem: 120 },
   { id: 'dim', sigla: 'DIM', nivel: 5, parentId: 'dgo', ordem: 130 },
@@ -217,7 +218,7 @@ const NODES_NOVA = (() => {
     no('gsg', 'GSG', 6, 'subcomando-geral', 80),
     no('djd', 'DJD', 6, 'subcomando-geral', 90, { funcaoCoronel: true }),
     no('cpp', 'CPP', 6, 'subcomando-geral', 100),
-    // DGO*: DINTER III fica sem subordinados e acima da DIESP (ver Organograma.jsx: 4 colunas)
+    // DGO*: DINTER III fica sem subordinados, ao lado da DIESP (ver Organograma.jsx: 5 colunas)
     no('dinter-iii', 'DINTER III', 5, 'dgo', 155, { emConstrucao: true }),
     no('diesp', 'DIESP', 5, 'dgo', 160),
     // DGA*
@@ -402,7 +403,13 @@ export function aplicarMetricasDw({ metricas = {}, chefes = null, divisoes = nul
     Object.entries(chefes).forEach(([sigla, c]) => {
       if (SEM_TITULAR_EM_CONSTRUCAO.has(sigla)) return;
       const oficial = c.vago ? "Vago" : [c.posto, nomeExibicao(c.nome)].filter(Boolean).join(" ") || "—";
-      OFICIAIS[sigla] = { oficial, cargo: c.cargo || OFICIAIS[sigla]?.cargo || "Titular" };
+      let cargo = c.cargo || OFICIAIS[sigla]?.cargo || "Titular";
+      // Subordinadas da DGO: o QOD traz "Diretor Integrado (Metropolitano/Especializado)"; o card
+      // mostra só "Diretor", para os cinco cards ficarem com a mesma largura.
+      if (CARGO_SO_DIRETOR.has(sigla) && /^diretor\b/i.test(cargo)) cargo = "Diretor";
+      // O QOD chama a função da AECI de "Chefe"; o cargo dela é Assessor Especial.
+      if (CARGO_FIXO[sigla]) cargo = CARGO_FIXO[sigla];
+      OFICIAIS[sigla] = { oficial, cargo };
     });
     aplicados.push("chefes");
   }
@@ -414,6 +421,11 @@ export function aplicarMetricasDw({ metricas = {}, chefes = null, divisoes = nul
   return aplicados;
 }
 
+// Diretorias subordinadas à DGO: o cargo exibido é só "Diretor" (ver aplicarMetricasDw).
+const CARGO_SO_DIRETOR = new Set(['DIM', 'DINTER I', 'DINTER II', 'DINTER III', 'DIESP']);
+// Cargo que vale sempre, sem depender do nome da função no QOD.
+const CARGO_FIXO = { AECI: 'Assessor Especial' };
+
 // Previsto e lotação por divisão, do DW (GET /dados/metricas → divisoes). Vazio até o
 // backend responder: a divisão aparece sem número, nunca com número inventado.
 let DIVISOES_DW = { previsto: {}, atual: {} };
@@ -423,7 +435,7 @@ let DIVISOES_DW = { previsto: {}, atual: {} };
 const SUBSETORES = {
   'COMANDO GERAL': ['SUBCOMANDO GERAL', 'GCG', 'CI', 'CPO', 'AECI', 'CCS'],
   'SUBCOMANDO GERAL': ['ESTADO-MAIOR GERAL', 'DGO', 'DGA', 'GSG', 'AJG', 'CPP'],
-  'ESTADO-MAIOR GERAL': ['1º EMG', '2º EMG', '3º EMG'],
+  'ESTADO-MAIOR GERAL': ['1º EMG', '2º EMG', '3º EMG', '4º EMG'],
   'GCG': ['↳ Chefia', '↳ Secretaria e Apoio Administrativo - SAAdm', '↳ Assessoria Jurídica - AJ', '↳ Assessoria de Relações Institucionais'],
   'AECI': ['↳ Chefia', '↳ Secretaria e Apoio Administrativo - SAAdm', '↳ Divisão de Planejamento de Controle Interno - DPCI'],
   'CPO': ['↳ Presidência', '↳ Secretaria da Comissão de Promoção de Oficiais - SCPO', '↳ Membros'],
