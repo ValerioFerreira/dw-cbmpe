@@ -1,9 +1,8 @@
 import React, { useMemo } from "react";
-import { Download } from "lucide-react";
 import { useCbmpe } from "@/lib/cbmpe-context";
 import { fmtMoeda } from "@/lib/cbmpe";
 import {
-  SITUACOES_RESUMO, lancamentosDoEscopo, totaisPorSituacao, exportarLancamentosExcel, siglasPermitidas,
+  SITUACOES_RESUMO, lancamentosDoEscopo, totaisPorSituacao, siglasPermitidas,
 } from "@/lib/financasDashboard";
 import { usePainelDw } from "@/lib/usePainelDw";
 
@@ -11,8 +10,8 @@ const SEM_DADOS = { lancamentos: [] };
 const ROTULO = { AGUARDANDO: "Aguardando", EMPENHADO: "Empenhado", LIQUIDADO: "Liquidado" };
 
 // Página inicial de Finanças (Indicador.jsx): os três somatórios por situação do
-// lançamento e o link para baixar a planilha completa — a tabela em si saiu da aba
-// "Despesas Gerais", como Efetivo e Viaturas mantêm a lista fora do dashboard.
+// lançamento. A tabela completa e o download da planilha ficam na página de detalhamento
+// (FinancasDetalhe), aberta pelo botão ao lado — como Efetivo e Viaturas.
 export default function ResumoFinancas({ unidade }) {
   const { unidades } = useCbmpe();
   const painel = usePainelDw("df", SEM_DADOS);
@@ -23,11 +22,6 @@ export default function ResumoFinancas({ unidade }) {
     [painel, permitidas, escopoTotal]
   );
   const totais = useMemo(() => totaisPorSituacao(lancamentos), [lancamentos]);
-
-  function exportar() {
-    const nome = String(unidade?.sigla || unidade?.nome || "Unidade").replace(/[\/:*?"<>|]/g, "-");
-    exportarLancamentosExcel(lancamentos, `Finanças - ${nome}.xlsx`);
-  }
 
   return (
     <div className="w-full">
@@ -44,14 +38,6 @@ export default function ResumoFinancas({ unidade }) {
           </div>
         ))}
       </div>
-      <button
-        type="button"
-        onClick={exportar}
-        disabled={!lancamentos.length}
-        className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-medium text-primary hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        <Download className="h-3.5 w-3.5" /> Exportar tabela completa de lançamentos (Excel)
-      </button>
     </div>
   );
 }

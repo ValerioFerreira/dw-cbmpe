@@ -153,6 +153,22 @@ export default function Indicador() {
           </Link>
         )}
 
+        {ind.nome === "Finanças" && (
+          <Link
+            to={`/financas/${ind.id}`}
+            className="group flex shrink-0 items-center gap-3 self-start rounded-xl border border-border bg-card px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm sm:self-center"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary">
+              <Table2 className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-[12px] font-semibold text-foreground">Exibir tabela com detalhes dos lançamentos</p>
+              <p className="text-[11px] text-muted-foreground">Lista completa, com filtros por coluna e download</p>
+            </div>
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5" />
+          </Link>
+        )}
+
         {ind.nome === "Viaturas" && (
           <Link
             to={`/viaturas/${ind.id}`}
