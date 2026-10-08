@@ -8,6 +8,12 @@
 //
 // Uso (da pasta backend/, com a rede do DW e backend/.env):
 //   node scripts/gerar_snapshot.js [pasta-de-saida]      # padrão: ../public/snapshot
+//   node scripts/gerar_snapshot.js --completo            # SÓ para uso local (2026-10-08)
+//
+// --completo: sem nenhuma omissão — nome completo, telefones, LE/LTIP/afastamento, ofício de
+// Finanças e nome inteiro de quem aplicou vacina, como o backend entrega a um perfil de acesso
+// total. Para rodar o app na própria máquina (public/snapshot/ é git-ignorado). NUNCA publicar
+// esta saída: publicar_snapshot.py chama o script SEM a flag, que continua omitindo.
 //
 // Quem publica: etl/snapshot/publicar_snapshot.py (gera, junta ao código e envia para a
 // branch que a Vercel serve). Não commitar public/snapshot/ na main.
@@ -19,7 +25,10 @@ import * as dados from "../services/dadosService.js";
 import { getPoolDw } from "../config/db.js";
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
-const saida = path.resolve(process.argv[2] || path.join(AQUI, "..", "..", "public", "snapshot"));
+const argumentos = process.argv.slice(2);
+const COMPLETO = argumentos.includes("--completo");
+const pastaArg = argumentos.find((a) => !a.startsWith("--"));
+const saida = path.resolve(pastaArg || path.join(AQUI, "..", "..", "public", "snapshot"));
 const geradoEm = new Date().toISOString();
 
 // "JOÃO PEDRO DA SILVA" -> "João S."
@@ -64,20 +73,22 @@ async function gravar(nome, payload) {
 async function main() {
   await rm(saida, { recursive: true, force: true });
   await mkdir(saida, { recursive: true });
-  console.log(`Snapshot em ${saida}`);
+  console.log(`Snapshot em ${saida}${COMPLETO ? "  (COMPLETO — uso local, não publicar)" : ""}`);
 
   const arquivos = [];
   arquivos.push(await gravar("metricas", await dados.metricasPorSigla()));
-  arquivos.push(await gravar("efetivo", semDadoReservado(await dados.efetivoNominal(null))));
+  const efetivo = await dados.efetivoNominal(null);
+  arquivos.push(await gravar("efetivo", COMPLETO ? efetivo : semDadoReservado(efetivo)));
   arquivos.push(await gravar("lotacao", await dados.lotacaoNominal(null)));
   arquivos.push(await gravar("viaturas", await dados.viaturasNominal(null)));
-  arquivos.push(await gravar("painel-df", financasSemOficio(await dados.painelDf(null))));
+  const painelDf = await dados.painelDf(null);
+  arquivos.push(await gravar("painel-df", COMPLETO ? painelDf : financasSemOficio(painelDf)));
   arquivos.push(await gravar("painel-efetivo", await dados.painelEfetivo()));
   arquivos.push(await gravar("painel-movimentacao", await dados.painelMovimentacao()));
   arquivos.push(await gravar("painel-ocorrencias", await dados.painelOcorrencias(null)));
 
   const vacinacao = await dados.painelVacinacao();
-  vacinacao.eventos = vacinacao.eventos.map((e) => ({ ...e, aplicador: abreviarNome(e.aplicador) }));
+  if (!COMPLETO) vacinacao.eventos = vacinacao.eventos.map((e) => ({ ...e, aplicador: abreviarNome(e.aplicador) }));
   arquivos.push(await gravar("painel-vacinacao", vacinacao));
 
   const indice = await dados.mapaForcaIndice();

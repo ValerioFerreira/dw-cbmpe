@@ -1635,6 +1635,109 @@ COLUNAS_QOD = {
 }
 
 
+# --- Codigos da QOD_CONSOLIDADA x catalogo (achado de 2026-10-08) -------------------
+# Em 2026-10-01 o catalogo de funcoes passou de QOD_FUNCOES (agosto) para ID_ATUALIZADO
+# (1.855 funcoes, IDs renumerados), mas a coluna CODIGO da QOD_CONSOLIDADA continuou na
+# numeracao antiga. O ID existe nas duas, entao o casamento "fecha" (2.761 de 2.772) e nada
+# acusa o erro -- mas cada ocupante cai numa funcao DESLOCADA, e o deslocamento cresce com o
+# ID (4o GB: o Ten Cel titular, no QOD, estava na FUN1158 "Seguranca das Instalacoes" da
+# 3a SB/3o GB; a Comandante do 4o GB, FUN1183, aparecia ocupada por um 2o Ten: 1158 + 25 =
+# 1183). So 60% das ocupacoes ficavam na unidade do proprio militar.
+# A correcao traduz o CODIGO antigo para o novo alinhando os dois catalogos por
+# (OME, secao, funcao) e, dentro de cada grupo, pela ordem do ID. So e aplicada se, medida
+# pela UNIDADE escrita na propria linha da QOD_CONSOLIDADA, deixar as ocupacoes mais coerentes.
+def _numero_id(id_funcao):
+    digitos = re.sub(r"\D", "", str(id_funcao or ""))
+    return int(digitos) if digitos else 0
+
+
+def alinhar_catalogos(antigo, novo):
+    """{ID antigo: ID novo}. `antigo` e `novo`: listas de (id, ome, secao, funcao). Primeiro
+    casa por (ome, secao, funcao); o que sobra casa por (ome, funcao) -- a secao pode ter sido
+    renomeada de um mes para o outro. Em cada grupo, o k-esimo ID antigo (por ordem numerica)
+    vira o k-esimo ID novo."""
+    chaves = (
+        lambda i: (_norm_lot(i[1]), _norm_lot(i[2]), _norm_lot(i[3])),
+        lambda i: (_norm_lot(i[1]), _norm_lot(i[3])),
+    )
+    mapa = {}
+    restante_antigo, restante_novo = list(antigo), list(novo)
+    for chave in chaves:
+        grupos_antigo, grupos_novo = {}, {}
+        for item in sorted(restante_antigo, key=lambda i: _numero_id(i[0])):
+            grupos_antigo.setdefault(chave(item), []).append(item[0])
+        for item in sorted(restante_novo, key=lambda i: _numero_id(i[0])):
+            grupos_novo.setdefault(chave(item), []).append(item[0])
+        for k, ids_antigo in grupos_antigo.items():
+            for id_a, id_n in zip(ids_antigo, grupos_novo.get(k, [])):
+                mapa[id_a] = id_n
+        casados_antigo, casados_novo = set(mapa), set(mapa.values())
+        restante_antigo = [i for i in restante_antigo if i[0] not in casados_antigo]
+        restante_novo = [i for i in restante_novo if i[0] not in casados_novo]
+    return mapa
+
+
+def _ome_pai_norm(ome):
+    """'3ª SB/3º GB' e '3º GB' comparam como a unidade-mae: a parte depois da ultima barra."""
+    return _norm_lot(str(ome or "").rsplit("/", 1)[-1])
+
+
+def traduzir_codigos_qod(cur):
+    cur.execute("SELECT to_regclass('raw_qod.qod_funcoes') IS NOT NULL")
+    if not cur.fetchone()[0]:
+        print("  qod codigos                  (raw_qod.qod_funcoes ausente -- sem como traduzir; "
+              "confira se a QOD_CONSOLIDADA usa os IDs do ID_ATUALIZADO)")
+        return
+    cur.execute("""
+        SELECT column_name FROM information_schema.columns
+        WHERE table_schema = 'raw_qod' AND table_name = 'qod_funcoes'
+    """)
+    existentes = {c for (c,) in cur.fetchall()}
+    faltando = [c for c in ("col_01_id_funcao", "col_05_ome", "col_07_secao", "col_08_funcao") if c not in existentes]
+    if faltando:
+        print(f"  qod codigos                  (raw_qod.qod_funcoes sem {faltando} -- nao traduzido)")
+        return
+
+    cur.execute("""
+        SELECT trim(col_01_id_funcao), col_05_ome, col_07_secao, col_08_funcao
+        FROM raw_qod.qod_funcoes WHERE nullif(trim(col_01_id_funcao), '') IS NOT NULL
+    """)
+    antigo = cur.fetchall()
+    cur.execute("SELECT id_funcao, ome_qod, secao, funcao FROM core.qod_funcao")
+    novo = cur.fetchall()
+    ome_do_novo = {i: o for i, o, _, _ in novo}
+    mapa = alinhar_catalogos(antigo, novo)
+
+    cur.execute("SELECT linha, id_funcao, unidade_qod FROM core.qod_ocupacao WHERE id_funcao IS NOT NULL")
+    ocupacoes = cur.fetchall()
+
+    def coerencia(traduzir):
+        casam = total = 0
+        for _, codigo, unidade in ocupacoes:
+            ome = ome_do_novo.get(mapa.get(codigo) if traduzir else codigo)
+            if not ome or not unidade:
+                continue
+            total += 1
+            casam += _ome_pai_norm(ome) == _ome_pai_norm(unidade)
+        return (casam / total if total else 0.0), total
+
+    antes, n = coerencia(False)
+    depois, _ = coerencia(True)
+    print(f"  qod codigos                  {len(mapa)} de {len(antigo)} IDs antigos traduzidos; ocupacoes na "
+          f"unidade escrita na propria linha: {antes:.1%} -> {depois:.1%} (de {n})")
+    if depois <= antes + 0.05:
+        print("    !! traducao NAO aplicada: nao melhora a coerencia -- a QOD_CONSOLIDADA ja deve usar o ID novo")
+        return
+    execute_values(
+        cur,
+        "UPDATE core.qod_ocupacao o SET id_funcao = v.novo::text FROM (VALUES %s) AS v(linha, novo) "
+        "WHERE o.linha = v.linha",
+        [(linha, mapa.get(codigo)) for linha, codigo, _ in ocupacoes],
+    )
+    sem_par = sum(1 for _, codigo, _ in ocupacoes if codigo not in mapa)
+    print(f"    traducao aplicada; {sem_par} ocupacoes ficaram sem funcao (codigo antigo sem par no catalogo novo)")
+
+
 def carregar_qod(cur):
     for tabela, colunas in COLUNAS_QOD.items():
         cur.execute("""
@@ -1693,6 +1796,15 @@ def carregar_qod(cur):
         FROM raw_qod.qod_consolidada
         WHERE nullif(trim(col_04_matricula), '') IS NOT NULL
     """)
+
+    # A carga principal nao pode cair por isto: se a traducao falhar, fica como antes.
+    cur.execute("SAVEPOINT qod_codigos")
+    try:
+        traduzir_codigos_qod(cur)
+        cur.execute("RELEASE SAVEPOINT qod_codigos")
+    except Exception as erro:  # noqa: BLE001
+        cur.execute("ROLLBACK TO SAVEPOINT qod_codigos")
+        print(f"  qod codigos                  !! FALHOU, codigos mantidos como na planilha: {erro}")
 
     cur.execute("SELECT count(*) FROM core.qod_vaga WHERE tipo_vaga = 'FUNCIONAL'")
     vagas = cur.fetchone()[0]

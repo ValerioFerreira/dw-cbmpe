@@ -24,6 +24,7 @@ INSERT INTO stg.divisao_organograma (sigla, ordem, nome) VALUES
     ('ESTADO-MAIOR GERAL', 1, '1º EMG'),
     ('ESTADO-MAIOR GERAL', 2, '2º EMG'),
     ('ESTADO-MAIOR GERAL', 3, '3º EMG'),
+    ('ESTADO-MAIOR GERAL', 4, '4º EMG'),
     ('GCG', 1, 'Chefia'),
     ('GCG', 2, 'Secretaria e Apoio Administrativo - SAAdm'),
     ('GCG', 3, 'Assessoria Jurídica - AJ'),
