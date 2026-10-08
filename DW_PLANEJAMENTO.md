@@ -22,6 +22,33 @@
 
 ## Estado atual — onde retomar (atualizado 2026-10-06)
 
+> **2026-10-08 — 4º EMG, tradução da QOD, relatório e coordenadas das seções no DW.**
+> (1) Os três commits que estavam só na branch descartável `vercel` (4º EMG e organograma em 5
+> colunas; tradução dos códigos da QOD_CONSOLIDADA; página de detalhamento de Finanças) foram
+> trazidos para a `main` (a `vercel` é refeita a cada snapshot — nada nela vale como histórico).
+> (2) **Tradução dos códigos da QOD** (`carga_core.traduzir_codigos_qod`): o CODIGO da
+> QOD_CONSOLIDADA segue a numeração antiga das funções e o catálogo é o ID_ATUALIZADO; o DW alinha
+> os dois por (OME, seção, função) e depois por (OME, função). `ddl/21` reaplicado (4º EMG),
+> scripts republicados e flow rodado (validar OK): **1.584 de 1.832 códigos traduzidos**; no 4º GB
+> o Comandante e os Subcomandantes deixaram de ficar deslocados (1+2 → 1+1); lotações em
+> divisões subiram de 1.694/145 para **1.904/213**. **240 ocupações ficaram sem função** (código
+> sem par no catálogo novo; concentradas em GBMar, CAT/ZM, DAS, CAT/SER, DIESP, 6º GB, ABMG, CAT/AG)
+> — `etl/dw/relatorio_qod_sem_funcao.py` gera `docs/relatorios/QOD_ocupacoes_sem_funcao.xlsx`
+> (ocupações sem função, funções antigas sem par — 248, 111 com ocupante —, funções novas sem par —
+> 271) para a DPlaG e a CPPA. A "coerência" que o código mede (37,5% → 56,5%) é ruidosa por causa das
+> subunidades (SB/GB): não use como critério de aceite. (3) **Coordenadas do Mapa de Força no
+> DW** (`ddl/23`): o catálogo de postos saiu do arquivo `backend/data/mapa_forca_postos.json`
+> (removido) para `stg.coordenada_secao` (o que o usuário informou, 33 linhas em
+> `etl/mapa_forca/coordenadas_secoes.csv`), `stg.coordenada_posto` (185 postos) e
+> `stg.mapa_forca_ome`, lidos pelo backend em `marts.mapa_forca_posto/ome`. Casa pela **cidade
+> citada no nome do posto** (e pelo número da SB quando a cidade se repete ou o nome é "SEDE");
+> 7 postos mudaram de lugar (1,1 a 2,5 km). **Divergência de numeração no 2º GB:** o cadastro dos
+> postos diz 5ªSB = Santa Cruz do Capibaribe e 6ªSB = Toritama, a tabela informada diz o contrário
+> (valeu a cidade). Sem posto cadastrado: **4º GB 3ª SB (Petrolina)**. Reexecutar
+> `extract_mapa_forca.py --gravar-dw` quando o CSV ou o cadastro de postos mudar; `validar.py` agora
+> confere o catálogo. (4) Pedido de VM e firewall fechado em `docs/deploy-pedido-vm-ati.md`
+> (2 vCPU, 4 GB, 40 GB; saída para DW 54301, SGP 5432 e SGU 443).
+
 > **2026-10-06 — Windmill destravado, flow rodando e mais dois domínios no DW.**
 > (1) O worker do Windmill estava parado desde 01/10 (11:00 em Recife; TI reiniciou).
 > A fila andou e a 1ª rodada com o código novo **falhou no `carga_core`** por culpa nossa:
@@ -5041,7 +5068,7 @@ Ficam para o usuário autorizar ou rodar.
      por dia (`core.emprego_historico_*`).
    - ~~Tirar os 12 MB nominais de `public/dados/mapa-forca/`~~ **feito em 2026-10-06**
      (rota no backend, recorte por perfil, arquivos removidos).
-   - **Coordenadas dos postos: standby** (o usuário monta a tabela). Lista dos 44 sem
+   - **Coordenadas dos postos:** seções informadas e no DW (2026-10-08, `ddl/23`); faltam as 44 sem coordenada (CATs/operações usam regra de OME) e os postos de praia do GBMar. Lista dos 44 sem
      coordenada em `etl/mapa_forca/postos_sem_coordenada.csv`. Postos de praia do GBMar: o
      usuário informa depois (por ora, sede do GBMar). Regras de fallback já no código
      (`REGRA_COORDENADA_POR_OME`).

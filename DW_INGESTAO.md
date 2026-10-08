@@ -45,7 +45,7 @@ e as regras para chegar lá.
 | `vacinacao_dashboard.json` | `etl/das/extract_dashboard_vacinacoes.py` | Fonte original `vaccine_control_production` (10.193.0.20) | Não | Manual |
 | `ocorrencias_dashboard.json`, `ocorrencias_municipios.json` | `etl/ocorrencias/extract_dashboard_ocorrencias.py` | Fonte original `roe_api_production` (10.193.1.252:15432) | Não | Manual |
 | `core.fato_lancamento_*` / `raw_mapa_forca` — **só 30 dias** (retenção, ddl/22; o histórico vira agregado por dia em `core.emprego_historico_*`) | fdw → `stg.raw_filtro` | **Sim** | Diária |
-| `backend/data/mapa_forca_postos.json` (catálogo de postos, 38 KB, sem dado pessoal) | `etl/mapa_forca/extract_mapa_forca.py` | **`dw`** (`core.dim_posto_servico`) + KMZ/município (`conferir_coordenadas.py`) | **Sim** | Manual (até a tabela de coordenadas existir no DW) |
+| Coordenadas e catálogo dos postos do Mapa de Força (`stg.coordenada_secao`, `stg.coordenada_posto`, `stg.mapa_forca_ome` → `marts.mapa_forca_posto/ome`, ddl/23) | `etl/mapa_forca/extract_mapa_forca.py --gravar-dw` (+ `etl/mapa_forca/coordenadas_secoes.csv`, informado pelo usuário) | **`dw`** (`core.dim_posto_servico`) + tabela informada + KMZ/município (`conferir_coordenadas.py`) | **Sim** | Manual (rodar quando o CSV ou o cadastro de postos mudar) |
 | Insígnias (`public/insignias/`) | `etl/_geo/copiar_insignias.py` | Pasta de imagens recebida | — (arquivo estático) | Pontual |
 | Coordenadas das OMEs | `etl/mapa_forca/coordenadas_postos.py`, KMZ, `etl/sgp/casar_coordenadas_ome.py` | KMZ + `ovrsgp.tb_ome` | Parcial — `--aplicar` nunca rodou (bloqueado pelo usuário) | Pontual |
 

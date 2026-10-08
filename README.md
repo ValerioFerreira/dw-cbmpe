@@ -120,10 +120,11 @@ python etl/dw/carga_raw.py
 python etl/dw/carga_core.py
 python etl/dw/validar.py          # a verificação de regra de negócio
 
-# Mapa de Força — só o CATÁLOGO de postos (coordenadas conferidas), em
-# backend/data/mapa_forca_postos.json; o dado nominal vem das views
-# marts.mapa_forca_* (ddl/16), pelo backend, janela de 30 dias
-python etl/mapa_forca/extract_mapa_forca.py
+# Mapa de Força — o CATÁLOGO de postos (coordenadas: tabela informada em
+# etl/mapa_forca/coordenadas_secoes.csv + regras/KMZ) vai para o DW (ddl/23); o dado nominal
+# vem das views marts.mapa_forca_* (ddl/16), pelo backend, janela de 30 dias
+python etl/mapa_forca/extract_mapa_forca.py               # relatório
+python etl/mapa_forca/extract_mapa_forca.py --gravar-dw   # grava stg.coordenada_*
 python etl/mapa_forca/conferir_coordenadas.py    # varredura das coordenadas
 
 # Efetivo, viaturas, finanças, lotação/função

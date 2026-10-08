@@ -10,7 +10,6 @@
 // Um domínio que falhar (view ainda não criada, erro pontual) não derruba os
 // outros: ele simplesmente não vem na resposta, e o front mantém para ele o
 // valor que já tinha (JSON embutido). O erro vai para o log do servidor.
-import { readFile } from "node:fs/promises";
 import { getPoolDw } from "../config/db.js";
 
 const CONSULTAS = {
@@ -391,24 +390,26 @@ export async function painelOcorrencias(siglas) {
 // viatura/posto, por dia), sempre recortado pelas unidades que o perfil libera.
 // O app só apresenta os últimos 30 dias (a janela está nas views).
 //
-// O catálogo de postos (nome, município, AIS e coordenada conferida) não é
-// pessoal e vem de backend/data/mapa_forca_postos.json, gerado por
-// etl/mapa_forca/extract_mapa_forca.py — até a tabela de coordenadas dos
-// postos existir no DW.
+// O catálogo de postos (nome, município, AIS e coordenada) não é pessoal e vem do DW:
+// marts.mapa_forca_posto / mapa_forca_ome (etl/dw/ddl/23_coordenadas_mapa_forca.sql),
+// gravadas por etl/mapa_forca/extract_mapa_forca.py --gravar-dw. A coordenada de cada seção
+// é a que o usuário informou (etl/mapa_forca/coordenadas_secoes.csv); o resto segue as regras
+// de conferir_coordenadas.py.
 // ---------------------------------------------------------------------------
-const ARQUIVO_POSTOS = new URL("../data/mapa_forca_postos.json", import.meta.url);
-let catalogoPostos = null;
-
 async function lerCatalogoPostos() {
-  if (!catalogoPostos) {
-    try {
-      catalogoPostos = JSON.parse(await readFile(ARQUIVO_POSTOS, "utf-8"));
-    } catch (err) {
-      console.error("dados/mapa-forca: catálogo de postos indisponível —", err.message);
-      return { gerado_em: null, postos: {}, omes: {} };
-    }
-  }
-  return catalogoPostos;
+  const pool = getPoolDw();
+  const [postos, omes] = await Promise.all([
+    pool.query("select id_posto, nome, ome, municipio, bairro, ais, lat, lon, origem_coord, sede, gerado_em from marts.mapa_forca_posto"),
+    pool.query("select sigla, nome, municipio, lat, lon from marts.mapa_forca_ome"),
+  ]);
+  return {
+    gerado_em: postos.rows.reduce((m, r) => (!m || r.gerado_em > m ? r.gerado_em : m), null),
+    postos: Object.fromEntries(postos.rows.map((r) => [String(r.id_posto), {
+      nome: r.nome, ome: r.ome, municipio: r.municipio, bairro: r.bairro, ais: r.ais,
+      lat: r.lat, lon: r.lon, origemCoord: r.origem_coord, sede: r.sede,
+    }])),
+    omes: Object.fromEntries(omes.rows.map((r) => [r.sigla, { nome: r.nome, municipio: r.municipio, lat: r.lat, lon: r.lon }])),
+  };
 }
 
 const ISO = "to_char(data, 'YYYY-MM-DD')";

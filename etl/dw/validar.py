@@ -304,6 +304,22 @@ def main():
                ) d
            """))
 
+    print("\nMapa de Forca (catalogo de coordenadas, ddl/23):")
+    checar("postos no catalogo de coordenadas (stg.coordenada_posto)",
+           valor(cur, "SELECT count(*) FROM stg.coordenada_posto"))
+    checar("postos com lancamento na janela e SEM coordenada (ficam fora do mapa)",
+           valor(cur, """
+               SELECT count(DISTINCT l.id_posto) FROM marts.mapa_forca_lancamento l
+               JOIN stg.coordenada_posto c ON c.id_posto = l.id_posto
+               WHERE c.latitude IS NULL
+           """))
+    checar("postos com lancamento na janela fora do catalogo (rodar extract_mapa_forca.py)",
+           valor(cur, """
+               SELECT count(DISTINCT l.id_posto) FROM marts.mapa_forca_lancamento l
+               WHERE l.id_posto IS NOT NULL
+                 AND NOT EXISTS (SELECT 1 FROM stg.coordenada_posto c WHERE c.id_posto = l.id_posto)
+           """))
+
     print("\nReserva remunerada (unica fonte em que o Neon e a origem):")
     checar("militares com averbacao",
            valor(cur, "SELECT count(*) FROM marts.tempo_reserva_por_militar WHERE dias_averbados > 0"))

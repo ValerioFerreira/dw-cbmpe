@@ -4,6 +4,8 @@ Documento para encaminhamento à Seção de Tecnologia. Descreve o que já está
 pronto do nosso lado, o que precisa ser feito no ambiente da corporação, e as
 decisões que dependem do TI antes de começarmos.
 
+> **Dimensionamento e portas atualizados em `docs/deploy-pedido-vm-ati.md` (2026-10-08).**
+
 Repositório: `dw-cbmpe` · Branch `main` · Data: 26/08/2026
 (revisado em 26/08/2026 — ver seção 1, item 3: apareceu um segundo caminho de
 exposição de dado nominal que não existia quando este documento foi escrito)
