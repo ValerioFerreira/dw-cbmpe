@@ -41,42 +41,42 @@
 87;1ªSB / SEDE;9º GB;ARCOVERDE;244;1ª SB/9º GB;nome do posto + OME
 66;2ªSB / PESQUEIRA;9º GB;PESQUEIRA;151;2ª SB/9º GB;nome do posto + OME
 133;3ªSB / CUSTÓDIA;9º GB;CUSTÓDIA;130;3ª SB/9º GB;nome do posto + OME
-145;ABMG;ABMG;RECIFE;84;;sem equivalente no QOD -- a decidir
+145;ABMG;ABMG;RECIFE;84;ABMG;"ABMG e subordinada a DEIP; coordenada informada pelo usuario 2026-10-13"
 54;GUARDA/AJG;AJG;RECIFE;0;;sem equivalente no QOD -- a decidir
-95;CAT/AGRESTE 1;CAT / AGRESTE;CARUARU;84;;sem equivalente no QOD -- a decidir
-94;CAT/AGRESTE 2;CAT / AGRESTE 2;GARANHUNS;0;;sem equivalente no QOD -- a decidir
-98;CAT/AGRESTE 3;CAT / AGRESTE 3;SURUBIM;0;;sem equivalente no QOD -- a decidir
-136;CAT / RMR - 1ª SATEC;CAT / RMR;RECIFE;64;;sem equivalente no QOD -- a decidir
-137;CAT / RMR - 2ª SATEC;CAT / RMR;RECIFE;90;;sem equivalente no QOD -- a decidir
-138;CAT / RMR - 3ª SATEC;CAT / RMR;RECIFE;24;;sem equivalente no QOD -- a decidir
-139;CAT / RMR - 4ª SATEC;CAT / RMR;RECIFE;93;;sem equivalente no QOD -- a decidir
-90;QCG;CAT / RMR;RECIFE;0;;sem equivalente no QOD -- a decidir
-97;CAT/SERTÃO;CAT / SERTÃO;PETROLINA;135;;sem equivalente no QOD -- a decidir
-96;CAT/SERTÃO - 1ª SATEC;CAT / SERTÃO;SERRA TALHADA;0;;sem equivalente no QOD -- a decidir
-91;5°GB - 1ªSB / SALGUEIRO;CAT / SERTÃO 3;SALGUEIRO;0;;sem equivalente no QOD -- a decidir
-107;CAT/SERTÃO 5;CAT / SERTÃO 5;PETROLÂNDIA;0;;sem equivalente no QOD -- a decidir
-108;CAT/SERTÃO 6;CAT / SERTÃO 6;OURICURI;0;;sem equivalente no QOD -- a decidir
-92;1ª SATEC / GOIANA/ CAT ZM;CAT / ZM;CARPINA;32;;sem equivalente no QOD -- a decidir
-104;2ª SATEC / CARPINA / CAT ZM;CAT / ZM;CARPINA;68;;sem equivalente no QOD -- a decidir
-125;4ª SATEC / SURUBIM/ CAT ZM;CAT / ZM;CARPINA;44;;sem equivalente no QOD -- a decidir
-118;ALIANÇA / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
-124;BUENOS AIRES / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
-112;CAMUTANGA / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
-93;CAT/ZM;CAT / ZM;VITÓRIA DE SANTO ANTÃO;67;;sem equivalente no QOD -- a decidir
-110;CONDADO / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
-111;FERREIROS / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
-109;ITAMBÉ / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
-113;ITAQUATINGA / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
-119;LAGOA DE ITAENGA / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
-120;LAGOA DO CARRO / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
-115;MACAPARANA / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
-123;NAZARÉ DA MATA / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
-121;PAUDALHO / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
-116;SÃO VICENTE FÉRRER / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
-114;TIMBAÚBA / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
-122;TRACUNHAÉM / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
-117;VICÊNCIA / CAT ZM;CAT / ZM;CARPINA;0;;sem equivalente no QOD -- a decidir
-88;CMAN;CMAN;RECIFE;131;;sem equivalente no QOD -- a decidir
+95;CAT/AGRESTE 1;CAT / AGRESTE;CARUARU;84;2º GB;decisao do usuario 2026-10-13: CAT do Agreste fica no 2º GB
+94;CAT/AGRESTE 2;CAT / AGRESTE 2;GARANHUNS;0;2º GB;decisao do usuario 2026-10-13: CAT do Agreste fica no 2º GB
+98;CAT/AGRESTE 3;CAT / AGRESTE 3;SURUBIM;0;2º GB;decisao do usuario 2026-10-13: CAT do Agreste fica no 2º GB
+136;CAT / RMR - 1ª SATEC;CAT / RMR;RECIFE;64;;CAT/RMR: destino nao informado -- a decidir
+137;CAT / RMR - 2ª SATEC;CAT / RMR;RECIFE;90;;CAT/RMR: destino nao informado -- a decidir
+138;CAT / RMR - 3ª SATEC;CAT / RMR;RECIFE;24;;CAT/RMR: destino nao informado -- a decidir
+139;CAT / RMR - 4ª SATEC;CAT / RMR;RECIFE;93;;CAT/RMR: destino nao informado -- a decidir
+90;QCG;CAT / RMR;RECIFE;0;;CAT/RMR: destino nao informado -- a decidir
+97;CAT/SERTÃO;CAT / SERTÃO;PETROLINA;135;4º GB;decisao do usuario 2026-10-13: CAT do Sertao fica no 4º GB
+96;CAT/SERTÃO - 1ª SATEC;CAT / SERTÃO;SERRA TALHADA;0;4º GB;decisao do usuario 2026-10-13: CAT do Sertao fica no 4º GB
+91;5°GB - 1ªSB / SALGUEIRO;CAT / SERTÃO 3;SALGUEIRO;0;4º GB;decisao do usuario 2026-10-13: CAT do Sertao fica no 4º GB
+107;CAT/SERTÃO 5;CAT / SERTÃO 5;PETROLÂNDIA;0;4º GB;decisao do usuario 2026-10-13: CAT do Sertao fica no 4º GB
+108;CAT/SERTÃO 6;CAT / SERTÃO 6;OURICURI;0;4º GB;decisao do usuario 2026-10-13: CAT do Sertao fica no 4º GB
+92;1ª SATEC / GOIANA/ CAT ZM;CAT / ZM;CARPINA;32;1º GB;decisao do usuario 2026-10-13: CAT da Zona da Mata fica no 1º GB
+104;2ª SATEC / CARPINA / CAT ZM;CAT / ZM;CARPINA;68;1º GB;decisao do usuario 2026-10-13: CAT da Zona da Mata fica no 1º GB
+125;4ª SATEC / SURUBIM/ CAT ZM;CAT / ZM;CARPINA;44;1º GB;decisao do usuario 2026-10-13: CAT da Zona da Mata fica no 1º GB
+118;ALIANÇA / CAT ZM;CAT / ZM;CARPINA;0;1º GB;decisao do usuario 2026-10-13: CAT da Zona da Mata fica no 1º GB
+124;BUENOS AIRES / CAT ZM;CAT / ZM;CARPINA;0;1º GB;decisao do usuario 2026-10-13: CAT da Zona da Mata fica no 1º GB
+112;CAMUTANGA / CAT ZM;CAT / ZM;CARPINA;0;1º GB;decisao do usuario 2026-10-13: CAT da Zona da Mata fica no 1º GB
+93;CAT/ZM;CAT / ZM;VITÓRIA DE SANTO ANTÃO;67;1º GB;decisao do usuario 2026-10-13: CAT da Zona da Mata fica no 1º GB
+110;CONDADO / CAT ZM;CAT / ZM;CARPINA;0;1º GB;decisao do usuario 2026-10-13: CAT da Zona da Mata fica no 1º GB
+111;FERREIROS / CAT ZM;CAT / ZM;CARPINA;0;1º GB;decisao do usuario 2026-10-13: CAT da Zona da Mata fica no 1º GB
+109;ITAMBÉ / CAT ZM;CAT / ZM;CARPINA;0;1º GB;decisao do usuario 2026-10-13: CAT da Zona da Mata fica no 1º GB
+113;ITAQUATINGA / CAT ZM;CAT / ZM;CARPINA;0;1º GB;decisao do usuario 2026-10-13: CAT da Zona da Mata fica no 1º GB
+119;LAGOA DE ITAENGA / CAT ZM;CAT / ZM;CARPINA;0;1º GB;decisao do usuario 2026-10-13: CAT da Zona da Mata fica no 1º GB
+120;LAGOA DO CARRO / CAT ZM;CAT / ZM;CARPINA;0;1º GB;decisao do usuario 2026-10-13: CAT da Zona da Mata fica no 1º GB
+115;MACAPARANA / CAT ZM;CAT / ZM;CARPINA;0;1º GB;decisao do usuario 2026-10-13: CAT da Zona da Mata fica no 1º GB
+123;NAZARÉ DA MATA / CAT ZM;CAT / ZM;CARPINA;0;1º GB;decisao do usuario 2026-10-13: CAT da Zona da Mata fica no 1º GB
+121;PAUDALHO / CAT ZM;CAT / ZM;CARPINA;0;1º GB;decisao do usuario 2026-10-13: CAT da Zona da Mata fica no 1º GB
+116;SÃO VICENTE FÉRRER / CAT ZM;CAT / ZM;CARPINA;0;1º GB;decisao do usuario 2026-10-13: CAT da Zona da Mata fica no 1º GB
+114;TIMBAÚBA / CAT ZM;CAT / ZM;CARPINA;0;1º GB;decisao do usuario 2026-10-13: CAT da Zona da Mata fica no 1º GB
+122;TRACUNHAÉM / CAT ZM;CAT / ZM;CARPINA;0;1º GB;decisao do usuario 2026-10-13: CAT da Zona da Mata fica no 1º GB
+117;VICÊNCIA / CAT ZM;CAT / ZM;CARPINA;0;1º GB;decisao do usuario 2026-10-13: CAT da Zona da Mata fica no 1º GB
+88;CMAN;CMAN;RECIFE;131;CMAN;"CMAN e subordinado a DLOG; coordenada informada pelo usuario 2026-10-13"
 1;1º GB;DGO;VITÓRIA DE SANTO ANTÃO;0;;sem equivalente no QOD -- a decidir
 106;CIODS;DGO;RECIFE;210;;sem equivalente no QOD -- a decidir
 161;OPERAÇÃO CARNAVAL;DGO;RECIFE;0;;operacao/evento -- sem equivalente no QOD
@@ -100,7 +100,7 @@
 162;OPERAÇÃO SEMANA SANTA;DGO;RECIFE;0;;operacao/evento -- sem equivalente no QOD
 166;OPERAÇÃO VERÃO;DGO;RECIFE;1;;operacao/evento -- sem equivalente no QOD
 174;OPERAÇÃO VITÓRIA RÉGIA;DGO;RECIFE;0;;operacao/evento -- sem equivalente no QOD
-89;QCG;DGO;RECIFE;209;;sem equivalente no QOD -- a decidir
+89;QCG;DGO;RECIFE;209;(OME lançadora);"posto de SEDE ativado por outra OME (hospedeira: QCG): conta na OME lançadora; a posicao e a do quartel hospedeiro"
 15;SB PALMARES;DGO;PALMARES;0;;sem equivalente no QOD -- a decidir
 188;CIAT;DIESP;RECIFE;6;;sem equivalente no QOD -- a decidir
 187;DAP;DIESP;RECIFE;28;;sem equivalente no QOD -- a decidir
@@ -109,24 +109,24 @@
 155;EQUIPE DE OPERAÇÃO - CARNAVAL 2025;DIESP;RECIFE;0;;operacao/evento -- sem equivalente no QOD
 154;EQUIPE DE OPERAÇÃO - CARNAVAL 2025;DIESP;RECIFE;0;;operacao/evento -- sem equivalente no QOD
 152;EQUIPE DE OPERAÇÃO - CARNAVAL 2025;DIESP;RECIFE;0;;operacao/evento -- sem equivalente no QOD
-140;QCG;DIM;RECIFE;0;;sem equivalente no QOD -- a decidir
+140;QCG;DIM;RECIFE;0;(OME lançadora);"posto de SEDE ativado por outra OME (hospedeira: QCG): conta na OME lançadora; a posicao e a do quartel hospedeiro"
 105;DINTER 1;DINTER/1;CARUARU;0;;sem equivalente no QOD -- a decidir
 147;3° GB;DINTER/2;SERRA TALHADA;43;1ª SB/3º GB;DINTER 2 lanca na SEDE do GB indicado (usuario)
 148;4° GB;DINTER/2;PETROLINA;54;1ª SB/4º GB;DINTER 2 lanca na SEDE do GB indicado (usuario)
 149;5° GB;DINTER/2;SALGUEIRO;31;1ª SB/5º GB;DINTER 2 lanca na SEDE do GB indicado (usuario)
 150;9° GB;DINTER/2;ARCOVERDE;35;1ª SB/9º GB;DINTER 2 lanca na SEDE do GB indicado (usuario)
 12;CEMET II;DINTER/2;JABOATÃO DOS GUARARAPES;0;;sem equivalente no QOD -- a decidir
-185;QCG;DTIC;RECIFE;0;;sem equivalente no QOD -- a decidir
+185;QCG;DTIC;RECIFE;0;(OME lançadora);"posto de SEDE ativado por outra OME (hospedeira: QCG): conta na OME lançadora; a posicao e a do quartel hospedeiro"
 6;2ªSBAPH / IGARASSU;GBAPH;IGARASSU;121;2ª SBAPH/GBAPH;nome do posto + OME
 7;3ªSBAPH / SÃO LOURENÇO;GBAPH;SÃO LOURENÇO DA MATA;120;3ª SBAPH/GBAPH;nome do posto + OME
-146;ABMG;GBAPH;RECIFE;0;;sem equivalente no QOD -- a decidir
+146;ABMG;GBAPH;RECIFE;0;(OME lançadora);"posto de SEDE ativado por outra OME (hospedeira: ABMG): conta na OME lançadora; a posicao e a do quartel hospedeiro"
 33;CABO / SEDE DA GUARDA MUNICIPAL;GBAPH;CABO DE SANTO AGOSTINHO;0;;sem equivalente no QOD -- a decidir
-32;CEASA / Recife;GBAPH;RECIFE;99;;sem equivalente no QOD -- a decidir
-13;GBAPH (SEDE);GBAPH;OLINDA;282;;sem equivalente no QOD -- a decidir
-80;GBI (SEDE);GBAPH;JABOATÃO DOS GUARARAPES;75;;sem equivalente no QOD -- a decidir
-158;GBMAR (SEDE);GBAPH;JABOATÃO DOS GUARARAPES;1;;sem equivalente no QOD -- a decidir
-81;GBS (SEDE);GBAPH;ABREU E LIMA;5;;sem equivalente no QOD -- a decidir
-132;QCG;GBAPH;RECIFE;1;;sem equivalente no QOD -- a decidir
+32;CEASA / Recife;GBAPH;RECIFE;99;(OME lançadora);local de servico (CEASA) usado pelo GBAPH: conta na OME lancadora -- secao a decidir
+13;GBAPH (SEDE);GBAPH;OLINDA;282;GBAPH;sede da propria OME
+80;GBI (SEDE);GBAPH;JABOATÃO DOS GUARARAPES;75;(OME lançadora);"posto de SEDE ativado por outra OME (hospedeira: GBI (SEDE)): conta na OME lançadora; a posicao e a do quartel hospedeiro"
+158;GBMAR (SEDE);GBAPH;JABOATÃO DOS GUARARAPES;1;(OME lançadora);"posto de SEDE ativado por outra OME (hospedeira: GBMAR (SEDE)): conta na OME lançadora; a posicao e a do quartel hospedeiro"
+81;GBS (SEDE);GBAPH;ABREU E LIMA;5;(OME lançadora);"posto de SEDE ativado por outra OME (hospedeira: GBS (SEDE)): conta na OME lançadora; a posicao e a do quartel hospedeiro"
+132;QCG;GBAPH;RECIFE;1;(OME lançadora);"posto de SEDE ativado por outra OME (hospedeira: QCG): conta na OME lançadora; a posicao e a do quartel hospedeiro"
 84;POSTO 01 - NORONHA - PORTO;GBFN;FERNANDO DE NORONHA;0;;sem equivalente no QOD -- a decidir
 85;POSTO 02 - NORONHA - CONCEIÇÃO;GBFN;FERNANDO DE NORONHA;0;;sem equivalente no QOD -- a decidir
 143;POSTO 03 - NORONHA - PRAIA DO CACHORRO;GBFN;FERNANDO DE NORONHA;0;;sem equivalente no QOD -- a decidir
@@ -178,9 +178,9 @@
 58;POSTO EXTRA - JABOATÃO - MERCADO DO PEIXE;GBMAR;JABOATÃO DOS GUARARAPES;3;;posto de praia do GBMar -- usuario informa depois
 56;POSTO EXTRA - OLINDA - CARMO;GBMAR;OLINDA;0;;posto de praia do GBMar -- usuario informa depois
 135;POSTO EXTRA - OLINDA - ZÉ PEQUENO;GBMAR;OLINDA;3;;posto de praia do GBMar -- usuario informa depois
-103;CMAN;GBS;RECIFE;0;;sem equivalente no QOD -- a decidir
-83;GBAPH (SEDE);GBS;OLINDA;0;;sem equivalente no QOD -- a decidir
-82;GBI (SEDE);GBS;JABOATÃO DOS GUARARAPES;73;;sem equivalente no QOD -- a decidir
-141;GBMAR (SEDE);GBS;JABOATÃO DOS GUARARAPES;3;;sem equivalente no QOD -- a decidir
-2;GBS (SEDE);GBS;ABREU E LIMA;339;;sem equivalente no QOD -- a decidir
-142;QCG;GBS;RECIFE;0;;sem equivalente no QOD -- a decidir
+103;CMAN;GBS;RECIFE;0;(OME lançadora);"posto de SEDE ativado por outra OME (hospedeira: CMAN): conta na OME lançadora; a posicao e a do quartel hospedeiro"
+83;GBAPH (SEDE);GBS;OLINDA;0;(OME lançadora);"posto de SEDE ativado por outra OME (hospedeira: GBAPH (SEDE)): conta na OME lançadora; a posicao e a do quartel hospedeiro"
+82;GBI (SEDE);GBS;JABOATÃO DOS GUARARAPES;73;(OME lançadora);"posto de SEDE ativado por outra OME (hospedeira: GBI (SEDE)): conta na OME lançadora; a posicao e a do quartel hospedeiro"
+141;GBMAR (SEDE);GBS;JABOATÃO DOS GUARARAPES;3;(OME lançadora);"posto de SEDE ativado por outra OME (hospedeira: GBMAR (SEDE)): conta na OME lançadora; a posicao e a do quartel hospedeiro"
+2;GBS (SEDE);GBS;ABREU E LIMA;339;GBS;sede da propria OME
+142;QCG;GBS;RECIFE;0;(OME lançadora);"posto de SEDE ativado por outra OME (hospedeira: QCG): conta na OME lançadora; a posicao e a do quartel hospedeiro"

@@ -12,7 +12,7 @@ import ScrollDuplo from "@/components/ui/scroll-duplo";
 import BadgeSituacao from "@/components/ui/badge-situacao";
 import { FiltroColuna, passaFiltro, valorFiltro, filtrosIniciaisDaUrl } from "@/components/ui/filtro-coluna";
 import { useLarguras, useLarguraContainer, ColGroup, AlcaResize, CELULA_TRUNCADA } from "@/components/ui/tabela-colunas";
-import { registrosViaturas } from "@/lib/viaturasDashboard";
+import { registrosViaturas, CONDUTORES_CONFIRMADOS } from "@/lib/viaturasDashboard";
 
 const TAMANHOS_PAGINA = [10, 20, 50];
 
@@ -48,7 +48,9 @@ const COLUNAS = [
     especial: (r) => fmtSimNao(r.rastreado),
   },
   { chave: "categoriaHabilitacao", rotulo: "Categoria de Habilitação", filtravel: true, largura: 170, bruto: (r) => r.categoriaHabilitacao || null },
-  { chave: "condutores", rotulo: "Condutores", filtravel: true, largura: 100, bruto: (r) => r.condutores ?? null },
+  ...(CONDUTORES_CONFIRMADOS
+    ? [{ chave: "condutores", rotulo: "Condutores", filtravel: true, largura: 100, bruto: (r) => r.condutores ?? null }]
+    : []),
 ];
 
 function renderCelula(coluna, registro) {

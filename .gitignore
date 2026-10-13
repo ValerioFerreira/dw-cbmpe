@@ -55,3 +55,6 @@ docs/relatorios/*.json
 
 # Snapshot publicado so pela branch `vercel` (etl/snapshot/publicar_snapshot.py)
 public/snapshot/
+
+# Logs da rotina diaria do snapshot
+etl/snapshot/logs/

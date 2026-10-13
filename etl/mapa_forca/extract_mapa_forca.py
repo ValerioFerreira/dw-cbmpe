@@ -115,7 +115,11 @@ def ler_secoes():
 
 
 # Posto "principal" de cada CAT (a linha da CAT no CSV nao tem secao).
-PRINCIPAL_DA_CAT = {"CAT/ZM": {"CAT ZM"}, "CAT/AG": {"CAT AGRESTE 1"}, "CAT/SE": {"CAT SERTAO"}}
+PRINCIPAL_DA_CAT = {"CAT/ZM": {"CAT ZM"}, "CAT/AG": {"CAT AGRESTE 1"}, "CAT/SE": {"CAT SERTAO"},
+                    "CMAN": {"CMAN"}, "ABMG": {"ABMG"}}
+# Posto cujo NOME e uma unidade com quartel proprio, lancado por QUALQUER OME: a viatura e da OME
+# que lanca, mas fisicamente esta no quartel da unidade hospedeira (informado em 2026-10-13).
+HOSPEDEIRA_PELO_NOME = {"CMAN": "CMAN", "CMAN RECIFE": "CMAN", "ABMG": "ABMG"}
 NUMERO_SB = re.compile(r"\b(\d)\s*A?\s*SB\b")
 
 
@@ -131,10 +135,14 @@ def casar_secao(nome, ome, secoes, municipios):
     de uma secao (Caruaru, Petrolina) ou o nome nao cita cidade ("1aSB / SEDE"), pelo NUMERO da
     SB. Se a cidade casa mas o numero e outro, vale a cidade e o aviso fica registrado -- o
     cadastro do posto no SGP e a tabela do usuario discordam na numeracao."""
+    alvo = conferir.normalizar(nome)
+    if alvo in HOSPEDEIRA_PELO_NOME:
+        propria = next((r for r in secoes.get(HOSPEDEIRA_PELO_NOME[alvo], []) if not r["secao"]), None)
+        if propria:
+            return propria, None
     linhas = secoes.get(ome)
     if not linhas or conferir.e_evento(nome):
         return None, None
-    alvo = conferir.normalizar(nome)
     if ome in PRINCIPAL_DA_CAT:
         return (next((r for r in linhas if not r["secao"]), None)
                 if alvo in PRINCIPAL_DA_CAT[ome] else None), None
@@ -190,6 +198,14 @@ def catalogo(cur, de_para):
         coord_ome[destino] = (float(lat) if lat is not None else None,
                               float(lon) if lon is not None else None)
 
+    # Linhas do CSV sem secao (CATs, CMAN, ABMG) valem tambem como coordenada da propria OME.
+    secoes = ler_secoes()
+    for sigla, linhas in secoes.items():
+        propria = next((r for r in linhas if not r["secao"]), None)
+        if propria and sigla in omes:
+            omes[sigla]["lat"], omes[sigla]["lon"] = propria["latitude"], propria["longitude"]
+            coord_ome[sigla] = (propria["latitude"], propria["longitude"])
+
     cur.execute("""
         SELECT p.id_posto, p.nome, o.sigla, p.municipio, p.bairro, p.ais,
                nullif(p.latitude, 0), nullif(p.longitude, 0)
@@ -205,7 +221,6 @@ def catalogo(cur, de_para):
     }
 
     postos, diagnostico = {}, []
-    secoes = ler_secoes()
     usadas, mudancas, avisos = set(), [], []
     for id_posto, nome, sigla, municipio, bairro, ais, lat, lon in cur.fetchall():
         ome = de_para.get(sigla, sigla)

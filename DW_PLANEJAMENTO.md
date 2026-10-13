@@ -22,6 +22,39 @@
 
 ## Estado atual — onde retomar (atualizado 2026-10-06)
 
+> **2026-10-13 — Snapshot diário agendado, mapa por seção conferido, decisões do usuário.**
+> (1) **Rotina diária do snapshot** nesta máquina: tarefa "CBMPE - Snapshot diario da Vercel" no
+> Agendador de Tarefas do Windows, todos os dias às **06:00** (a carga do Windmill termina por volta
+> das 05:35), executa `etl/snapshot/rodar_diario.ps1` → `publicar_snapshot.py --base origin/main`
+> (publica o código da `main` do GitHub + snapshot na branch `vercel`, sem depender da pasta de
+> trabalho). Roda com o usuário logado, precisa de VPN/rede do DW, `backend/.env`, node, `py -3` e
+> credencial do git; se o DW estiver inalcançável a geração falha antes de publicar e o site
+> mantém o snapshot anterior (3 novas tentativas a cada 30 min; se a máquina estiver desligada às
+> 06:00, roda assim que ligar). Logs em `etl/snapshot/logs/` (últimos 30). A Vercel precisa ter a
+> `vercel` como Production Branch. (2) **Mapa de Força por seção — conferido**: 33 postos com a
+> coordenada da tabela informada (todos conferem com `docs/Localização SBs CBMPE.xlsx` /
+> `coordenadas_secoes.csv`), 4.261 dos 8.678 lançamentos da janela caem nesses postos; nenhum
+> lançamento fica sem coordenada. Erros: 0 de coordenada; 1 seção sem posto (4º GB 3ª SB: existe como
+> `tb_secao` id 33, **sem endereço nem coordenada no SGP, e sem posto em `tb_posto` do ovresc** — o
+> Mapa de Força lança por posto) e 1 divergência de numeração (2º GB 5ª/6ª SB). CMAN
+> (-8,049368/-34,870586, subordinado à DLOG) e ABMG (-8,0782/-34,985144, subordinada à DEIP) entram
+> na tabela e valem também para postos desses nomes lançados por outra OME. **GBMar continua usando a
+> coordenada da sede por ora** (regra `sempre` em `conferir_coordenadas.py`; os postos de praia serão
+> informados depois — adequar quando vierem). CAT do Sertão → 4º GB, do Agreste → 2º GB, da Zona da
+> Mata → 1º GB (coordenada e destino no QOD). Posto "SEDE" é viatura de uma OME ativada no quartel de
+> outra OME: conta na OME que lança, só a posição é a do quartel hospedeiro
+> (`etl/mapa_forca/de_para_posto_qod.csv` atualizado). (3) **Viaturas**: os números de condutores
+> por viatura saem do sistema até a Frota confirmar a regra, e o feed de combustível aparece como
+> traço (a empresa nova ainda não forneceu a API); ligar de volta em `CONDUTORES_CONFIRMADOS` e
+> `FEED_COMBUSTIVEL_DISPONIVEL` (`src/lib/viaturasDashboard.js`). (4) **Backup do DW**: o servidor
+> não arquiva WAL (`archive_mode=off`) nem tem réplica; não há como confirmar daqui se o `caprover-01`
+> faz `pg_dump`. Para o que NÃO se reconstrói das fontes — esquema `app` (organograma e perfis),
+> históricos diários (`fato_*` de efetivo/frota e `core.emprego_historico_*`), `raw_ref` (única cópia do
+> que veio do `dw_dim`), `raw_reserva` e as planilhas do Google (Pecúlio, Finanças, QOD, quadros, CIM,
+> inativos, escolaridade, materiais, ~15 MB) — um dump diário de ~65 MB resolve; as bases de
+> sistemas (Frota, ROE, Mapa de Força, vacina, SGP/escala) têm backup próprio e são recarregadas.
+> `dw_dim_aposentado_20260929` foi apagado pelo usuário.
+
 > **2026-10-08 — 4º EMG, tradução da QOD, relatório e coordenadas das seções no DW.**
 > (1) Os três commits que estavam só na branch descartável `vercel` (4º EMG e organograma em 5
 > colunas; tradução dos códigos da QOD_CONSOLIDADA; página de detalhamento de Finanças) foram

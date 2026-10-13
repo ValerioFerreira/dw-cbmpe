@@ -4,7 +4,7 @@ import { ChevronLeft, Car, Gauge, Fuel, Info } from "lucide-react";
 import SectionCard from "@/components/ui/section-card";
 import EmptyState from "@/components/ui/empty-state";
 import BadgeSituacao from "@/components/ui/badge-situacao";
-import { registrosViaturas } from "@/lib/viaturasDashboard";
+import { registrosViaturas, CONDUTORES_CONFIRMADOS, FEED_COMBUSTIVEL_DISPONIVEL } from "@/lib/viaturasDashboard";
 import { useCbmpe } from "@/lib/cbmpe-context";
 
 function fmtSimNao(v) {
@@ -99,8 +99,8 @@ export default function ViaturaFicha() {
             <Widget
               icone={Fuel}
               rotulo="Último Abastecimento"
-              valor={fmtMoeda(ficha.ultimoAbastecimentoValor)}
-              sub={fmtData(ficha.ultimoAbastecimentoData)}
+              valor={FEED_COMBUSTIVEL_DISPONIVEL ? fmtMoeda(ficha.ultimoAbastecimentoValor) : "—"}
+              sub={FEED_COMBUSTIVEL_DISPONIVEL ? fmtData(ficha.ultimoAbastecimentoData) : undefined}
             />
           </div>
 
@@ -126,7 +126,7 @@ export default function ViaturaFicha() {
               <Campo rotulo="Rastreado?" valor={fmtSimNao(ficha.rastreado)} />
               <Campo rotulo="Chassis" valor={ficha.chassis} />
               <Campo rotulo="Caracterizado?" valor={fmtSimNao(ficha.caracterizado)} />
-              <Campo rotulo="Condutores" valor={ficha.condutores ?? "—"} nota="Contagem de condutores distintos nas transações de combustível — hipótese ainda não confirmada com a Frota." />
+              <Campo rotulo="Condutores" valor={CONDUTORES_CONFIRMADOS ? (ficha.condutores ?? "—") : "—"} nota="Em conferência com a Frota." />
               <Campo rotulo="Categoria de Habilitação" valor={ficha.categoriaHabilitacao} />
             </div>
           </SectionCard>

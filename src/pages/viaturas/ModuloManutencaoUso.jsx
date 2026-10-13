@@ -4,6 +4,7 @@ import { fmtNumero } from "@/lib/cbmpe";
 import {
   groupCount, paraSerie, pctTexto, useFiltrosViaturas, paramsAtuaisViaturas, linkViaturaTabela,
   FAIXA_CONDUTORES_ORDER, bucketCondutores, faixaCondutoresParaIntervalo, diasDesdeAbastecimento,
+  CONDUTORES_CONFIRMADOS, FEED_COMBUSTIVEL_DISPONIVEL,
 } from "@/lib/viaturasDashboard";
 import SectionCard from "@/components/ui/section-card";
 import KpiCard from "@/components/ui/kpi-card";
@@ -94,10 +95,16 @@ export default function ModuloManutencaoUso({ indId, viaturas }) {
         <KpiCard nome="Sem rastreamento" valor={fmtNumero(naoRastreadas)} extra={pctTexto(naoRastreadas, total)} />
         <KpiCard
           nome={`Sem abastecer há ${LIMITE_DIAS_OCIOSA}+ dias`}
-          valor={fmtNumero(semAbastecimentoRecente)}
-          extra={`${pctTexto(semAbastecimentoRecente, total)} · ref. ${new Date(agoraAbastecimento).toLocaleDateString("pt-BR")}`}
+          valor={FEED_COMBUSTIVEL_DISPONIVEL ? fmtNumero(semAbastecimentoRecente) : "—"}
+          extra={FEED_COMBUSTIVEL_DISPONIVEL
+            ? `${pctTexto(semAbastecimentoRecente, total)} · ref. ${new Date(agoraAbastecimento).toLocaleDateString("pt-BR")}`
+            : "feed de combustível indisponível"}
         />
-        <KpiCard nome="Condutores por viatura (média)" valor={condutoresMedio} />
+        <KpiCard
+          nome="Condutores por viatura (média)"
+          valor={CONDUTORES_CONFIRMADOS ? condutoresMedio : "—"}
+          extra={CONDUTORES_CONFIRMADOS ? undefined : "em conferência com a Frota"}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -111,10 +118,16 @@ export default function ModuloManutencaoUso({ indId, viaturas }) {
           />
         </SectionCard>
         <SectionCard titulo="Condutores habilitados por viatura" subtitulo="Viaturas com poucos condutores vinculados dependem de menos pessoas para operar">
-          <PanelGrafico
-            tipo="bar" data={faixaCondutoresData} xKey="label" yKeys={["valor"]} altura={240}
-            aoClicarBarra={(d) => irParaTabela({ condutores: faixaCondutoresParaIntervalo(d.label) })}
-          />
+          {CONDUTORES_CONFIRMADOS ? (
+            <PanelGrafico
+              tipo="bar" data={faixaCondutoresData} xKey="label" yKeys={["valor"]} altura={240}
+              aoClicarBarra={(d) => irParaTabela({ condutores: faixaCondutoresParaIntervalo(d.label) })}
+            />
+          ) : (
+            <p className="py-16 text-center text-[13px] text-muted-foreground">
+              Em conferência com a Frota — os números voltam quando a regra for confirmada.
+            </p>
+          )}
         </SectionCard>
       </div>
 

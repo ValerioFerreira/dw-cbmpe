@@ -20,6 +20,13 @@ export const MODULOS_VIATURAS_DASHBOARD = [
 ];
 
 export const FAIXA_IDADE_ORDER = ["0-5", "6-10", "11-15", "16-20", "21+"];
+// Decisao do usuario (2026-10-13): os numeros de CONDUTORES por viatura ficam fora do sistema ate a Frota
+// confirmar a regra (hoje e uma hipotese: condutores distintos nas transacoes de combustivel), e o
+// feed de COMBUSTIVEL aparece com traco -- a empresa nova ainda nao forneceu a API (a ultima
+// transacao no DW e de 19/01/2026). Quando os dois voltarem, basta ligar estas chaves.
+export const CONDUTORES_CONFIRMADOS = false;
+export const FEED_COMBUSTIVEL_DISPONIVEL = false;
+
 export const FAIXA_CONDUTORES_ORDER = ["0", "1", "2-3", "4+"];
 
 // De-para sigla curta (ex. "1ºGB", "DInter/1", "CAT AGRESTE" — a grafia que as

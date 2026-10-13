@@ -13,11 +13,14 @@ snapshot, entao a `main` nunca recebe os arquivos (public/snapshot/ esta no .git
 historico nao cresce com 30 MB por dia. A Vercel precisa ter a `vercel` como "Production
 Branch" (Settings > Git); o proprio push dispara o deploy.
 
-O que vai para o commit e o HEAD: commite antes o que quiser ver publicado.
+Por padrao o codigo publicado e o HEAD desta pasta (commite antes o que quiser ver publicado). Com
+`--base origin/main` (usado pela rotina diaria, etl/snapshot/rodar_diario.ps1) faz antes um
+`git fetch` e publica o que ja esta na `main` do GitHub, sem depender do estado da pasta de trabalho.
 
 Uso:
-    python etl/snapshot/publicar_snapshot.py              # gera e publica
-    python etl/snapshot/publicar_snapshot.py --sem-push   # gera e deixa o commit local na branch vercel
+    python etl/snapshot/publicar_snapshot.py                        # gera e publica (codigo = HEAD)
+    python etl/snapshot/publicar_snapshot.py --base origin/main     # codigo = main do GitHub
+    python etl/snapshot/publicar_snapshot.py --sem-push             # gera e deixa o commit local na branch vercel
 """
 import shutil
 import subprocess
@@ -35,8 +38,18 @@ def rodar(cmd, cwd=RAIZ, **kw):
     return subprocess.run(cmd, cwd=cwd, check=True, **kw)
 
 
+def base_do_codigo():
+    if "--base" not in sys.argv:
+        return "HEAD"
+    base = sys.argv[sys.argv.index("--base") + 1]
+    if base.startswith("origin/"):
+        rodar(["git", "fetch", "-q", "origin", base.split("/", 1)[1]])
+    return base
+
+
 def main():
     sem_push = "--sem-push" in sys.argv
+    base = base_do_codigo()
     with tempfile.TemporaryDirectory(prefix="cbmpe_snapshot_") as tmp:
         tmp = Path(tmp)
         arquivos = tmp / "arquivos"
@@ -44,8 +57,8 @@ def main():
         rodar(["node", "scripts/gerar_snapshot.js", str(arquivos)], cwd=RAIZ / "backend")
 
         copia = tmp / "codigo"
-        print("2. Copia do commit atual + snapshot")
-        rodar(["git", "worktree", "add", "--detach", str(copia), "HEAD"])
+        print(f"2. Copia do codigo ({base}) + snapshot")
+        rodar(["git", "worktree", "add", "--detach", str(copia), base])
         try:
             destino = copia / "public" / "snapshot"
             shutil.copytree(arquivos, destino)
