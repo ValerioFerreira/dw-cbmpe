@@ -41,42 +41,22 @@ PERGUNTAS = {
 def main():
     d = novo_documento("Pendências de decisão", f"O que ainda falta e o que preciso saber de cada responsável — {HOJE}")
 
-    d.add_heading("1. Postos do Mapa de Força sem seção no QOD (Comando / DGO)", level=1)
-    d.add_paragraph("Já decididos hoje e fora desta lista: CATs do Sertão → 4º GB, do Agreste → 2º GB, da Zona da Mata → 1º GB; "
-                    "CATs da RMR → QCG; CIODS → DGO; DIESP → DGO; DPCIP, DAP e CIAT → DIESP; GBFN virou SBFN, subordinada ao GBI; "
-                    "8º GB e 11º GB extintos; postos SEDE hospedados contam na OME que lança. Faltam estes:")
-    linhas = []
-    for r in postos():
-        if r["id_posto"] in PERGUNTAS:
-            linhas.append((r["id_posto"], r["nome_posto"], r["ome_do_posto"], r["municipio"], r["lancamentos_30d"], PERGUNTAS[r["id_posto"]]))
-    tabela(d, ["Posto", "Nome", "OME cadastrada", "Município", "Lanç. 30 d", "O que preciso saber"], linhas,
-           larguras=[1.2, 3.4, 2.2, 2.6, 1.3, 6.8], tam=8)
+    d.add_heading("1. Mapa de Força (atualizado em 13/10, após as respostas do Comando)", level=1)
+    d.add_paragraph("Decidido: postos de operação/evento contam na OME que lança; postos de praia do GBMar e postos hospedados "
+                    "(SEDE/QCG/CMAN/ABMG) lançam só na unidade da OME, e o GBMar usa a coordenada da sede por ora (adequar quando "
+                    "as coordenadas dos postos de praia forem informadas); posto SEDE do 4º GB = 1ª SB/4º GB; CEASA/Recife conta na "
+                    "1ª SBAPH do GBAPH; os postos não citados são legados e foram desconsiderados.")
+    marcador(d, " a estação nova '3ªSB / PETROLINA' (seção de mergulho, na sede do 4º GB) foi criada no Mapa de Força com id 145 e "
+                "id_scriptcase 64. O DW liga os lançamentos aos postos pelo id do cadastro antigo (ovresc.tb_posto = id_scriptcase): "
+                "em 91% dos lançamentos recentes o id do lançamento é o do tb_posto. Dois riscos: (a) se o app gravar id_scriptcase 64 nos "
+                "lançamentos, o DW os contará como '1ªSB / PETROLINA' (o posto 64 existe); (b) se gravar o id 145, o DW os contará como ABMG "
+                "(o posto 145 do tb_posto é a ABMG, 102 lançamentos em 30 dias). Preciso saber qual id o Mapa de Força grava em "
+                "launches.service_station_id para essa estação (um lançamento de teste resolve) — e sugiro dar a ela um id_scriptcase novo "
+                "e único (ex.: 189) e criar o posto correspondente no tb_posto.", "3ª SB do 4º GB (mergulho):")
+    marcador(d, " o ponto de serviço está cadastrado com coordenada do Rio de Janeiro (-22,88 / -43,64), que o sistema descarta; hoje cai no "
+                "centro de Recife (aproximado, balão tracejado). Qual é a coordenada da CEASA Recife?", "CEASA / Recife:")
 
-    d.add_heading("2. Regras para confirmar", level=1)
-    todas = postos()
-    eventos = [r for r in todas if "operacao/evento" in r["regra"]]
-    praia = [r for r in todas if "praia do GBMar" in r["regra"]]
-    marcador(d, f" são {len(eventos)} postos de operação/evento (Operação Carnaval, Verão, Pernambuco Seguro etc.; "
-                f"{sum(int(r['lancamentos_30d']) for r in eventos)} lançamentos em 30 dias). Proposta: contam só na OME que lança, "
-                "sem seção do QOD. Confirma?", "Postos de operação e evento:")
-    marcador(d, f" são {len(praia)} postos de praia ({sum(int(r['lancamentos_30d']) for r in praia)} lançamentos em 30 dias), "
-                "hoje todos no ponto da sede do GBMar. Falta, por posto: coordenada e, se houver, a seção do GBMar em que contam. "
-                "Pode mandar uma planilha no mesmo formato da das SBs (posto, latitude, longitude).", "Postos de praia do GBMar:")
-    marcador(d, " (SEDE/QCG/CMAN/ABMG ativados por outra OME) contam na OME que lança e a posição é a do quartel hospedeiro. "
-                "Pergunta: basta a unidade da OME que lança ou precisa registrar a seção (ex.: 'GBAPH — 2ª SBAPH')?",
-             "Postos hospedados:")
-
-    d.add_heading("3. Cadastro e coordenadas (Mapa de Força)", level=1)
-    marcador(d, " existe no SGP como seção (tb_secao, id 33), mas sem endereço nem coordenada, e não existe como posto de serviço "
-                "(tb_posto do sistema de escala). O Mapa de Força lança por posto; sem posto, ninguém consegue lançar a guarnição "
-                "dessa SB e ela não aparece no mapa. Quem administra o cadastro de postos precisa criar o posto '3ªSB / PETROLINA' "
-                "(4º GB) — a coordenada já está na sua tabela.", "A 3ª SB do 4º GB (Petrolina)")
-    marcador(d, " os postos estão cadastrados como '5ªSB / SANTA CRUZ DO CAPIBARIBE' e '6ªSB / TORITAMA'; a sua tabela diz "
-                "5ª SB = Toritama e 6ª SB = Santa Cruz do Capibaribe. Usei a cidade do nome do posto, então cada ponto está no lugar "
-                "certo; o que diverge é só o número da SB (afeta o rótulo e qualquer relatório por seção). Qual é a numeração correta?",
-             "A 5ª e a 6ª SB do 2º GB:")
-
-    d.add_heading("4. QOD (DPlaG e CPPA)", level=1)
+    d.add_heading("2. QOD (DPlaG e CPPA)", level=1)
     marcador(d, " 240 ocupações ficaram sem função após a tradução dos códigos e há 248 funções do catálogo antigo sem par no novo "
                 "(111 com ocupante). Detalhe em QOD_ocupacoes_sem_funcao.xlsx — a DPlaG diz se a função deixou de existir, mudou de nome "
                 "ou de seção; a CPPA confere o código escrito na linha.", "Ocupações sem função:")
@@ -84,7 +64,7 @@ def main():
     marcador(d, " em 54 divisões a lotação passa do previsto (367 pessoas a mais). A DPlaG revisa o previsto ou a CPPA a lotação?",
              "Lotação acima do previsto:")
 
-    d.add_heading("5. Finanças (DF)", level=1)
+    d.add_heading("3. Finanças (DF)", level=1)
     d.add_paragraph("Unificar ou manter separados (a DF decide):")
     tabela(d, ["Tipos de gasto que parecem o mesmo", "Lanç."], [
         ("CUSTEIO - Cota Global  ×  Cota Global CBM  ×  DEA - COTA GLOBAL", "19 + 8 + 1"),
@@ -99,7 +79,7 @@ def main():
     marcador(d, " os três totais da página inicial somam apenas as situações Aguardando, Empenhado e Liquidado; ficam de fora "
                 "Cancelado (19 lançamentos), 'Não se enquadra' (11) e 5 sem situação. Está correto?", "Totais:")
 
-    d.add_heading("6. Painel 09 — Intenção de Movimentação (Igor)", level=1)
+    d.add_heading("4. Painel 09 — Intenção de Movimentação (Igor)", level=1)
     marcador(d, " conferi o painel do Metabase contra o DW: pedidos (17), solicitações por posto, 1ª opção, origem e transferências "
                 "por OME e por posto batem exatamente. Diferença: o Metabase mostra 390 transferências e o DW 389 — o 390 conta uma "
                 "linha da planilha que é uma nota de rodapé ('ABAIXO ESTÁ A SITUAÇÃO APÓS A DISTRIBUIÇÃO DO CFHP 2026 SP 013/2026'), "
@@ -109,12 +89,12 @@ def main():
                 "mostrou GBS, SDS e 6ºGB; o sistema mostra 6ºGB, SDS e AjG, porque nenhum dos dois define critério de desempate. "
                 "Decisão: listar todas as empatadas (7 OMEs) ou desempatar por ordem alfabética?", "Empate no Top 5:")
 
-    d.add_heading("7. Frota", level=1)
+    d.add_heading("5. Frota", level=1)
     marcador(d, " a regra de 'condutores por viatura' está em conferência (números fora do sistema). Frota: o que conta como condutor "
                 "de uma viatura?", "Condutores:")
     marcador(d, " a empresa nova ainda não forneceu a API; o campo fica com traço até lá.", "Combustível:")
 
-    d.add_heading("8. Infraestrutura (TI / ATI)", level=1)
+    d.add_heading("6. Infraestrutura (TI / ATI)", level=1)
     marcador(d, " o servidor do DW não arquiva WAL e não tem réplica. Existe dump diário do banco 'dw' no caprover-01? Retenção? "
                 "Se não, quem fará o dump (≈ 65 MB) do que não se reconstrói das fontes?", "Backup:")
     marcador(d, " subdomínio ou subcaminho? Quem administra o srv-nginx01? (ver docs/deploy-pedido-vm-ati.md)", "Endereço da VM:")

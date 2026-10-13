@@ -55,6 +55,25 @@
 > sistemas (Frota, ROE, Mapa de Força, vacina, SGP/escala) têm backup próprio e são recarregadas.
 > `dw_dim_aposentado_20260929` foi apagado pelo usuário.
 
+> **2026-10-13 (tarde) — Respostas do Comando sobre os postos do Mapa de Força.**
+> `de_para_posto_qod.csv` fechado: postos de operação/evento (30) contam na OME que lança
+> (confirmado); postos de praia do GBMar lançam só na unidade e **continuam na coordenada da sede do
+> GBMar por ora — adequar quando o usuário informar as coordenadas** (regra `sempre` em
+> `conferir_coordenadas.py`); postos hospedados (SEDE/QCG/CMAN/ABMG de outra OME) contam só na unidade da
+> OME que lança; o posto SEDE do 4º GB (id 21) = 1ª SB/4º GB; CEASA/Recife (id 32) conta na 1ª SBAPH do
+> GBAPH, mas o cadastro tem coordenada do Rio de Janeiro (descartada; cai no centro de Recife,
+> aproximado — falta a coordenada da CEASA); os 12 postos não citados são **legados** e foram
+> desconsiderados. **Numeração 5ª/6ª SB do 2º GB**: o usuário corrigiu no Mapa de Força (estações 36/40
+> = 6ªSB Santa Cruz e 5ªSB Toritama; vale o QOD), mas o `ovresc.tb_posto` (ids 127/128) ainda tem a
+> numeração antiga; o catálogo passou a exibir a numeração da tabela informada. **3ª SB do 4º GB** é a
+> seção de mergulho (sede do 4º GB); o usuário criou a estação 145 no Mapa de Força com
+> `id_scriptcase = 64` — **risco de ligação errada**: os lançamentos ligam ao posto pelo
+> `service_station_id` = id do `tb_posto` (91% dos lançamentos recentes casam por essa chave, ~8% pela
+> `stations.id`); 64 é a 1ª SB de Petrolina e 145 do `tb_posto` é a ABMG. Pendente: saber qual id o app
+> grava para essa estação e criar posto/`id_scriptcase` próprio (ex. 189).
+> **Painel 09 conferido contra o Metabase**: tudo bate; o 390 do Metabase conta a linha de rodapé da
+> planilha (a soma do próprio gráfico dele é 389). Empate no Top 5 sem critério (decisão aberta).
+
 > **2026-10-08 — 4º EMG, tradução da QOD, relatório e coordenadas das seções no DW.**
 > (1) Os três commits que estavam só na branch descartável `vercel` (4º EMG e organograma em 5
 > colunas; tradução dos códigos da QOD_CONSOLIDADA; página de detalhamento de Finanças) foram

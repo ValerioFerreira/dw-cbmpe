@@ -241,6 +241,9 @@ def catalogo(cur, de_para):
                     mudancas.append((id_posto, nome, ome, d))
             if aviso:
                 avisos.append((id_posto, nome, ome, aviso))
+                # Decisao do usuario (2026-10-13): vale a numeracao do QOD/tabela informada, nao a do
+                # cadastro antigo do posto (ovresc.tb_posto).
+                nome = f"{linha['secao'].replace(' ', '')} / {linha['cidade'].upper()}"
         if r["notas"]:
             diagnostico.append((id_posto, nome, ome, r))
         postos[str(id_posto)] = {
@@ -326,7 +329,7 @@ def main():
         for id_posto, nome, ome, d in sorted(secao["mudancas"], key=lambda x: -x[3]):
             print(f"    [{id_posto:>4}] {nome[:40]:<40} {ome:<8} {d:7.1f} km")
     if secao["avisos"]:
-        print("\n  numeracao que diverge entre o cadastro do posto e a tabela informada (valeu a cidade):")
+        print("\n  numeracao que diverge entre o cadastro do posto e a tabela informada (vale a da tabela; o nome exibido foi corrigido):")
         for id_posto, nome, ome, aviso in secao["avisos"]:
             print(f"    [{id_posto:>4}] {nome[:40]:<40} {ome:<8} {aviso}")
     if secao["sem_posto"]:
