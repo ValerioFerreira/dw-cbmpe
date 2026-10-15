@@ -105,7 +105,9 @@ SEDE_CONFIRMADA = {
 # GBAPH ativada no quartel do GBS) NAO entram aqui: o posto SEDE de la ja tem
 # a coordenada fisica do quartel.
 REGRA_COORDENADA_POR_OME = {
-    "GBMar":    ("sempre", "GBMar"),
+    # GBMar: ate 2026-10-15 todos os postos usavam a sede ("sempre", "GBMar"). Os 31 postos de praia
+    # agora tem coordenada propria no Mapa de Forca (public.stations), que a carga ja traz; a regra
+    # saiu. Para voltar a usar a sede: "GBMar": ("sempre", "GBMar").
     "DGO":      ("sem_propria", "COMANDO GERAL"),
     "CAT/RMR":  ("sem_propria", "COMANDO GERAL"),
     "DIESP":    ("sem_propria", "COMANDO GERAL"),

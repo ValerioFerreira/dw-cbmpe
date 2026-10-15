@@ -384,25 +384,51 @@ def carregar_dimensoes_escala(cur):
         FROM raw_mapa_forca.operational_resource_types
     """)
 
-    # Posto de servico: autoridade e o ovresc.tb_posto -- o mapa de forca casa
-    # 141/141 com ele, e ele tem OME, coordenada e AIS proprios. A stations do
-    # mapa de forca entra so preenchendo o que faltar (coalesce).
+    # Posto de servico. O lancamento liga ao posto pelo ID DO CADASTRO ANTIGO (launches.service_station_id
+    # = ovresc.tb_posto.id_posto = stations.id_scriptcase: 91% dos lancamentos recentes casam por essa
+    # chave, e so ~8% pela stations.id). Por isso a chave daqui e o id_scriptcase.
+    #   1. ovresc.tb_posto e a base (OME responsavel, AIS); a estacao do Mapa de Forca com o mesmo
+    #      id_scriptcase, que e o sistema vivo, manda no NOME e na COORDENADA quando tem (2026-10-15:
+    #      numeracao das SBs, postos de praia do GBMar e nomes renomeados so existem la);
+    #   2. estacao SEM posto no tb_posto (posto criado direto no Mapa de Forca, ex. a 3a SB do 4o GB)
+    #      entra com id_posto = id_scriptcase. Cuidado: o id_scriptcase tem de ser UNICO -- se repetir o
+    #      de um posto do tb_posto, os lancamentos dos dois se misturam.
     cur.execute("DELETE FROM core.dim_posto_servico")
     cur.execute("""
+        WITH estacao AS (
+            SELECT DISTINCT ON (id_scriptcase) *
+            FROM raw_mapa_forca.stations
+            WHERE id_scriptcase IS NOT NULL AND discarded_at IS NULL
+            ORDER BY id_scriptcase, id DESC
+        ),
+        postos AS (
+            SELECT p.id_posto::int AS id_posto,
+                   coalesce(nullif(trim(s.name), ''), trim(p.nm_posto)) AS nome,
+                   p.id_ome_respo_fk::int AS id_ome,
+                   coalesce(nullif(trim(p.en_cidd), ''), nullif(trim(s.city), '')) AS municipio,
+                   coalesce(nullif(trim(p.en_bair), ''), nullif(trim(s.neighborhood), '')) AS bairro,
+                   coalesce(nullif(trim(p.nr_ais::text), ''), nullif(trim(s.ais), '')) AS ais,
+                   coalesce(nullif(s.latitude, 0)::numeric, nullif(p.en_latd, 0)) AS latitude,
+                   coalesce(nullif(s.longitude, 0)::numeric, nullif(p.en_long, 0)) AS longitude,
+                   CASE WHEN s.id IS NULL THEN 'ovresc.tb_posto'
+                        ELSE 'ovresc.tb_posto + mapa_forca.stations' END AS origem
+            FROM raw_escala.tb_posto p
+            LEFT JOIN estacao s ON s.id_scriptcase = p.id_posto::int
+            UNION ALL
+            SELECT s.id_scriptcase, trim(s.name), s.ome_id_scriptcase,
+                   nullif(trim(s.city), ''), nullif(trim(s.neighborhood), ''), nullif(trim(s.ais), ''),
+                   nullif(s.latitude, 0)::numeric, nullif(s.longitude, 0)::numeric,
+                   'mapa_forca.stations (sem posto no tb_posto)'
+            FROM estacao s
+            WHERE NOT EXISTS (SELECT 1 FROM raw_escala.tb_posto p WHERE p.id_posto::int = s.id_scriptcase)
+        )
         INSERT INTO core.dim_posto_servico
             (sk_posto_servico, id_posto, nome, sk_ome, municipio, bairro, ais,
              latitude, longitude, origem)
-        SELECT p.id_posto::int, p.id_posto::int, trim(p.nm_posto),
-               o.sk_ome,
-               coalesce(nullif(trim(p.en_cidd), ''), nullif(trim(s.city), '')),
-               coalesce(nullif(trim(p.en_bair), ''), nullif(trim(s.neighborhood), '')),
-               coalesce(nullif(trim(p.nr_ais::text), ''), nullif(trim(s.ais), '')),
-               coalesce(nullif(p.en_latd, 0), nullif(s.latitude, 0)::numeric),
-               coalesce(nullif(p.en_long, 0), nullif(s.longitude, 0)::numeric),
-               'ovresc.tb_posto + mapa_forca.stations'
-        FROM raw_escala.tb_posto p
-        LEFT JOIN raw_mapa_forca.stations s ON s.id_scriptcase = p.id_posto::int
-        LEFT JOIN core.dim_ome o ON o.sk_ome = p.id_ome_respo_fk::int
+        SELECT x.id_posto, x.id_posto, x.nome, o.sk_ome, x.municipio, x.bairro, x.ais,
+               x.latitude, x.longitude, x.origem
+        FROM postos x
+        LEFT JOIN core.dim_ome o ON o.sk_ome = x.id_ome
     """)
 
     for tabela in ("dim_turno", "dim_tipo_servico", "dim_funcao_servico",
