@@ -144,10 +144,10 @@ export default function useZoomMapa(inicial) {
       porPixelY: vbRef.current.h / r.height,
       moveu: false,
     };
-    // Segura o gesto mesmo se o cursor sair do SVG (ou da janela).
-    if (svg.setPointerCapture && e.pointerId !== undefined) {
-      try { svg.setPointerCapture(e.pointerId); } catch { /* sem captura, tudo bem */ }
-    }
+    // A captura do ponteiro NÃO é feita aqui, só quando o gesto vira arrasto (aoMover). Capturar já no
+    // pressionar faz o navegador entregar o "click" ao SVG, e não ao balão sob o cursor: clicar num posto
+    // nunca abria o detalhe (achado em 2026-10-16; o clique sintético funcionava, o do mouse não).
+    arrasto.current.pointerId = e.pointerId;
   }
 
   function aoMover(e) {
@@ -158,6 +158,11 @@ export default function useZoomMapa(inicial) {
     if (!a.moveu && Math.hypot(dx, dy) > ARRASTO_MINIMO_PX) {
       a.moveu = true;
       setArrastandoAgora(true);
+      // Agora é um arrasto de verdade: segura o gesto mesmo se o cursor sair do SVG (ou da janela).
+      const svg = svgRef.current;
+      if (svg?.setPointerCapture && a.pointerId !== undefined) {
+        try { svg.setPointerCapture(a.pointerId); } catch { /* sem captura, tudo bem */ }
+      }
     }
     if (!a.moveu) return;
     // Arrastar para a direita move o mapa para a direita, ou seja, a janela
