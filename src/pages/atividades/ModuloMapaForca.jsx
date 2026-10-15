@@ -240,6 +240,27 @@ function Kpi({ icone: Icone, rotulo, valor }) {
   );
 }
 
+// Ordem dos turnos no detalhe do posto: 1º, 2º, 3º, depois os regimes de 12h e 24h e, por fim, o que não
+// tiver turno informado. O dado traz "3º TURNO" e "3° TURNO" (grau no lugar de ordinal).
+function ordemDoTurno(turno) {
+  const t = String(turno || "").toUpperCase().replace("°", "º").trim();
+  if (t.startsWith("1")) return 1;
+  if (t.startsWith("2")) return 2;
+  if (t.startsWith("3")) return 3;
+  if (t === "12H") return 4;
+  if (t === "24H") return 5;
+  return 9;
+}
+
+// Hierarquia para ordenar a guarnição (do maior para o menor posto/graduação).
+const ORDEM_POSTO = ["CEL", "TC", "MAJ", "CAP", "1º TEN", "2º TEN", "ASP", "SUBTEN", "1º SGT", "2º SGT", "3º SGT", "CB", "SD"];
+function ordemDoPosto(pg) {
+  const i = ORDEM_POSTO.indexOf(String(pg || "").toUpperCase().replace("°", "º").trim());
+  return i === -1 ? ORDEM_POSTO.length : i;
+}
+
+const rotuloViatura = (v) => `${v.acronimo || "?"}-${v.numero || "?"}`;
+
 function DetalheDoPosto({ posto, dia, aoFechar }) {
   // Telefone: consulta ao vivo ao SGP (ovrsgp.tb_pess.nr_cntt_proprio), só do posto aberto. Sem backend
   // (snapshot da Vercel) ou sem telefone cadastrado, a célula fica em branco.
@@ -265,6 +286,33 @@ function DetalheDoPosto({ posto, dia, aoFechar }) {
     return Array.from(m.values()).sort((x, y) => y.militares - x.militares);
   }, [posto]);
 
+  // Turnos em ordem; dentro de cada um: OME, depois viatura, depois o maior efetivo primeiro. Também
+  // marca o militar que aparece em mais de um lançamento do MESMO turno (escala em dobro ou erro de lançamento).
+  const turnos = useMemo(() => {
+    const grupos = new Map();
+    posto.lancamentos.forEach((l) => {
+      const k = (l.turno || "").toUpperCase().replace("°", "º").trim() || "SEM TURNO";
+      if (!grupos.has(k)) grupos.set(k, { turno: k, ordem: ordemDoTurno(l.turno), lancamentos: [] });
+      grupos.get(k).lancamentos.push(l);
+    });
+    return Array.from(grupos.values())
+      .sort((x, y) => x.ordem - y.ordem || x.turno.localeCompare(y.turno))
+      .map((g) => {
+        const vezes = new Map();
+        g.lancamentos.forEach((l) => new Set(l.guarnicao.map((m) => m.matricula)).forEach((mt) => vezes.set(mt, (vezes.get(mt) || 0) + 1)));
+        const ordenados = [...g.lancamentos].sort((x, y) => (x.ome || "").localeCompare(y.ome || "", "pt-BR")
+          || (x.viaturas[0] ? rotuloViatura(x.viaturas[0]) : "￿").localeCompare(y.viaturas[0] ? rotuloViatura(y.viaturas[0]) : "￿", "pt-BR", { numeric: true })
+          || y.guarnicao.length - x.guarnicao.length);
+        return {
+          ...g,
+          lancamentos: ordenados,
+          repetidos: vezes,
+          militares: g.lancamentos.reduce((n, l) => n + l.guarnicao.length, 0),
+          viaturas: g.lancamentos.reduce((n, l) => n + l.viaturas.length, 0),
+        };
+      });
+  }, [posto]);
+
   return (
     <SectionCard
       titulo={posto.nome}
@@ -277,100 +325,119 @@ function DetalheDoPosto({ posto, dia, aoFechar }) {
         </button>
       }
     >
-      <div className="mb-3 flex flex-wrap gap-1.5 text-[11px]">
+      <div className="mb-4 flex flex-wrap gap-1.5 text-[11px]">
         {porOme.map((o) => (
           <span key={o.ome} className="rounded-full border border-border bg-muted/50 px-2.5 py-1 text-foreground">
             <strong>{o.ome}</strong> · {fmtNumero(o.lancamentos)} lançamento(s) · {fmtNumero(o.militares)} militar(es)
           </span>
         ))}
       </div>
-      {/* Um card por lançamento, lado a lado: a escala do dia de uma vez. */}
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-        {posto.lancamentos.map((l) => (
-          <CardLancamento key={l.id} lancamento={l} postoOme={posto.ome} telefones={telefones} />
+
+      <div className="space-y-5">
+        {turnos.map((g) => (
+          <section key={g.turno}>
+            <header className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-border pb-1.5">
+              <h4 className="font-display text-[14px] font-semibold tracking-tight text-foreground">{g.turno}</h4>
+              <span className="text-[11px] text-muted-foreground">
+                {fmtNumero(g.lancamentos.length)} lançamento(s) · {fmtNumero(g.viaturas)} viatura(s) · {fmtNumero(g.militares)} militar(es)
+              </span>
+            </header>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {g.lancamentos.map((l) => (
+                <CardLancamento key={l.id} lancamento={l} postoOme={posto.ome} telefones={telefones} repetidos={g.repetidos} />
+              ))}
+            </div>
+          </section>
         ))}
       </div>
     </SectionCard>
   );
 }
 
-function CardLancamento({ lancamento: l, postoOme, telefones }) {
+function CardLancamento({ lancamento: l, postoOme, telefones, repetidos }) {
   const digitos = (v) => String(v || "").replace(/\D/g, "");
+  const outraOme = l.ome && postoOme && l.ome !== postoOme;
+  const guarnicao = useMemo(
+    () => [...l.guarnicao].sort((x, y) => ordemDoPosto(x.postoGrad) - ordemDoPosto(y.postoGrad)
+      || (x.nomeGuerra || "").localeCompare(y.nomeGuerra || "", "pt-BR")),
+    [l.guarnicao]
+  );
   return (
-    <div className="rounded-lg border border-border p-2.5">
-      <div className="mb-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px]">
+    <article className={`flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm ${outraOme ? "border-amber-500/50" : "border-border"}`}>
+      {/* Cabeçalho: OME do lançamento e o serviço */}
+      <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 ${outraOme ? "bg-amber-500/10" : "bg-muted/40"}`}>
         <span
-          className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
-            l.ome && postoOme && l.ome !== postoOme ? "bg-amber-500/20 text-amber-700" : "bg-primary/10 text-primary"
-          }`}
-          title="OME do lançamento"
+          className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${outraOme ? "bg-amber-500/25 text-amber-800" : "bg-primary/10 text-primary"}`}
+          title={outraOme ? `OME do lançamento (o posto é de ${postoOme})` : "OME do lançamento"}
         >
           {l.ome || "OME não informada"}
         </span>
-        <span className="font-semibold text-foreground">{l.tipoServico || "Serviço não informado"}</span>
-        {l.turno && (
-          <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-            {l.turno}
-          </span>
-        )}
+        <span className="text-[12px] font-semibold leading-tight text-foreground">{l.tipoServico || "Serviço não informado"}</span>
       </div>
 
-      {/* "Viatura" no singular: o lançamento do mapa de força tem uma só. O array continua porque a fonte
-          permite mais de uma linha por lançamento, e esconder a segunda seria mentir sobre o dado. O nome
-          da viatura é o tipo + o número de ordem (ex.: ABT-12). */}
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Viatura</p>
-      {l.viaturas.length === 0 && (
-        <p className="text-[11px] text-muted-foreground">sem viatura neste lançamento</p>
-      )}
-      {l.viaturas.map((v, i) => {
-        const rotulo = `${v.acronimo || "?"}-${v.numero || "?"}`;
-        // Sem placa = viatura que o mapa de força lançou e a Frota não conhece (1,0% do volume). Mostra
-        // sem link, em vez de sumir com ela.
-        return v.placa ? (
-          <Link
-            key={`${l.id}-${i}`}
-            to={`/viatura/${v.placa}`}
-            className="flex items-center justify-between gap-2 rounded px-1 py-0.5 text-[11px] hover:bg-primary/10"
-          >
-            <span className="font-medium text-foreground">{rotulo}</span>
-            <span className="text-muted-foreground">{v.placa}</span>
-          </Link>
-        ) : (
-          <div key={`${l.id}-${i}`}
-            className="flex items-center justify-between gap-2 px-1 py-0.5 text-[11px]">
-            <span className="font-medium text-foreground">{rotulo}</span>
-            <span className="text-[10px] text-muted-foreground">sem cadastro na Frota</span>
-          </div>
-        );
-      })}
+      <div className="space-y-2 px-3 py-2.5">
+        {/* Viatura: tipo + número de ordem (ex.: ABT-12). O array existe porque a fonte permite mais de uma
+            linha por lançamento; esconder a segunda seria mentir sobre o dado. */}
+        <div>
+          <p className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <Truck className="h-3 w-3" /> Viatura
+          </p>
+          {l.viaturas.length === 0 && (
+            <p className="text-[11px] italic text-muted-foreground">sem viatura neste lançamento</p>
+          )}
+          {l.viaturas.map((v, i) => (
+            v.placa ? (
+              <Link key={`${l.id}-${i}`} to={`/viatura/${v.placa}`}
+                className="flex items-center justify-between gap-2 rounded-md bg-primary/5 px-2 py-1 text-[12px] hover:bg-primary/10">
+                <span className="font-semibold text-foreground">{rotuloViatura(v)}</span>
+                <span className="font-mono text-[11px] text-muted-foreground">{v.placa}</span>
+              </Link>
+            ) : (
+              // Sem placa = viatura que o mapa de força lançou e a Frota não conhece (1,0% do volume).
+              <div key={`${l.id}-${i}`} className="flex items-center justify-between gap-2 rounded-md bg-muted/60 px-2 py-1 text-[12px]">
+                <span className="font-semibold text-foreground">{rotuloViatura(v)}</span>
+                <span className="text-[10px] text-muted-foreground">sem cadastro na Frota</span>
+              </div>
+            )
+          ))}
+        </div>
 
-      <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-        Guarnição ({fmtNumero(l.guarnicao.length)})
-      </p>
-      {l.guarnicao.map((m, i) => {
-        const tel = telefones[digitos(m.matricula)];
-        return (
-          <Link
-            key={`${l.id}-m-${i}`}
-            to={`/militar/${m.matricula}`}
-            className="block rounded px-1 py-1 text-[11px] hover:bg-primary/10"
-            title={m.funcao || ""}
-          >
-            <span className="flex items-baseline justify-between gap-2">
-              <span className="truncate text-foreground">
-                <span className="text-muted-foreground">{m.postoGrad} </span>
-                <strong>{m.nomeGuerra || "—"}</strong>
-              </span>
-              <span className="shrink-0 text-[10px] text-muted-foreground">mat. {m.matricula}</span>
-            </span>
-            <span className="flex items-baseline justify-between gap-2 text-[10px] text-muted-foreground">
-              <span className="truncate">{m.funcao}</span>
-              {tel && <span className="shrink-0 text-foreground">{tel}</span>}
-            </span>
-          </Link>
-        );
-      })}
-    </div>
+        {/* Guarnição: do maior posto/graduação para o menor */}
+        <div>
+          <p className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <Users className="h-3 w-3" /> Guarnição ({fmtNumero(guarnicao.length)})
+          </p>
+          <ul className="divide-y divide-border/60">
+            {guarnicao.map((m, i) => {
+              const tel = telefones[digitos(m.matricula)];
+              const dobrado = (repetidos.get(m.matricula) || 0) > 1;
+              return (
+                <li key={`${l.id}-m-${i}`}>
+                  <Link to={`/militar/${m.matricula}`} className="block rounded px-1 py-1.5 text-[11px] hover:bg-primary/10" title={m.funcao || ""}>
+                    <span className="block text-foreground">
+                      <span className="mr-1 inline-block min-w-[3.2rem] text-[10px] font-semibold text-muted-foreground">{m.postoGrad}</span>
+                      <strong className="break-words">{m.nomeGuerra || "—"}</strong>
+                    </span>
+                    <span className="mt-0.5 block pl-[3.2rem] text-[10px] text-muted-foreground">
+                      <span className="font-mono">mat. {m.matricula}</span>
+                      {m.funcao && <span> · {m.funcao}</span>}
+                    </span>
+                    {tel && (
+                      <span className="mt-0.5 block pl-[3.2rem] text-[10px] font-medium text-foreground">📞 {tel}</span>
+                    )}
+                    {dobrado && (
+                      <span className="mt-0.5 block pl-[3.2rem] text-[10px] font-medium text-amber-700">
+                        ⚠ também em outro lançamento deste turno
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </div>
+    </article>
   );
 }
 
