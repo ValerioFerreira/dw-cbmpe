@@ -1,5 +1,6 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
+import { useCbmpe } from "@/lib/cbmpe-context";
 import { ShieldCheck, Network, Users } from "lucide-react";
 import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -78,8 +79,12 @@ function ModalEdicao({ aberto, onFechar, titulo, descricao, children }) {
 
 export default function Administracao() {
   const { ehAdministrador } = useAcessoUsuario();
+  const { loading } = useCbmpe();
   const [modalAberto, setModalAberto] = React.useState(null); // "organograma" | "usuarios" | null
 
+  // As atribuições de perfil chegam do backend junto com o organograma. Antes de chegarem, ninguém é
+  // administrador: abrir /adm direto (ou recarregar a página) caía aqui e voltava para o organograma.
+  if (loading) return <div className="h-64 animate-pulse rounded-xl bg-muted/40" />;
   if (!ehAdministrador) return <Navigate to="/organograma" replace />;
 
   return (
