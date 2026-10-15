@@ -247,7 +247,8 @@ const NODES_NOVA = (() => {
     no('dvp', 'DVP', 5, 'dga', 380),
     no('das', 'DAS', 5, 'dga', 390),
     no('ajg', 'AJG', 6, 'dga', 395),
-    no('gi', 'GI', 6, 'dgp', 352, { emConstrucao: true }),
+    // GI: sai da DGP (que mantém a CRESEP) e fica abaixo da AJG (2026-10-16)
+    no('gi', 'GI', 7, 'ajg', 396, { emConstrucao: true }),
     no('dplag', 'DPLAG', 5, 'dga', 410, { oculto: true }),
   ];
 })();

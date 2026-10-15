@@ -370,7 +370,7 @@ export default function Organograma() {
         ? Math.max(1, folhas5.length)
         : Math.max(1, Math.min(2, 4 - colunas.length - (folhas6.length ? 1 : 0)));
       splitEmColunas(folhas5, livres).forEach((pacote) => colunas.push({ tipo: "pacote", unidades: pacote }));
-      if (folhas6.length) colunas.push({ tipo: "pacote", unidades: folhas6 });
+      if (folhas6.length) colunas.push({ tipo: "pacote", unidades: folhas6, netosDe });
       return colunas;
     }
 
@@ -429,7 +429,7 @@ export default function Organograma() {
   // (GrupoDiretoria: borda 1px + p-1.5), pra todos os cards da linha terem a mesma largura.
   const renderColunas = (colunas, alinhar = false) => colunas.map((coluna, idx) =>
     coluna.tipo === "pacote" ? (
-      <ColunaEmpilhada key={`col-${idx}`} unidades={coluna.unidades} goto={goto} acessoDe={acessoDe} drag={drag} alinhar={alinhar} />
+      <ColunaEmpilhada key={`col-${idx}`} unidades={coluna.unidades} netosDe={coluna.netosDe} goto={goto} acessoDe={acessoDe} drag={drag} alinhar={alinhar} />
     ) : coluna.grupos.length === 1 ? (
       <GrupoDiretoria key={coluna.grupos[0].unidade.id} {...coluna.grupos[0]} goto={goto} acessoDe={acessoDe} drag={drag} />
     ) : (
@@ -889,14 +889,28 @@ const COLUNA_FLEX = "flex-1 basis-0 max-w-[15rem]";
 // Largura mínima de uma coluna de diretoria — o mesmo valor de `min-w-[6.5rem]` na linha de colunas.
 const COLUNA_MIN = "6.5rem";
 
-function ColunaEmpilhada({ unidades, goto, acessoDe, drag, alinhar = false }) {
+function ColunaEmpilhada({ unidades, netosDe, goto, acessoDe, drag, alinhar = false }) {
   return (
     <div className={`flex ${COLUNA_FLEX} flex-col gap-2 ${alinhar ? "px-[7px]" : ""}`}>
-      {unidades.map((u) => (
-        u.nivel === 6
-          ? <CardFolha key={u.id} unidade={u} onClick={() => goto(u.sigla)} acessoOk={acessoDe(u.sigla)} drag={drag} largura="col" />
-          : <CardDiretoria key={u.id} unidade={u} onClick={() => goto(u.sigla)} acessoOk={acessoDe(u.sigla)} drag={drag} largura="col" />
-      ))}
+      {unidades.map((u) => {
+        if (u.nivel !== 6) {
+          return <CardDiretoria key={u.id} unidade={u} onClick={() => goto(u.sigla)} acessoOk={acessoDe(u.sigla)} drag={drag} largura="col" />;
+        }
+        const netos = netosDe ? netosDe(u.id) : [];
+        if (netos.length === 0) {
+          return <CardFolha key={u.id} unidade={u} onClick={() => goto(u.sigla)} acessoOk={acessoDe(u.sigla)} drag={drag} largura="col" />;
+        }
+        // Subordinada de nível 6 solta na diretoria que tem subordinadas próprias (LOB Nova: AJG → GI):
+        // mesmo quadro menor usado para ABMG → CEI/CFO/CAEBM.
+        return (
+          <div key={u.id} className="flex flex-col gap-1 rounded-lg border border-border bg-black/[0.16] p-1">
+            <CardFolha unidade={u} onClick={() => goto(u.sigla)} acessoOk={acessoDe(u.sigla)} drag={drag} largura="col" />
+            {netos.map((n) => (
+              <CardFolha key={n.id} unidade={n} onClick={() => goto(n.sigla)} acessoOk={acessoDe(n.sigla)} drag={drag} largura="col" />
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }
