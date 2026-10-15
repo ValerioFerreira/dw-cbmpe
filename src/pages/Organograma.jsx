@@ -359,7 +359,7 @@ export default function Organograma() {
         else colunas.push({ tipo: "pilha", grupos: [grupo] });
       });
       // Folhas de nível 5 (diretorias) numa coluna; folhas de nível 6 (assessorias) em outra.
-      // Grade de até 4 colunas: DGO nova = DIM, DINTER I, DINTER II + DINTER III sobre a DIESP;
+      // Grade de até 4 colunas: DGO nova = DIM, DINTER I, DINTER II, DINTER III (com 1º GB, 7º GB e CAT/ZM) + DIESP;
       // DGA nova = DECI, DAL/DGP, DF/DTIC/DVP/DAS e só a AJG.
       const folhas5 = folhas.filter((u) => u.nivel === 5);
       const folhas6 = folhas.filter((u) => u.nivel === 6);

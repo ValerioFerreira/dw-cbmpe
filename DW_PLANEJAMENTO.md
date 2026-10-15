@@ -22,6 +22,12 @@
 
 ## Estado atual — onde retomar (atualizado 2026-10-06)
 
+> **2026-10-16 — LOB Nova: 1º GB, 7º GB e CAT/ZM passam à DINTER III.** Só na árvore da LOB Nova
+> (`NODES_NOVA` em `src/data/organograma.js`; a LOB Atual e o banco não mudam — a Nova segue só
+> visualização). A DINTER III continua sem OME no SGP: só o card dela fica "Em construção" (flag
+> `soEla`, que não propaga para a descendência) e o total dela soma as três subordinadas. A DINTER I
+> fica com 2º GB, 6º GB e CAT/AG.
+
 > **2026-10-15 (noite) — Detalhe do posto no Mapa de Força; carga restabelecida.** A carga do DW
 > ficou parada de 13 a 15/10: o `id_scriptcase` 64 duplicado nas estações do Mapa de Força quebrou a
 > inserção de `core.dim_posto_servico` (código antigo com LEFT JOIN). Corrigido (`DISTINCT ON`; estação sem

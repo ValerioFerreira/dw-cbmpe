@@ -191,7 +191,8 @@ const NODES_PADRAO = [
 // - Renomeadas (DEIP→DECI, DLOG→DAL, CINT→CSM/INT, CMAN→CSM/MOTO) levam os dados
 //   da unidade de origem (ALIAS_NOVA).
 // - Unidades novas (ARI, AJ, DINTER III, GI, CEI, CFO, CAEBM, CCBM, CRESEP) ainda
-//   não têm OME no SGP: `emConstrucao`, sem dados.
+//   não têm OME no SGP: `emConstrucao`, sem dados. A DINTER III é `soEla`: só o card dela fica
+//   em construção; as subordinadas (1º GB, 7º GB, CAT/ZM) têm dado e o total dela soma as três.
 // - A DPlaG é extinta e absorvida pela DGA: fica na árvore como nó `oculto`
 //   (não aparece no organograma nem nas listas, mas soma nas contagens da DGA) e o
 //   diretor dela NÃO vira diretor da DGA (que segue "Em construção").
@@ -201,7 +202,7 @@ const ALIAS_NOVA = { 'DECI': 'DEIP', 'DAL': 'DLOG', 'CSM/INT': 'CINT', 'CSM/MOTO
 const NODES_NOVA = (() => {
   // Sai do fallback tudo que é reposicionado/renomeado abaixo.
   const REFEITOS = new Set(['gcg', 'ci', 'cpo', 'aeci', 'ccs', 'gsg', 'ajg', 'cpp', 'diesp', 'dgp', 'dvp', 'djd', 'df',
-    'das', 'dtic', 'dlog', 'deip', 'dplag', 'cman', 'cint', 'ceao', 'abmg', 'cefd']);
+    'das', 'dtic', 'dlog', 'deip', 'dplag', 'cman', 'cint', 'ceao', 'abmg', 'cefd', '1-gb', '7-gb', 'cat-zm']);
   const base = NODES_PADRAO.filter((n) => !REFEITOS.has(n.id));
   const no = (id, sigla, nivel, parentId, ordem, extra = {}) => ({ id, sigla, nivel, parentId, ordem, ...extra });
   return [
@@ -218,8 +219,13 @@ const NODES_NOVA = (() => {
     no('gsg', 'GSG', 6, 'subcomando-geral', 80),
     no('djd', 'DJD', 6, 'subcomando-geral', 90, { funcaoCoronel: true }),
     no('cpp', 'CPP', 6, 'subcomando-geral', 100),
-    // DGO*: DINTER III fica sem subordinados, ao lado da DIESP (ver Organograma.jsx: 5 colunas)
-    no('dinter-iii', 'DINTER III', 5, 'dgo', 155, { emConstrucao: true }),
+    // DGO*: DINTER III (sem OME no SGP: só o card dela fica "Em construção", `soEla`) passa a ter
+    // como subordinadas o 1º GB, o 7º GB e a CAT/ZM, que saem da DINTER I (2026-10-16). Ao lado da
+    // DIESP (ver Organograma.jsx: 5 colunas).
+    no('dinter-iii', 'DINTER III', 5, 'dgo', 155, { emConstrucao: true, soEla: true }),
+    no('1-gb', '1º GB', 6, 'dinter-iii', 220),
+    no('7-gb', '7º GB', 6, 'dinter-iii', 250),
+    no('cat-zm', 'CAT/ZM', 6, 'dinter-iii', 260),
     no('diesp', 'DIESP', 5, 'dgo', 160),
     // DGA*
     no('deci', 'DECI', 5, 'dga', 330),
@@ -598,7 +604,9 @@ function idsEmConstrucao(nodes) {
     ids.add(id);
     nodes.filter((n) => n.parentId === id).forEach((n) => visitar(n.id));
   };
-  nodes.filter((n) => RAIZES_EM_CONSTRUCAO.has(n.id) || n.emConstrucao).forEach((n) => visitar(n.id));
+  nodes.filter((n) => RAIZES_EM_CONSTRUCAO.has(n.id) || (n.emConstrucao && !n.soEla)).forEach((n) => visitar(n.id));
+  // `soEla`: só o próprio nó fica em construção; a descendência segue normal.
+  nodes.filter((n) => n.soEla).forEach((n) => ids.add(n.id));
   return ids;
 }
 
@@ -610,19 +618,21 @@ const METRICAS_PADRAO = { efetivo: 20, efetivoPrevisto: 22, viaturas: 2, financa
 // unidade movida pelo admin recalcula corretamente quem soma no total de
 // quem. `cache` é por chamada de montarOrganograma() (nunca module-level),
 // pra não vazar total calculado com uma árvore antiga para a próxima.
-function totaisDaSigla(sigla, nodes, cache, siglasEmConstrucao = new Set()) {
+function totaisDaSigla(sigla, nodes, cache, siglasEmConstrucao = new Set(), siglasSoEla = new Set()) {
   if (cache[sigla]) return cache[sigla];
-  if (siglasEmConstrucao.has(sigla)) {
+  const soEla = siglasSoEla.has(sigla);
+  if (siglasEmConstrucao.has(sigla) && !soEla) {
     cache[sigla] = { ...METRICAS_ZERO };
     return cache[sigla];
   }
-  const proprio = METRICAS[siglaDeDados(sigla)] || METRICAS_PADRAO;
+  // soEla: o próprio é zero, mas o total soma as subordinadas.
+  const proprio = soEla ? METRICAS_ZERO : (METRICAS[siglaDeDados(sigla)] || METRICAS_PADRAO);
   const filhos = filhosSiglas(nodes, sigla);
   let total = { efetivo: proprio.efetivo, efetivoPrevisto: proprio.efetivoPrevisto, viaturas: proprio.viaturas, financas: proprio.financas };
   let pesoFin = proprio.financaPct * proprio.efetivo;
   let pesoBase = proprio.efetivo;
   filhos.forEach((filho) => {
-    const ct = totaisDaSigla(filho, nodes, cache, siglasEmConstrucao);
+    const ct = totaisDaSigla(filho, nodes, cache, siglasEmConstrucao, siglasSoEla);
     total.efetivo += ct.efetivo;
     total.efetivoPrevisto += ct.efetivoPrevisto;
     total.viaturas += ct.viaturas;
@@ -906,7 +916,8 @@ export function montarOrganograma(nodes, { lob = 'atual' } = {}) {
   const totaisPorSigla = new Map();
   const emConstrucao = idsEmConstrucao(nodes);
   const siglasEmConstrucao = new Set(nodes.filter((n) => emConstrucao.has(n.id)).map((n) => n.sigla));
-  nodes.forEach((no) => totaisPorSigla.set(no.sigla, totaisDaSigla(no.sigla, nodes, cache, siglasEmConstrucao)));
+  const siglasSoEla = new Set(nodes.filter((n) => n.soEla).map((n) => n.sigla));
+  nodes.forEach((no) => totaisPorSigla.set(no.sigla, totaisDaSigla(no.sigla, nodes, cache, siglasEmConstrucao, siglasSoEla)));
 
   const unidades = construirUnidades(nodes, totaisPorSigla, emConstrucao);
   const indicadores = construirIndicadores(unidades, totaisPorSigla);
