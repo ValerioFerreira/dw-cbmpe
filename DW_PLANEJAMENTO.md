@@ -22,6 +22,18 @@
 
 ## Estado atual — onde retomar (atualizado 2026-10-06)
 
+> **2026-10-15 (noite) — Detalhe do posto no Mapa de Força; carga restabelecida.** A carga do DW
+> ficou parada de 13 a 15/10: o `id_scriptcase` 64 duplicado nas estações do Mapa de Força quebrou a
+> inserção de `core.dim_posto_servico` (código antigo com LEFT JOIN). Corrigido (`DISTINCT ON`; estação sem
+> posto no `tb_posto` entra com o próprio `id_scriptcase`) e o flow foi republicado e rodado. Regra: o
+> lançamento liga ao posto pelo id do cadastro antigo (`launches.service_station_id` =
+> `tb_posto.id_posto` = `stations.id_scriptcase`), que tem de ser ÚNICO. No painel, o mapa passou a ser um
+> só (o "Hoje" duplicava o principal, cujo dia padrão já é o mais recente) e, ao clicar num posto, abre
+> OME de cada lançamento (destaque quando difere da OME do posto), viatura (tipo-nº de ordem), P/G,
+> matrícula, nome de guerra, função e **telefone** — este vem ao vivo do SGP
+> (`ovrsgp.tb_pess.nr_cntt_proprio`, `GET /dados/mapa-forca/contatos?data=&posto=`, mesmo recorte do dia),
+> nunca do DW nem do snapshot da Vercel.
+
 > **2026-10-13 — Snapshot diário agendado, mapa por seção conferido, decisões do usuário.**
 > (1) **Rotina diária do snapshot** nesta máquina: tarefa "CBMPE - Snapshot diario da Vercel" no
 > Agendador de Tarefas do Windows, todos os dias às **06:00** (a carga do Windmill termina por volta

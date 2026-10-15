@@ -11,6 +11,7 @@
 // outros: ele simplesmente não vem na resposta, e o front mantém para ele o
 // valor que já tinha (JSON embutido). O erro vai para o log do servidor.
 import { getPoolDw } from "../config/db.js";
+import { contatosPorMatricula } from "./omeResolver.js";
 
 const CONSULTAS = {
   efetivo: `
@@ -489,6 +490,28 @@ export async function mapaForcaDia(data, siglas) {
     });
   }
   return { ...vazio, lancamentos: [...porId.values()] };
+}
+
+// Telefones da guarnição de UM posto num dia (detalhe do posto no Mapa de Força). Usa o mesmo recorte do
+// dia (`siglas` null = todas; Set vazio = nenhuma), então só devolve telefone de quem o usuário já pode
+// ver na guarnição. O telefone vem do SGP ao vivo (ovrsgp.tb_pess.nr_cntt_proprio), nunca do DW.
+export async function mapaForcaContatos(data, posto, siglas) {
+  if (siglas && siglas.size === 0) return { data, posto, telefones: {} };
+  const parametros = [data, Number(posto)];
+  let recorte = "";
+  if (siglas) {
+    parametros.push([...siglas]);
+    recorte = "and l.sigla = any($3)";
+  }
+  const { rows } = await getPoolDw().query(
+    `select distinct g.matricula
+     from marts.mapa_forca_guarnicao g
+     join marts.mapa_forca_lancamento l using (id_lancamento)
+     where l.data = $1 and l.id_posto = $2 ${recorte}`,
+    parametros
+  );
+  const telefones = await contatosPorMatricula(rows.map((r) => r.matricula));
+  return { data, posto, telefones };
 }
 
 // { metricas: { [sigla]: { efetivo?, viaturas?, financas?, previsto? } },

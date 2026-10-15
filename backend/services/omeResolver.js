@@ -91,4 +91,33 @@ export async function identificarMatriculas(matriculasBrutas) {
   return resultado;
 }
 
-export default { resolverMatriculaEOmePorCpf, resolverOmePorMatricula, identificarMatriculas };
+// Telefone próprio (ovrsgp.tb_pess.nr_cntt_proprio) de várias matrículas, para o detalhe do posto no Mapa
+// de Força. Consultado AO VIVO no SGP e nunca persistido no DW (o DW não guarda o telefone do SGP);
+// só a coluna do telefone é lida. Devolve { [matrícula só com dígitos]: "(81) 98687-2883" } — só quem tem.
+const SQL_CONTATOS = `
+  select regexp_replace(nr_matr_pess, '[^0-9]', '', 'g') as matricula, nr_cntt_proprio
+  from ovrsgp.tb_pess
+  where regexp_replace(nr_matr_pess, '[^0-9]', '', 'g') = any($1)
+    and nullif(trim(nr_cntt_proprio), '') is not null
+`;
+
+function formatarTelefone(bruto) {
+  const d = String(bruto || "").replace(/\D/g, "");
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return d || null;
+}
+
+export async function contatosPorMatricula(matriculasBrutas) {
+  const matriculas = [...new Set((matriculasBrutas || []).map(normalizarMatricula).filter(Boolean))];
+  if (matriculas.length === 0) return {};
+  const { rows } = await getPoolSgp().query(SQL_CONTATOS, [matriculas]);
+  const resultado = {};
+  for (const linha of rows) {
+    const tel = formatarTelefone(linha.nr_cntt_proprio);
+    if (tel) resultado[linha.matricula] = tel;
+  }
+  return resultado;
+}
+
+export default { resolverMatriculaEOmePorCpf, resolverOmePorMatricula, identificarMatriculas, contatosPorMatricula };

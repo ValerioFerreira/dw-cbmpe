@@ -115,7 +115,20 @@ const mapaForcaDia = asyncHandler(async (req, res) => {
   res.status(200).json(dados);
 });
 
+// Telefones da guarnição de um posto num dia — pedidos ao abrir o posto no mapa. Mesmo recorte do dia.
+const mapaForcaContatos = asyncHandler(async (req, res) => {
+  const { data, posto } = req.query;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(data)) || !/^\d+$/.test(String(posto))) {
+    return res.status(400).json({ message: "Informe data (AAAA-MM-DD) e posto (número)." });
+  }
+  const acesso = await acessoDoUsuario(req.user?.matricula);
+  const siglas = acesso.total ? null : acesso.siglas;
+  const dados = await dadosService.mapaForcaContatos(data, posto, siglas);
+  res.set("Cache-Control", "no-store");
+  res.status(200).json(dados);
+});
+
 export {
   metricas, efetivo, lotacao, painelDf, painelVacinacao, painelOcorrencias,
-  viaturas, painelEfetivo, painelMovimentacao, mapaForcaIndice, mapaForcaDia,
+  viaturas, painelEfetivo, painelMovimentacao, mapaForcaIndice, mapaForcaDia, mapaForcaContatos,
 };

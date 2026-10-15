@@ -24,7 +24,7 @@ function tokenDaSessao() {
 }
 
 async function lerSnapshot(caminho) {
-  if (INTERNO) return null;
+  if (INTERNO || caminho.includes("?")) return null; // consulta ao vivo (ex.: contatos) nao tem snapshot
   // "painel/df" -> painel-df.json; "mapa-forca/dia/2026-10-06" -> mapa-forca-dia-2026-10-06.json
   const arquivo = `${caminho.replace(/\//g, "-")}.json`;
   try {
@@ -81,3 +81,8 @@ export const fetchMapaForcaIndice = () => getDados("mapa-forca/indice");
 
 /** Mapa de Força de um dia (AAAA-MM-DD), nominal e já recortado pelo perfil. */
 export const fetchMapaForcaDia = (data) => getDados(`mapa-forca/dia/${encodeURIComponent(data)}`);
+
+/** Telefones (SGP, ao vivo) da guarnição de um posto num dia: { [matrícula só com dígitos]: "(81) 9…" }.
+ *  Sem backend (snapshot da Vercel) devolve null — o detalhe do posto segue sem telefone. */
+export const fetchMapaForcaContatos = (data, posto) =>
+  getDados(`mapa-forca/contatos?data=${encodeURIComponent(data)}&posto=${encodeURIComponent(posto)}`);

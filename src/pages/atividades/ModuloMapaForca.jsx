@@ -7,6 +7,7 @@ import MultiSelectFiltro from "@/components/ui/multi-select-filtro";
 import FiltroData, { formatarData } from "@/components/ui/filtro-data";
 import GeoMarcadores from "@/components/charts/GeoMarcadores";
 import { fmtNumero } from "@/lib/cbmpe";
+import { fetchMapaForcaContatos } from "@/lib/dadosClient";
 import municipios from "@/data/real/efetivo_dashboard/municipios_pe.json";
 import {
   carregarIndice, carregarDia, filtrarLancamentos, agruparPorPosto,
@@ -25,12 +26,6 @@ import {
 // Efetivo e Viaturas já fazem.
 
 const VAZIO = new Set();
-
-// "AAAA-MM-DD" no fuso do computador (toISOString devolveria o dia em UTC).
-function isoLocal(d) {
-  const p = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
 
 export default function ModuloMapaForca({ permitidas, unidade }) {
   const [indice, setIndice] = useState(null);
@@ -75,44 +70,6 @@ export default function ModuloMapaForca({ permitidas, unidade }) {
 
   const postos = indice?.postos || {};
 
-  // Mapa de HOJE: o dia atual, sem depender do seletor de data nem dos filtros abaixo (só do escopo da
-  // unidade). Se a carga ainda não trouxe lançamento de hoje, mostra o último dia e diz isso.
-  const [hojeDados, setHojeDados] = useState(null);
-  const [postoHoje, setPostoHoje] = useState(null);
-  const hojeIso = useMemo(() => isoLocal(new Date()), []);
-  const diaDoMapaHoje = useMemo(() => {
-    if (!indice?.datas?.length) return null;
-    return indice.datas.includes(hojeIso) ? hojeIso : indice.datas[indice.datas.length - 1];
-  }, [indice, hojeIso]);
-  useEffect(() => {
-    if (!diaDoMapaHoje) return undefined;
-    let vivo = true;
-    carregarDia(diaDoMapaHoje).then((d) => vivo && setHojeDados(d)).catch(() => vivo && setHojeDados(null));
-    return () => { vivo = false; };
-  }, [diaDoMapaHoje]);
-  const lancamentosHoje = useMemo(
-    () => filtrarLancamentos(hojeDados?.lancamentos, {
-      permitidas,
-      filtros: { omes: VAZIO, postosSel: VAZIO, tipos: VAZIO, numeros: VAZIO, matricula: "" },
-      postos,
-    }),
-    [hojeDados, permitidas, postos]
-  );
-  const { porPosto: postosHoje, semPosto: semCoordHoje } = useMemo(
-    () => agruparPorPosto(lancamentosHoje, postos), [lancamentosHoje, postos]
-  );
-  const resumoHoje = useMemo(() => totais(lancamentosHoje), [lancamentosHoje]);
-  const postosSemCoordenadaHoje = useMemo(() => {
-    const ids = new Map();
-    semCoordHoje.forEach((l) => {
-      const id = l.posto ?? "—";
-      if (!ids.has(id)) ids.set(id, { id, nome: postos[id]?.nome || `posto ${id}`, ome: l.ome, militares: 0 });
-      ids.get(id).militares += l.guarnicao.length;
-    });
-    return Array.from(ids.values());
-  }, [semCoordHoje, postos]);
-  const abertoHoje = postoHoje ? postosHoje.find((p) => p.id === postoHoje) : null;
-
   // No escopo da unidade, mas ANTES dos filtros da tela — é sobre este
   // conjunto que as opções dos filtros são calculadas, para não oferecer um
   // tipo de viatura que não existe na unidade.
@@ -154,6 +111,15 @@ export default function ModuloMapaForca({ permitidas, unidade }) {
     () => agruparPorPosto(filtrados, postos), [filtrados, postos]
   );
   const resumo = useMemo(() => totais(filtrados), [filtrados]);
+  const postosSemCoordenada = useMemo(() => {
+    const por = new Map();
+    semPosto.forEach((l) => {
+      const id = l.posto ?? "—";
+      if (!por.has(id)) por.set(id, { id, nome: postos[id]?.nome || `posto ${id}`, ome: l.ome, militares: 0 });
+      por.get(id).militares += l.guarnicao.length;
+    });
+    return Array.from(por.values());
+  }, [semPosto, postos]);
 
   const aberto = postoAberto ? porPosto.find((p) => p.id === postoAberto) : null;
 
@@ -175,41 +141,6 @@ export default function ModuloMapaForca({ permitidas, unidade }) {
 
   return (
     <div className="space-y-4">
-      {lancamentosHoje.length > 0 && (
-        <SectionCard
-          titulo={diaDoMapaHoje === hojeIso ? "Hoje — militares nos postos ativados" : `Último dia com lançamento (${formatarData(diaDoMapaHoje)}) — militares nos postos`}
-          subtitulo={diaDoMapaHoje === hojeIso
-            ? `${formatarData(hojeIso)} · ${fmtNumero(resumoHoje.militares)} militar(es) em ${fmtNumero(postosHoje.length)} posto(s) com coordenada · posição conforme a última carga do DW`
-            : `Ainda não há lançamento de ${formatarData(hojeIso)} no DW (a carga é diária, às 05:30).`}
-        >
-          <GeoMarcadores
-            municipios={municipios}
-            pontos={postosHoje}
-            valorDoPonto={(p) => p.militares}
-            rotuloValor="militar(es)"
-            aoClicarPonto={(p) => setPostoHoje(p.id === postoHoje ? null : p.id)}
-          />
-          {postosSemCoordenadaHoje.length > 0 && (
-            <div className="mt-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] text-foreground">
-              <p className="mb-1 flex items-center gap-1.5 font-semibold">
-                <TriangleAlert className="h-3.5 w-3.5 text-amber-600" />
-                {fmtNumero(postosSemCoordenadaHoje.length)} posto(s) ativado(s) hoje sem coordenada — fora do mapa:
-              </p>
-              <ul className="list-inside list-disc text-muted-foreground">
-                {postosSemCoordenadaHoje.map((x) => (
-                  <li key={x.id}>{x.nome} ({x.ome}) — {fmtNumero(x.militares)} militar(es)</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {abertoHoje && (
-            <div className="mt-3">
-              <DetalheDoPosto posto={abertoHoje} aoFechar={() => setPostoHoje(null)} />
-            </div>
-          )}
-        </SectionCard>
-      )}
-
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-2">
         <FiltroData valor={dia} datas={indice.datas} onChange={setDia} />
@@ -262,14 +193,22 @@ export default function ModuloMapaForca({ permitidas, unidade }) {
               aoClicarPonto={(p) => setPostoAberto(p.id === postoAberto ? null : p.id)}
             />
             {semPosto.length > 0 && (
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                {fmtNumero(semPosto.length)} lançamento(s) sem posto de serviço com coordenada —
-                não aparecem no mapa.
-              </p>
+              <div className="mt-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px]">
+                <p className="mb-1 flex items-center gap-1.5 font-semibold text-foreground">
+                  <TriangleAlert className="h-3.5 w-3.5 text-amber-600" />
+                  {fmtNumero(postosSemCoordenada.length)} posto(s) sem coordenada — {fmtNumero(semPosto.length)} lançamento(s)
+                  fora do mapa:
+                </p>
+                <ul className="list-inside list-disc text-muted-foreground">
+                  {postosSemCoordenada.map((x) => (
+                    <li key={x.id}>{x.nome} ({x.ome}) — {fmtNumero(x.militares)} militar(es)</li>
+                  ))}
+                </ul>
+              </div>
             )}
           </SectionCard>
 
-          {aberto && <DetalheDoPosto posto={aberto} aoFechar={() => setPostoAberto(null)} />}
+          {aberto && <DetalheDoPosto posto={aberto} dia={dia} aoFechar={() => setPostoAberto(null)} />}
         </>
       )}
     </div>
@@ -289,11 +228,35 @@ function Kpi({ icone: Icone, rotulo, valor }) {
   );
 }
 
-function DetalheDoPosto({ posto, aoFechar }) {
+function DetalheDoPosto({ posto, dia, aoFechar }) {
+  // Telefone: consulta ao vivo ao SGP (ovrsgp.tb_pess.nr_cntt_proprio), só do posto aberto. Sem backend
+  // (snapshot da Vercel) ou sem telefone cadastrado, a célula fica em branco.
+  const [telefones, setTelefones] = useState({});
+  useEffect(() => {
+    let vivo = true;
+    setTelefones({});
+    fetchMapaForcaContatos(dia, posto.id).then((r) => vivo && setTelefones(r?.telefones || {})).catch(() => {});
+    return () => { vivo = false; };
+  }, [dia, posto.id]);
+
+  // Quem está neste posto, por OME do lançamento: o posto é um lugar, e as viaturas de mais de uma
+  // OME podem estar ativadas nele (ex.: GBAPH no quartel do GBS).
+  const porOme = useMemo(() => {
+    const m = new Map();
+    posto.lancamentos.forEach((l) => {
+      const k = l.ome || "—";
+      const a = m.get(k) || { ome: k, lancamentos: 0, militares: 0 };
+      a.lancamentos += 1;
+      a.militares += l.guarnicao.length;
+      m.set(k, a);
+    });
+    return Array.from(m.values()).sort((x, y) => y.militares - x.militares);
+  }, [posto]);
+
   return (
     <SectionCard
       titulo={posto.nome}
-      subtitulo={[posto.ome, posto.municipio, posto.bairro, posto.ais ? `AIS ${posto.ais}` : null]
+      subtitulo={[posto.ome ? `posto de ${posto.ome}` : null, posto.municipio, posto.bairro, posto.ais ? `AIS ${posto.ais}` : null]
         .filter(Boolean).join(" · ")}
       acoes={
         <button type="button" onClick={aoFechar}
@@ -302,22 +265,36 @@ function DetalheDoPosto({ posto, aoFechar }) {
         </button>
       }
     >
-      {/* Um card por lançamento, lado a lado. Antes era uma coluna de blocos
-          largos, e um posto com dez lançamentos virava uma página inteira de
-          rolagem — o que se quer ver aqui é a escala do dia de uma vez. */}
+      <div className="mb-3 flex flex-wrap gap-1.5 text-[11px]">
+        {porOme.map((o) => (
+          <span key={o.ome} className="rounded-full border border-border bg-muted/50 px-2.5 py-1 text-foreground">
+            <strong>{o.ome}</strong> · {fmtNumero(o.lancamentos)} lançamento(s) · {fmtNumero(o.militares)} militar(es)
+          </span>
+        ))}
+      </div>
+      {/* Um card por lançamento, lado a lado: a escala do dia de uma vez. */}
       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
         {posto.lancamentos.map((l) => (
-          <CardLancamento key={l.id} lancamento={l} />
+          <CardLancamento key={l.id} lancamento={l} postoOme={posto.ome} telefones={telefones} />
         ))}
       </div>
     </SectionCard>
   );
 }
 
-function CardLancamento({ lancamento: l }) {
+function CardLancamento({ lancamento: l, postoOme, telefones }) {
+  const digitos = (v) => String(v || "").replace(/\D/g, "");
   return (
     <div className="rounded-lg border border-border p-2.5">
       <div className="mb-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px]">
+        <span
+          className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
+            l.ome && postoOme && l.ome !== postoOme ? "bg-amber-500/20 text-amber-700" : "bg-primary/10 text-primary"
+          }`}
+          title="OME do lançamento"
+        >
+          {l.ome || "OME não informada"}
+        </span>
         <span className="font-semibold text-foreground">{l.tipoServico || "Serviço não informado"}</span>
         {l.turno && (
           <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
@@ -326,19 +303,17 @@ function CardLancamento({ lancamento: l }) {
         )}
       </div>
 
-      {/* "Viatura" no singular: o lançamento do mapa de força tem uma só. O
-          array continua porque a fonte permite mais de uma linha por
-          lançamento, e esconder a segunda seria mentir sobre o dado. */}
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-        Viatura
-      </p>
+      {/* "Viatura" no singular: o lançamento do mapa de força tem uma só. O array continua porque a fonte
+          permite mais de uma linha por lançamento, e esconder a segunda seria mentir sobre o dado. O nome
+          da viatura é o tipo + o número de ordem (ex.: ABT-12). */}
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Viatura</p>
       {l.viaturas.length === 0 && (
         <p className="text-[11px] text-muted-foreground">sem viatura neste lançamento</p>
       )}
       {l.viaturas.map((v, i) => {
         const rotulo = `${v.acronimo || "?"}-${v.numero || "?"}`;
-        // Sem placa = viatura que o mapa de força lançou e a Frota não
-        // conhece (1,0% do volume). Mostra sem link, em vez de sumir com ela.
+        // Sem placa = viatura que o mapa de força lançou e a Frota não conhece (1,0% do volume). Mostra
+        // sem link, em vez de sumir com ela.
         return v.placa ? (
           <Link
             key={`${l.id}-${i}`}
@@ -360,22 +335,29 @@ function CardLancamento({ lancamento: l }) {
       <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
         Guarnição ({fmtNumero(l.guarnicao.length)})
       </p>
-      {l.guarnicao.map((m, i) => (
-        <Link
-          key={`${l.id}-m-${i}`}
-          to={`/militar/${m.matricula}`}
-          className="flex items-baseline justify-between gap-2 rounded px-1 py-0.5 text-[11px] hover:bg-primary/10"
-          title={m.funcao || ""}
-        >
-          <span className="truncate text-foreground">
-            <span className="text-muted-foreground">{m.postoGrad} </span>
-            {m.nomeGuerra || m.matricula}
-          </span>
-          <span className="shrink-0 truncate text-[10px] text-muted-foreground" style={{ maxWidth: "45%" }}>
-            {m.funcao}
-          </span>
-        </Link>
-      ))}
+      {l.guarnicao.map((m, i) => {
+        const tel = telefones[digitos(m.matricula)];
+        return (
+          <Link
+            key={`${l.id}-m-${i}`}
+            to={`/militar/${m.matricula}`}
+            className="block rounded px-1 py-1 text-[11px] hover:bg-primary/10"
+            title={m.funcao || ""}
+          >
+            <span className="flex items-baseline justify-between gap-2">
+              <span className="truncate text-foreground">
+                <span className="text-muted-foreground">{m.postoGrad} </span>
+                <strong>{m.nomeGuerra || "—"}</strong>
+              </span>
+              <span className="shrink-0 text-[10px] text-muted-foreground">mat. {m.matricula}</span>
+            </span>
+            <span className="flex items-baseline justify-between gap-2 text-[10px] text-muted-foreground">
+              <span className="truncate">{m.funcao}</span>
+              {tel && <span className="shrink-0 text-foreground">{tel}</span>}
+            </span>
+          </Link>
+        );
+      })}
     </div>
   );
 }
