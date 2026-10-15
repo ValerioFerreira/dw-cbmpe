@@ -8,6 +8,7 @@ import FiltroData, { formatarData } from "@/components/ui/filtro-data";
 import GeoMarcadores from "@/components/charts/GeoMarcadores";
 import { fmtNumero } from "@/lib/cbmpe";
 import { fetchMapaForcaContatos } from "@/lib/dadosClient";
+import { ordemPostoGrad, turnoPadrao } from "@/lib/textoPadrao";
 import municipios from "@/data/real/efetivo_dashboard/municipios_pe.json";
 import {
   carregarIndice, carregarDia, filtrarLancamentos, agruparPorPosto,
@@ -252,13 +253,6 @@ function ordemDoTurno(turno) {
   return 9;
 }
 
-// Hierarquia para ordenar a guarnição (do maior para o menor posto/graduação).
-const ORDEM_POSTO = ["CEL", "TC", "MAJ", "CAP", "1º TEN", "2º TEN", "ASP", "SUBTEN", "1º SGT", "2º SGT", "3º SGT", "CB", "SD"];
-function ordemDoPosto(pg) {
-  const i = ORDEM_POSTO.indexOf(String(pg || "").toUpperCase().replace("°", "º").trim());
-  return i === -1 ? ORDEM_POSTO.length : i;
-}
-
 const rotuloViatura = (v) => `${v.acronimo || "?"}-${v.numero || "?"}`;
 
 function DetalheDoPosto({ posto, dia, aoFechar }) {
@@ -292,7 +286,7 @@ function DetalheDoPosto({ posto, dia, aoFechar }) {
     const grupos = new Map();
     posto.lancamentos.forEach((l) => {
       const k = (l.turno || "").toUpperCase().replace("°", "º").trim() || "SEM TURNO";
-      if (!grupos.has(k)) grupos.set(k, { turno: k, ordem: ordemDoTurno(l.turno), lancamentos: [] });
+      if (!grupos.has(k)) grupos.set(k, { turno: k, rotulo: l.turno ? turnoPadrao(l.turno) : "Sem turno", ordem: ordemDoTurno(l.turno), lancamentos: [] });
       grupos.get(k).lancamentos.push(l);
     });
     return Array.from(grupos.values())
@@ -337,7 +331,7 @@ function DetalheDoPosto({ posto, dia, aoFechar }) {
         {turnos.map((g) => (
           <section key={g.turno}>
             <header className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-border pb-1.5">
-              <h4 className="font-display text-[14px] font-semibold tracking-tight text-foreground">{g.turno}</h4>
+              <h4 className="font-display text-[14px] font-semibold tracking-tight text-foreground">{g.rotulo}</h4>
               <span className="text-[11px] text-muted-foreground">
                 {fmtNumero(g.lancamentos.length)} lançamento(s) · {fmtNumero(g.viaturas)} viatura(s) · {fmtNumero(g.militares)} militar(es)
               </span>
@@ -358,7 +352,7 @@ function CardLancamento({ lancamento: l, postoOme, telefones, repetidos }) {
   const digitos = (v) => String(v || "").replace(/\D/g, "");
   const outraOme = l.ome && postoOme && l.ome !== postoOme;
   const guarnicao = useMemo(
-    () => [...l.guarnicao].sort((x, y) => ordemDoPosto(x.postoGrad) - ordemDoPosto(y.postoGrad)
+    () => [...l.guarnicao].sort((x, y) => ordemPostoGrad(x.postoGrad) - ordemPostoGrad(y.postoGrad)
       || (x.nomeGuerra || "").localeCompare(y.nomeGuerra || "", "pt-BR")),
     [l.guarnicao]
   );

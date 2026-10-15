@@ -10,6 +10,7 @@
 // avisa em vez de mostrar dado velho.
 
 import { fetchMapaForcaIndice, fetchMapaForcaDia } from "@/lib/dadosClient";
+import { capitalizar, postoGradPadrao, turnoPadrao } from "@/lib/textoPadrao";
 
 export const MODULOS_ATIVIDADES_DASHBOARD = [
   { n: 1, key: "mapa-forca", nome: "Mapa de Força" },
@@ -25,7 +26,7 @@ const cache = new Map();
 
 export async function carregarIndice() {
   if (!cache.has("indice")) {
-    cache.set("indice", fetchMapaForcaIndice().then(exigir));
+    cache.set("indice", fetchMapaForcaIndice().then(exigir).then(padronizarIndice));
     cache.get("indice").catch(() => cache.delete("indice"));
   }
   return cache.get("indice");
@@ -34,10 +35,32 @@ export async function carregarIndice() {
 export async function carregarDia(data) {
   if (!data) return null;
   if (!cache.has(data)) {
-    cache.set(data, fetchMapaForcaDia(data).then(exigir));
+    cache.set(data, fetchMapaForcaDia(data).then(exigir).then(padronizarDia));
     cache.get(data).catch(() => cache.delete(data));
   }
   return cache.get(data);
+}
+
+// Padrão de texto (src/lib/textoPadrao.js): a fonte grava tudo em caixa alta. Só exibição — matrícula, ids,
+// OME e acrônimo da viatura (usados em filtro e ligação) não mudam.
+function padronizarIndice(i) {
+  const postos = {};
+  Object.entries(i.postos || {}).forEach(([id, p]) => {
+    postos[id] = { ...p, nome: capitalizar(p.nome), municipio: capitalizar(p.municipio), bairro: capitalizar(p.bairro) };
+  });
+  return { ...i, postos };
+}
+
+function padronizarDia(d) {
+  return {
+    ...d,
+    lancamentos: (d.lancamentos || []).map((l) => ({
+      ...l,
+      tipoServico: capitalizar(l.tipoServico),
+      turno: turnoPadrao(l.turno),
+      guarnicao: l.guarnicao.map((m) => ({ ...m, postoGrad: postoGradPadrao(m.postoGrad), funcao: capitalizar(m.funcao) })),
+    })),
+  };
 }
 
 function exigir(resposta) {
