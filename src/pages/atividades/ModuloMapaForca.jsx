@@ -123,6 +123,14 @@ export default function ModuloMapaForca({ permitidas, unidade }) {
 
   const aberto = postoAberto ? porPosto.find((p) => p.id === postoAberto) : null;
 
+  // O detalhe abre ABAIXO do mapa, fora da tela de quem clicou: leva a tela até ele.
+  const detalheRef = React.useRef(null);
+  useEffect(() => {
+    if (postoAberto && detalheRef.current) {
+      detalheRef.current.scrollIntoView({ block: "start" });
+    }
+  }, [postoAberto]);
+
   if (erro) {
     return (
       <EmptyState
@@ -208,7 +216,11 @@ export default function ModuloMapaForca({ permitidas, unidade }) {
             )}
           </SectionCard>
 
-          {aberto && <DetalheDoPosto posto={aberto} dia={dia} aoFechar={() => setPostoAberto(null)} />}
+          {aberto && (
+            <div ref={detalheRef} className="scroll-mt-4">
+              <DetalheDoPosto posto={aberto} dia={dia} aoFechar={() => setPostoAberto(null)} />
+            </div>
+          )}
         </>
       )}
     </div>
