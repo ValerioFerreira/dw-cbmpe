@@ -26,6 +26,12 @@ import {
 
 const VAZIO = new Set();
 
+// "AAAA-MM-DD" no fuso do computador (toISOString devolveria o dia em UTC).
+function isoLocal(d) {
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
 export default function ModuloMapaForca({ permitidas, unidade }) {
   const [indice, setIndice] = useState(null);
   const [dia, setDia] = useState(null);
@@ -68,6 +74,44 @@ export default function ModuloMapaForca({ permitidas, unidade }) {
   useEffect(() => { setPostoAberto(null); }, [dia]);
 
   const postos = indice?.postos || {};
+
+  // Mapa de HOJE: o dia atual, sem depender do seletor de data nem dos filtros abaixo (só do escopo da
+  // unidade). Se a carga ainda não trouxe lançamento de hoje, mostra o último dia e diz isso.
+  const [hojeDados, setHojeDados] = useState(null);
+  const [postoHoje, setPostoHoje] = useState(null);
+  const hojeIso = useMemo(() => isoLocal(new Date()), []);
+  const diaDoMapaHoje = useMemo(() => {
+    if (!indice?.datas?.length) return null;
+    return indice.datas.includes(hojeIso) ? hojeIso : indice.datas[indice.datas.length - 1];
+  }, [indice, hojeIso]);
+  useEffect(() => {
+    if (!diaDoMapaHoje) return undefined;
+    let vivo = true;
+    carregarDia(diaDoMapaHoje).then((d) => vivo && setHojeDados(d)).catch(() => vivo && setHojeDados(null));
+    return () => { vivo = false; };
+  }, [diaDoMapaHoje]);
+  const lancamentosHoje = useMemo(
+    () => filtrarLancamentos(hojeDados?.lancamentos, {
+      permitidas,
+      filtros: { omes: VAZIO, postosSel: VAZIO, tipos: VAZIO, numeros: VAZIO, matricula: "" },
+      postos,
+    }),
+    [hojeDados, permitidas, postos]
+  );
+  const { porPosto: postosHoje, semPosto: semCoordHoje } = useMemo(
+    () => agruparPorPosto(lancamentosHoje, postos), [lancamentosHoje, postos]
+  );
+  const resumoHoje = useMemo(() => totais(lancamentosHoje), [lancamentosHoje]);
+  const postosSemCoordenadaHoje = useMemo(() => {
+    const ids = new Map();
+    semCoordHoje.forEach((l) => {
+      const id = l.posto ?? "—";
+      if (!ids.has(id)) ids.set(id, { id, nome: postos[id]?.nome || `posto ${id}`, ome: l.ome, militares: 0 });
+      ids.get(id).militares += l.guarnicao.length;
+    });
+    return Array.from(ids.values());
+  }, [semCoordHoje, postos]);
+  const abertoHoje = postoHoje ? postosHoje.find((p) => p.id === postoHoje) : null;
 
   // No escopo da unidade, mas ANTES dos filtros da tela — é sobre este
   // conjunto que as opções dos filtros são calculadas, para não oferecer um
@@ -131,6 +175,41 @@ export default function ModuloMapaForca({ permitidas, unidade }) {
 
   return (
     <div className="space-y-4">
+      {lancamentosHoje.length > 0 && (
+        <SectionCard
+          titulo={diaDoMapaHoje === hojeIso ? "Hoje — militares nos postos ativados" : `Último dia com lançamento (${formatarData(diaDoMapaHoje)}) — militares nos postos`}
+          subtitulo={diaDoMapaHoje === hojeIso
+            ? `${formatarData(hojeIso)} · ${fmtNumero(resumoHoje.militares)} militar(es) em ${fmtNumero(postosHoje.length)} posto(s) com coordenada · posição conforme a última carga do DW`
+            : `Ainda não há lançamento de ${formatarData(hojeIso)} no DW (a carga é diária, às 05:30).`}
+        >
+          <GeoMarcadores
+            municipios={municipios}
+            pontos={postosHoje}
+            valorDoPonto={(p) => p.militares}
+            rotuloValor="militar(es)"
+            aoClicarPonto={(p) => setPostoHoje(p.id === postoHoje ? null : p.id)}
+          />
+          {postosSemCoordenadaHoje.length > 0 && (
+            <div className="mt-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] text-foreground">
+              <p className="mb-1 flex items-center gap-1.5 font-semibold">
+                <TriangleAlert className="h-3.5 w-3.5 text-amber-600" />
+                {fmtNumero(postosSemCoordenadaHoje.length)} posto(s) ativado(s) hoje sem coordenada — fora do mapa:
+              </p>
+              <ul className="list-inside list-disc text-muted-foreground">
+                {postosSemCoordenadaHoje.map((x) => (
+                  <li key={x.id}>{x.nome} ({x.ome}) — {fmtNumero(x.militares)} militar(es)</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {abertoHoje && (
+            <div className="mt-3">
+              <DetalheDoPosto posto={abertoHoje} aoFechar={() => setPostoHoje(null)} />
+            </div>
+          )}
+        </SectionCard>
+      )}
+
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-2">
         <FiltroData valor={dia} datas={indice.datas} onChange={setDia} />
