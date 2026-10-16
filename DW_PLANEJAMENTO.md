@@ -22,6 +22,16 @@
 
 ## Estado atual — onde retomar (atualizado 2026-10-06)
 
+> **2026-10-16 (manhã) — Mapa de Força abre no último dia completo.** A carga das 05:30 traz o dia
+> corrente só com o que já foi lançado (16/10: 46 lançamentos de 2 OMEs, nenhuma viatura, contra
+> ~300 lançamentos e ~150 viaturas nos outros 29 dias da janela), e o painel abria nele: na Vercel
+> e no app interno aparecia "Viaturas ativadas 0" e "Sem mapa de força" na maioria das unidades.
+> Agora abre no último dia se ele tiver ao menos metade dos lançamentos do anterior; senão, no
+> anterior (`diaPadrao` em `src/lib/mapaForca.js`). O dia corrente segue no filtro de data.
+> **Lacuna conhecida do snapshot da Vercel** (decisão do Comando de 2026-10-06, não é falha): LE,
+> LTIP, LM e LTS acima de 90 dias saem zerados em Situações Funcionais, "Distribuição de Militares
+> em LE" fica vazia e o "Indisponível" do Efetivo Geral conta menos.
+
 > **2026-10-16 — LOB Nova: 1º GB, 7º GB e CAT/ZM passam à DINTER III.** Só na árvore da LOB Nova
 > (`NODES_NOVA` em `src/data/organograma.js`; a LOB Atual e o banco não mudam — a Nova segue só
 > visualização). A DINTER III continua sem OME no SGP: só o card dela fica "Em construção" (flag
