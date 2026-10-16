@@ -41,6 +41,23 @@ export async function carregarDia(data) {
   return cache.get(data);
 }
 
+// Dia em que o painel abre. A carga do DW roda uma vez por dia, de madrugada (05:30), então o
+// último dia da janela costuma ser o próprio dia da carga, só com o que foi lançado até ali
+// (16/10/2026: 46 lançamentos de 2 OMEs e nenhuma viatura, contra ~300 e ~150 nos dias cheios).
+// Abre no último dia se ele já tiver ao menos metade dos lançamentos do anterior; senão, no
+// anterior. O último dia continua no filtro de data.
+export async function diaPadrao(datas) {
+  const ultimo = datas[datas.length - 1] || null;
+  const anterior = datas[datas.length - 2];
+  if (!anterior) return ultimo;
+  try {
+    const [u, a] = await Promise.all([carregarDia(ultimo), carregarDia(anterior)]);
+    return u.lancamentos.length * 2 >= a.lancamentos.length ? ultimo : anterior;
+  } catch {
+    return ultimo;
+  }
+}
+
 // Padrão de texto (src/lib/textoPadrao.js): a fonte grava tudo em caixa alta. Só exibição — matrícula, ids,
 // OME e acrônimo da viatura (usados em filtro e ligação) não mudam.
 function padronizarIndice(i) {

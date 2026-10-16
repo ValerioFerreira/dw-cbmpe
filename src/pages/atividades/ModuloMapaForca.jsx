@@ -11,7 +11,7 @@ import { fetchMapaForcaContatos } from "@/lib/dadosClient";
 import { ordemPostoGrad, turnoPadrao } from "@/lib/textoPadrao";
 import municipios from "@/data/real/efetivo_dashboard/municipios_pe.json";
 import {
-  carregarIndice, carregarDia, filtrarLancamentos, agruparPorPosto,
+  carregarIndice, carregarDia, diaPadrao, filtrarLancamentos, agruparPorPosto,
   opcoesDeFiltro, totais,
 } from "@/lib/mapaForca";
 
@@ -45,10 +45,11 @@ export default function ModuloMapaForca({ permitidas, unidade }) {
   useEffect(() => {
     let vivo = true;
     carregarIndice()
-      .then((i) => {
+      .then(async (i) => {
+        const inicial = await diaPadrao(i.datas);
         if (!vivo) return;
         setIndice(i);
-        setDia(i.datas[i.datas.length - 1] || null);
+        setDia(inicial);
       })
       .catch((e) => vivo && setErro(e.message));
     return () => { vivo = false; };
