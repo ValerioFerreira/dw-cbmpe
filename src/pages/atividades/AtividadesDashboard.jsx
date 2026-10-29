@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, Navigate } from "react-router-dom";
 import { ChevronRight, BarChart3, ArrowLeft, ShieldAlert } from "lucide-react";
 import { useCbmpe } from "@/lib/cbmpe-context";
 import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
@@ -9,63 +9,45 @@ import { TODOS_MODULOS_ATIVIDADES, familiaDoModulo } from "@/lib/atividadesEspec
 import EmptyState from "@/components/ui/empty-state";
 import { usePainelDw } from "@/lib/usePainelDw";
 
-import ModuloMapaForca from "./ModuloMapaForca";
 import ModuloVacinacaoVisaoGeral from "./ModuloVacinacaoVisaoGeral";
 import ModuloVacinacaoExecucao from "./ModuloVacinacaoExecucao";
 import ModuloVacinacaoLinhaTempo from "./ModuloVacinacaoLinhaTempo";
 import ModuloVacinacaoParticipacao from "./ModuloVacinacaoParticipacao";
-import ModuloVisaoGeral from "@/pages/ocorrencias/ModuloVisaoGeral";
-import ModuloAph from "@/pages/ocorrencias/ModuloAph";
-import ModuloIncendio from "@/pages/ocorrencias/ModuloIncendio";
-import ModuloSalvamento from "@/pages/ocorrencias/ModuloSalvamento";
-import ModuloPrevencao from "@/pages/ocorrencias/ModuloPrevencao";
-import ModuloProdutosPerigosos from "@/pages/ocorrencias/ModuloProdutosPerigosos";
-import ModuloGeolocalizacao from "@/pages/ocorrencias/ModuloGeolocalizacao";
-import ModuloPerfilVitimas from "@/pages/ocorrencias/ModuloPerfilVitimas";
-import ModuloAtividadeComunitaria from "@/pages/ocorrencias/ModuloAtividadeComunitaria";
 
 // Casca do dashboard de Atividades Específicas — mesma estrutura de
 // EfetivoDashboard/ViaturasDashboard: breadcrumb, checagem de acesso, escopo
 // por unidade, e o módulo dentro.
 //
-// Guarda-chuva de 3 famílias sem KPI próprio no organograma: Mapa de Força,
-// Vacinação (DAS) e Ocorrências (DGO + subárvore, exceto DIESP) — mesmo
-// indicador "Atividades Específicas". A barra de abas (mais abaixo) mostra
-// só os módulos da MESMA família do módulo aberto, não as 14 juntas — ver
-// FAMILIAS_ATIVIDADES em atividadesEspecificas.js, fonte única de verdade
-// compartilhada com a grade de balões de Indicador.jsx.
+// Hoje só a família Vacinação (DAS) — ver FAMILIAS_ATIVIDADES em
+// atividadesEspecificas.js, fonte única de verdade compartilhada com a grade de
+// balões de Indicador.jsx. A barra de abas mostra só os módulos da família aberta.
 //
-// Vacinação não usa siglasPermitidas (é painel exclusivo da DAS, não
-// filtrado por unidade — ver ModuloVacinacaoVisaoGeral.jsx) nem o gate de
-// escopo abaixo (cada um dos 4 módulos já resolve o próprio EmptyState).
-// Mapa de Força e Ocorrências reusam siglasPermitidas (mesmo mecanismo de
-// Efetivo/Viaturas/Finanças) e, além disso, só existem de fato dentro da
-// subárvore da DGO (Ocorrências também exclui a DIESP) — fora do escopo,
-// caem no EmptyState de `restricao` da família.
+// Vacinação não usa siglasPermitidas (é painel exclusivo da DAS, não filtrado por
+// unidade — ver ModuloVacinacaoVisaoGeral.jsx): cada um dos 4 módulos resolve o
+// próprio EmptyState.
+//
+// Mapa de Força e Ocorrências moraram aqui até 2026-10-29, quando viraram
+// indicadores próprios (/mapa-forca/:id e /ocorrencias/:id). Os links antigos
+// redirecionam (ver rotaNovaOperacional).
 const COMPONENTES = {
-  "mapa-forca": ModuloMapaForca,
   "vacinacao-visao-geral": ModuloVacinacaoVisaoGeral,
   "vacinacao-execucao": ModuloVacinacaoExecucao,
   "vacinacao-linha-tempo": ModuloVacinacaoLinhaTempo,
   "vacinacao-participacao": ModuloVacinacaoParticipacao,
-  "ocorrencias-visao-geral": ModuloVisaoGeral,
-  "ocorrencias-aph": ModuloAph,
-  "ocorrencias-incendio": ModuloIncendio,
-  "ocorrencias-salvamento": ModuloSalvamento,
-  "ocorrencias-prevencao": ModuloPrevencao,
-  "ocorrencias-produtos-perigosos": ModuloProdutosPerigosos,
-  "ocorrencias-geolocalizacao": ModuloGeolocalizacao,
-  "ocorrencias-perfil-vitimas": ModuloPerfilVitimas,
-  "ocorrencias-atividade-comunitaria": ModuloAtividadeComunitaria,
 };
+
+// /atividades/<unidade>--atividades-especificas/dashboard/mapa-forca|ocorrencias-*
+// -> a página nova, com o indicador da mesma unidade.
+function rotaNovaOperacional(id, modulo) {
+  const unidadeId = String(id).replace(/--atividades-especificas$/, "");
+  if (modulo === "mapa-forca") return `/mapa-forca/${unidadeId}--mapa-de-forca`;
+  if (modulo.startsWith("ocorrencias-")) return `/ocorrencias/${unidadeId}--ocorrencias/dashboard/${modulo}`;
+  return null;
+}
 
 // Sem JSON embutido (removidos em 2026-10-06): os painéis vêm do backend (DW) ou, no app
 // publicado na Vercel, do snapshot — ver src/lib/dadosClient.js.
 const VACINACAO_SEM_DADOS = { eventos: [], participacao: [] };
-const OCORRENCIAS_SEM_DADOS = {
-  ocorrencias: [], aphEstatistica: [], incendio: [], salvamento: [], prevencao: [], produtosPerigosos: [],
-  produtosPerigososDiagnostico: { semMatchNaBasico: 0, matchMasDataNula: 0, comData: 0 }, pendenciasSemSql: {},
-};
 
 export default function AtividadesDashboard() {
   const { id, modulo } = useParams();
@@ -86,7 +68,9 @@ export default function AtividadesDashboard() {
   // JSON embutido ou DW (GET /dados/painel/*), buscado só quando a família
   // do painel está aberta — ver src/lib/usePainelDw.js.
   const vacinacaoDashboardReal = usePainelDw("vacinacao", VACINACAO_SEM_DADOS, familiaAtual?.id === "vacinacao");
-  const ocorrenciasDashboardReal = usePainelDw("ocorrencias", OCORRENCIAS_SEM_DADOS, familiaAtual?.id === "ocorrencias");
+
+  const rotaNova = rotaNovaOperacional(id, modulo || "");
+  if (rotaNova) return <Navigate to={rotaNova} replace />;
 
   if (!ind || ind.nome !== "Atividades Específicas" || !moduloInfo) {
     return (
@@ -109,25 +93,7 @@ export default function AtividadesDashboard() {
     );
   }
 
-  // Mapa de Força e Ocorrências só existem dentro do escopo da própria
-  // família (subárvore da DGO, exceto DIESP em Ocorrências) — pedido do
-  // usuário. Vacinação não tem `restricao` (ver atividadesEspecificas.js):
-  // cada um dos 4 módulos já resolve o próprio EmptyState internamente.
-  // Mesmo princípio de "Despesas Diversas" em Finanças (aba só aparece no
-  // Comando Geral).
-  if (familiaAtual?.restricao && !familiaAtual.escopo(unidade, unidades)) {
-    return (
-      <EmptyState
-        icon={ShieldAlert}
-        titulo={familiaAtual.restricao.titulo}
-        descricao={familiaAtual.restricao.descricao}
-        acao={<Link to={`/indicador/${ind.id}`} className="text-[13px] font-medium text-primary hover:underline">Voltar</Link>}
-      />
-    );
-  }
-
   const Conteudo = COMPONENTES[moduloInfo.key];
-  const ocorrenciasBloqueado = !ocorrenciasDashboardReal.ocorrencias?.length;
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -180,11 +146,6 @@ export default function AtividadesDashboard() {
       <Conteudo
         permitidas={permitidas} unidade={unidade}
         eventos={vacinacaoDashboardReal.eventos} participacao={vacinacaoDashboardReal.participacao}
-        ocorrencias={ocorrenciasDashboardReal.ocorrencias} aphEstatistica={ocorrenciasDashboardReal.aphEstatistica}
-        incendio={ocorrenciasDashboardReal.incendio} salvamento={ocorrenciasDashboardReal.salvamento}
-        prevencao={ocorrenciasDashboardReal.prevencao} produtosPerigosos={ocorrenciasDashboardReal.produtosPerigosos}
-        produtosPerigososDiagnostico={ocorrenciasDashboardReal.produtosPerigososDiagnostico}
-        pendencias={ocorrenciasDashboardReal.pendenciasSemSql} bloqueado={ocorrenciasBloqueado}
       />
     </div>
   );

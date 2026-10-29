@@ -32,6 +32,11 @@ import { siglaDeDados } from "@/data/organograma";
 //    total do card com o do Dashboard Pessoal de Viaturas).
 // Sem esses dois casos especiais, "ADIDO"/"CPPA" nunca apareceriam
 // permitidos pra ninguém, nem pro Comando Geral/DGP.
+// "Todas as unidades": a visão da corporação inteira (atalhos do "CBMPE - Geral"
+// para Mapa de Força e Ocorrências, 2026-10-29). Responde como o Set de
+// siglasPermitidas para quem só chama .has/.size.
+export const TODAS_AS_UNIDADES = Object.freeze({ has: () => true, size: Infinity });
+
 export function siglasPermitidas(unidade, unidades) {
   if (!unidade) return new Set();
   // siglaDeDados: na LOB Nova, DECI/DAL/CSM lêem os dados de DEIP/DLOG/CINT/CMAN.

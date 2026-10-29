@@ -469,12 +469,12 @@ nominais **têm de filtrar as OMEs pelo perfil no servidor**.
 ### O que o app passa a ler do DW (quando o backend está ao alcance)
 | Rota | View(s) em `marts` | Recorte por perfil (no servidor) | Substitui |
 |---|---|---|---|
-| `GET /dados/metricas` | `efetivo_organograma`, `frota_organograma`, `financas_organograma`, `previsto_organograma`, `chefe_organograma`, `carga_status` | nenhum: são os agregados e titulares que o organograma mostra a qualquer usuário logado | `efetivo.json`, `viaturas_lista.json` (contagem), `financas.json`, `efetivo_previsto.json`, `OFICIAIS` fixo |
+| `GET /dados/metricas` | `efetivo_organograma`, `frota_organograma`, `financas_organograma`, `previsto_organograma`, `chefe_organograma`, `carga_status`, `ocorrencias_organograma` e `mapa_forca_organograma` (ddl/24, 2026-10-29) | nenhum: são os agregados e titulares que o organograma mostra a qualquer usuário logado | `efetivo.json`, `viaturas_lista.json` (contagem), `financas.json`, `efetivo_previsto.json`, `OFICIAIS` fixo |
 | `GET /dados/efetivo` | `efetivo_nominal` | indicador Efetivo | `efetivo_lista.json` |
 | `GET /dados/lotacao` | `lotacao_militar`, `lotacao_divisao` | indicador Efetivo | (era `lotacao_funcao.json`, removido) |
 | `GET /dados/painel/df` | `painel_df_*` | indicador Finanças; diárias e funeral só com Finanças de todas as unidades | `financas_dashboard.json` |
 | `GET /dados/painel/vacinacao` | `painel_vacinacao_*` | só quem enxerga a DAS (senão 403) | `vacinacao_dashboard.json` |
-| `GET /dados/painel/ocorrencias` | `painel_roe_*` | só linhas das unidades liberadas | `ocorrencias_dashboard.json` |
+| `GET /dados/painel/ocorrencias` | `painel_roe_*` (inclui `painel_roe_cvi`, ddl/24) | **nenhum desde 2026-10-29** (todos veem tudo; a tela recorta pela unidade vista). O mesmo vale para `/dados/mapa-forca/*` | `ocorrencias_dashboard.json` |
 
 - **Regra de acesso:** `backend/services/acessoService.js` é o espelho no
   servidor de `src/lib/accessControl.js`. Vale a **união** dos perfis do

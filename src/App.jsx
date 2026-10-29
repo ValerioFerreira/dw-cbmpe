@@ -18,6 +18,9 @@ import ViaturaDetalhe from '@/pages/ViaturaDetalhe';
 import ViaturaFicha from '@/pages/ViaturaFicha';
 import ViaturasDashboard from '@/pages/viaturas/ViaturasDashboard';
 import AtividadesDashboard from '@/pages/atividades/AtividadesDashboard';
+import MapaForcaPagina from '@/pages/mapaForca/MapaForcaPagina';
+import OcorrenciasPagina from '@/pages/ocorrencias/OcorrenciasPagina';
+import CviTabela from '@/pages/ocorrencias/CviTabela';
 import FinancasDashboard from '@/pages/financas/FinancasDashboard';
 import FinancasDetalhe from '@/pages/FinancasDetalhe';
 import Administracao from "./pages/Administracao";
@@ -63,6 +66,10 @@ const AuthenticatedApp = () => {
           <Route path="/viaturas/:id" element={<ViaturaDetalhe />} />
           <Route path="/viaturas/:id/dashboard/:modulo" element={<ViaturasDashboard />} />
           <Route path="/atividades/:id/dashboard/:modulo" element={<AtividadesDashboard />} />
+          <Route path="/mapa-forca/:id" element={<MapaForcaPagina />} />
+          <Route path="/ocorrencias/:id" element={<OcorrenciasPagina />} />
+          <Route path="/ocorrencias/:id/dashboard/:modulo" element={<OcorrenciasPagina />} />
+          <Route path="/ocorrencias/:id/cvi/tabela" element={<CviTabela />} />
           <Route path="/financas/:id" element={<FinancasDetalhe />} />
           <Route path="/financas/:id/dashboard/:modulo" element={<FinancasDashboard />} />
           <Route path="/viatura/:placa" element={<ViaturaFicha />} />

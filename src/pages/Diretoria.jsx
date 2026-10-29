@@ -7,6 +7,7 @@ import { useCbmpe } from "@/lib/cbmpe-context";
 import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import {
   KPI_BASES,
+  rotaIndicador,
   getSubordinados, fmtNumero, fmtMoeda,
   tituloKpi, valorKpi, extraKpi,
   metricasProprias, metricasDivisoesProprias
@@ -232,9 +233,9 @@ export default function Diretoria() {
 
       {/* KPIs consolidados da unidade */}
       {kpis.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 ${kpis.length > 5 ? "xl:grid-cols-4 2xl:grid-cols-7" : "xl:grid-cols-5"}`}>
           {kpis.map((k) => (
-            <Link key={k.id} to={`/indicador/${k.id}`} className="block h-full transition-transform hover:-translate-y-0.5">
+            <Link key={k.id} to={rotaIndicador(k)} className="block h-full transition-transform hover:-translate-y-0.5">
               <KpiCard
                 nome={tituloKpi(k)}
                 valor={valorKpi(k)}

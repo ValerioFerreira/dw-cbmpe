@@ -28,6 +28,7 @@ Uso:
 """
 import os
 import re
+import sys
 import unicodedata
 from datetime import date, timedelta
 
@@ -2456,12 +2457,32 @@ def guardar_historico_emprego(cur):
         raise SystemExit(f"historico do emprego falhou -- carga interrompida para nao perder o core antigo: {erro}")
 
 
-def main():
+def carga_mapa_forca(conn, cur):
+    """So o Mapa de Forca (flow dw_mapa_forca, de 15 em 15 minutos, 2026-10-29): a carga
+    das 05:30 traz o dia corrente so com o que ja tinha sido lancado (29/10: 29 de 253
+    lancamentos), e o painel abre no dia atual. Refaz os fatos de lancamento a partir da
+    raw_mapa_forca recem-copiada; dimensoes, de-paras e o resto ficam com a carga diaria
+    (posto ou viatura nova no meio do dia entra sem dimensao ate a carga seguinte das
+    05:30, como a carga ja trata: sk NULL e a chave de origem guardada)."""
+    print("Historico do emprego operacional (antes do corte da janela):")
+    guardar_historico_emprego(cur)
+    print("\nFatos do Mapa de Forca:")
+    carregar_fatos_lancamento(cur)
+    conn.commit()
+
+
+def main(apenas_mapa_forca: bool = False):
     # role=etl_writer: o que esta carga cria (views em stg) fica com o dono
     # das camadas, seja rodada pelo Windmill (windmill_etl) ou a mao pelo
     # administrador. Ver etl/dw/ddl/07_papeis.sql.
     conn = psycopg2.connect(url_do_dw(), connect_timeout=30, options="-c role=etl_writer")
     cur = conn.cursor()
+
+    if apenas_mapa_forca:
+        carga_mapa_forca(conn, cur)
+        cur.close()
+        conn.close()
+        return
 
     print("Historico do emprego operacional (antes do corte da janela):")
     guardar_historico_emprego(cur)
@@ -2505,4 +2526,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(apenas_mapa_forca="--mapa-forca" in sys.argv)

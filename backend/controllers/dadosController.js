@@ -83,20 +83,18 @@ const painelMovimentacao = asyncHandler(async (req, res) => {
   res.status(200).json(dados);
 });
 
-// Ocorrências: só as linhas das unidades liberadas (a tela ainda recorta
-// pela cadeia da DGO por cima disso).
+// Ocorrências e Mapa de Força: a corporação inteira para qualquer usuário logado
+// (decisão do usuário, 2026-10-29 — "todos podem ver tudo", inclusive o telefone
+// da guarnição). O recorte pela unidade vista continua na tela (siglasPermitidas);
+// a visão "CBMPE - Geral" do organograma não recorta.
 const painelOcorrencias = asyncHandler(async (req, res) => {
-  const acesso = await acessoDoUsuario(req.user?.matricula);
-  const siglas = acesso.total ? null : acesso.siglas;
-  const dados = await dadosService.painelOcorrencias(siglas);
+  const dados = await dadosService.painelOcorrencias(null);
   res.set("Cache-Control", "private, max-age=300");
   res.status(200).json(dados);
 });
 
-// Mapa de Força: catálogo e dias da janela de 30 dias para qualquer usuário
-// logado (sem dado pessoal); o dia (guarnição nominal) só com as linhas das
-// unidades liberadas — mesma regra de Ocorrências: acesso total ou o que a
-// subárvore do perfil libera.
+// Mapa de Força: catálogo, dias da janela de 30 dias, guarnição e telefones para
+// qualquer usuário logado (ver Ocorrências acima).
 const mapaForcaIndice = asyncHandler(async (req, res) => {
   const dados = await dadosService.mapaForcaIndice();
   res.set("Cache-Control", "private, max-age=300");
@@ -108,22 +106,18 @@ const mapaForcaDia = asyncHandler(async (req, res) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
     return res.status(400).json({ message: "Data inválida (use AAAA-MM-DD)." });
   }
-  const acesso = await acessoDoUsuario(req.user?.matricula);
-  const siglas = acesso.total ? null : acesso.siglas;
-  const dados = await dadosService.mapaForcaDia(data, siglas);
+  const dados = await dadosService.mapaForcaDia(data, null);
   res.set("Cache-Control", "no-store");
   res.status(200).json(dados);
 });
 
-// Telefones da guarnição de um posto num dia — pedidos ao abrir o posto no mapa. Mesmo recorte do dia.
+// Telefones da guarnição de um posto num dia — pedidos ao abrir o posto no mapa.
 const mapaForcaContatos = asyncHandler(async (req, res) => {
   const { data, posto } = req.query;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(data)) || !/^\d+$/.test(String(posto))) {
     return res.status(400).json({ message: "Informe data (AAAA-MM-DD) e posto (número)." });
   }
-  const acesso = await acessoDoUsuario(req.user?.matricula);
-  const siglas = acesso.total ? null : acesso.siglas;
-  const dados = await dadosService.mapaForcaContatos(data, posto, siglas);
+  const dados = await dadosService.mapaForcaContatos(data, posto, null);
   res.set("Cache-Control", "no-store");
   res.status(200).json(dados);
 });

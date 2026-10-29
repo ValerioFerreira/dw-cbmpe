@@ -63,6 +63,7 @@ export default function PanelGrafico({
   tipo = "bar", data, xKey = "label", yKeys = ["valor"], altura = 240, unidade, cores, stacked = false,
   aoClicarBarra, legenda = false, formatoValor, formatoTooltip, curva = "monotone", pontos = false, formatoEixoY,
   anguloEixoX = -35, alturaEixoX = 64, fontEixoX = 11, paddingEixoX = { left: 0, right: 0 },
+  semRotulos = false,
 }) {
   const palette = useMemo(() => cores || PALETA_PADRAO, [cores]);
   const clicavel = typeof aoClicarBarra === "function";
@@ -101,7 +102,9 @@ export default function PanelGrafico({
   // Math.max(320, n*26), sem eixo de categoria compartilhado com bar/line).
   const muitasCategoriasEixoX = tipo !== "hbar" && data.length > 20;
   const intervaloEixoX = muitasCategoriasEixoX ? Math.ceil(data.length / 15) - 1 : 0;
-  const suprimirRotuloPonto = muitasCategoriasEixoX;
+  // `semRotulos`: barras empilhadas com muitas séries, onde o número de cada pedaço
+  // vira ruído — o valor fica no tooltip.
+  const suprimirRotuloPonto = muitasCategoriasEixoX || semRotulos;
 
   const eixoX = (
     <XAxis
@@ -160,14 +163,19 @@ export default function PanelGrafico({
               key={k}
               dataKey={k}
               fill={palette[i % palette.length]}
-              radius={[0, 3, 3, 0]}
+              stackId={stacked ? "a" : undefined}
+              radius={stacked && i < yKeys.length - 1 ? 0 : [0, 3, 3, 0]}
               maxBarSize={18}
               isAnimationActive={false}
               cursor={clicavel ? "pointer" : undefined}
               onClick={clicavel ? (pontoDado) => aoClicarBarra(pontoDado?.payload || pontoDado, k) : undefined}
             >
               {data.map((_, idx) => <Cell key={idx} fill={palette[i % palette.length]} />)}
-              <LabelList dataKey={k} position="right" formatter={formatarRotulo} style={{ fontSize: 10, fill: "hsl(var(--foreground))" }} />
+              {/* Empilhado: o rótulo de cada pedaço ficaria por cima do vizinho — o
+                  valor de cada série fica no tooltip. */}
+              {!stacked && (
+                <LabelList dataKey={k} position="right" formatter={formatarRotulo} style={{ fontSize: 10, fill: "hsl(var(--foreground))" }} />
+              )}
             </Bar>
           ))}
         </BarChart>

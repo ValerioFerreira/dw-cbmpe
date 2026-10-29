@@ -4,7 +4,7 @@ import { fmtNumero } from "@/lib/cbmpe";
 import MolduraNoronha from "./MolduraNoronha";
 
 // Teto fixo da escala de intensidade (pedido do usuário: legenda sempre
-// "0 a 1000", em vez de recalcular o topo a cada mudança de filtro — mantém
+// "0 a 1000" no Efetivo; outro painel passa o próprio `teto`, ex. CVI), em vez de recalcular o topo a cada mudança de filtro — mantém
 // a cor comparável entre filtros diferentes). Nenhuma cidade individual
 // chega perto disso hoje (Recife ~880-900), então serve de teto estável.
 const TETO_ESCALA = 1000;
@@ -18,6 +18,9 @@ const TETO_ESCALA = 1000;
 export default function GeoChoropleth({
   municipios, counts, altura = 340, aoClicarMunicipio,
   rotuloItem = "militar(es) lotado(s)", tituloRanking = "Municípios com maior efetivo",
+  teto = TETO_ESCALA,
+  infoRanking = "Contagem de militares feita pelo município-sede da OME, não leva em consideração a distribuição em SBs.",
+  colunaExtra = undefined, // { titulo, valor: (municipio) => texto } — coluna ao lado do total no ranking
 }) {
   const [hover, setHover] = useState(null);
   const clicavel = typeof aoClicarMunicipio === "function";
@@ -55,7 +58,7 @@ export default function GeoChoropleth({
             const v = counts.get(f.name) || 0;
             let fill = "hsl(var(--foreground) / 0.14)";
             if (v > 0) {
-              const t = Math.sqrt(Math.min(v / TETO_ESCALA, 1));
+              const t = Math.sqrt(Math.min(v / teto, 1));
               const alpha = (0.16 + t * 0.84).toFixed(2);
               fill = `hsl(var(--primary) / ${alpha})`;
             }
@@ -91,15 +94,24 @@ export default function GeoChoropleth({
         <div className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-card/80 px-2 py-1 text-[10px] text-muted-foreground">
           <span>0</span>
           <span className="h-1.5 w-16 rounded-full" style={{ background: "linear-gradient(to right, hsl(var(--primary) / 0.16), hsl(var(--primary) / 1))" }} />
-          <span>{fmtNumero(TETO_ESCALA)}</span>
+          <span>{fmtNumero(teto)}</span>
         </div>
       </div>
 
-      <div className="w-full shrink-0 lg:w-56">
+      <div className={`w-full shrink-0 ${colunaExtra ? "lg:w-80" : "lg:w-56"}`}>
         <div className="mb-2 flex items-center gap-1.5">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{tituloRanking}</p>
-          <InfoBalao texto="Contagem de militares feita pelo município-sede da OME, não leva em consideração a distribuição em SBs." />
+          <InfoBalao texto={infoRanking} />
         </div>
+        {colunaExtra && (
+          <div className="flex items-center justify-between gap-2 px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <span>Município</span>
+            <span className="flex gap-3">
+              <span className="w-10 text-right">Total</span>
+              <span className="w-24 whitespace-nowrap text-right">{colunaExtra.titulo}</span>
+            </span>
+          </div>
+        )}
         <div className="space-y-1">
           {top8.map(([name, v]) => (
             <div
@@ -108,7 +120,14 @@ export default function GeoChoropleth({
               className={`flex items-center justify-between rounded-lg px-2 py-1.5 text-[12px] ${clicavel ? "cursor-pointer hover:bg-primary/10" : "hover:bg-muted/40"}`}
             >
               <span className="text-foreground/80">{name}</span>
-              <span className="font-semibold tabular-nums text-foreground">{fmtNumero(v)}</span>
+              {colunaExtra ? (
+                <span className="flex gap-3 tabular-nums">
+                  <span className="w-10 text-right font-semibold text-foreground">{fmtNumero(v)}</span>
+                  <span className="w-24 text-right text-foreground/80">{colunaExtra.valor(name)}</span>
+                </span>
+              ) : (
+                <span className="font-semibold tabular-nums text-foreground">{fmtNumero(v)}</span>
+              )}
             </div>
           ))}
           {top8.length === 0 && <p className="px-2 py-3 text-[12px] text-muted-foreground">Sem dados para os filtros atuais.</p>}

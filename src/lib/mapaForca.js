@@ -24,6 +24,12 @@ const SEM_BACKEND =
 // invalidar; o índice (que anda com a carga) vale enquanto a aba estiver aberta.
 const cache = new Map();
 
+// "AAAA-MM-DD" de hoje no fuso do navegador (o do quartel).
+function hojeLocal() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export async function carregarIndice() {
   if (!cache.has("indice")) {
     cache.set("indice", fetchMapaForcaIndice().then(exigir).then(padronizarIndice));
@@ -34,6 +40,9 @@ export async function carregarIndice() {
 
 export async function carregarDia(data) {
   if (!data) return null;
+  // O dia corrente muda ao longo do dia (recarga de 15 em 15 minutos): só os dias fechados
+  // ficam em cache.
+  if (data === hojeLocal()) return fetchMapaForcaDia(data).then(exigir).then(padronizarDia);
   if (!cache.has(data)) {
     cache.set(data, fetchMapaForcaDia(data).then(exigir).then(padronizarDia));
     cache.get(data).catch(() => cache.delete(data));
@@ -41,21 +50,12 @@ export async function carregarDia(data) {
   return cache.get(data);
 }
 
-// Dia em que o painel abre. A carga do DW roda uma vez por dia, de madrugada (05:30), então o
-// último dia da janela costuma ser o próprio dia da carga, só com o que foi lançado até ali
-// (16/10/2026: 46 lançamentos de 2 OMEs e nenhuma viatura, contra ~300 e ~150 nos dias cheios).
-// Abre no último dia se ele já tiver ao menos metade dos lançamentos do anterior; senão, no
-// anterior. O último dia continua no filtro de data.
-export async function diaPadrao(datas) {
-  const ultimo = datas[datas.length - 1] || null;
-  const anterior = datas[datas.length - 2];
-  if (!anterior) return ultimo;
-  try {
-    const [u, a] = await Promise.all([carregarDia(ultimo), carregarDia(anterior)]);
-    return u.lancamentos.length * 2 >= a.lancamentos.length ? ultimo : anterior;
-  } catch {
-    return ultimo;
-  }
+// Dia em que o painel abre: sempre o mais recente da janela, que é o dia atual (pedido do usuário,
+// 2026-10-29). Desde a mesma data o Mapa de Força é recarregado no DW de 15 em 15 minutos (flow
+// dw_mapa_forca), então o dia corrente não fica mais só com o que tinha sido lançado até a carga
+// das 05:30 — o motivo da regra anterior, que abria no dia anterior.
+export function diaPadrao(datas) {
+  return datas[datas.length - 1] || null;
 }
 
 // Padrão de texto (src/lib/textoPadrao.js): a fonte grava tudo em caixa alta. Só exibição — matrícula, ids,
@@ -189,16 +189,22 @@ export function opcoesDeFiltro(lancamentos, postos) {
 export function totais(lancamentos) {
   const viaturas = new Set();
   const militares = new Set();
+  const escalados = new Set();
   let lancamentosComViatura = 0;
   lancamentos.forEach((l) => {
     if (l.viaturas.length) lancamentosComViatura += 1;
     l.viaturas.forEach((v) => viaturas.add(v.placa || `${v.acronimo}-${v.numero}`));
-    l.guarnicao.forEach((m) => militares.add(m.matricula));
+    l.guarnicao.forEach((m) => {
+      escalados.add(m.matricula);
+      // Ativado em algum lançamento do dia conta como ativado (o snapshot antigo não traz o campo).
+      if (m.ativado !== false) militares.add(m.matricula);
+    });
   });
   return {
     lancamentos: lancamentos.length,
     lancamentosComViatura,
     viaturas: viaturas.size,
     militares: militares.size,
+    militaresNaoAtivados: escalados.size - militares.size,
   };
 }

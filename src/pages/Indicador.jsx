@@ -1,12 +1,12 @@
 import React from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, Navigate } from "react-router-dom";
 import {
   ChevronRight, Calendar, BarChart3, Table2, ShieldAlert
 } from "lucide-react";
 import { useCbmpe } from "@/lib/cbmpe-context";
 import { useAcessoUsuario } from "@/lib/useAcessoUsuario";
 import {
-  CATEGORIAS, getCaminho, fmtNumero
+  CATEGORIAS, getCaminho, fmtNumero, rotaIndicador
 } from "@/lib/cbmpe";
 import EmptyState from "@/components/ui/empty-state";
 import { MODULOS_EFETIVO_DASHBOARD } from "@/lib/efetivoDashboard";
@@ -22,7 +22,8 @@ const QTD_MODULOS_PLACEHOLDER = 4;
 //
 // Atividades Específicas é um caso misto, de propósito: o NÚMERO do indicador
 // não existe (a fonte real, o SGAT, ainda não foi levantada; o mock foi removido em 2026-10-01), mas
-// Mapa de Força/Vacinação/Ocorrências já são dado real do DW. Por isso o card
+// Vacinação já é dado real do DW (Mapa de Força e Ocorrências viraram indicadores
+// próprios em 2026-10-29). Por isso o card
 // de valor segue dizendo "Em construção" enquanto os módulos abaixo
 // funcionam. Diferente dos outros indicadores, ela não lista `modulos` aqui
 // — cada família vira 1 balão só, calculado por `familiasVisiveis` mais
@@ -55,6 +56,9 @@ export default function Indicador() {
       />
     );
   }
+
+  // Mapa de Força e Ocorrências não têm página de indicador: abrem o painel.
+  if (rotaIndicador(ind) !== `/indicador/${ind.id}`) return <Navigate to={rotaIndicador(ind)} replace />;
 
   if (!permiteIndicador(ind, unidade?.sigla)) {
     return (

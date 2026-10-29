@@ -20,6 +20,10 @@ import { atualizarUnidade } from "@/lib/organogramaClient";
 // empilhada da DGA pode variar (documentado no relatório da
 // funcionalidade).
 const KPIS_ATALHO = ["Efetivo", "Viaturas", "Materiais", "Finanças"];
+const ATALHOS_CORPORACAO = [
+  { nome: "Mapa de Força", rota: "/mapa-forca/geral" },
+  { nome: "Ocorrências", rota: "/ocorrencias/geral" },
+];
 
 // Protótipo de níveis de acesso (ver @/lib/accessControl). Quando o usuário
 // tem acesso PARCIAL (nível, sem acesso total), cada card ganha um indicador:
@@ -496,7 +500,7 @@ export default function Organograma() {
           </div>
           {cbmpeBloqueado && <CadeadoOverlay claro />}
         </div>
-        <div className="grid grid-cols-2 gap-2 rounded-xl rounded-t-none border border-t-0 border-border bg-background p-2 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 rounded-xl rounded-t-none border border-t-0 border-border bg-background p-2 sm:grid-cols-3">
           {KPIS_ATALHO.map((nome) => {
             const kpi = kpisComandoGeral[nome];
             const ok = acessoKpiDe(nome);
@@ -519,6 +523,17 @@ export default function Organograma() {
               </Link>
             );
           })}
+          {/* Mapa de Força e Ocorrências da corporação inteira, liberados para todos
+              (decisão do usuário, 2026-10-29) — sem cadeado nem checagem de perfil. */}
+          {ATALHOS_CORPORACAO.map(({ nome, rota }) => (
+            <Link
+              key={nome}
+              to={rota}
+              className={`relative flex min-h-[2.75rem] items-center justify-center rounded-lg border border-border bg-card px-2 text-center text-xs font-bold text-foreground transition-colors hover:border-amber-500 ${SOMBRA_CARD}`}
+            >
+              {nome}
+            </Link>
+          ))}
         </div>
       </div>
 

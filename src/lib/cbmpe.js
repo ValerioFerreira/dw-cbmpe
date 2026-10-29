@@ -295,7 +295,17 @@ export function valorKpi(k) {
 export function extraKpi(k) {
   if (k.nome === "Efetivo" && k.meta != null) return `Previsto: ${fmtNumero(k.meta)}`;
   if (k.nome === "Finanças" && k.executadoPct != null) return `Executado: ${k.executadoPct}%`;
+  if (k.nome === "Mapa de Força") return "militares empregados no dia";
+  if (k.nome === "Ocorrências") return "nos últimos 30 dias";
   return undefined;
+}
+
+// Para onde o card de um indicador leva: Mapa de Força e Ocorrências abrem direto
+// o painel (não têm tabela nem módulos de indicador); os demais, /indicador/:id.
+export function rotaIndicador(k) {
+  if (k.nome === "Mapa de Força") return `/mapa-forca/${k.id}`;
+  if (k.nome === "Ocorrências") return `/ocorrencias/${k.id}`;
+  return `/indicador/${k.id}`;
 }
 
 // ----- Indicadores e Submódulos -----

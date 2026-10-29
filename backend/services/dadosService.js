@@ -31,6 +31,14 @@ const CONSULTAS = {
     select sigla, previsto, null::date
     from marts.previsto_organograma
     where not exists (select 1 from marts.previsto_quadro)`,
+  // Indicadores próprios desde 2026-10-29 (etl/dw/ddl/24): ocorrências recebidas
+  // nos últimos 30 dias e militares empregados no dia que o Mapa de Força abre.
+  ocorrencias: `
+    select sigla, ocorrencias_30d as valor, null::date as data_referencia
+    from marts.ocorrencias_organograma`,
+  mapaForca: `
+    select sigla, militares as valor, data as data_referencia
+    from marts.mapa_forca_organograma`,
 };
 
 // Titular de cada unidade, do Pecúlio (marts.chefe_organograma). Dado nominal
@@ -334,7 +342,7 @@ export async function painelOcorrencias(siglas) {
   const where = siglas === null ? "" : (parametros.push([...siglas].map(normalizarSigla)),
     "where ome_norm = any($1) or diretoria_norm = any($1)");
   const consulta = (sql) => pool.query(`${sql} ${where}`, parametros);
-  const [oc, aph, inc, salv, prev, pp, diag] = await Promise.all([
+  const [oc, aph, inc, salv, prev, pp, diag, cvi, pop] = await Promise.all([
     consulta("select * from marts.painel_roe_ocorrencia"),
     consulta("select * from marts.painel_roe_aph"),
     consulta("select * from marts.painel_roe_incendio"),
@@ -342,6 +350,8 @@ export async function painelOcorrencias(siglas) {
     consulta("select * from marts.painel_roe_prevencao"),
     consulta("select * from marts.painel_roe_produtos_perigosos"),
     pool.query("select * from marts.painel_roe_diagnostico_pp"),
+    consulta("select * from marts.painel_roe_cvi"),
+    pool.query("select municipio, municipio_chave, ano, populacao from marts.populacao_municipio"),
   ]);
   const d = diag.rows[0] || {};
   return {
@@ -376,6 +386,22 @@ export async function painelOcorrencias(siglas) {
       data: r.data, ome: r.ome, diretoria: r.diretoria, cidade: r.cidade, nomeProduto: r.nome_produto,
       classeRisco: r.classe_risco, perfilBotijaoGlp: r.perfil_botijao_glp,
     })),
+    // Aba CVI (etl/dw/ddl/24): uma linha por vítima de ocorrência CVI (ou uma linha
+    // sem vítima, quando a ocorrência não tem ficha de APH). `roeId` agrupa as
+    // vítimas da mesma ocorrência.
+    cvi: cvi.rows.map((r) => ({
+      roeId: String(r.roe_id), data: r.data, ome: r.ome, diretoria: r.diretoria, cidade: r.cidade,
+      bairro: r.bairro, lat: num(r.lat), lng: num(r.lng), grupo: r.grupo, subgrupo: r.subgrupo,
+      origemCvi: r.origem_cvi, finalizado: !!r.finalizado, atendida: r.atendida == null ? null : !!r.atendida,
+      vitimasFataisOcorrencia: Number(r.vitimas_fatais_ocorrencia) || 0, tempoRespostaMin: num(r.tempo_resposta_min),
+      vitima: !!r.vitima, vitimaMarcadaCvi: !!r.vitima_marcada_cvi, tipoAgressao: r.tipo_agressao,
+      genero: texto(r.genero), idade: num(r.idade),
+      entregueVivo: r.entregue_vivo == null ? null : !!r.entregue_vivo,
+      destino: texto(r.destino), tipoHospital: texto(r.tipo_hospital), consciencia: texto(r.consciencia),
+    })),
+    // População dos municípios de PE (IBGE, etl/dw/ddl/25) para as taxas por habitante.
+    // `chave`: nome sem acento e em maiúsculas, como o front casa a cidade.
+    populacao: pop.rows.map((r) => ({ municipio: r.municipio, chave: r.municipio_chave, ano: r.ano, populacao: Number(r.populacao) })),
     produtosPerigososDiagnostico: {
       semMatchNaBasico: num(d.sem_match_na_basico), matchMasDataNula: num(d.match_mas_data_nula), comData: num(d.com_data),
     },
@@ -459,7 +485,7 @@ export async function mapaForcaDia(data, siglas) {
       parametros
     ),
     pool.query(
-      `select g.id_lancamento, g.matricula, g.posto_grad, g.nome_guerra, g.funcao
+      `select g.id_lancamento, g.matricula, g.posto_grad, g.nome_guerra, g.funcao, g.ativado
        from marts.mapa_forca_guarnicao g
        join marts.mapa_forca_lancamento l using (id_lancamento)
        where l.data = $1 ${recorte}`,
@@ -487,6 +513,7 @@ export async function mapaForcaDia(data, siglas) {
   for (const r of gua.rows) {
     porId.get(String(r.id_lancamento))?.guarnicao.push({
       matricula: r.matricula, postoGrad: r.posto_grad, nomeGuerra: r.nome_guerra, funcao: r.funcao,
+      ativado: r.ativado !== false,
     });
   }
   return { ...vazio, lancamentos: [...porId.values()] };

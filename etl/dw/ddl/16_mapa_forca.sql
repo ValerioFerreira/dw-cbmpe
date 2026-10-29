@@ -79,7 +79,10 @@ SELECT f.id_lancamento,
        coalesce(m.matricula_exibida, f.matricula_origem) AS matricula,
        coalesce(f.posto_origem, pg.sigla)                AS posto_grad,
        m.nome_guerra,
-       fs.nome                                           AS funcao
+       fs.nome                                           AS funcao,
+       -- status 1 = militar ativado no lancamento; 0 = escalado e nao ativado (o sistema do
+       -- Mapa de Forca mostra "Efetivo ativo" e "Efetivo nao ativado"; conferido em 2026-10-29)
+       f.status = 1                                      AS ativado
 FROM core.fato_lancamento_militar f
 JOIN core.dim_tempo t ON t.sk_tempo = f.sk_tempo
 JOIN marts.mapa_forca_janela j ON t.data BETWEEN j.data_inicio AND j.data_fim

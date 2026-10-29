@@ -53,12 +53,15 @@ SCRIPTS = {
                       ["DATABASE_URL_DW"], {"planilhas": dict(ARRAY_TEXTO, description="vazio = todas as nao pausadas")}),
     "carga_raw": ("etl/dw/carga_raw.py", "DW raw: fontes via Python (reserva remunerada, no Neon)",
                   ["DATABASE_URL_DW", "DATABASE_URL_RESERVA"], {"fontes": dict(ARRAY_TEXTO, description="ex.: [\"reserva\"]")}),
+    "carga_ibge": ("etl/dw/carga_ibge.py", "DW raw: populacao dos municipios de PE (IBGE, estimativa mais recente)",
+                   ["DATABASE_URL_DW"], {}),
     "casar_coordenadas_ome": ("etl/sgp/casar_coordenadas_ome.py", "DW stg: coordenadas das OMEs",
                               ["DATABASE_URL_DW"], {"gravar_dw": {"type": "boolean", "default": False},
                                                     "aplicar": {"type": "boolean", "default": False,
                                                                 "description": "grava no SGP -- so com revisao humana"}}),
     "carga_core": ("etl/dw/carga_core.py", "DW: stg e core a partir de raw",
-                   ["DATABASE_URL_DW"], {}),
+                   ["DATABASE_URL_DW"], {"apenas_mapa_forca": {"type": "boolean", "default": False,
+                                                               "description": "so os fatos do Mapa de Forca (flow intradiario)"}}),
     "validar": ("etl/dw/validar.py", "DW: regras de negocio + cargas das ultimas 24h",
                 ["DATABASE_URL_DW"], {}),
 }
@@ -67,6 +70,13 @@ FLOW = "dw_diario"
 AGENDA = "dw_diario_agenda"
 CRON = "0 30 5 * * *"          # 05:30, todo dia (formato do Windmill: com segundos)
 FUSO = "America/Recife"
+
+# Mapa de Forca ao longo do dia (2026-10-29): a carga das 05:30 traz o dia corrente so
+# com o que ja tinha sido lancado, e o painel abre no dia atual. Copia a raw do Mapa de
+# Forca (~8 s, janela de 30 dias) e refaz so os fatos de lancamento (~4 s).
+FLOW_MAPA_FORCA = "dw_mapa_forca"
+AGENDA_MAPA_FORCA = "dw_mapa_forca_agenda"
+CRON_MAPA_FORCA = "0 */15 6-23 * * *"   # de 15 em 15 minutos, das 06:00 as 23:45
 
 
 def carregar_env_local():
@@ -199,6 +209,8 @@ def publicar(wm):
                      "modules": [passo("planilhas", "raw_planilhas")]},
                     {"summary": "reserva (Neon)", "skip_failure": True,
                      "modules": [passo("reserva", "carga_raw", {"fontes": ["reserva"]})]},
+                    {"summary": "populacao (IBGE)", "skip_failure": True,
+                     "modules": [passo("ibge", "carga_ibge")]},
                 ]}},
             passo("coordenadas", "casar_coordenadas_ome", {"gravar_dw": True}),
             passo("core", "carga_core"),
@@ -220,6 +232,32 @@ def publicar(wm):
     else:
         wm.post("/schedules/create", agenda)
     print(f"agenda {agenda['path']}: {CRON} ({FUSO})")
+
+    fluxo_mf = {
+        "path": f"f/{PASTA}/{FLOW_MAPA_FORCA}",
+        "summary": "DW intradiario: Mapa de Forca (raw + fatos de lancamento)",
+        "description": "Publicado por etl/windmill/publicar_dw.py. O resto do DW fica com o dw_diario.",
+        "schema": esquema({}),
+        "value": {"modules": [
+            passo("raw_mapa_forca", "raw_fdw", {"fontes": ["mapa_forca"]}),
+            passo("fatos_mapa_forca", "carga_core", {"apenas_mapa_forca": True}),
+        ]},
+    }
+    if wm.get(f"/flows/exists/{fluxo_mf['path']}"):
+        wm.post(f"/flows/update/{fluxo_mf['path']}", fluxo_mf)
+    else:
+        wm.post("/flows/create", fluxo_mf)
+    print(f"flow {fluxo_mf['path']}")
+
+    agenda_mf = {"path": f"f/{PASTA}/{AGENDA_MAPA_FORCA}", "schedule": CRON_MAPA_FORCA, "timezone": FUSO,
+                 "script_path": fluxo_mf["path"], "is_flow": True, "args": {}, "enabled": True,
+                 "summary": "Mapa de Forca de 15 em 15 minutos"}
+    if wm.get(f"/schedules/exists/{agenda_mf['path']}"):
+        wm.post(f"/schedules/update/{agenda_mf['path']}",
+                {k: agenda_mf[k] for k in ("schedule", "timezone", "args", "summary")})
+    else:
+        wm.post("/schedules/create", agenda_mf)
+    print(f"agenda {agenda_mf['path']}: {CRON_MAPA_FORCA} ({FUSO})")
     return fluxo["path"]
 
 

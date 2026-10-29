@@ -22,6 +22,52 @@
 
 ## Estado atual — onde retomar (atualizado 2026-10-06)
 
+> **2026-10-29 (tarde) — Mapa de Força no dia atual, população do IBGE e drill-down do CVI.**
+> (1) **Mapa de Força desatualizado era frescor, não regra:** a carga das 05:30 traz o dia corrente só
+> com o que já foi lançado (29/10: 29 de 253 lançamentos; 4 de 103 viaturas). Novo modo
+> `carga_core.py --mapa-forca` (só `guardar_historico_emprego` + `carregar_fatos_lancamento`, ~4 s) e
+> flow **`f/dw/dw_mapa_forca`** (raw_fdw mapa_forca + esse modo, ~12 s) **de 15 em 15 minutos, 06:00–23:45**
+> (`publicar_dw.py`). **Pendente: o usuário publicar no Windmill** (`py -3 etl/windmill/publicar_dw.py`; a
+> publicação pela sessão foi bloqueada pelo controle de permissões). O painel abre sempre no dia mais
+> recente (`diaPadrao`) e não guarda o dia corrente em cache. (2) **Militares ativados:**
+> `launch_militaries.status` 1 = ativado, 0 = escalado e não ativado (o sistema do Mapa de Força mostra
+> "Efetivo ativo"/"não ativado"; conferido ao vivo: viaturas do DIM 15 e DINTER/2 25 iguais).
+> `marts.mapa_forca_guarnicao.ativado` (`ddl/16`); o KPI virou "Militares ativados" (+ não ativados) e o
+> card da unidade conta só ativados. (3) **População (IBGE):** `etl/dw/carga_ibge.py` →
+> `raw_ref.ibge_populacao` → `marts.populacao_municipio` (`ddl/25`; API de agregados, tabela 6579,
+> estimativa mais recente — 2026, 185 municípios), no `dw_diario`. No CVI, o mapa principal (logo abaixo do
+> relatório) alterna entre "Por município" (ranking com total e taxa por 100 mil hab.) e "Pontos de concentração". (4) **CVI:**
+> toda visualização leva à tabela `/ocorrencias/:id/cvi/tabela` (filtros pela URL, como Efetivo/
+> Viaturas; Excel); "Leitura para o gestor" virou **Relatório analítico**, sem a frase de rodapé; a
+> seção "Qualidade do registro" saiu. (5) Ocorrências: página de cards no padrão da página de indicador
+> e abas sem o prefixo "Ocorrências —". **Vercel:** o snapshot ainda é diário (06:00) — lá o dia
+> corrente continua parcial até o snapshot rodar mais vezes.
+
+> **2026-10-29 — Mapa de Força e Ocorrências viram indicadores; painel CVI; Viaturas = Frota.**
+> (1) **Viaturas: 721, como a Frota** (o app mostrava 806). A Frota conta o último status pela ordem
+> de REGISTRO (`created_at`) e não conta "Devolvida" (80 alugadas já entregues à locadora); o app usava
+> a data do documento (`reference_date`, com anos impossíveis como 252024) e contava as devolvidas como
+> ativas. `ddl/20` (reaplicado) e `registrosViaturas()` agora excluem Descarregada e Devolvida; card,
+> tabela e dashboard batem 721. (2) **Mapa de Força e Ocorrências saíram de Atividades Específicas**
+> (que fica só com Vacinação/DAS) e viraram cards próprios na página da unidade, depois de Finanças,
+> nas mesmas unidades de antes (cadeia da DGO; Ocorrências sem a DIESP — `ESCOPO_INDICADOR_OPERACIONAL`
+> em `organograma.js`). Valor do card: ocorrências dos últimos 30 dias e militares empregados no dia do
+> Mapa de Força (`marts.ocorrencias_organograma`/`mapa_forca_organograma`, `ddl/24`, em
+> `GET /dados/metricas`). Rotas novas `/mapa-forca/:id` e `/ocorrencias/:id` (página de cards **Geral** e
+> **CVI**); as URLs antigas `/atividades/.../mapa-forca|ocorrencias-*` redirecionam. **Atalhos no
+> "CBMPE - Geral"** do organograma abrem `/mapa-forca/geral` e `/ocorrencias/geral`: a corporação
+> inteira, para qualquer usuário logado. **Decisão do usuário: todos veem tudo nesses dois domínios,
+> inclusive o telefone da guarnição** — o backend deixou de recortar `/dados/painel/ocorrencias` e
+> `/dados/mapa-forca/*` pelo perfil; a tela recorta pela unidade vista. (3) **Painel CVI** (crime violento
+> intencional): `marts.painel_roe_cvi` — ocorrência de APH com vítima marcada CVI **ou** natureza "Vítima
+> de Agressão" (decisão do usuário); 527 ocorrências desde nov/2025 (314 pelos dois critérios, 37 só
+> marcação, 176 só natureza; 82 sem ficha de vítima). Quando (mapa de calor dia×hora), onde (pontos
+> em grade de ~1 km, município, bairro, grupamento), quem (sexo, faixa etária, meio), desfecho, tempo-
+> resposta, leitura automática para o gestor e qualidade do registro. Coordenadas arredondadas a ~100 m;
+> sem nome/rua/número. (4) **Bug corrigido:** o filtro de escopo das abas de Ocorrências comparava a
+> OME com caixa ("GBMAR" no ROE × "GBMar" no organograma) — o GBMar não via as próprias ocorrências.
+> **Snapshot da Vercel** já leva os campos novos (próxima rodada).
+
 > **2026-10-16 (manhã) — Mapa de Força abre no último dia completo.** A carga das 05:30 traz o dia
 > corrente só com o que já foi lançado (16/10: 46 lançamentos de 2 OMEs, nenhuma viatura, contra
 > ~300 lançamentos e ~150 viaturas nos outros 29 dias da janela), e o painel abria nele: na Vercel

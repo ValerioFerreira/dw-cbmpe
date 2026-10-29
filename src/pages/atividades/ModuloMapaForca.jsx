@@ -192,7 +192,8 @@ export default function ModuloMapaForca({ permitidas, unidade }) {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Kpi icone={MapPin} rotulo="Unidades com lançamentos" valor={porPosto.length} />
             <Kpi icone={Truck} rotulo="Viaturas ativadas" valor={resumo.viaturas} />
-            <Kpi icone={Users} rotulo="Militares escalados" valor={resumo.militares} />
+            <Kpi icone={Users} rotulo="Militares ativados" valor={resumo.militares}
+              extra={resumo.militaresNaoAtivados ? `+ ${fmtNumero(resumo.militaresNaoAtivados)} escalado(s) não ativado(s)` : undefined} />
             <Kpi icone={CalendarDays} rotulo="Lançamentos" valor={resumo.lancamentos} />
           </div>
 
@@ -229,7 +230,7 @@ export default function ModuloMapaForca({ permitidas, unidade }) {
   );
 }
 
-function Kpi({ icone: Icone, rotulo, valor }) {
+function Kpi({ icone: Icone, rotulo, valor, extra = undefined }) {
   return (
     <div className="rounded-xl border border-border bg-card p-3">
       <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -238,6 +239,7 @@ function Kpi({ icone: Icone, rotulo, valor }) {
       <p className="mt-1 font-display text-[22px] font-semibold tracking-tight text-foreground">
         {fmtNumero(valor)}
       </p>
+      {extra && <p className="text-[11px] text-muted-foreground">{extra}</p>}
     </div>
   );
 }

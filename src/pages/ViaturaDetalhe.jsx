@@ -90,9 +90,9 @@ export default function ViaturaDetalhe() {
   // no Efetivo (corrige unidades como COMANDO GERAL/SUBCOMANDO GERAL, que
   // não têm viatura própria, só nas subordinadas).
   //
-  // Regras de situação (pedido do usuário, 2026-08-18): viaturas
-  // "Descarregada" são omitidas da tabela; "Devolvida" é exibida como
-  // "Ativa". A transformação vem de registrosViaturas() (viaturasDashboard.js),
+  // Regras de situação: viaturas "Descarregada" e "Devolvida" são omitidas
+  // da tabela, como na Frota (2026-10-29; até então "Devolvida" aparecia como
+  // "Ativa"). O filtro vem de registrosViaturas() (viaturasDashboard.js),
   // a mesma base do dashboard — pra valer também no filtro, no badge e na
   // exportação, e o dashboard nunca mostrar um total que esta tabela não bate.
   // Os registros vêm do DW já recortados pelo perfil no servidor.

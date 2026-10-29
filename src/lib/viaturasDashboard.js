@@ -68,26 +68,28 @@ export function filtrarPorEscopoViaturas(registros, permitidas) {
 // Frota (DW, GET /dados/viaturas, já recortada pelo perfil), com as regras de
 // negócio aplicadas para bater com o resto do app:
 //  - veículo sem unidade no organograma (GTA) nem chega do servidor;
-//  - "Descarregada" some da lista e "Devolvida" aparece como "Ativa" — a mesma
-//    transformação da tabela (ViaturaDetalhe.jsx), para o dashboard nunca mostrar
-//    um total que a tabela de baixo não bate;
+//  - "Descarregada" e "Devolvida" (alugada já entregue à locadora) somem da lista,
+//    como no sistema da Frota e no card (marts.frota_organograma) — desde
+//    2026-10-29; antes "Devolvida" aparecia como "Ativa" e o total era 806 × 721
+//    da Frota. A tabela (ViaturaDetalhe.jsx) usa estas mesmas linhas, para o
+//    dashboard nunca mostrar um total que a tabela de baixo não bate;
 //  - embarcações, motos aquáticas e reboques sem placa entram como qualquer outro
 //    veículo (a fonte do DW já os traz).
 // `ome` é a sigla do organograma na grafia curta que as telas e o mapa usam
 // (omeSiglaCurtaViatura); `cidade` vem de CIDADE_POR_OME.
 // Refeito só quando a lista troca de fonte.
+const SITUACOES_FORA = new Set(["Descarregada", "Devolvida"]);
 let cache = { base: null, linhas: [] };
 export function registrosViaturas() {
   if (cache.base !== viaturasLista.viaturas) {
     const linhas = viaturasLista.viaturas
-      .filter((r) => r.situacao !== "Descarregada")
+      .filter((r) => !SITUACOES_FORA.has(r.situacao))
       .map((r) => {
         const ome = omeSiglaCurtaViatura(r.sigla);
         return {
           ...r,
           ome,
           nome: r.tipoAcronym ? `${r.tipoAcronym}-${r.numeroOrdem ?? ""}` : (r.numeroOrdem ?? null),
-          situacao: r.situacao === "Devolvida" ? "Ativa" : r.situacao,
           cidade: CIDADE_POR_OME[ome] || null,
         };
       });

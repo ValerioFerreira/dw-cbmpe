@@ -10,8 +10,14 @@
 -- OME da ultima transferencia -> de-para da Frota (stg.de_para_ome, sistema
 -- 'frota') -> dono mais proximo no organograma (stg.ome_dono_organograma). Veiculo
 -- sem unidade no organograma (ex. GTA) fica de fora, como sempre ficou. Situacao
--- como esta na fonte (ultimo status): quem esconde "Descarregada" ou trata
--- "Devolvida" como "Ativa" e a tela, como antes.
+-- como esta na fonte (ultimo status); quem esconde "Descarregada" e "Devolvida" e
+-- o card (frota_organograma, abaixo) e a tela.
+--
+-- Ultimo status = o REGISTRADO por ultimo (created_at), como o sistema da Frota
+-- faz (2026-10-29): a Frota mostrava 721 e o app 806. Antes valia a data do
+-- documento (reference_date), que tem anos impossiveis (252024, 62025) e muda o
+-- status de 14 veiculos; e o app contava as 80 alugadas "Devolvidas" (a
+-- locadora), que a Frota nao conta.
 --
 -- As regras sao as do script do Windmill que alimentava o Neon
 -- (etl/windmill/apps/frota_para_neon.py): ultima transferencia, ultimo status,
@@ -33,7 +39,7 @@ ultimo_status AS (
     SELECT DISTINCT ON (vs.vehicle_id) vs.vehicle_id, vst.name AS situacao
     FROM raw_frota.vehicle_statuses vs
     JOIN raw_frota.vehicle_status_types vst ON vst.id = vs.status_type_id
-    ORDER BY vs.vehicle_id, vs.reference_date DESC NULLS LAST, vs.created_at DESC
+    ORDER BY vs.vehicle_id, vs.created_at DESC, vs.id DESC
 ),
 ultimo_abastecimento AS (
     SELECT DISTINCT ON (vehicle_id)
@@ -95,11 +101,12 @@ ALTER VIEW marts.viatura_nominal OWNER TO etl_writer;
 -- O card de Viaturas de cada unidade (GET /dados/metricas) passa a contar daqui, e
 -- nao mais da core.dim_viatura: a dim so tem veiculo com placa, e a tabela e o
 -- dashboard mostram tambem as embarcacoes e reboques sem placa -- card e tabela
--- tem que bater (bug ja reportado em 2026-08-19). Mesma regra de antes: sem os
--- descarregados. ATENCAO: a view depende de raw_frota.*; se a carga recriar alguma
--- dessas tabelas, ela cai e este arquivo precisa ser reaplicado.
+-- tem que bater (bug ja reportado em 2026-08-19). Sem as descarregadas e, desde
+-- 2026-10-29, sem as devolvidas (alugadas ja entregues a locadora), como a Frota.
+-- ATENCAO: a view depende de raw_frota.*; se a carga recriar alguma dessas
+-- tabelas, ela cai e este arquivo precisa ser reaplicado.
 CREATE OR REPLACE VIEW marts.frota_organograma AS
 SELECT sigla, count(*) AS viaturas
 FROM marts.viatura_nominal
-WHERE situacao IS DISTINCT FROM 'Descarregada'
+WHERE situacao IS NULL OR situacao NOT IN ('Descarregada', 'Devolvida')
 GROUP BY sigla;

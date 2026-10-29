@@ -1,4 +1,4 @@
-import { groupCount, paraSerie, siglasPermitidas } from "@/lib/dashboardHelpers";
+import { groupCount, paraSerie, siglasPermitidas, TODAS_AS_UNIDADES } from "@/lib/dashboardHelpers";
 
 export { groupCount, paraSerie, passaMultiSelect, siglasPermitidas } from "@/lib/dashboardHelpers";
 export { serieMensal } from "@/lib/vacinacaoDashboard";
@@ -18,26 +18,52 @@ export { serieMensal } from "@/lib/vacinacaoDashboard";
 // vazio ate isso ser resolvido - nunca preencher com dado inventado.
 
 export const MODULOS_OCORRENCIAS_DASHBOARD = [
-  { n: 1, key: "ocorrencias-visao-geral", nome: "Ocorrências — Visão Geral" },
-  { n: 2, key: "ocorrencias-aph", nome: "Ocorrências — APH" },
-  { n: 3, key: "ocorrencias-incendio", nome: "Ocorrências — Incêndio" },
-  { n: 4, key: "ocorrencias-salvamento", nome: "Ocorrências — Salvamento" },
-  { n: 5, key: "ocorrencias-prevencao", nome: "Ocorrências — Prevenção" },
-  { n: 6, key: "ocorrencias-produtos-perigosos", nome: "Ocorrências — Produtos Perigosos" },
-  { n: 7, key: "ocorrencias-geolocalizacao", nome: "Ocorrências — Geolocalização" },
-  { n: 8, key: "ocorrencias-perfil-vitimas", nome: "Ocorrências — Perfil de Vítimas" },
-  { n: 9, key: "ocorrencias-atividade-comunitaria", nome: "Ocorrências — Atividade Comunitária" },
+  { n: 1, key: "ocorrencias-visao-geral", nome: "Visão Geral" },
+  { n: 2, key: "ocorrencias-aph", nome: "APH" },
+  { n: 3, key: "ocorrencias-incendio", nome: "Incêndio" },
+  { n: 4, key: "ocorrencias-salvamento", nome: "Salvamento" },
+  { n: 5, key: "ocorrencias-prevencao", nome: "Prevenção" },
+  { n: 6, key: "ocorrencias-produtos-perigosos", nome: "Produtos Perigosos" },
+  { n: 7, key: "ocorrencias-geolocalizacao", nome: "Geolocalização" },
+  { n: 8, key: "ocorrencias-perfil-vitimas", nome: "Perfil de Vítimas" },
+  { n: 9, key: "ocorrencias-atividade-comunitaria", nome: "Atividade Comunitária" },
 ];
 
-// A checagem de escopo por subárvore da DGO (e a exclusão da DIESP) mora em
-// atividadesEspecificas.js — Mapa de Força usa o mesmo cálculo, então não
-// duplicar aqui (ver FAMILIAS_ATIVIDADES/estaNaSubarvoreDgo lá).
+export const MODULOS_OCORRENCIAS_CVI = [
+  { n: 1, key: "ocorrencias-cvi", nome: "CVI" },
+];
 
-// Restringe `ocorrencias`/`aphEstatistica` (campo `ome`) as siglas
-// permitidas - mesmo principio de filtrarPorEscopoFinancas, mas mantendo o
-// nome do dominio (evita import cruzado desnecessario entre paineis).
+// Página de cards de Ocorrências (2026-10-29): "Geral" (todas as ocorrências, as 9
+// abas acima) e "CVI" (crime violento intencional). A barra de abas do painel
+// mostra só os módulos do grupo aberto.
+export const GRUPOS_OCORRENCIAS = [
+  {
+    id: "geral",
+    nome: "Geral",
+    descricao: "Todas as ocorrências: visão geral, APH, incêndio, salvamento, prevenção, produtos perigosos, geolocalização, perfil de vítimas e atividade comunitária.",
+    modulos: MODULOS_OCORRENCIAS_DASHBOARD,
+  },
+  {
+    id: "cvi",
+    nome: "CVI",
+    descricao: "Crimes violentos intencionais atendidos pelo APH: onde, quando, contra quem e com que desfecho.",
+    modulos: MODULOS_OCORRENCIAS_CVI,
+  },
+];
+
+export const TODOS_MODULOS_OCORRENCIAS = GRUPOS_OCORRENCIAS.flatMap((g) => g.modulos);
+
+export function grupoDoModuloOcorrencias(key) {
+  return GRUPOS_OCORRENCIAS.find((g) => g.modulos.some((m) => m.key === key));
+}
+
+// Restringe os registros (campo `ome`) as siglas permitidas - mesmo principio de
+// filtrarPorEscopoFinancas. Compara sem olhar caixa: o ROE grava "GBMAR" e o
+// organograma "GBMar" (sem isso, o GBMar nunca via as proprias ocorrencias).
 export function filtrarPorEscopoOcorrencias(registros, permitidas) {
-  return registros.filter((r) => permitidas.has(r.ome));
+  if (permitidas === TODAS_AS_UNIDADES) return registros;
+  const chaves = new Set([...permitidas].map((s) => String(s).toUpperCase()));
+  return registros.filter((r) => r.ome && chaves.has(String(r.ome).toUpperCase()));
 }
 
 // "Situacao das vitimas" (aba APH): soma as 4 colunas de vitima.

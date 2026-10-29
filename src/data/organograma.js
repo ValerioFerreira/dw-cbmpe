@@ -368,6 +368,14 @@ Object.keys(METRICAS).forEach((sigla) => {
   METRICAS[sigla] = { ...METRICAS[sigla], financas: 0 };
 });
 
+// ----- Ocorrências e Mapa de Força: indicadores próprios (2026-10-29) -----
+// Ocorrências recebidas nos últimos 30 dias e militares empregados no dia que o
+// Mapa de Força abre, ambos do DW (domínios "ocorrencias" e "mapaForca"). Antes do
+// DW responder, 0.
+Object.keys(METRICAS).forEach((sigla) => {
+  METRICAS[sigla] = { ...METRICAS[sigla], ocorrencias: 0, mapaForca: 0 };
+});
+
 // ----- Overlay do DW (GET /dados/metricas, ver backend/services/dadosService.js) -----
 // Quando o backend responde (app no CapRover, dentro da rede), os números
 // dos domínios que vieram passam a ser os do DW, atualizados todo dia pelo
@@ -378,7 +386,10 @@ Object.keys(METRICAS).forEach((sigla) => {
 // unidade; o rollup continua em totaisDaSigla. No DW os adidos já contam no
 // próprio do Comando Geral (a OME ADIDOS pende dele), então não há o ajuste
 // de efetivoNaoLotado que o JSON precisa.
-const CAMPO_POR_DOMINIO = { efetivo: "efetivo", viaturas: "viaturas", financas: "financas", previsto: "efetivoPrevisto" };
+const CAMPO_POR_DOMINIO = {
+  efetivo: "efetivo", viaturas: "viaturas", financas: "financas", previsto: "efetivoPrevisto",
+  ocorrencias: "ocorrencias", mapaForca: "mapaForca",
+};
 
 // "VIEIRA DE MELO" -> "Vieira de Melo", como o organograma sempre exibiu.
 const PARTICULAS = new Set(["de", "da", "do", "das", "dos", "e"]);
@@ -596,7 +607,7 @@ function statusPorAtingimento(valor, meta) {
 // fictício e, antes disto, somava no total do Subcomando Geral. Por `id`
 // (estável), não por sigla, pra sobreviver a uma renomeação.
 const RAIZES_EM_CONSTRUCAO = new Set(['estado-maior']);
-const METRICAS_ZERO = { efetivo: 0, efetivoPrevisto: 0, viaturas: 0, financas: 0, financaPct: 0 };
+const METRICAS_ZERO = { efetivo: 0, efetivoPrevisto: 0, viaturas: 0, financas: 0, financaPct: 0, ocorrencias: 0, mapaForca: 0 };
 
 function idsEmConstrucao(nodes) {
   const ids = new Set();
@@ -611,7 +622,7 @@ function idsEmConstrucao(nodes) {
   return ids;
 }
 
-const METRICAS_PADRAO = { efetivo: 20, efetivoPrevisto: 22, viaturas: 2, financas: 40000, financaPct: 88 };
+const METRICAS_PADRAO = { efetivo: 20, efetivoPrevisto: 22, viaturas: 2, financas: 40000, financaPct: 88, ocorrencias: 0, mapaForca: 0 };
 
 // Totais agregados (própria unidade + toda a descendência), replicando a
 // lógica do organograma de referência — segue os filhos da árvore ATIVA
@@ -629,7 +640,10 @@ function totaisDaSigla(sigla, nodes, cache, siglasEmConstrucao = new Set(), sigl
   // soEla: o próprio é zero, mas o total soma as subordinadas.
   const proprio = soEla ? METRICAS_ZERO : (METRICAS[siglaDeDados(sigla)] || METRICAS_PADRAO);
   const filhos = filhosSiglas(nodes, sigla);
-  let total = { efetivo: proprio.efetivo, efetivoPrevisto: proprio.efetivoPrevisto, viaturas: proprio.viaturas, financas: proprio.financas };
+  let total = {
+    efetivo: proprio.efetivo, efetivoPrevisto: proprio.efetivoPrevisto, viaturas: proprio.viaturas, financas: proprio.financas,
+    ocorrencias: proprio.ocorrencias ?? 0, mapaForca: proprio.mapaForca ?? 0,
+  };
   let pesoFin = proprio.financaPct * proprio.efetivo;
   let pesoBase = proprio.efetivo;
   filhos.forEach((filho) => {
@@ -638,6 +652,8 @@ function totaisDaSigla(sigla, nodes, cache, siglasEmConstrucao = new Set(), sigl
     total.efetivoPrevisto += ct.efetivoPrevisto;
     total.viaturas += ct.viaturas;
     total.financas += ct.financas;
+    total.ocorrencias += ct.ocorrencias;
+    total.mapaForca += ct.mapaForca;
     pesoFin += ct.financaPct * ct.efetivo;
     pesoBase += ct.efetivo;
   });
@@ -786,22 +802,49 @@ const KPI_UNIDADE_MEDIDA = {
   Viaturas: 'viaturas',
   Materiais: '%',
   Finanças: 'R$',
+  'Mapa de Força': 'militares empregados',
+  Ocorrências: 'ocorrências (30 dias)',
   'Atividades Específicas': 'atividades',
 };
 
+// Mapa de Força e Ocorrências (indicadores próprios desde 2026-10-29, antes
+// famílias de Atividades Específicas) só existem na cadeia da DGO: Mapa de Força
+// na DGO e em toda a subárvore; Ocorrências também, menos a DIESP. A visão da
+// corporação inteira fica nos atalhos do "CBMPE - Geral" (Organograma.jsx).
+function siglasDaSubarvore(unidades, sigla) {
+  const raiz = unidades.find((u) => u.sigla === sigla);
+  if (!raiz) return new Set();
+  const siglas = new Set();
+  const visitar = (u) => {
+    siglas.add(u.sigla);
+    unidades.filter((f) => f.parent_id === u.id).forEach(visitar);
+  };
+  visitar(raiz);
+  return siglas;
+}
+export const ESCOPO_INDICADOR_OPERACIONAL = {
+  'Mapa de Força': (sigla, cadeiaDgo) => cadeiaDgo.has(sigla),
+  Ocorrências: (sigla, cadeiaDgo) => cadeiaDgo.has(sigla) && sigla !== 'DIESP',
+};
+
 // Indicadores sem meta estabelecida (não há valor de referência oficial).
-const KPI_SEM_META = new Set(['Materiais', 'Atividades Específicas']);
+const KPI_SEM_META = new Set(['Materiais', 'Mapa de Força', 'Ocorrências', 'Atividades Específicas']);
 
 function construirIndicadores(unidades, totaisPorSigla) {
   const indicadores = [];
+  const cadeiaDgo = siglasDaSubarvore(unidades, 'DGO');
   unidades.forEach((u) => {
     if (u.emConstrucao) return; // ver RAIZES_EM_CONSTRUCAO
     const totais = totaisPorSigla.get(u.sigla) || METRICAS_PADRAO;
+    const operacional = (base, valor) =>
+      (ESCOPO_INDICADOR_OPERACIONAL[base](u.sigla, cadeiaDgo) ? [{ base, valor, max: null }] : []);
     const specs = [
       { base: 'Efetivo', valor: totais.efetivo, max: null, metaReal: totais.efetivoPrevisto },
       { base: 'Viaturas', valor: totais.viaturas, max: null },
       { base: 'Materiais', valor: null, max: null },
       { base: 'Finanças', valor: totais.financas, max: null },
+      ...operacional('Mapa de Força', totais.mapaForca),
+      ...operacional('Ocorrências', totais.ocorrencias),
       { base: 'Atividades Específicas', valor: null, max: null },
     ];
     specs.forEach(({ base, valor, max, metaReal }) => {
@@ -821,8 +864,11 @@ function construirIndicadores(unidades, totaisPorSigla) {
       // Específicas: o número vem do SGAT, ainda não levantado): sem valor,
       // sem série e sem tendência. A tela mostra "Em construção".
       const semDado = valor == null;
-      const serie = semDado ? [] : gerarSerie(valor, seed, { max });
-      const { variacao, tendencia } = semDado ? { variacao: 0, tendencia: 'estavel' } : calcularVariacaoTendencia(serie);
+      // Mapa de Força e Ocorrências não ganham série gerada: sem histórico real,
+      // sem tendência (D9).
+      const semSerie = semDado || base in ESCOPO_INDICADOR_OPERACIONAL;
+      const serie = semSerie ? [] : gerarSerie(valor, seed, { max });
+      const { variacao, tendencia } = semSerie ? { variacao: 0, tendencia: 'estavel' } : calcularVariacaoTendencia(serie);
       indicadores.push({
         id: `${u.id}--${slugify(base)}`,
         nome: base,
