@@ -362,6 +362,8 @@ export async function painelOcorrencias(siglas) {
       ocorrenciaAtendida: r.ocorrencia_atendida, protocoloPresente: !!r.protocolo_presente,
       vitimasFeridas: Number(r.vitimas_feridas), vitimasFatais: Number(r.vitimas_fatais),
       vitimasIlesas: Number(r.vitimas_ilesas), vitimasDesaparecidas: Number(r.vitimas_desaparecidas),
+      // Mapa da aba Geolocalização e tabela de detalhamento (etl/dw/ddl/13, 2026-10-29).
+      roeId: r.roe_id == null ? null : String(r.roe_id), bairro: r.bairro ?? null, lat: num(r.lat), lng: num(r.lng),
     })),
     aphEstatistica: aph.rows.map((r) => ({
       ome: r.ome, diretoria: r.diretoria, genero: texto(r.genero), idade: num(r.idade),

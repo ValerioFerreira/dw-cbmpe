@@ -1,12 +1,15 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { BarChart3, ShieldAlert, ChevronRight, Calendar } from "lucide-react";
+import { BarChart3, ShieldAlert, ChevronRight, Calendar, Table2 } from "lucide-react";
 import { fmtNumero } from "@/lib/cbmpe";
 import EmptyState from "@/components/ui/empty-state";
 import CabecalhoPainel from "@/components/layout/CabecalhoPainel";
 import { usePainelOperacional } from "@/lib/usePainelOperacional";
 import { usePainelDw } from "@/lib/usePainelDw";
-import { GRUPOS_OCORRENCIAS, TODOS_MODULOS_OCORRENCIAS, grupoDoModuloOcorrencias } from "@/lib/ocorrenciasDashboard";
+import {
+  GRUPOS_OCORRENCIAS, TODOS_MODULOS_OCORRENCIAS, grupoDoModuloOcorrencias, filtrarPorEscopoOcorrencias,
+} from "@/lib/ocorrenciasDashboard";
+import { totaisOcorrencias } from "@/lib/ocorrenciasTabela";
 
 import ModuloVisaoGeral from "./ModuloVisaoGeral";
 import ModuloAph from "./ModuloAph";
@@ -44,12 +47,19 @@ const OCORRENCIAS_SEM_DADOS = {
   produtosPerigososDiagnostico: { semMatchNaBasico: 0, matchMasDataNula: 0, comData: 0 }, pendenciasSemSql: {},
 };
 
+const fmtDia = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
+
 export default function OcorrenciasPagina() {
   const { id, modulo } = useParams();
   const ctx = usePainelOperacional(id, "Ocorrências");
   const moduloInfo = modulo ? TODOS_MODULOS_OCORRENCIAS.find((m) => m.key === modulo) : null;
   const grupo = moduloInfo ? grupoDoModuloOcorrencias(moduloInfo.key) : null;
-  const dados = usePainelDw("ocorrencias", OCORRENCIAS_SEM_DADOS, !!moduloInfo && ctx.permitido);
+  // A página de cards também carrega o painel: os totais do quadro saem dele (como Finanças).
+  const dados = usePainelDw("ocorrencias", OCORRENCIAS_SEM_DADOS, ctx.permitido);
+  const totais = useMemo(
+    () => (dados.ocorrencias?.length ? totaisOcorrencias(filtrarPorEscopoOcorrencias(dados.ocorrencias, ctx.permitidas)) : null),
+    [dados, ctx.permitidas]
+  );
 
   if (ctx.loading && !ctx.encontrado) return <div className="h-96 animate-pulse rounded-xl bg-muted/40" />;
 
@@ -108,16 +118,41 @@ export default function OcorrenciasPagina() {
           </div>
         </div>
 
+        {/* Quadro do valor no padrão de Finanças: os totais à esquerda e a tabela completa
+            (com filtros por coluna e Excel) no botão à direita. */}
         <div className="flex flex-col gap-3 rounded-xl border border-primary/20 bg-card p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Ocorrências</p>
-            <p className="mt-2 flex flex-wrap items-baseline gap-x-2">
-              <span className="font-display text-[30px] font-semibold leading-none tracking-tight text-foreground">
-                {ctx.valor != null ? fmtNumero(ctx.valor) : "—"}
-              </span>
-              <span className="text-[13px] text-muted-foreground">nos últimos 30 dias</span>
-            </p>
+          <div className="w-full">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Ocorrências recebidas</p>
+            <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {[
+                { rotulo: "Total", valor: totais?.total, nota: totais?.primeiro ? `desde ${fmtDia(totais.primeiro)}` : "toda a série do ROE" },
+                { rotulo: "Últimos 30 dias", valor: totais ? totais.d30 : ctx.valor, nota: totais ? `desde ${fmtDia(totais.de30)}` : "" },
+                { rotulo: "Últimos 7 dias", valor: totais?.d7, nota: totais ? `desde ${fmtDia(totais.de7)}` : "" },
+              ].map((c) => (
+                <div key={c.rotulo} className="rounded-xl border border-border bg-card px-4 py-3">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{c.rotulo}</p>
+                  <p className="mt-1.5 font-display text-[22px] font-semibold leading-none tracking-tight text-foreground tabular-nums">
+                    {c.valor != null ? fmtNumero(c.valor) : "…"}
+                  </p>
+                  <p className="mt-1.5 min-h-[15px] text-[11px] text-muted-foreground">{c.nota}</p>
+                </div>
+              ))}
+            </div>
           </div>
+
+          <Link
+            to={`${base}/tabela`}
+            className="group flex shrink-0 items-center gap-3 self-start rounded-xl border border-border bg-card px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm sm:self-center"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary">
+              <Table2 className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-[12px] font-semibold text-foreground">Exibir tabela com detalhes das ocorrências</p>
+              <p className="text-[11px] text-muted-foreground">Lista completa, com filtros por coluna e download</p>
+            </div>
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5" />
+          </Link>
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

@@ -185,7 +185,7 @@ export default function ModuloCvi({ cvi, populacao = [], permitidas, bloqueado, 
     return [...porLocal.values()].sort((a, b) => b.valor - a.valor).slice(0, 10);
   }, [ocorrencias, filtros.cidades]);
   const porOme = useMemo(() => serieOrdenada(contar(ocorrencias, (o) => o.ome)), [ocorrencias]);
-  const pontos = useMemo(() => ocorrencias.map((o) => ({ lat: o.lat, lng: o.lng, rotulo: o.local })), [ocorrencias]);
+  const pontos = useMemo(() => ocorrencias.map((o) => ({ lat: o.lat, lng: o.lng, rotulo: o.local, cidade: o.cidade })), [ocorrencias]);
 
   // População do IBGE (estimativa mais recente, marts.populacao_municipio) por município:
   // taxa de CVI por 100 mil habitantes, ao lado do total no ranking do mapa. O período da

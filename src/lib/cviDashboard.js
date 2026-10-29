@@ -48,6 +48,11 @@ export function derivarCvi(r) {
 // Link para a tabela de detalhamento. `params`: { chave: valor | [valores] } com as
 // chaves das colunas da tabela (CviTabela.jsx), mais `de`/`ate` do período.
 export function linkCviTabela(base, params) {
+  return linkTabela(`${base}/cvi/tabela`, params);
+}
+
+// Mesma montagem de URL para qualquer tabela de detalhamento (CVI e Ocorrências).
+export function linkTabela(caminho, params) {
   const sp = new URLSearchParams();
   Object.entries(params).forEach(([chave, valor]) => {
     if (valor === null || valor === undefined || valor === "") return;
@@ -56,5 +61,5 @@ export function linkCviTabela(base, params) {
     sp.set(chave, lista.join(","));
   });
   const qs = sp.toString();
-  return `${base}/cvi/tabela${qs ? `?${qs}` : ""}`;
+  return `${caminho}${qs ? `?${qs}` : ""}`;
 }

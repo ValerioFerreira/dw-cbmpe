@@ -123,7 +123,15 @@ SELECT to_char(data_recebimento, 'YYYY-MM-DD"T"HH24:MI:SS') AS data,
        coalesce(qtde_vitimas_ilesas, 0)       AS vitimas_ilesas,
        coalesce(qtde_vitimas_desaparecidas, 0) AS vitimas_desaparecidas,
        stg.normalizar_sigla(stg.ome_roe(ome)) AS ome_norm,
-       stg.normalizar_sigla(stg.ome_roe(diretoria)) AS diretoria_norm
+       stg.normalizar_sigla(stg.ome_roe(diretoria)) AS diretoria_norm,
+       -- 2026-10-29: mapa da aba Geolocalizacao e tabela de detalhamento. Mesmo
+       -- cuidado do painel CVI (ddl/24): bairro sim, rua e numero nao; coordenada
+       -- arredondada a 3 casas (~100 m). Colunas no fim: CREATE OR REPLACE VIEW so
+       -- aceita coluna nova depois das existentes.
+       roe_id,
+       nullif(initcap(trim(logradouro_bairro)), '') AS bairro,
+       round(logradouro_latitude::numeric, 3)  AS lat,
+       round(logradouro_longitude::numeric, 3) AS lng
 FROM raw_roe.roe_basico_ocorrencias;
 
 CREATE OR REPLACE VIEW marts.painel_roe_aph AS

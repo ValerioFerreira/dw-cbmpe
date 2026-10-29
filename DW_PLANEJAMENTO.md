@@ -22,6 +22,21 @@
 
 ## Estado atual — onde retomar (atualizado 2026-10-06)
 
+> **2026-10-29 (noite) — Mapa na Geolocalização, coordenadas coerentes e planilha de Ocorrências.**
+> (1) **A aba Geolocalização nunca teve mapa:** desde a integração (set/2026) era só o ranking por
+> cidade, com o coroplético "para a próxima rodada". Agora tem o mesmo mapa do CVI (por município, com
+> taxa por 100 mil hab., e pontos de concentração), com drill-down para a tabela. Para os pontos,
+> `marts.painel_roe_ocorrencia` (`ddl/13`, **reaplicada no DW**) ganhou `roe_id`, bairro e `lat`/`lng`
+> arredondadas a ~100 m (36.030 de 41.485 com coordenada). (2) **Pontos fora de PE:** o filtro era só o
+> retângulo do estado. `src/lib/coordenadaPe.js` exige o ponto dentro de um município de PE (folga de
+> 1 km: praia, margem do São Francisco) e a até 10 km do município informado — corta GPS de outro estado,
+> coordenada truncada (-7, -38) e geocodificação no município errado (~1.075 pontos além dos 2.948 que já
+> caíam fora do retângulo). Vale para o mapa do CVI também. Grafias ROE × IBGE reconciliadas: Belém do/de
+> São Francisco, Lagoa de/do Itaenga, Iguaracy/Iguaraci. (3) **Planilha de Ocorrências** no padrão de
+> Efetivo/Viaturas/Finanças: o quadro da página do indicador mostra total, últimos 30 e últimos 7 dias,
+> com o botão da tabela `/ocorrencias/:id/tabela` à direita (filtro por coluna, Excel). **Vercel:** o
+> snapshot publicado ainda não tem as coordenadas — entram na próxima publicação.
+
 > **2026-10-29 (tarde) — Mapa de Força no dia atual, população do IBGE e drill-down do CVI.**
 > (1) **Mapa de Força desatualizado era frescor, não regra:** a carga das 05:30 traz o dia corrente só
 > com o que já foi lançado (29/10: 29 de 253 lançamentos; 4 de 103 viaturas). Novo modo

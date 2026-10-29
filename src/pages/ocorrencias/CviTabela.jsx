@@ -23,7 +23,7 @@ const simNao = (v) => (v == null ? null : v ? "Sim" : "Não");
 // visualização — ver linkCviTabela em src/lib/cviDashboard.js.
 const COLUNAS = [
   { chave: "protocolo", rotulo: "Ocorrência", filtravel: false, largura: 100, bruto: (r) => r.roeId },
-  { chave: "data", rotulo: "Data e hora", filtravel: false, largura: 150,
+  { chave: "data", rotulo: "Data e hora", filtravel: false, largura: 170,
     bruto: (r) => r.data, especial: (r) => (r.data ? `${r.data.slice(8, 10)}/${r.data.slice(5, 7)}/${r.data.slice(0, 4)} ${r.data.slice(11, 16)}` : "—") },
   { chave: "mes", rotulo: "Mês", filtravel: true, largura: 80, bruto: (r) => r.mes },
   { chave: "diaSemana", rotulo: "Dia da semana", filtravel: true, largura: 120, bruto: (r) => r.diaSemana },
