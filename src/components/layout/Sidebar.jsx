@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import {
   Network, Clock, ChevronRight, ChevronDown, ChevronLeft,
   Bell, X, ShieldCheck
@@ -87,38 +87,51 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen = fals
       <aside
         className={`no-print z-40 flex h-screen shrink-0 flex-col bg-[#970706] text-white transition-[transform,width] duration-300 ${posicaoClasse} ${larguraClasse} ${transformClasse}`}
       >
-        {/* Logo */}
-        <div className={`flex h-16 items-center gap-2.5 px-4 ${recolhido ? "justify-center" : ""}`}>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/95 p-1 shadow-sm ring-1 ring-white/40">
-            <img src="/brasao-cbmpe.png" alt="Brasão do CBMPE" className="h-full w-full object-contain" />
-          </div>
-          {!recolhido && (
-            <div className="min-w-0 flex-1 leading-tight">
-              <p className="truncate text-[13px] font-semibold tracking-tight text-white">CBMPE</p>
-              <p className="truncate text-[11px] font-normal text-white/60">Painel de Controle</p>
+        {/* Logo do RADAR (2026-10-29) numa faixa no topo, no lugar do nome do sistema, na
+            cor do fundo da página (#F5F5F5). O PNG tem fundo branco: `mix-blend-mode:
+            multiply` faz o branco assumir a cor da faixa. A logo leva ao organograma.
+            Recolhido (68px) a logo não cabe: fica o brasão. */}
+        {recolhido ? (
+          <div className="flex h-16 items-center justify-center px-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/95 p-1 shadow-sm ring-1 ring-white/40">
+              <img src="/brasao-cbmpe.png" alt="Brasão do CBMPE" className="h-full w-full object-contain" />
             </div>
-          )}
-          {/* Fechar (mobile/tablet) */}
-          {!isDesktop && (
-            <button
-              onClick={onCloseMobile}
-              aria-label="Fechar menu"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+          </div>
+        ) : (
+          <div className="relative flex items-center justify-center bg-[#F5F5F5] px-6 py-3">
+            <Link
+              to="/organograma"
+              aria-label="Ir para o organograma"
+              className="group block w-full max-w-[190px] rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#970706]/40"
             >
-              <X className="h-4.5 w-4.5" />
-            </button>
-          )}
-          {/* Recolher (desktop) */}
-          {isDesktop && !recolhido && (
-            <button
-              onClick={onToggleCollapse}
-              aria-label="Recolher menu"
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white/60 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-          )}
-        </div>
+              <img
+                src="/radar-logo.png"
+                alt="RADAR — Rede de Análise de Dados e Acompanhamento de Resultados"
+                className="h-auto w-full mix-blend-multiply transition-transform duration-300 ease-out group-hover:scale-[1.06]"
+              />
+            </Link>
+            {/* Fechar (mobile/tablet) */}
+            {!isDesktop && (
+              <button
+                onClick={onCloseMobile}
+                aria-label="Fechar menu"
+                className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-200 hover:text-neutral-700"
+              >
+                <X className="h-4.5 w-4.5" />
+              </button>
+            )}
+            {/* Recolher (desktop) */}
+            {isDesktop && (
+              <button
+                onClick={onToggleCollapse}
+                aria-label="Recolher menu"
+                className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-200 hover:text-neutral-700"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        )}
         {isDesktop && recolhido && (
           <button
             onClick={onToggleCollapse}
